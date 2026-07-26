@@ -1,0 +1,9 @@
+{
+  "node": "24.18.0",
+  "pnpm": "11.17.0",
+  "rust": "1.97.1",
+  "dotnetSdk": "10.0.201",
+  "dotnetRuntime": "10.0",
+  "powershellMinimum": "7.6.0",
+  "schemaVersion": 1
+}

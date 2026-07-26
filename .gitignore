@@ -1,0 +1,31 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.user
+
+# JavaScript
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+
+# Rust
+target/
+
+# .NET
+bin/
+obj/
+
+# Editors and operating system
+.idea/
+.vs/
+.vscode/*
+!.vscode/extensions.json
+Thumbs.db
+.DS_Store
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
