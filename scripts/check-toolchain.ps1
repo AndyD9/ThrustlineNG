@@ -93,7 +93,7 @@ function Read-TrimmedFile {
 try {
     $rawVersions = Get-Content -Raw -LiteralPath $VersionsFile
     $versions = $rawVersions | ConvertFrom-Json
-    $requiredProperties = @('node', 'pnpm', 'rust', 'dotnetSdk', 'dotnetRuntime', 'powershellMinimum', 'schemaVersion')
+    $requiredProperties = @('node', 'pnpm', 'rust', 'tauri', 'tauriBuild', 'tauriCli', 'dotnetSdk', 'dotnetRuntime', 'powershellMinimum', 'schemaVersion')
     foreach ($property in $requiredProperties) {
         if ($null -eq $versions.PSObject.Properties[$property] -or [string]::IsNullOrWhiteSpace([string]$versions.$property)) {
             throw "Propriété obligatoire absente : $property"
@@ -113,6 +113,8 @@ try {
     $package = Get-Content -Raw -LiteralPath (Join-Path $repositoryRoot 'package.json') | ConvertFrom-Json
     $globalJson = Get-Content -Raw -LiteralPath (Join-Path $repositoryRoot 'global.json') | ConvertFrom-Json
     $rustToolchain = Get-Content -Raw -LiteralPath (Join-Path $repositoryRoot 'rust-toolchain.toml')
+    $desktopPackage = Get-Content -Raw -LiteralPath (Join-Path $repositoryRoot 'apps/desktop/package.json') | ConvertFrom-Json
+    $desktopCargo = Get-Content -Raw -LiteralPath (Join-Path $repositoryRoot 'apps/desktop/src-tauri/Cargo.toml')
     $nativePins = @(
         @{ Name = '.node-version'; Expected = $versions.node; Actual = Read-TrimmedFile '.node-version' },
         @{ Name = '.nvmrc'; Expected = $versions.node; Actual = Read-TrimmedFile '.nvmrc' },
@@ -140,6 +142,24 @@ try {
         Add-Result 'rust-toolchain.toml' 'ok' $versions.rust $rustPin 'Pin cohérent.'
     } else {
         Add-Result 'rust-toolchain.toml' 'wrong_version' $versions.rust $rustPin 'Pin incohérent avec eng/versions.json.'
+    }
+    foreach ($tauriPin in @(
+        @{ Name = 'tauri crate'; Expected = "=$($versions.tauri)"; Pattern = 'tauri\s*=\s*\{[^}]*version\s*=\s*"([^"]+)"' },
+        @{ Name = 'tauri-build crate'; Expected = "=$($versions.tauriBuild)"; Pattern = 'tauri-build\s*=\s*(?:\{[^}]*version\s*=\s*)?"([^"]+)"' }
+    )) {
+        $match = [regex]::Match($desktopCargo, $tauriPin.Pattern)
+        $actual = if ($match.Success) { $match.Groups[1].Value } else { '' }
+        if ($actual -eq $tauriPin.Expected) {
+            Add-Result $tauriPin.Name 'ok' $tauriPin.Expected $actual 'Pin Tauri cohérent.'
+        } else {
+            Add-Result $tauriPin.Name 'wrong_version' $tauriPin.Expected $actual 'Pin Tauri incohérent.'
+        }
+    }
+    $tauriCliActual = [string]$desktopPackage.devDependencies.'@tauri-apps/cli'
+    if ($tauriCliActual -eq [string]$versions.tauriCli) {
+        Add-Result 'Tauri CLI' 'ok' $versions.tauriCli $tauriCliActual 'Pin Tauri CLI cohérent.'
+    } else {
+        Add-Result 'Tauri CLI' 'wrong_version' $versions.tauriCli $tauriCliActual 'Pin Tauri CLI incohérent.'
     }
 } catch {
     Add-Result 'native_pins' 'unexpected_error' 'pins lisibles' '' "Impossible de contrôler les pins : $($_.Exception.Message)"

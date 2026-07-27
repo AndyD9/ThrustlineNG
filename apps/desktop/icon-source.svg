@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Thrustline">
+  <rect width="512" height="512" rx="112" fill="#07111f"/>
+  <path d="M96 276h133l58-134h54l-27 134h102l-26 52h-87l-20 92h-54l8-92H96z" fill="#42d392"/>
+  <path d="M96 276h320" stroke="#f4f7fb" stroke-width="18" stroke-linecap="round"/>
+</svg>
