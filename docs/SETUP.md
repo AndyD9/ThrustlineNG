@@ -77,3 +77,29 @@ Une mise à jour n'est jamais automatique :
 6. exécuter le contrôle, le bootstrap et les tests ;
 7. mesurer et documenter les impacts ;
 8. conserver comme rollback le commit précédent.
+
+## Shell desktop Tauri
+
+Le shell T0007 exige WebView2 Evergreen et les outils épinglés ci-dessus. Il
+n'installe aucun runtime, plugin ou outil global.
+
+```powershell
+pnpm desktop:check
+pnpm desktop:test
+pnpm desktop:dev
+pnpm desktop:build
+pnpm desktop:measure
+```
+
+`desktop:measure` écrit uniquement dans `artifacts/t0007`. Pour choisir un autre
+emplacement explicite :
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File .\scripts\measure-tauri-shell.ps1 `
+  -OutputDirectory .\artifacts\ma-mesure
+```
+
+WebView2 Evergreen est fourni avec Windows 11 et se met à jour séparément. S'il
+manque, installer le runtime avec la procédure Microsoft officielle ; le shell
+ne le télécharge et ne le répare jamais automatiquement.

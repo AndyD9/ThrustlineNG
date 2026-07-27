@@ -1,0 +1,67 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #07111f;
+  color: #f4f7fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at top, #193451 0, #07111f 58%);
+}
+
+main {
+  width: min(90vw, 32rem);
+  padding: 3rem;
+  border: 1px solid #31506d;
+  border-radius: 1rem;
+  background: #0c1a2a;
+  box-shadow: 0 1.5rem 4rem #02081280;
+}
+
+.eyebrow,
+.version {
+  color: #aabbd0;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0.4rem 0;
+  font-size: clamp(2.5rem, 9vw, 4.5rem);
+  line-height: 1;
+}
+
+.version {
+  margin: 0 0 2rem;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-weight: 700;
+}
+
+.status span {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #42d392;
+  box-shadow: 0 0 0.8rem #42d392;
+}

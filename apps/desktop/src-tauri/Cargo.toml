@@ -1,0 +1,25 @@
+[package]
+name = "thrustline-desktop"
+version = "0.0.0"
+description = "Minimal Thrustline desktop shell"
+edition = "2024"
+rust-version = "1.97.1"
+license = "UNLICENSED"
+publish = false
+
+[lib]
+name = "thrustline_desktop_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "=2.6.3", features = [] }
+
+[dependencies]
+tauri = { version = "=2.11.5", default-features = false, features = ["wry"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
