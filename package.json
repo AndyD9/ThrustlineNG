@@ -13,7 +13,11 @@
     "frontend:test": "pnpm --dir apps/desktop test:frontend",
     "frontend:coverage": "pnpm --dir apps/desktop coverage",
     "frontend:build": "pnpm --dir apps/desktop build",
-    "frontend:measure": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/measure-frontend.ps1 -OutputDirectory ./artifacts/t0008"
+    "frontend:measure": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/measure-frontend.ps1 -OutputDirectory ./artifacts/t0008",
+    "bridge:build": "dotnet build ThrustlineNG.slnx --configuration Release",
+    "bridge:test": "dotnet run --project tests/bridge/Thrustline.Bridge.Tests.csproj --configuration Release",
+    "bridge:health": "dotnet run --project apps/bridge/Thrustline.Bridge.csproj --configuration Release -- --health-check",
+    "bridge:publish": "dotnet publish apps/bridge/Thrustline.Bridge.csproj --configuration Release --runtime win-x64 --self-contained true"
   },
   "engines": {
     "node": "24.18.0",

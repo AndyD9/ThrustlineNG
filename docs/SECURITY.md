@@ -29,3 +29,17 @@ La CSP de production n'autorise ni Internet, ni `unsafe-inline`, ni
 `unsafe-eval`. L'écran d'erreur masque l'erreur, la stack et les chemins locaux.
 Les tests bloquent tout assouplissement des capabilities, commandes IPC,
 ressources distantes et garanties CSP.
+
+## Bridge .NET T0009
+
+Le bridge minimal n'ouvre aucune frontière :
+
+- aucune écoute réseau, socket, requête ou IPC ;
+- aucune lecture de secret, variable métier ou fichier utilisateur ;
+- aucune dépendance NuGet tierce et sources de packages désactivées ;
+- diagnostic `--health-check` constant, sans détail d'environnement ;
+- arguments inconnus rejetés sans les recopier ;
+- aucun lien avec Tauri ou SimConnect.
+
+Le lancement authentifié et le contrat local appartiennent à T0010. Ils devront
+considérer le processus desktop et le bridge comme mutuellement non fiables.
