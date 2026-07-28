@@ -172,6 +172,27 @@ la casse du contrat JSON ; tous ont été corrigés. Une tentative a été bloqu
 l'accès sandbox à `NuGet.Config`, puis la même commande a réussi avec l'accès
 autorisé.
 
+Vérification réexécutée le 28 juillet 2026 depuis `main` :
+
+- `dotnet build .\ThrustlineNG.slnx --configuration Release` : réussi,
+  0 avertissement et 0 erreur ;
+- `dotnet run --project .\tests\bridge\Thrustline.Bridge.Tests.csproj
+  --configuration Release --no-build` : 13/13 scénarios réussis ;
+- `dotnet publish .\apps\bridge\Thrustline.Bridge.csproj --configuration Release
+  --runtime win-x64 --self-contained true` : réussi après autorisation de lecture
+  du `NuGet.Config` utilisateur par le bac à sable ;
+- `pnpm.cmd frontend:typecheck` et `pnpm.cmd frontend:test` : réussis,
+  3 fichiers et 8/8 tests frontend réussis ;
+- `pnpm.cmd desktop:check` : réussi, typecheck, format Rust, `cargo check` et
+  Clippy sans avertissement ;
+- `pnpm.cmd desktop:test` : réussi, 8/8 tests frontend, 2/2 tests Rust et
+  invariants du shell conformes ;
+- `git diff --check` : réussi ; aucun fichier suivi modifié par les validations.
+
+Les deux premiers appels `pnpm` sans suffixe `.cmd` ont été bloqués avant
+exécution par la politique PowerShell locale ; les mêmes scripts ont réussi via
+le lanceur Windows `pnpm.cmd`.
+
 ### Replay verification
 
 La fixture s'est rejouée dans l'ordre avec huit séquences et des timestamps
@@ -223,13 +244,15 @@ et ticket.
 - commit d'implémentation : `454fe1e` ;
 - remote et branche principale : `origin`, `main` ;
 - push : réussi, suivi distant configuré ;
-- PR T0011 : https://github.com/AndyD9/ThrustlineNG/pull/11, brouillon,
-  `MERGEABLE`, base `foundation/t0010-local-contract`, 15 fichiers strictement
-  T0011 et aucun check GitHub déclaré au relevé ;
+- PR T0011 : https://github.com/AndyD9/ThrustlineNG/pull/11, fusionnée dans
+  `foundation/t0010-local-contract` par `b44c9d1`, 15 fichiers strictement T0011
+  et aucun check GitHub déclaré ;
 - PR de rattrapage T0010 : https://github.com/AndyD9/ThrustlineNG/pull/10,
-  prête, `MERGEABLE`, base `main` ;
+  fusionnée dans `main` par `26cbcbf` ;
 - raison de l'empilement : la PR T0010 précédente avait été fusionnée dans T0009
   après l'intégration de T0009 à `main`, donc ses commits n'étaient pas dans
   `main` ;
+- état relevé le 28 juillet 2026 : `main` contient T0011 par ces deux merges ;
+  le statut reste `Verify` jusqu'aux validations MSFS Store et Steam ;
 - modifications préexistantes exclues : aucune ;
-- merge non effectué, réservé à Andy.
+- aucun merge effectué pendant cette réconciliation.
