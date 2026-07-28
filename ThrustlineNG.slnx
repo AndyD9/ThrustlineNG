@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/apps/">
+    <Project Path="apps/bridge/Thrustline.Bridge.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/bridge/Thrustline.Bridge.Tests.csproj" />
+  </Folder>
+</Solution>

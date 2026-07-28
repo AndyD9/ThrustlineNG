@@ -122,3 +122,19 @@ pnpm frontend:measure
 occupé. Le routeur utilise le fragment d'URL (`#/`) pour fonctionner sans
 réécriture serveur. `frontend:measure` écrit dans `artifacts/t0008`, ignoré par
 Git, et effectue cinq lancements froids, cinq chauds et dix cycles de fermeture.
+
+## Bridge .NET
+
+Le bridge T0009 ne requiert ni secret, ni service, ni package NuGet tiers :
+
+```powershell
+pnpm bridge:build
+pnpm bridge:test
+pnpm bridge:health
+pnpm bridge:publish
+```
+
+La dernière commande produit le dossier autonome Windows x64 sous
+`apps/bridge/bin/Release/net10.0/win-x64/publish`. Lancez
+`Thrustline.Bridge.exe --health-check` pour un diagnostic ponctuel ou sans
+argument pour observer son cycle de vie. Ctrl+C demande un arrêt propre.
