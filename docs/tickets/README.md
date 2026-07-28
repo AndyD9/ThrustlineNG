@@ -24,7 +24,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0008 | Créer le frontend React minimal | 1 | T0006–T0007 | Blocked |
 | T0009 | Créer le bridge .NET minimal | 1 | T0006 | Done |
 | T0010 | Établir le contrat local et le health check | 1 | T0007–T0009 | Done |
-| T0011 | Créer l'adaptateur SimConnect et le replay | 1–3 | T0009–T0010 | Backlog |
+| T0011 | Créer l'adaptateur SimConnect et le replay | 1–3 | T0009–T0010 | Verify |
 | T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Backlog |
 | T0013 | Consolider la CI multi-stack | 1 | T0006–T0012 | Backlog |
 | T0014 | Valider le packaging Windows non signé | 1 | T0007–T0013 | Backlog |
@@ -32,5 +32,6 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009,
 mais leurs statuts documentaires restent inchangés tant que leurs vérifications
-humaines ne sont pas closes. T0010 est le prochain ticket technique recommandé :
-il reliera le shell et le bridge par un contrat local authentifié.
+humaines ne sont pas closes. T0011 possède un replay synthétique automatisé et
+reste en vérification jusqu'au test réel MSFS 2024. T0012 est le prochain ticket
+technique indépendant recommandé.

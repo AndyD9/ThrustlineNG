@@ -18,7 +18,7 @@ Statut : `Open`, `Accepted`, `Scheduled`, `Resolved`, `Invalid`.
 | KI-001 | High | Data | Certaines mutations métier sont encore effectuées directement par le client. | Audit initial | Phase 2 | Open |
 | KI-002 | High | Quality | Absence de suite automatisée RLS A/B/anonyme. | Audit initial | Phase 1–2 | Open |
 | KI-003 | High | Release | Pas de pipeline complet d'artefacts/updater signés. | Audit initial | Phase 6 | Open |
-| KI-004 | Medium | Bridge | Pas de projet de tests .NET/replay SimConnect constaté. | Audit initial | Phase 3 | Open |
+| KI-004 | Medium | Bridge | Pas de projet de tests .NET/replay SimConnect constaté. | T0011 ajoute un harnais .NET et un replay synthétique versionné | T0011 | Resolved |
 | KI-005 | Medium | Frontend | Plusieurs pages mélangent UI, règles et accès aux données. | Audit initial | Phase 4 | Open |
 | KI-006 | Medium | Docs | Documentation historique partiellement désynchronisée. | Audit initial | T0001 | Open |
 | KI-007 | Medium | Product | Mode solo ou VA collaborative non tranché. | ADR-0001 : MVP solo préparé pour collaboration ultérieure | T0002 | Resolved |

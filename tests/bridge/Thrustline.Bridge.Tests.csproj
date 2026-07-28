@@ -6,4 +6,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\apps\bridge\Thrustline.Bridge.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\traces\synthetic-golden-flight.jsonl"
+             Link="traces\synthetic-golden-flight.jsonl"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
