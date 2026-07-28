@@ -17,6 +17,7 @@ try
 {
     return await BridgeApplication.RunAsync(
         args,
+        Console.In,
         Console.Out,
         Console.Error,
         shutdown.Token);

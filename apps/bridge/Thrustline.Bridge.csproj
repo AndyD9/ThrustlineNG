@@ -8,4 +8,7 @@
     <AssemblyName>Thrustline.Bridge</AssemblyName>
     <RootNamespace>Thrustline.Bridge</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 </Project>

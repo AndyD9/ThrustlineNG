@@ -1,5 +1,13 @@
 # Architecture du desktop
 
+## Contrat local T0010
+
+Tauri crée un jeton d'instance aléatoire de 256 bits et réserve un port
+dynamique, puis lance le bridge .NET. Le bridge écoute uniquement sur
+`127.0.0.1` et expose `GET /api/v1/health` et `/hubs/v1/bridge`. Chaque requête
+porte `X-Thrustline-Instance`. Le jeton reste natif et la fermeture de la fenêtre
+termine le processus enfant.
+
 Le processus Rust/Tauri possède la fenêtre native et charge exclusivement le
 build Vite local de `apps/desktop/dist`. Sous Windows, WRY s'appuie sur WebView2
 Evergreen ; aucun Chromium ni runtime WebView2 Fixed Version n'est embarqué.

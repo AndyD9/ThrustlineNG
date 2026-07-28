@@ -204,12 +204,19 @@ ne contient ni SimConnect, ni secret, ni donnée métier.
 La publication vérifiée contient 191 fichiers pour environ 80,5 Mo. Cette mesure
 est informative ; T0015 fixera les budgets.
 
+## Contrat local
+
+T0010 ajoute un serveur ASP.NET Core lié à `127.0.0.1`, un health check REST
+versionné et une surface SignalR vide. Chaque requête exige un jeton éphémère de
+256 bits créé par Tauri. Le desktop lance et termine le bridge sans exposer le
+jeton à la WebView. SimConnect, les données métier et la reconnexion après crash
+restent absents.
+
 ## Prochain ticket recommandé
 
-`T0010 — Établir le contrat local et le health check` doit lancer et superviser
-le bridge depuis Tauri, authentifier chaque instance, puis définir les surfaces
-REST/SignalR minimales et leur récupération. Il ne doit pas encore introduire
-SimConnect ou de logique métier.
+`T0011 — Créer l'adaptateur SimConnect et le replay` doit isoler le SDK officiel
+derrière une interface testable et introduire des traces synthétiques, sans
+connecter encore de logique économique.
 
 ## Mise à jour de ce fichier
 

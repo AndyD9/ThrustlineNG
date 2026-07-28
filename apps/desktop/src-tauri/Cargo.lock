@@ -3080,6 +3080,7 @@ dependencies = [
 name = "thrustline-desktop"
 version = "0.0.0"
 dependencies = [
+ "getrandom 0.3.4",
  "tauri",
  "tauri-build",
 ]
