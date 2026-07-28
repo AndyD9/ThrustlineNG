@@ -179,4 +179,12 @@ L'envoi Ctrl+C depuis une console Windows native est délégué à la revue.
 
 ### Git and GitHub result
 
-À compléter après commit, push et création de la Pull Request.
+- branche : `foundation/t0009-dotnet-bridge` ;
+- commit d'implémentation : `01617ef` ;
+- remote : `origin` (`https://github.com/AndyD9/ThrustlineNG.git`) ;
+- cible : `main` ;
+- push : réussi, suivi distant configuré ;
+- PR : https://github.com/AndyD9/ThrustlineNG/pull/5, ouverte et prête pour revue ;
+- état initial GitHub : mergeable, aucun check déclaré ;
+- modifications préexistantes exclues : aucune ;
+- merge non effectué, réservé à Andy.
