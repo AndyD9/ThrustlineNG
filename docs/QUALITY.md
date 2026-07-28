@@ -1,4 +1,21 @@
-# Qualité du desktop
+# Qualité du dépôt
+
+## Toolchain et bootstrap
+
+Depuis la racine, avec PowerShell 7.6 ou plus récent :
+
+```powershell
+pwsh -NoProfile -File .\scripts\check-toolchain.ps1
+pwsh -NoProfile -File .\scripts\check-toolchain.ps1 -Json
+pwsh -NoProfile -File .\tests\toolchain\run.ps1
+pwsh -NoProfile -File .\scripts\bootstrap.ps1 -CheckOnly
+```
+
+Le harnais utilise un dépôt synthétique qui doit contenir tous les manifests lus
+par `check-toolchain.ps1`. Toute extension du contrôle de pins doit mettre à jour
+ce fixture et ajouter ou préserver un scénario d'échec associé.
+
+## Desktop et bridge
 
 Le harnais bridge couvre le parsing strict, les jetons absents/incorrects, la
 réponse REST versionnée et la négociation SignalR. Il couvre aussi les bornes des

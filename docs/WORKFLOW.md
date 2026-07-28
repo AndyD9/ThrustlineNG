@@ -46,9 +46,9 @@ frontière ou absence de preuve = retour en Draft.
 
 1. Lire `AGENTS.md`, `CURRENT_STATE.md`, le ticket et les docs liées.
 2. Vérifier l'état Git et préserver les changements existants.
-3. Déterminer la branche `type/TXXXX-slug`, puis demander à Andy une confirmation
-   explicite avant de la créer ou d'y basculer. Si elle est déjà active, le
-   signaler sans la recréer.
+3. Déterminer la branche `type/TXXXX-slug`, puis la créer ou y basculer après
+   avoir préservé et signalé les changements préexistants. Si elle est déjà
+   active, ne pas la recréer.
 4. Inspecter le code réel.
 5. Implémenter seulement le ticket.
 6. Exécuter d'abord les tests ciblés, puis les gates applicables.
@@ -82,19 +82,18 @@ la faire et sur quel environnement ; le ticket reste `Verify`.
 3. Ajouter les problèmes différés dans `KNOWN_ISSUES.md`.
 4. Mettre à jour une ADR seulement par une nouvelle ADR qui la remplace.
 5. Préparer le handoff Git avec les fichiers exacts du ticket.
-6. Faire relire à Andy le diff indexé avant commit.
-7. Fusionner après checks et revue.
+6. Vérifier le diff indexé, committer, pousser et ouvrir ou mettre à jour la PR.
+7. Faire relire la PR à Andy ; lui seul peut décider et effectuer le merge.
 8. Choisir le prochain ticket Ready.
 
 ## Handoff Git de fin de ticket
 
-Codex doit terminer chaque ticket par des commandes adaptées à l'état réel du
-dépôt. Après revue du diff indexé, il peut proposer d'exécuter le commit et le
-push, mais doit obtenir la confirmation explicite d'Andy immédiatement avant
-ces actions et annoncer la branche, le remote et le message de commit exacts.
-L'accord donné pour créer la branche au début du ticket ne vaut pas accord pour
-la publier. Il ne doit jamais proposer une commande globale qui embarquerait des
-changements sans rapport.
+Codex termine chaque ticket avec des commandes adaptées à l'état réel du dépôt.
+Après revue du diff indexé, il exécute de manière autonome le commit, le push et
+la création ou mise à jour de la Pull Request. Il annonce la branche, le remote,
+la base réelle de la PR et le message de commit exacts. Il ne doit jamais
+proposer ni exécuter une commande globale qui embarquerait des changements sans
+rapport.
 
 Exemple de structure à adapter :
 
@@ -130,9 +129,9 @@ Avant de fournir ce bloc, Codex doit remplacer tous les exemples par les valeurs
 réelles. S'il existe des fichiers modifiés hors ticket, il doit les lister
 séparément et confirmer qu'ils ne figurent pas dans `git add`.
 
-Si Andy confirme la publication, Codex peut exécuter les commandes de commit et
-de push correspondantes, puis inclure leur résultat dans le rapport final. Toute
-création de PR ou fusion exige une confirmation distincte.
+Codex inclut les résultats du commit, du push et de la Pull Request dans le
+rapport final. Seule la fusion exige une confirmation explicite d'Andy et ne doit
+jamais être exécutée par l'agent.
 
 Si GitHub demande un mot de passe HTTPS, ne pas utiliser le mot de passe du
 compte. Configurer GitHub CLI depuis PowerShell :

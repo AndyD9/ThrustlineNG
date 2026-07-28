@@ -1,24 +1,21 @@
 # T0007 — Créer le shell Tauri minimal et mesurer son empreinte
 
-Status: Blocked
+Status: Verify
 Owner: Andy
 Branch: `foundation/t0007-tauri-shell`
 Phase: 1
 Risk: High
 Security-sensitive: Yes
 
-## Blockers
+## Réconciliation du suivi — 28 juillet 2026
 
-T0007 ne peut passer à `Ready` que lorsque :
+L'implémentation a été fusionnée dans `main` par la PR #2 le 27 juillet 2026.
+La baseline prouve une fenêtre visible, cinq lancements froids, cinq chauds et
+dix fermetures sans processus orphelin.
 
-- T0005 est `Done` ;
-- T0006 est `Done` dans le nouveau dépôt ;
-- les pins Node, pnpm et Rust sont vérifiés par le bootstrap T0006 ;
-- le nouveau dépôt et sa branche principale sont publiés ;
-- Andy a confirmé explicitement la création ou la bascule vers
-  `foundation/t0007-tauri-shell`.
-
-La confirmation de branche ne vaut pas confirmation du commit ou du push final.
+Le ticket reste `Verify` : T0006 n'est pas encore `Done`, l'absence de WebView2
+n'a pas été testée sur une VM propre et la checklist interactive complète
+(titre, redimensionnement, zoom et console/réseau) n'a pas été consignée.
 
 ## Goal
 
@@ -371,24 +368,24 @@ Dans l'ancien dépôt :
 ## Acceptance criteria
 
 - [ ] T0006 est `Done`.
-- [ ] Le travail est réalisé sur `foundation/t0007-tauri-shell`.
-- [ ] Le contrôle de toolchain T0006 reste vert.
-- [ ] Les versions Tauri/Rust correspondent exactement à ADR-0004.
-- [ ] Le shell affiche une page locale statique sans framework.
-- [ ] Aucun plugin Tauri n'est activé.
-- [ ] Aucune commande IPC applicative n'est exposée.
-- [ ] Les capabilities n'autorisent que le core nécessaire.
-- [ ] La CSP ne permet aucune origine réseau.
-- [ ] Le shell compile et se lance sous Windows 11 x64.
-- [ ] Dix cycles lancement/fermeture ne laissent aucun processus Thrustline
+- [x] Le travail est réalisé sur `foundation/t0007-tauri-shell`.
+- [x] Le contrôle de toolchain T0006 reste vert.
+- [x] Les versions Tauri/Rust correspondent exactement à ADR-0004.
+- [x] Le shell affiche une page locale statique sans framework.
+- [x] Aucun plugin Tauri n'est activé.
+- [x] Aucune commande IPC applicative n'est exposée.
+- [x] Les capabilities n'autorisent que le core nécessaire.
+- [x] La CSP ne permet aucune origine réseau.
+- [x] Le shell compile et se lance sous Windows 11 x64.
+- [x] Dix cycles lancement/fermeture ne laissent aucun processus Thrustline
       orphelin.
-- [ ] Les contrôles format, check, test et Clippy réussissent.
-- [ ] Le build Release sans bundle réussit.
-- [ ] Le rapport contient cinq mesures froides et cinq mesures chaudes.
-- [ ] Tailles, démarrage, mémoire et processus WebView2 sont consignés.
-- [ ] Aucune comparaison non mesurée n'est présentée comme un fait.
-- [ ] Le rapport conclut si T0008 peut commencer.
-- [ ] Aucun code de l'ancien dépôt n'est copié.
+- [x] Les contrôles format, check, test et Clippy réussissent.
+- [x] Le build Release sans bundle réussit.
+- [x] Le rapport contient cinq mesures froides et cinq mesures chaudes.
+- [x] Tailles, démarrage, mémoire et processus WebView2 sont consignés.
+- [x] Aucune comparaison non mesurée n'est présentée comme un fait.
+- [x] Le rapport conclut si T0008 peut commencer.
+- [x] Aucun code de l'ancien dépôt n'est copié.
 
 ## Security review
 
@@ -491,35 +488,75 @@ Après fusion :
 
 ## Completion Report
 
-À remplir après implémentation.
-
 ### Summary
+
+Un shell Tauri local, sans plugin ni commande IPC applicative, a été livré et
+mesuré. Les invariants restent verts après l'intégration React et bridge.
 
 ### Repository and branch
 
+`AndyD9/ThrustlineNG`, branche historique `foundation/t0007-tauri-shell`.
+
 ### Tauri/Rust versions
+
+Tauri `2.11.5`, CLI `2.11.4`, `tauri-build` `2.6.3`, Rust `1.97.1`.
 
 ### Capabilities and CSP
 
+Capability limitée à `main`, zéro permission applicative ; CSP production locale
+sans origine réseau.
+
 ### Files changed in the new repository
+
+Commit `34a233c` : shell, configuration Tauri, invariants, harness de mesure,
+baseline et documentation spécialisée.
 
 ### Files changed in the reference repository
 
+Sans objet.
+
 ### Commands and results
+
+- baseline historique : cinq lancements froids, cinq chauds et dix cycles
+  réussis ;
+- rejeu du 28 juillet : `desktop:check`, `desktop:test` et `desktop:build`
+  réussis ; 8 tests frontend, format/check/Clippy et invariants conformes ;
+- build Release sans bundle réussi.
 
 ### Measurement protocol and results
 
+Voir `docs/benchmarks/T0007-shell-baseline.md`. Médiane d'affichage froide
+`89,4 ms`, chaude `92,5 ms`, zéro processus orphelin.
+
 ### Manual verification result
+
+Fenêtre visible et cycles de fermeture prouvés par le harness. Restent la
+checklist interactive complète et le scénario WebView2 absent sur VM propre.
 
 ### Security review result
 
+Aucun plugin, IPC, accès réseau ou capability large détecté par les invariants.
+
 ### Risks and limitations
+
+- T0006 reste `Verify`.
+- Une seule machine Windows mesurée.
+- WebView2 absent non testé.
 
 ### Follow-ups
 
+- Exécuter la checklist interactive du ticket.
+- Tester la procédure WebView2 absent sur une VM propre.
+
 ### Documentation updated
 
+Ticket, backlog, baseline et `CURRENT_STATE.md`.
+
 ### Git handoff
+
+- commit : `34a233c` ;
+- PR : https://github.com/AndyD9/ThrustlineNG/pull/2 ;
+- PR fusionnée dans `main` le 27 juillet 2026.
 
 Indiquer séparément pour chaque dépôt :
 

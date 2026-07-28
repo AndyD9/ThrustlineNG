@@ -1,7 +1,8 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 24 juillet 2026 (ticket T0003).
-Statut : baseline locale vérifiée ; validations externes encore requises.
+Dernière revue documentaire : 28 juillet 2026 (réconciliation T0006–T0009).
+Statut : fondations T0006–T0009 fusionnées et gates automatisées vertes ;
+vérifications humaines restantes consignées dans les tickets.
 
 ## Produit
 
