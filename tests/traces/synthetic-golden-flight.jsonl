@@ -1,0 +1,9 @@
+{"format":"thrustline.simconnect.trace","schemaVersion":1,"source":"synthetic"}
+{"offsetMilliseconds":0,"latitudeDegrees":48.7253,"longitudeDegrees":2.3594,"altitudeFeet":291,"groundSpeedKnots":0,"indicatedAirspeedKnots":0,"headingDegrees":85,"verticalSpeedFeetPerMinute":0,"onGround":true}
+{"offsetMilliseconds":1000,"latitudeDegrees":48.7255,"longitudeDegrees":2.361,"altitudeFeet":291,"groundSpeedKnots":42,"indicatedAirspeedKnots":45,"headingDegrees":85,"verticalSpeedFeetPerMinute":0,"onGround":true}
+{"offsetMilliseconds":2000,"latitudeDegrees":48.7258,"longitudeDegrees":2.365,"altitudeFeet":420,"groundSpeedKnots":128,"indicatedAirspeedKnots":132,"headingDegrees":86,"verticalSpeedFeetPerMinute":1800,"onGround":false}
+{"offsetMilliseconds":3000,"latitudeDegrees":48.735,"longitudeDegrees":2.42,"altitudeFeet":7500,"groundSpeedKnots":250,"indicatedAirspeedKnots":220,"headingDegrees":90,"verticalSpeedFeetPerMinute":2100,"onGround":false}
+{"offsetMilliseconds":4000,"latitudeDegrees":48.9,"longitudeDegrees":3.8,"altitudeFeet":34000,"groundSpeedKnots":455,"indicatedAirspeedKnots":270,"headingDegrees":94,"verticalSpeedFeetPerMinute":0,"onGround":false}
+{"offsetMilliseconds":5000,"latitudeDegrees":49.0,"longitudeDegrees":5.2,"altitudeFeet":12000,"groundSpeedKnots":300,"indicatedAirspeedKnots":245,"headingDegrees":92,"verticalSpeedFeetPerMinute":-1800,"onGround":false}
+{"offsetMilliseconds":6000,"latitudeDegrees":49.0128,"longitudeDegrees":6.127,"altitudeFeet":870,"groundSpeedKnots":118,"indicatedAirspeedKnots":122,"headingDegrees":87,"verticalSpeedFeetPerMinute":-500,"onGround":false}
+{"offsetMilliseconds":7000,"latitudeDegrees":49.013,"longitudeDegrees":6.13,"altitudeFeet":629,"groundSpeedKnots":72,"indicatedAirspeedKnots":75,"headingDegrees":86,"verticalSpeedFeetPerMinute":0,"onGround":true}

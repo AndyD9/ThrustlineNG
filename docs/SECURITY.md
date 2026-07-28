@@ -1,5 +1,20 @@
 # Sécurité du desktop
 
+## Frontière SimConnect T0011
+
+Le SDK reste une entrée native non fiable. `NativeSimConnectAdapter` :
+
+- charge uniquement le nom constant `SimConnect.dll` via les répertoires Windows
+  sûrs et ne permet aucun chemin fourni par l'utilisateur ;
+- utilise seulement des variables de simulation en lecture ;
+- confine tous les appels et callbacks dans une boucle dédiée ;
+- ferme la connexion dans un `finally` et borne le buffer asynchrone ;
+- ne journalise ni chemin de DLL, ni valeur de télémétrie.
+
+Les traces JSONL exigent UTF-8, format et schéma exacts, propriétés connues,
+offsets strictement croissants, valeurs finies/bornées et lignes de 16 Kio au
+maximum. Les erreurs indiquent seulement le numéro de ligne.
+
 ## Frontière locale T0010
 
 Le bridge exige un port dynamique loopback et un jeton hexadécimal de 256 bits.
@@ -49,5 +64,5 @@ Le bridge minimal n'ouvre aucune frontière :
 - arguments inconnus rejetés sans les recopier ;
 - aucun lien avec Tauri ou SimConnect.
 
-Le lancement authentifié et le contrat local appartiennent à T0010. Ils devront
-considérer le processus desktop et le bridge comme mutuellement non fiables.
+Le lancement authentifié et le contrat local de T0010 considèrent le processus
+desktop et le bridge comme mutuellement non fiables.
