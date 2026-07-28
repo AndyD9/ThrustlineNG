@@ -182,9 +182,13 @@ L'envoi Ctrl+C depuis une console Windows native est délégué à la revue.
 - branche : `foundation/t0009-dotnet-bridge` ;
 - commit d'implémentation : `01617ef` ;
 - remote : `origin` (`https://github.com/AndyD9/ThrustlineNG.git`) ;
-- cible : `main` ;
+- cible effective : `foundation/t0008-react-frontend`, car cette branche contient
+  le commit documentaire préexistant `a29a3da` dont dépend le ticket ;
 - push : réussi, suivi distant configuré ;
-- PR : https://github.com/AndyD9/ThrustlineNG/pull/5, ouverte et prête pour revue ;
-- état initial GitHub : mergeable, aucun check déclaré ;
+- PR : https://github.com/AndyD9/ThrustlineNG/pull/5, ouverte en brouillon ;
+- diff GitHub vérifié : uniquement les commits et 19 fichiers T0009 ;
+- blocage de publication vers `main` : la base documentaire fusionnée par la
+  PR #4 dans `foundation/t0008-react-frontend` n'est pas présente sur `main` ;
+- validations GitHub : aucun check déclaré au dernier relevé ;
 - modifications préexistantes exclues : aucune ;
 - merge non effectué, réservé à Andy.
