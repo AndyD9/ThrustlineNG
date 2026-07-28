@@ -17,11 +17,21 @@
     "bridge:build": "dotnet build ThrustlineNG.slnx --configuration Release",
     "bridge:test": "dotnet run --project tests/bridge/Thrustline.Bridge.Tests.csproj --configuration Release",
     "bridge:health": "dotnet run --project apps/bridge/Thrustline.Bridge.csproj --configuration Release -- --health-check",
-    "bridge:publish": "dotnet publish apps/bridge/Thrustline.Bridge.csproj --configuration Release --runtime win-x64 --self-contained true"
+    "bridge:publish": "dotnet publish apps/bridge/Thrustline.Bridge.csproj --configuration Release --runtime win-x64 --self-contained true",
+    "backend:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/backend/run.ps1",
+    "backend:start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/start-supabase-local.ps1",
+    "backend:stop": "supabase stop --project-id thrustline-ng",
+    "backend:reset": "supabase db reset --local",
+    "backend:test": "supabase test db",
+    "backend:types": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1",
+    "backend:types:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1 -Check"
   },
   "engines": {
     "node": "24.18.0",
     "pnpm": "11.17.0"
   },
-  "packageManager": "pnpm@11.17.0+sha512.cca3cea332ad254bb84145f966d19f4879615210346fc92c79a047f23a0d7b3cca3c3792f0076ba1f1831d277efbcf0a9119b31a9a60eca7fb3d6231f331ef72"
+  "packageManager": "pnpm@11.17.0+sha512.cca3cea332ad254bb84145f966d19f4879615210346fc92c79a047f23a0d7b3cca3c3792f0076ba1f1831d277efbcf0a9119b31a9a60eca7fb3d6231f331ef72",
+  "devDependencies": {
+    "supabase": "2.109.1"
+  }
 }

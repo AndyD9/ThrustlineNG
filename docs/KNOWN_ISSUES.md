@@ -16,7 +16,7 @@ Statut : `Open`, `Accepted`, `Scheduled`, `Resolved`, `Invalid`.
 | ID | Sévérité | Zone | Résumé | Preuve | Ticket cible | Statut |
 | --- | --- | --- | --- | --- | --- | --- |
 | KI-001 | High | Data | Certaines mutations métier sont encore effectuées directement par le client. | Audit initial | Phase 2 | Open |
-| KI-002 | High | Quality | Absence de suite automatisée RLS A/B/anonyme. | Audit initial | Phase 1–2 | Open |
+| KI-002 | High | Quality | La suite RLS A/B/anonyme T0012 est versionnée mais son exécution PostgreSQL reste non prouvée sans Docker. | `pnpm backend:check` réussi ; `backend:test` bloqué par l'absence du runtime local le 28 juillet 2026 | T0012 | Open |
 | KI-003 | High | Release | Pas de pipeline complet d'artefacts/updater signés. | Audit initial | Phase 6 | Open |
 | KI-004 | Medium | Bridge | Pas de projet de tests .NET/replay SimConnect constaté. | T0011 ajoute un harnais .NET et un replay synthétique versionné | T0011 | Resolved |
 | KI-005 | Medium | Frontend | Plusieurs pages mélangent UI, règles et accès aux données. | Audit initial | Phase 4 | Open |

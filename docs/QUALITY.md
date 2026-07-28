@@ -15,6 +15,33 @@ Le harnais utilise un dépôt synthétique qui doit contenir tous les manifests 
 par `check-toolchain.ps1`. Toute extension du contrôle de pins doit mettre à jour
 ce fixture et ajouter ou préserver un scénario d'échec associé.
 
+## Backend Supabase
+
+Le contrôle statique fonctionne sans Docker et couvre la version de CLI, la
+configuration PostgreSQL 17, l'ordre migration/seed, les contraintes, les
+politiques, les scénarios A/B/anonyme et l'absence de commande distante. Il
+exécute aussi deux mutations négatives :
+
+```powershell
+pnpm backend:check
+```
+
+La preuve SQL réelle exige Docker Desktop ou un runtime Docker compatible
+actif :
+
+```powershell
+pnpm backend:start
+pnpm backend:reset
+pnpm backend:test
+pnpm backend:types:check
+pnpm backend:stop
+```
+
+`backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
+les deux fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. `backend:types:check` régénère les types en
+mémoire et échoue si le fichier versionné diffère.
+
 ## Desktop et bridge
 
 Le harnais bridge couvre le parsing strict, les jetons absents/incorrects, la
