@@ -103,3 +103,22 @@ powershell -NoProfile -ExecutionPolicy Bypass `
 WebView2 Evergreen est fourni avec Windows 11 et se met à jour séparément. S'il
 manque, installer le runtime avec la procédure Microsoft officielle ; le shell
 ne le télécharge et ne le répare jamais automatiquement.
+
+## Frontend React
+
+Le frontend utilise React 19, TypeScript strict, Vite, Vitest, Tailwind CSS et
+React Router en mode SPA local. Aucun secret ni service distant n'est requis.
+
+```powershell
+pnpm frontend:dev
+pnpm frontend:typecheck
+pnpm frontend:test
+pnpm frontend:coverage
+pnpm frontend:build
+pnpm frontend:measure
+```
+
+`frontend:dev` écoute uniquement sur `127.0.0.1:1420` et échoue si le port est
+occupé. Le routeur utilise le fragment d'URL (`#/`) pour fonctionner sans
+réécriture serveur. `frontend:measure` écrit dans `artifacts/t0008`, ignoré par
+Git, et effectue cinq lancements froids, cinq chauds et dix cycles de fermeture.
