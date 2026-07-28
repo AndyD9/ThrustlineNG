@@ -20,14 +20,14 @@ $requestedOutput = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
 }
 $output = [System.IO.Path]::GetFullPath($requestedOutput)
 $executable = Join-Path $root 'apps/desktop/src-tauri/target/release/thrustline-desktop.exe'
-$frontend = Join-Path $root 'apps/desktop/web'
+$frontend = Join-Path $root 'apps/desktop/dist'
 
 New-Item -ItemType Directory -Force -Path $output | Out-Null
 
 function Invoke-TimedBuild {
     param([string]$Kind)
     $timer = [System.Diagnostics.Stopwatch]::StartNew()
-    & pnpm desktop:build
+    & corepack pnpm desktop:build
     if ($LASTEXITCODE -ne 0) { throw "$Kind build failed with exit code $LASTEXITCODE." }
     $timer.Stop()
     return [math]::Round($timer.Elapsed.TotalSeconds, 3)
@@ -164,10 +164,10 @@ $summary = [pscustomobject]@{
     configuration = 'release'
     tools = [pscustomobject]@{
         node = (& node --version).Trim()
-        pnpm = (& pnpm --version).Trim()
+        pnpm = (& corepack pnpm --version).Trim()
         rustc = (& rustc --version).Trim()
         cargo = (& cargo --version).Trim()
-        tauriCli = (& pnpm --dir (Join-Path $root 'apps/desktop') tauri --version).Trim()
+        tauriCli = (& corepack pnpm --dir (Join-Path $root 'apps/desktop') tauri --version).Trim()
         webView2Evergreen = $webViewVersion
     }
     build = [pscustomobject]@{

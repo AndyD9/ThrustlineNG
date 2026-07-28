@@ -17,7 +17,7 @@ function Assert-True {
 $cargo = Get-Content -Raw -LiteralPath (Join-Path $tauriRoot 'Cargo.toml')
 $config = Get-Content -Raw -LiteralPath (Join-Path $tauriRoot 'tauri.conf.json') | ConvertFrom-Json
 $capability = Get-Content -Raw -LiteralPath (Join-Path $tauriRoot 'capabilities/default.json') | ConvertFrom-Json
-$html = Get-Content -Raw -LiteralPath (Join-Path $desktop 'web/index.html')
+$html = Get-Content -Raw -LiteralPath (Join-Path $desktop 'index.html')
 $rust = (Get-ChildItem -LiteralPath (Join-Path $tauriRoot 'src') -Filter '*.rs' | Get-Content -Raw) -join "`n"
 
 Assert-True ($cargo -notmatch '(?m)^\s*tauri-plugin-') 'Aucun plugin Tauri n’est autorisé.'
@@ -26,7 +26,10 @@ Assert-True ($capability.windows.Count -eq 1 -and $capability.windows[0] -eq 'ma
 Assert-True ($capability.permissions.Count -eq 0) 'Le shell statique ne requiert aucune permission invitée.'
 Assert-True ($rust -notmatch '#\s*\[\s*tauri::command') 'Aucune commande IPC applicative n’est autorisée.'
 Assert-True ($html -notmatch '(?i)(https?:|//[^/])') 'Le HTML ne doit charger aucune ressource distante.'
-Assert-True ($html -notmatch '(?i)<script') 'Le baseline ne doit contenir aucun script.'
+Assert-True ($html -match '(?i)<script\s+type="module"\s+src="/src/main\.tsx"></script>') 'Le seul script HTML doit être le point d’entrée Vite local.'
+Assert-True ($html -notmatch '(?i)<script(?!\s+type="module"\s+src="/src/main\.tsx"></script>)') 'Aucun autre script HTML n’est autorisé.'
+Assert-True ($config.build.frontendDist -eq '../dist') 'Tauri doit charger exclusivement le build Vite local.'
+Assert-True ($config.build.devUrl -eq 'http://127.0.0.1:1420') 'Le serveur de développement doit rester sur loopback.'
 
 $csp = [string]$config.app.security.csp
 foreach ($directive in @(

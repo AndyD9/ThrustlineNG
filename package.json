@@ -7,7 +7,13 @@
     "desktop:check": "pnpm --dir apps/desktop check",
     "desktop:test": "pnpm --dir apps/desktop test",
     "desktop:build": "pnpm --dir apps/desktop tauri build --no-bundle",
-    "desktop:measure": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/measure-tauri-shell.ps1 -OutputDirectory ./artifacts/t0007"
+    "desktop:measure": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/measure-tauri-shell.ps1 -OutputDirectory ./artifacts/t0007",
+    "frontend:dev": "pnpm --dir apps/desktop dev",
+    "frontend:typecheck": "pnpm --dir apps/desktop typecheck",
+    "frontend:test": "pnpm --dir apps/desktop test:frontend",
+    "frontend:coverage": "pnpm --dir apps/desktop coverage",
+    "frontend:build": "pnpm --dir apps/desktop build",
+    "frontend:measure": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/measure-frontend.ps1 -OutputDirectory ./artifacts/t0008"
   },
   "engines": {
     "node": "24.18.0",
