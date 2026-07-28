@@ -1,6 +1,6 @@
 # T0010 — Établir le contrat local et le health check
 
-Status: Verify
+Status: Done
 Owner: Andy
 Branch: `foundation/t0010-local-contract`
 Phase: 1
@@ -56,9 +56,9 @@ inter-processus ; elle doit rester inaccessible sans le jeton créé par Tauri.
 - [x] Ports privilégiés, jetons faibles et arguments inconnus sont refusés.
 - [x] Tauri génère un jeton de 256 bits et supervise l'enfant.
 - [x] Le jeton n'est exposé ni au frontend ni aux logs.
-- [ ] Toutes les validations automatisées passent (frontend bloqué par toolchain locale).
-- [ ] Le parcours Tauri réel est vérifié.
-- [ ] Documentation et Completion Report sont synchronisés.
+- [x] Toutes les validations automatisées passent.
+- [x] Le parcours Tauri réel est vérifié.
+- [x] Documentation et Completion Report sont synchronisés.
 
 ## Security review
 
@@ -113,14 +113,16 @@ fermeture.
 - publication self-contained `win-x64` : réussie ;
 - `cargo fmt --check`, `cargo check --locked`, Clippy `-D warnings` : réussis ;
 - tests Rust : 2/2 réussis ;
-- frontend : non exécuté, pnpm refuse correctement Node `24.14.0` et pnpm
-  `11.9.0` au lieu de `24.18.0` et `11.17.0`.
+- restauration figée avec Node `24.18.0` et pnpm `11.17.0` : réussie ;
+- frontend : typecheck, 8/8 tests, couverture et build Vite réussis ;
+- desktop : check, Clippy, 2/2 tests Rust, invariants et build Release réussis.
 
 ### Manual verification result
 
 REST, authentification et négociation SignalR ont été exercés sur un vrai port
-loopback par le harnais. Le lancement d'une fenêtre Tauri et la fermeture réelle
-du processus enfant restent délégués sur une machine avec la toolchain épinglée.
+loopback par le harnais. Le desktop Release a ensuite été lancé avec le bridge
+publié comme binaire frère : un unique processus bridge a démarré, puis la
+fermeture de la fenêtre a arrêté les deux processus sans orphelin.
 
 ### Risks and limitations
 
