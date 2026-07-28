@@ -30,3 +30,6 @@ Thumbs.db
 *.log
 *.tmp
 *.bak
+
+# Local Git worktrees
+.worktrees/
