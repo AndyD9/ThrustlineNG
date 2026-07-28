@@ -1,5 +1,9 @@
 # Qualité du desktop
 
+Le harnais bridge couvre le parsing strict, les jetons absents/incorrects, la
+réponse REST versionnée et la négociation SignalR. Les tests Rust vérifient les
+jetons et la sélection d'un port dynamique.
+
 Depuis la racine :
 
 ```powershell

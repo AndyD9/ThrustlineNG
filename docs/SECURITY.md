@@ -1,5 +1,13 @@
 # Sécurité du desktop
 
+## Frontière locale T0010
+
+Le bridge exige un port dynamique loopback et un jeton hexadécimal de 256 bits.
+Le header `X-Thrustline-Instance` est exigé sur REST et SignalR et comparé en
+temps constant. Le jeton passe de Tauri au bridge par un pipe stdin anonyme ; il
+n'apparaît ni dans les arguments, ni dans l'environnement, ni dans les logs, et
+n'est pas transmis à React.
+
 Le desktop part d'une autorité nulle côté page :
 
 - capability limitée à la fenêtre `main`, avec zéro permission ;

@@ -23,7 +23,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0007 | Créer le shell Tauri minimal et mesurer son empreinte | 1 | T0006 | Blocked |
 | T0008 | Créer le frontend React minimal | 1 | T0006–T0007 | Blocked |
 | T0009 | Créer le bridge .NET minimal | 1 | T0006 | Done |
-| T0010 | Établir le contrat local et le health check | 1 | T0007–T0009 | Backlog |
+| T0010 | Établir le contrat local et le health check | 1 | T0007–T0009 | Done |
 | T0011 | Créer l'adaptateur SimConnect et le replay | 1–3 | T0009–T0010 | Backlog |
 | T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Backlog |
 | T0013 | Consolider la CI multi-stack | 1 | T0006–T0012 | Backlog |
