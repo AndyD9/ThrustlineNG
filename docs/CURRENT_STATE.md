@@ -188,19 +188,28 @@ WebView2 Evergreen, Rust stable épinglé, un bridge .NET 10 LTS self-contained
 Supabase/PostgreSQL 17. Firebase, Electron et le wrapper `SimConnect.NET` ne sont
 pas les fondations de la refonte.
 
-Cette décision est documentaire : aucune version n'a été installée et aucun
-manifest, lockfile, workflow ou code applicatif n'a été modifié. Les performances
-et la compatibilité self-contained SimConnect restent à prouver par les tickets
-d'adoption.
+Cette décision est désormais partiellement adoptée par les pins de toolchain, le
+shell Tauri, le frontend React et le bridge .NET minimal. Les performances et la
+compatibilité self-contained avec le futur adaptateur SimConnect restent à
+prouver par les tickets d'adoption.
+
+## Bridge .NET minimal
+
+T0009 ajoute un processus console .NET 10 publiable self-contained `win-x64`.
+Il expose un diagnostic local `--health-check`, rejette les arguments inconnus
+et gère une annulation propre. Quatre scénarios unitaires passent sans package
+NuGet tiers. Le bridge n'est pas encore lancé par Tauri, n'ouvre aucun port et
+ne contient ni SimConnect, ni secret, ni donnée métier.
+
+La publication vérifiée contient 191 fichiers pour environ 80,5 Mo. Cette mesure
+est informative ; T0015 fixera les budgets.
 
 ## Prochain ticket recommandé
 
-`T0006 — Épingler les runtimes et créer la source de versions` est préparé mais
-reste `Blocked` jusqu'à l'acceptation finale de T0005 et au choix explicite du
-nom, de la visibilité et de l'emplacement du nouveau dépôt. Il créera ensuite les
-pins Node/pnpm/Rust/.NET/PowerShell, le bootstrap et les contrôles de dérive, sans
-introduire encore le shell ou le frontend. Les budgets du profil
-minimum/recommandé sont renumérotés `T0015`.
+`T0010 — Établir le contrat local et le health check` doit lancer et superviser
+le bridge depuis Tauri, authentifier chaque instance, puis définir les surfaces
+REST/SignalR minimales et leur récupération. Il ne doit pas encore introduire
+SimConnect ou de logique métier.
 
 ## Mise à jour de ce fichier
 

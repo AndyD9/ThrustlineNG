@@ -22,7 +22,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0006 | Épingler les runtimes et créer la source de versions | 1 | T0005 | Blocked |
 | T0007 | Créer le shell Tauri minimal et mesurer son empreinte | 1 | T0006 | Blocked |
 | T0008 | Créer le frontend React minimal | 1 | T0006–T0007 | Blocked |
-| T0009 | Créer le bridge .NET minimal | 1 | T0006 | Backlog |
+| T0009 | Créer le bridge .NET minimal | 1 | T0006 | Done |
 | T0010 | Établir le contrat local et le health check | 1 | T0007–T0009 | Backlog |
 | T0011 | Créer l'adaptateur SimConnect et le replay | 1–3 | T0009–T0010 | Backlog |
 | T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Backlog |
@@ -30,9 +30,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0014 | Valider le packaging Windows non signé | 1 | T0007–T0013 | Backlog |
 | T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Backlog |
 
-T0005 attend la vérification humaine de la matrice et des sources. T0006 est
-préparé mais reste bloqué jusqu'à l'acceptation de T0005 et au choix explicite du
-nouveau dépôt. T0007 est préparé mais reste bloqué jusqu'à la validation complète
-du socle T0006. T0008 est préparé mais reste bloqué jusqu'à la validation du shell
-Tauri et de sa baseline T0007. Les tickets détaillés sont créés par lots de 3 à 8
-selon `WORKFLOW.md`.
+Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009,
+mais leurs statuts documentaires restent inchangés tant que leurs vérifications
+humaines ne sont pas closes. T0010 est le prochain ticket technique recommandé :
+il reliera le shell et le bridge par un contrat local authentifié.
