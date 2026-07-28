@@ -219,5 +219,17 @@ et ticket.
 
 ### Git and GitHub result
 
-À compléter après commit, push et création de la Pull Request. Aucun merge ne
-sera effectué.
+- branche : `foundation/t0011-simconnect-adapter` ;
+- commit d'implémentation : `454fe1e` ;
+- remote et branche principale : `origin`, `main` ;
+- push : réussi, suivi distant configuré ;
+- PR T0011 : https://github.com/AndyD9/ThrustlineNG/pull/11, brouillon,
+  `MERGEABLE`, base `foundation/t0010-local-contract`, 15 fichiers strictement
+  T0011 et aucun check GitHub déclaré au relevé ;
+- PR de rattrapage T0010 : https://github.com/AndyD9/ThrustlineNG/pull/10,
+  prête, `MERGEABLE`, base `main` ;
+- raison de l'empilement : la PR T0010 précédente avait été fusionnée dans T0009
+  après l'intégration de T0009 à `main`, donc ses commits n'étaient pas dans
+  `main` ;
+- modifications préexistantes exclues : aucune ;
+- merge non effectué, réservé à Andy.
