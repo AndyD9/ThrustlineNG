@@ -1,158 +1,262 @@
-# AGENTS.md — Loi du dépôt Thrustline
+# AGENTS.md — Règles du dépôt ThrustlineNG
 
-Ce fichier s'applique à tout le dépôt. Toute instruction plus locale doit être
-compatible avec ces règles.
+Ce fichier s'applique à tout le dépôt. Une instruction locale peut préciser ces
+règles, jamais les contredire. En cas de contradiction documentaire, arrêter la
+modification concernée, relever les passages incompatibles et faire corriger la
+source obsolète dans le périmètre du ticket.
 
-## Mission
+## Mission et priorités
 
-Thrustline est une application Windows distribuable de gestion de compagnie
-aérienne virtuelle pour Microsoft Flight Simulator. La refonte vise en priorité :
+ThrustlineNG est la réécriture distribuable sous Windows d'un gestionnaire de
+compagnie aérienne virtuelle pour Microsoft Flight Simulator. Arbitrer dans cet
+ordre :
 
-1. stabilité et récupération après erreur ;
+1. stabilité, reprise et absence de perte silencieuse ;
 2. sécurité d'un client distribué et modifiable ;
-3. intégrité de l'économie et des données ;
-4. compatibilité MSFS/SimConnect ;
+3. intégrité des données, de l'économie et des transitions métier ;
+4. compatibilité Windows 11, MSFS 2024 et SimConnect ;
 5. maintenabilité, testabilité et mises à jour sûres.
+
+Ne jamais sacrifier une priorité haute pour accélérer une priorité basse.
 
 ## Sources de vérité
 
 Lire avant tout travail :
 
-1. `docs/CURRENT_STATE.md` — ce qui existe réellement ;
-2. `docs/ROADMAP.md` — ordre des phases ;
-3. le ticket concerné dans `docs/tickets/` ;
-4. les documents spécialisés indiqués par le ticket.
+1. `AGENTS.md` ;
+2. `docs/CURRENT_STATE.md` pour l'état réellement prouvé ;
+3. `docs/ROADMAP.md` pour l'ordre des phases ;
+4. le ticket complet dans `docs/tickets/` ;
+5. les documents et ADR liés par le ticket.
 
 Références permanentes :
 
 - `docs/PRODUCT.md` — périmètre et règles produit ;
-- `docs/ARCHITECTURE.md` — architecture cible et frontières ;
-- `docs/SECURITY.md` — règles de sécurité ;
-- `docs/QUALITY.md` — stratégie de tests et critères de qualité ;
-- `docs/WORKFLOW.md` — cycle complet d'un ticket.
+- `docs/ARCHITECTURE.md` — architecture et frontières actives ;
+- `docs/SECURITY.md` — menaces, autorités et contrôles ;
+- `docs/QUALITY.md` — commandes de validation actives ;
+- `docs/WORKFLOW.md` — cycle d'un ticket ;
+- `docs/STACK.md` — versions et politique d'adoption ;
+- `docs/SUPPORT.md` — plateformes supportées et preuves requises ;
+- `docs/KNOWN_ISSUES.md` — découvertes hors périmètre.
 
-Le code et les migrations appliquées priment sur une documentation périmée.
-Signaler et corriger les divergences dans le même ticket si elles sont directement
-liées au changement.
+Ordre de préséance en cas d'écart :
+
+1. code, migrations, manifests et lockfiles de la branche inspectée ;
+2. ticket actif et ADR acceptées ;
+3. `CURRENT_STATE.md` ;
+4. documents spécialisés ;
+5. roadmap et README.
+
+Une branche ou une Pull Request non fusionnée n'est pas une capacité livrée sur
+la branche distante par défaut. Toujours distinguer : présent localement, poussé,
+en PR, accepté et fusionné.
+
+## Démarrage et périmètre
+
+Un ticket fonctionnel à la fois et un ticket par branche ou worktree.
+
+Avant toute modification :
+
+1. relever la branche courante, son upstream et la branche distante par défaut ;
+2. exécuter `git status --short --branch` ;
+3. identifier les modifications préexistantes et ne jamais les attribuer au
+   ticket ;
+4. lire le statut, les dépendances, `Allowed areas`, `Do not touch`, les critères
+   d'acceptation et la vérification manuelle du ticket ;
+5. confirmer que la branche correspond à `type/TXXXX-slug` et que le ticket peut
+   réellement entrer en `In progress` ;
+6. signaler avant d'agir toute incohérence de statut, dépendance ou branche.
+
+Types de branche : `foundation`, `feature`, `fix`, `security`, `refactor`,
+`docs` et `chore`.
+
+L'agent peut créer la branche adaptée ou y basculer sans confirmation après ces
+contrôles. Une maintenance de gouvernance explicitement demandée peut rester
+sans ticket produit si elle est strictement documentaire, bornée et réalisée sur
+une branche dédiée ; elle doit être identifiée comme telle dans le rapport.
+
+Ne pas démarrer l'implémentation d'un ticket `Draft`, `Blocked`, `Rejected` ou
+`Superseded`. Un ticket `Verify` ne reçoit que les corrections nécessaires à sa
+vérification. Si le code existe alors que le suivi dit le contraire, réconcilier
+le suivi avant de poursuivre et ne jamais antidater une preuve.
+
+## Suivi du ticket
+
+Le champ `Status` du fichier du ticket est la référence pour son workflow.
+`docs/tickets/README.md` est un index qui doit refléter les mêmes statuts.
+
+Transitions :
+
+- `Draft` : résultat ou preuves encore incomplets ;
+- `Ready` : dépendances satisfaites et ticket exécutable ;
+- `In progress` : travail actif sur une branche identifiée ;
+- `Review` : implémentation terminée, diff et validations automatisées prêts à
+  être revus ;
+- `Verify` : validation humaine ou environnementale encore requise ;
+- `Done` : critères satisfaits, preuves consignées, vérification terminée et
+  documentation cohérente ;
+- `Blocked`, `Rejected`, `Superseded` : motif et condition de sortie obligatoires.
+
+À chaque transition :
+
+1. mettre à jour le ticket et l'index dans le même changement ;
+2. consigner une preuve datée, sans transformer une intention en résultat ;
+3. préciser la branche et la PR lorsque l'état dépend de GitHub ;
+4. mettre à jour `CURRENT_STATE.md` seulement si la réalité décrite change ;
+5. conserver en `Verify` tout contrôle manuel délégué ou impossible localement.
+
+Une PR ouverte, des checks verts ou du code compilable ne suffisent pas seuls à
+mettre un ticket `Done`. Ne jamais présenter une branche empilée comme fusionnée
+dans `main`. Pour une PR empilée, relever explicitement sa branche de base, sa
+dépendance et la condition de rebase ou de changement de base.
 
 ## Règles de travail
 
-- Implémenter un seul ticket à la fois.
-- Avant d'exécuter un ticket, vérifier l'état Git et déterminer la branche
-  `type/TXXXX-slug` adaptée. L'agent peut créer cette branche ou basculer dessus
-  sans confirmation, après avoir préservé et signalé les modifications
-  préexistantes. Si la branche du ticket est déjà active, ne pas la recréer.
-- Ne pas anticiper les tickets futurs.
-- Ne pas refactorer un système sans rapport.
+- Implémenter uniquement les exigences du ticket.
 - Respecter strictement `Allowed areas` et `Do not touch`.
-- Préserver les modifications utilisateur non liées.
-- Ne pas changer l'architecture sans ADR accepté.
-- Éviter toute dépendance nouvelle si une solution simple existe déjà.
-- Arrêter et demander une décision si une ambiguïté change le produit, la
-  sécurité, les données ou l'architecture.
-- Un problème découvert hors périmètre devient un follow-up dans
-  `docs/KNOWN_ISSUES.md`, pas une modification opportuniste.
+- Ne pas anticiper les tickets futurs ni refactorer un système sans rapport.
+- Préserver toute modification utilisateur non liée.
+- Ne pas importer implicitement du code, des manifests, des lockfiles ou des
+  secrets d'un ancien dépôt.
+- Ne pas changer l'architecture ou les frontières de confiance sans ADR acceptée.
+- Éviter une nouvelle dépendance quand les outils déjà épinglés suffisent.
+- Arrêter et demander une décision si une ambiguïté modifie le produit, la
+  sécurité, les données, le support ou l'architecture.
+- Consigner une découverte hors périmètre dans `docs/KNOWN_ISSUES.md` avec preuve,
+  sévérité et cible ; ne pas la corriger opportunément.
 
 ## Frontières techniques
 
-- `app/` : Tauri v2, React, TypeScript, Vite, UI et orchestration cliente.
-- `sim-bridge/` : .NET 8, SimConnect, télémétrie locale, REST/SignalR.
-- `supabase/` : Auth, PostgreSQL, RLS, Realtime, RPC et Edge Functions.
-- `legacy/` : lecture seule jusqu'à son archivage explicite.
+- `apps/desktop/` : Tauri v2, React, TypeScript, Vite et orchestration cliente ;
+- `apps/bridge/` : bridge .NET, intégration locale et future frontière
+  SimConnect ;
+- `tests/` : harnais et preuves automatisées ;
+- `eng/` et fichiers racine de toolchain : versions canoniques et workspace ;
+- `scripts/` : bootstrap, contrôles et mesures reproductibles ;
+- `docs/` : décisions, état, suivi et preuves ;
+- futur backend Supabase : autorité métier et données persistantes.
 
-Le desktop, le sidecar et MSFS sont des clients non fiables. Le serveur est
-autoritaire pour l'argent, la propriété, la réputation, la progression et les
-transitions sensibles. Aucun secret backend ne doit être livré au client.
+La page WebView, le processus desktop, le bridge et MSFS sont des clients non
+fiables. Le serveur reste autoritaire pour l'argent, la propriété, la réputation,
+la progression et les transitions sensibles. Aucun secret backend ne doit être
+livré au client.
 
-## Qualité d'implémentation
+## Qualité et sécurité d'implémentation
 
+- Utiliser les versions exactes et lockfiles du dépôt.
 - TypeScript strict, C# nullable et Rust sans avertissement introduit.
-- Pages React minces ; règles métier et accès données hors des composants.
-- Mutations sensibles via commande serveur transactionnelle et idempotente.
-- Migrations Supabase append-only.
-- Contrats partagés versionnés et consommateurs mis à jour ensemble.
-- Erreurs actionnables pour l'utilisateur, détails techniques dans des logs
-  redigés.
-- Aucun secret, JWT, donnée personnelle ou header d'authentification dans Git ou
-  les logs.
+- Garder les pages React minces ; sortir règles métier et accès aux données.
+- Valider toute entrée à une frontière IPC, REST, SignalR ou serveur.
+- Rendre les commandes sensibles transactionnelles et idempotentes côté serveur.
+- Garder les migrations Supabase append-only.
+- Versionner les contrats partagés et mettre à jour producteurs et consommateurs
+  ensemble.
+- Présenter des erreurs actionnables à l'utilisateur et réserver les détails à
+  des logs redigés.
+- Ne jamais versionner ni journaliser secret, JWT, donnée personnelle, fichier
+  `.env`, header d'authentification ou jeton d'instance.
+- Ne jamais télécharger puis exécuter un script distant.
 
-## Validation
+## Validation proportionnée
 
-Exécuter les contrôles proportionnés au ticket, puis consigner les résultats :
+Le ticket définit les preuves attendues ; `docs/QUALITY.md` donne les commandes
+actives. Lire les scripts et manifests avant de reprendre une commande ancienne.
+Exécuter d'abord les tests ciblés, puis les gates applicables depuis la racine.
+
+Exemples actuels, à sélectionner selon le périmètre :
 
 ```powershell
-# Frontend
-Set-Location app
-npm test
-npm run build
-
-# Sidecar
-Set-Location ..\sim-bridge
-dotnet build --configuration Release
-dotnet test --configuration Release
-
-# Tauri
-Set-Location ..\app\src-tauri
-cargo check --locked
-
-# Invariants du dépôt
-Set-Location ..\..
-.\scripts\security-check.ps1
+pnpm frontend:typecheck
+pnpm frontend:test
+pnpm frontend:coverage
+pnpm frontend:build
+pnpm desktop:check
+pnpm desktop:test
+pnpm desktop:build
+pnpm frontend:measure
 ```
 
-Les changements SQL exigent des tests locaux/staging d'isolation entre deux
-utilisateurs. Les changements SimConnect exigent un replay de trace ou un test
-manuel MSFS documenté. Ne jamais annoncer comme réussi un contrôle non exécuté.
+Si la branche expose des scripts `bridge:*`, utiliser ceux du `package.json` de
+la branche plutôt qu'une commande mémorisée. Les changements de toolchain
+exigent les contrôles de `tests/toolchain/`. Les changements SQL exigent un test
+local ou staging d'isolation A/B/anonyme. Les changements SimConnect exigent un
+replay de trace ou une vérification MSFS documentée selon le ticket.
 
-## Fin de ticket
+Pour un ticket purement documentaire, vérifier au minimum :
+
+- cohérence des statuts, références, chemins et commandes ;
+- portée du diff ;
+- absence de modification applicative involontaire ;
+- `git diff --check`.
+
+Pour chaque commande, consigner : commande exacte, environnement utile, résultat
+et éventuelle limite. `Non exécuté`, `bloqué par l'environnement` et `échoué`
+sont des résultats distincts. Ne jamais annoncer comme réussi un contrôle non
+exécuté et ne jamais déduire qu'un test a tourné du seul code de sortie d'un outil
+qui n'a découvert aucun test.
+
+## Revue et fin de ticket
+
+Effectuer une revue adversariale après l'implémentation, dans cet ordre :
+
+1. sécurité, autorité et perte de données ;
+2. critères d'acceptation et changements hors périmètre ;
+3. régressions, contrats et compatibilité ;
+4. architecture et dette créée ;
+5. tests, observabilité, lisibilité et performance.
 
 Un ticket n'est `Done` que si :
 
-- ses critères d'acceptation sont satisfaits ;
-- les tests automatisés pertinents passent ;
-- sa vérification manuelle a été effectuée ou clairement déléguée ;
-- les risques et limites sont consignés ;
-- `docs/CURRENT_STATE.md` est mis à jour si l'état réel change ;
-- le ticket contient son Completion Report ;
+- tous ses critères d'acceptation sont satisfaits ;
+- les validations automatisées pertinentes passent ;
+- la vérification manuelle est terminée, pas seulement déléguée ;
+- risques, limites et contrôles non exécutés sont consignés ;
+- `CURRENT_STATE.md`, l'index des tickets et les documents spécialisés sont
+  cohérents avec le résultat ;
+- le Completion Report contient des preuves vérifiables ;
 - aucun changement hors périmètre n'est inclus.
 
-Le rapport final doit donner : résumé, fichiers modifiés, commandes exécutées,
-résultats, vérification manuelle, risques, follow-ups et documentation mise à jour.
+Le rapport final donne : statut, résumé, fichiers modifiés, commandes et
+résultats, vérification manuelle, risques, follow-ups, documentation mise à jour,
+branche, commit et Pull Request.
 
-## Gestion Git et GitHub
+## Git, worktrees et GitHub
 
-L'agent gère de manière autonome le cycle Git d'un ticket : création ou bascule
-de branche, indexation ciblée, commit, push et création ou mise à jour de la Pull
-Request. Aucune confirmation intermédiaire d'Andy n'est requise pour ces actions.
+L'agent gère sans confirmation intermédiaire la création ou la bascule de
+branche, l'indexation ciblée, le commit, le push et la création ou mise à jour de
+la Pull Request. Il ne fusionne jamais une Pull Request : la revue et le merge
+final appartiennent exclusivement à Andy.
 
-Avant toute publication, l'agent doit :
+Avant toute publication :
 
-1. relever la branche courante et la branche distante par défaut ;
-2. distinguer les fichiers du ticket des modifications préexistantes ;
-3. indexer uniquement les fichiers du ticket avec une liste explicite ;
-4. vérifier le diff indexé et exécuter `git diff --cached --check` ;
-5. utiliser un message Conventional Commits adapté ;
-6. exécuter les validations proportionnées au ticket ;
-7. créer la Pull Request en brouillon tant que le ticket ou ses validations ne
-   sont pas terminés, puis la déclarer prête pour revue lorsqu'il est publiable.
+1. relever branche courante, upstream, remote et branche distante par défaut ;
+2. comparer au bon parent, particulièrement pour une branche empilée ;
+3. séparer les fichiers du ticket des changements préexistants ;
+4. indexer uniquement les chemins du ticket avec une liste explicite ;
+5. inspecter `git diff --cached --stat` et `git diff --cached` ;
+6. exécuter `git diff --cached --check` ;
+7. utiliser un message Conventional Commits adapté ;
+8. exécuter les validations proportionnées et mettre à jour le Completion Report ;
+9. pousser la branche exacte puis créer ou mettre à jour la PR avec les vraies
+   branches base/head.
 
-Règles :
+Règles absolues :
 
 - ne jamais utiliser `git add .` ou `git add -A` ;
-- ne jamais inclure, écraser ou publier une modification utilisateur
-  préexistante sans rapport avec le ticket ;
-- ne jamais inventer le nom de la branche ou la cible de PR : les relever ;
-- utiliser Git pour Windows/PowerShell pour ce dépôt, pas Git WSL sur `/mnt/c` ;
-- ne jamais demander le mot de passe GitHub ; recommander `gh auth login` si
+- ne jamais inclure, écraser, nettoyer ou publier un changement utilisateur hors
+  ticket ;
+- ne jamais inventer une branche, une cible de PR, un résultat de CI ou un lien ;
+- utiliser Git pour Windows et PowerShell, pas Git WSL sur `/mnt/c` ;
+- ne jamais demander un mot de passe GitHub ; utiliser `gh auth login` si
   l'authentification manque ;
-- ne jamais effectuer de force-push, modifier directement une branche protégée
-  ou contourner une protection de branche ;
-- ne jamais merger une Pull Request : la décision et l'action de merge sont
-  exclusivement réservées à Andy et exigent sa confirmation explicite ;
-- si le ticket n'est pas prêt à publier, conserver la PR en brouillon et
-  expliquer clairement les blocages.
+- ne jamais force-push, contourner une protection ou modifier directement une
+  branche protégée ;
+- garder la PR en brouillon tant que le ticket, les validations ou ses dépendances
+  ne sont pas prêts ;
+- ne déclarer la PR prête que lorsque le diff publié est révisable et que les
+  blocages restants sont explicitement humains.
 
-À la fin du ticket, fournir le lien de la Pull Request ainsi qu'un résumé du
-diff, des validations, de la vérification manuelle, des risques et des
-follow-ups. Andy ne doit être sollicité que pour la revue et le merge final, ou
-plus tôt si une décision produit, sécurité, données ou architecture est requise.
+À la fin, fournir le lien de la PR et l'état exact : brouillon ou prête, base,
+head, checks connus, dépendances empilées, vérification manuelle et action
+attendue d'Andy.
