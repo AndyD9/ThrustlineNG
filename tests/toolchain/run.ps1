@@ -21,6 +21,11 @@ function New-TestRepository {
     New-Item -ItemType Directory -Path $path | Out-Null
     Copy-Item (Join-Path $repositoryRoot 'eng') $path -Recurse
     Copy-Item (Join-Path $repositoryRoot 'scripts') $path -Recurse
+    $desktopPath = Join-Path $path 'apps/desktop'
+    $tauriPath = Join-Path $desktopPath 'src-tauri'
+    New-Item -ItemType Directory -Path $tauriPath -Force | Out-Null
+    Copy-Item (Join-Path $repositoryRoot 'apps/desktop/package.json') $desktopPath
+    Copy-Item (Join-Path $repositoryRoot 'apps/desktop/src-tauri/Cargo.toml') $tauriPath
     foreach ($file in @('.node-version', '.nvmrc', 'package.json', 'global.json', 'rust-toolchain.toml')) {
         Copy-Item (Join-Path $repositoryRoot $file) $path
     }

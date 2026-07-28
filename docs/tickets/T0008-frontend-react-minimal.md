@@ -1,25 +1,20 @@
 # T0008 — Créer le frontend React minimal
 
-Status: Blocked
+Status: Verify
 Owner: Andy
 Branch: `foundation/t0008-react-frontend`
 Phase: 1
 Risk: Medium
 Security-sensitive: Yes
 
-## Blockers
+## Réconciliation du suivi — 28 juillet 2026
 
-T0008 ne peut passer à `Ready` que lorsque :
+L'implémentation a été fusionnée dans `main` par les PR #3 et #8. La baseline,
+les tests de comportement et de sécurité ainsi que le build Tauri sont présents.
 
-- T0005 est `Done` ;
-- T0006 est `Done` dans le nouveau dépôt ;
-- T0007 est `Done` et sa baseline Tauri est jugée acceptable ;
-- les scripts de toolchain et de build du nouveau dépôt sont verts ;
-- le shell Tauri minimal est fusionné dans la branche principale du nouveau dépôt.
-
-Au démarrage du ticket, l'agent vérifie l'état Git, préserve les changements
-préexistants et crée ou rejoint automatiquement
-`foundation/t0008-react-frontend`, conformément à `AGENTS.md`.
+Le ticket reste `Verify` : T0006/T0007 ne sont pas encore `Done` et la checklist
+interactive focus, zoom 200 %, réduction des animations et inspection
+console/réseau n'a pas été consignée intégralement.
 
 ## Goal
 
@@ -435,23 +430,23 @@ Dans l'ancien dépôt :
 ## Acceptance criteria
 
 - [ ] T0006 et T0007 sont `Done`.
-- [ ] Le travail se trouve sur `foundation/t0008-react-frontend`.
-- [ ] Le contrôle de toolchain T0006 reste vert.
-- [ ] Les commandes et la baseline T0007 restent vertes.
-- [ ] Les versions frontend correspondent exactement à ADR-0004.
-- [ ] TypeScript strict passe sans `any` ou ignore injustifié.
-- [ ] La page `/` et la route inconnue fonctionnent dans Tauri.
-- [ ] L'application possède un error boundary testé.
-- [ ] Le frontend n'effectue aucun appel réseau.
-- [ ] Aucun plugin, capability ou IPC Tauri n'est ajouté.
-- [ ] La CSP production ne contient aucune nouvelle origine réseau.
-- [ ] Les tests de comportement et d'invariants passent.
-- [ ] Le build frontend et le build Tauri sans bundle passent.
-- [ ] Le HTML/CSS/JS ne charge aucune ressource distante.
+- [x] Le travail se trouve sur `foundation/t0008-react-frontend`.
+- [x] Le contrôle de toolchain T0006 reste vert.
+- [x] Les commandes et la baseline T0007 restent vertes.
+- [x] Les versions frontend correspondent exactement à ADR-0004.
+- [x] TypeScript strict passe sans `any` ou ignore injustifié.
+- [x] La page `/` et la route inconnue fonctionnent dans Tauri.
+- [x] L'application possède un error boundary testé.
+- [x] Le frontend n'effectue aucun appel réseau.
+- [x] Aucun plugin, capability ou IPC Tauri n'est ajouté.
+- [x] La CSP production ne contient aucune nouvelle origine réseau.
+- [x] Les tests de comportement et d'invariants passent.
+- [x] Le build frontend et le build Tauri sans bundle passent.
+- [x] Le HTML/CSS/JS ne charge aucune ressource distante.
 - [ ] Le focus clavier, le zoom 200 % et reduced motion sont vérifiés.
-- [ ] La baseline compare correctement T0007 et T0008.
-- [ ] Aucun budget non validé n'est présenté comme une obligation.
-- [ ] Aucun code frontend de l'ancien dépôt n'est copié.
+- [x] La baseline compare correctement T0007 et T0008.
+- [x] Aucun budget non validé n'est présenté comme une obligation.
+- [x] Aucun code frontend de l'ancien dépôt n'est copié.
 
 ## Security review
 
@@ -551,35 +546,77 @@ Après fusion :
 
 ## Completion Report
 
-À remplir après implémentation.
-
 ### Summary
+
+Le frontend React minimal local a remplacé la page statique, avec routage SPA,
+error boundary, tests d'invariants et baseline de coût.
 
 ### Repository and branch
 
+`AndyD9/ThrustlineNG`, branche historique
+`foundation/t0008-react-frontend`.
+
 ### Frontend versions
+
+React `19.2.8`, React Router `7.18.1`, TypeScript `6.0.3`, Vite `8.1.5`,
+Vitest `4.1.10` et Tailwind CSS `4.3.3`.
 
 ### Routing and error handling
 
+`HashRouter`, routes `/` et inconnue, error boundary sûr avec rechargement
+injectable dans les tests.
+
 ### Security invariants
+
+Zéro réseau, plugin, capability ou commande IPC ; ressources locales et CSP
+production inchangée.
 
 ### Files changed in the new repository
 
+Commit `3f77984` : frontend, configurations, tests, mesure, baseline et
+documentation.
+
 ### Files changed in the reference repository
+
+Sans objet.
 
 ### Commands and results
 
+- rejeu du 28 juillet : couverture et 8 tests frontend réussis ;
+- typecheck, format Rust, Cargo check, Clippy et invariants réussis ;
+- build Tauri Release sans bundle réussi.
+
 ### Bundle and performance delta
+
+Voir `docs/benchmarks/T0008-frontend-baseline.md` : bundle brut `242 338 o`,
+gzip `77 111 o`, delta mémoire privée médian d'environ `+0,53 Mio`, dix cycles
+réussis sans processus orphelin.
 
 ### Manual verification result
 
+Routes, error boundary, absence de réseau et landmarks sont couverts
+automatiquement. Focus, zoom 200 %, reduced motion et inspection console/réseau
+restent à confirmer manuellement.
+
 ### Risks and limitations
+
+- T0006/T0007 restent `Verify`.
+- Une seule machine a servi aux mesures.
 
 ### Follow-ups
 
+- Exécuter et consigner la checklist interactive du ticket.
+
 ### Documentation updated
 
+Ticket, backlog, baseline et `CURRENT_STATE.md`.
+
 ### Git and GitHub result
+
+- commit : `3f77984` ;
+- PR #3 fusionnée dans `main` le 28 juillet 2026 ;
+- PR #8 a réintégré la branche après les merges empilés ;
+- état final : présent dans `main`.
 
 Indiquer séparément pour chaque dépôt :
 
