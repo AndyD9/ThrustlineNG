@@ -30,6 +30,7 @@ Statut : `Open`, `Accepted`, `Scheduled`, `Resolved`, `Invalid`.
 | KI-013 | Medium | Desktop | Le gain réel de Tauri/WebView2 face à un shell .NET natif n'est pas mesuré sur le profil cible. | ADR-0004 : choix fondé sur l'architecture et l'absence de runtime Chromium embarqué | T0007 puis T0015 | Open |
 | KI-014 | Medium | Backend | La stack Supabase locale n'est pas strictement identique au cloud et PostgreSQL 17 doit être confirmé sur chaque projet dev/staging/prod. | Documentation officielle Supabase consultée dans T0005 | T0012 | Open |
 | KI-015 | High | Bridge | Le SDK managed SimConnect officiel documente .NET Framework et dépend de binaires/installation SDK ; sa publication self-contained .NET 10 reste à prouver. | Documentation MSFS 2024 SimConnect consultée dans T0005 | T0011 | Open |
+| KI-016 | Medium | Delivery | L'implémentation T0010 a été fusionnée par la PR #7 dans une branche déjà intégrée auparavant, mais le commit T0010 n'est pas présent dans `main`. | PR #7 et test d'ascendance Git au 28 juillet 2026 | Intégration T0010 | Open |
 
 ## Règles
 

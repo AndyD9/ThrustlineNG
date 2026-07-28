@@ -63,5 +63,5 @@ et PowerShell 7.6.0 ; le contrôle T0006 est désormais entièrement conforme.
 
 Le shell est acceptable pour continuer techniquement vers T0008 : il compile,
 s'affiche et se ferme proprement, et sa baseline est désormais reproductible.
-Le ticket reste néanmoins limité par la non-conformité de la toolchain hôte et
-par l'absence de test sur une machine sans WebView2.
+Le ticket reste néanmoins limité par l'absence de test sur une machine sans
+WebView2 et par la checklist interactive encore à consigner.

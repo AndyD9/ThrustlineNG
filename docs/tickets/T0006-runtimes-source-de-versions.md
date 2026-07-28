@@ -1,24 +1,27 @@
 # T0006 — Épingler les runtimes et créer la source de versions
 
-Status: Blocked
+Status: Verify
 Owner: Andy
 Branch: `foundation/t0006-toolchain-pins`
 Phase: 1
 Risk: High
 Security-sensitive: Yes
 
-## Blockers
+## Réconciliation du suivi — 28 juillet 2026
 
-T0006 ne peut passer à `Ready` que lorsque :
+L'implémentation a été fusionnée dans `main` par la PR #1 le 26 juillet 2026.
+Les anciens blockers décrivaient la situation avant la création de
+ThrustlineNG ; ils ne correspondent plus à l'état Git réel.
 
-- T0005 est passé de `Verify` à `Done` après validation humaine ;
-- ADR-0004 et `docs/STACK.md` sont confirmés comme sources de vérité ;
-- Andy a choisi le nom, la visibilité et l'emplacement du nouveau dépôt ;
-- le nouveau dépôt possède une branche principale initiale propre ;
-- Andy a confirmé explicitement la création ou la bascule vers la branche
-  `foundation/t0006-toolchain-pins`.
+Le ticket reste `Verify` parce que :
 
-La confirmation de branche ne vaut pas confirmation du commit ou du push final.
+- T0005 est toujours `Verify` et son acceptation humaine n'est pas consignée ;
+- la vérification rétrospective n'a pas reproduit le parcours complet depuis une
+  VM ou un clone Windows 11 vierge ;
+- le Completion Report n'avait pas été rempli lors de la fusion.
+
+Les contrôles de toolchain, le mode JSON, les 15 assertions et deux exécutions
+idempotentes du bootstrap ont été rejoués avec succès le 28 juillet 2026.
 
 ## Goal
 
@@ -336,21 +339,21 @@ Le script ne doit pas mettre automatiquement les versions à jour.
 
 - [ ] T0005 est `Done`.
 - [ ] Le nouveau dépôt, sa visibilité et sa branche principale sont confirmés.
-- [ ] Le travail se trouve sur `foundation/t0006-toolchain-pins`.
-- [ ] `eng/versions.json` contient uniquement des versions exactes validées.
-- [ ] Les pins Node, pnpm, Rust et .NET sont cohérents avec la source canonique.
-- [ ] Aucun composant applicatif n'est introduit.
-- [ ] `check-toolchain.ps1` échoue clairement sur une version incorrecte.
-- [ ] `check-toolchain.ps1 -Json` produit une sortie exploitable.
-- [ ] `bootstrap.ps1 -CheckOnly` ne modifie pas la machine.
-- [ ] Le bootstrap est idempotent.
-- [ ] Aucun téléchargement distant arbitraire ou privilège administrateur.
-- [ ] Les fins de ligne et UTF-8 sont explicitement configurés.
-- [ ] Les tests couvrent les incohérences principales et une fuite factice.
+- [x] Le travail se trouve sur `foundation/t0006-toolchain-pins`.
+- [x] `eng/versions.json` contient uniquement des versions exactes validées.
+- [x] Les pins Node, pnpm, Rust et .NET sont cohérents avec la source canonique.
+- [x] Aucun composant applicatif n'est introduit.
+- [x] `check-toolchain.ps1` échoue clairement sur une version incorrecte.
+- [x] `check-toolchain.ps1 -Json` produit une sortie exploitable.
+- [x] `bootstrap.ps1 -CheckOnly` ne modifie pas la machine.
+- [x] Le bootstrap est idempotent.
+- [x] Aucun téléchargement distant arbitraire ou privilège administrateur.
+- [x] Les fins de ligne et UTF-8 sont explicitement configurés.
+- [x] Les tests couvrent les incohérences principales et une fuite factice.
 - [ ] Un clone propre peut suivre `docs/SETUP.md`.
-- [ ] `AGENTS.md` du nouveau dépôt ne décrit aucun dossier inexistant.
-- [ ] Aucun fichier applicatif de l'ancien dépôt n'est modifié ou copié.
-- [ ] Le Completion Report indique le commit des deux dépôts si l'ancien ticket
+- [x] `AGENTS.md` du nouveau dépôt ne décrit aucun dossier inexistant.
+- [x] Aucun fichier applicatif de l'ancien dépôt n'est modifié ou copié.
+- [x] Le Completion Report indique le commit des deux dépôts si l'ancien ticket
       est mis à jour séparément.
 
 ## Security review
@@ -443,33 +446,73 @@ pas modifier manuellement les pins sans synchroniser la source canonique.
 
 ## Completion Report
 
-À remplir après implémentation.
-
 ### Summary
+
+Le socle de toolchain exact et reproductible a été livré. La réconciliation a
+également corrigé le harnais synthétique, qui ne copiait plus les manifests Tauri
+devenus obligatoires pour `check-toolchain.ps1`.
 
 ### Repository created or used
 
+`AndyD9/ThrustlineNG`, branche par défaut `main`.
+
 ### Versions pinned
+
+Node `24.18.0`, pnpm `11.17.0`, Rust `1.97.1`, SDK .NET `10.0.201` et
+PowerShell `7.6.0` minimum.
 
 ### Files changed in the new repository
 
+Commit historique `60f0aba` : pins natifs, `eng/versions.json`, scripts de
+contrôle/bootstrap, harnais toolchain, setup et normalisation Git.
+
 ### Files changed in the reference repository
+
+Sans objet : ThrustlineNG est le nouveau dépôt effectivement retenu.
 
 ### Commands and results
 
+- `check-toolchain.ps1` et `-Json` : conformes le 28 juillet 2026 ;
+- `tests/toolchain/run.ps1` : premier rejeu en échec (5/15), puis 15/15 après
+  synchronisation du dépôt synthétique avec les manifests Tauri ;
+- `bootstrap.ps1 -CheckOnly` : réussi, sans modification ;
+- deux `bootstrap.ps1` successifs : réussis, lockfile inchangé.
+
 ### Clean-clone verification
+
+Non rejouée depuis une VM ou un clone Windows 11 vierge pendant la
+réconciliation. `docs/SETUP.md` et la restauration figée ont été relus.
 
 ### Manual verification result
 
+Contrôle lisible, sortie JSON et idempotence vérifiés. La validation clean-clone
+reste à effectuer avant `Done`.
+
 ### Security review result
+
+Aucun téléchargement distant, secret, privilège administrateur ou modification
+globale du poste n'est effectué par les scripts.
 
 ### Risks and limitations
 
+- T0005 reste `Verify`.
+- La preuve clean-clone/VM manque.
+
 ### Follow-ups
+
+- Faire accepter T0005.
+- Exécuter `docs/SETUP.md` depuis un clone ou une VM Windows 11 vierge.
 
 ### Documentation updated
 
+Ticket, backlog et `CURRENT_STATE.md` réconciliés le 28 juillet 2026.
+
 ### Git handoff
+
+- branche historique : `foundation/t0006-toolchain-pins` ;
+- commit : `60f0aba` ;
+- PR : https://github.com/AndyD9/ThrustlineNG/pull/1 ;
+- PR fusionnée dans `main` le 26 juillet 2026.
 
 Indiquer séparément pour chaque dépôt :
 

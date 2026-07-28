@@ -1,6 +1,6 @@
 # T0009 — Créer le bridge .NET minimal
 
-Status: Done
+Status: Verify
 Owner: Andy
 Branch: `foundation/t0009-dotnet-bridge`
 Phase: 1
@@ -157,7 +157,9 @@ processus normal a aussi affiché son état prêt. Le terminal PTY utilisé n'a 
 converti l'injection de Ctrl+C en signal Windows ; l'instance précisément
 identifiée a été arrêtée et l'absence de processus restant confirmée. Le chemin
 d'annulation a été vérifié automatiquement avec un délai de deux secondes.
-L'envoi Ctrl+C depuis une console Windows native est délégué à la revue.
+Un nouveau rejeu le 28 juillet 2026 reproduit la même limite du PTY. L'envoi
+Ctrl+C depuis une console Windows native reste requis ; le ticket est donc
+`Verify`, pas `Done`.
 
 ### Risks and limitations
 
@@ -185,10 +187,9 @@ L'envoi Ctrl+C depuis une console Windows native est délégué à la revue.
 - cible effective : `foundation/t0008-react-frontend`, car cette branche contient
   le commit documentaire préexistant `a29a3da` dont dépend le ticket ;
 - push : réussi, suivi distant configuré ;
-- PR : https://github.com/AndyD9/ThrustlineNG/pull/5, ouverte en brouillon ;
+- PR empilée #5 fusionnée dans `foundation/t0008-react-frontend` ;
+- PR #6 fusionnée dans `main` le 28 juillet 2026 ;
 - diff GitHub vérifié : uniquement les commits et 19 fichiers T0009 ;
-- blocage de publication vers `main` : la base documentaire fusionnée par la
-  PR #4 dans `foundation/t0008-react-frontend` n'est pas présente sur `main` ;
 - validations GitHub : aucun check déclaré au dernier relevé ;
 - modifications préexistantes exclues : aucune ;
-- merge non effectué, réservé à Andy.
+- état final : implémentation présente dans `main`, vérification Ctrl+C restante.

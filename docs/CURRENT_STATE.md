@@ -1,7 +1,8 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 24 juillet 2026 (ticket T0003).
-Statut : baseline locale vérifiée ; validations externes encore requises.
+Dernière revue documentaire : 28 juillet 2026 (réconciliation T0006–T0009).
+Statut : fondations T0006–T0009 fusionnées et gates automatisées vertes ;
+vérifications humaines restantes consignées dans les tickets.
 
 ## Produit
 
@@ -204,12 +205,28 @@ ne contient ni SimConnect, ni secret, ni donnée métier.
 La publication vérifiée contient 191 fichiers pour environ 80,5 Mo. Cette mesure
 est informative ; T0015 fixera les budgets.
 
+## État de vérification des fondations
+
+Les implémentations T0006, T0007, T0008 et T0009 sont présentes dans `main`.
+Leur ancien suivi `Blocked`/`Done` ne reflétait plus les fusions et les preuves.
+Elles sont désormais `Verify` :
+
+- T0006 : T0005 à accepter et parcours clean-clone/VM à consigner ;
+- T0007 : checklist interactive et scénario WebView2 absent à exécuter ;
+- T0008 : focus, zoom 200 %, reduced motion et console/réseau à vérifier ;
+- T0009 : arrêt Ctrl+C à confirmer depuis une console Windows native.
+
+Au 28 juillet 2026, le contrôle de toolchain, ses 15 assertions, le bootstrap
+idempotent, les 8 tests frontend, les gates Rust/Tauri, le build desktop Release,
+les 4 tests bridge, le health check et la publication self-contained réussissent.
+
 ## Prochain ticket recommandé
 
 `T0010 — Établir le contrat local et le health check` doit lancer et superviser
 le bridge depuis Tauri, authentifier chaque instance, puis définir les surfaces
-REST/SignalR minimales et leur récupération. Il ne doit pas encore introduire
-SimConnect ou de logique métier.
+REST/SignalR minimales et leur récupération. Une implémentation existe sur la
+branche distante `foundation/t0009-dotnet-bridge` après la PR empilée #7, mais
+elle n'est pas fusionnée dans `main` et n'est donc pas une capacité livrée.
 
 ## Mise à jour de ce fichier
 
