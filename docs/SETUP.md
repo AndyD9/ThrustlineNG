@@ -1,5 +1,10 @@
 # Préparer l'environnement ThrustlineNG
 
+Pour T0010, `THRUSTLINE_BRIDGE_PATH` désigne en développement le bridge publié.
+Une distribution place `Thrustline.Bridge.exe` à côté du desktop. Le jeton et le
+port sont générés à chaque lancement par Tauri, jamais par variable
+d'environnement.
+
 ## Plateforme prise en charge
 
 Le socle cible Windows 11 x64 avec Git pour Windows et PowerShell 7. N'utilisez

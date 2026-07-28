@@ -191,8 +191,7 @@ pas les fondations de la refonte.
 
 Cette décision est désormais partiellement adoptée par les pins de toolchain, le
 shell Tauri, le frontend React et le bridge .NET minimal. Les performances et la
-compatibilité self-contained avec le futur adaptateur SimConnect restent à
-prouver par les tickets d'adoption.
+compatibilité réelle avec MSFS reste à prouver sur les deux canaux supportés.
 
 ## Bridge .NET minimal
 
@@ -205,28 +204,31 @@ ne contient ni SimConnect, ni secret, ni donnée métier.
 La publication vérifiée contient 191 fichiers pour environ 80,5 Mo. Cette mesure
 est informative ; T0015 fixera les budgets.
 
-## État de vérification des fondations
+## Contrat local
 
-Les implémentations T0006, T0007, T0008 et T0009 sont présentes dans `main`.
-Leur ancien suivi `Blocked`/`Done` ne reflétait plus les fusions et les preuves.
-Elles sont désormais `Verify` :
+T0010 ajoute un serveur ASP.NET Core lié à `127.0.0.1`, un health check REST
+versionné et une surface SignalR vide. Chaque requête exige un jeton éphémère de
+256 bits créé par Tauri. Le desktop lance et termine le bridge sans exposer le
+jeton à la WebView. Les données métier et la reconnexion après crash restent
+absentes ; la source SimConnect T0011 n'est pas exposée sur ce contrat.
 
-- T0006 : T0005 à accepter et parcours clean-clone/VM à consigner ;
-- T0007 : checklist interactive et scénario WebView2 absent à exécuter ;
-- T0008 : focus, zoom 200 %, reduced motion et console/réseau à vérifier ;
-- T0009 : arrêt Ctrl+C à confirmer depuis une console Windows native.
+## Adaptateur SimConnect et replay
 
-Au 28 juillet 2026, le contrôle de toolchain, ses 15 assertions, le bootstrap
-idempotent, les 8 tests frontend, les gates Rust/Tauri, le build desktop Release,
-les 4 tests bridge, le health check et la publication self-contained réussissent.
+T0011 ajoute `ISimConnectAdapter`, un échantillon de vol validé, un adaptateur
+natif sans package tiers et un replay JSONL strict. Tous les appels natifs sont
+confinés à une boucle dédiée et la télémétrie reste déconnectée de REST, SignalR,
+du frontend et de l'économie.
+
+Une trace synthétique de huit points se rejoue sans MSFS. Elle couvre sol,
+décollage, montée, croisière, descente et retour au sol, mais ne prouve ni le SDK
+installé, ni MSFS 2024 Store/Steam, ni un comportement d'avion réel. Aucun
+binaire de l'ancien build n'est copié.
 
 ## Prochain ticket recommandé
 
-`T0010 — Établir le contrat local et le health check` doit lancer et superviser
-le bridge depuis Tauri, authentifier chaque instance, puis définir les surfaces
-REST/SignalR minimales et leur récupération. Une implémentation existe sur la
-branche distante `foundation/t0009-dotnet-bridge` après la PR empilée #7, mais
-elle n'est pas fusionnée dans `main` et n'est donc pas une capacité livrée.
+`T0012 — Créer Supabase local et les tests RLS` peut démarrer indépendamment de
+la vérification manuelle MSFS de T0011. T0011 reste `Verify` jusqu'aux essais
+réels Windows 11/MSFS 2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier
 

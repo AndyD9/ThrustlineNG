@@ -17,6 +17,12 @@ ce fixture et ajouter ou préserver un scénario d'échec associé.
 
 ## Desktop et bridge
 
+Le harnais bridge couvre le parsing strict, les jetons absents/incorrects, la
+réponse REST versionnée et la négociation SignalR. Il couvre aussi les bornes des
+échantillons, le replay synthétique, les offsets, les lignes surdimensionnées,
+l'annulation, un faux adaptateur et l'absence de types SDK dans les contrats
+publics. Les tests Rust vérifient les jetons et la sélection d'un port dynamique.
+
 Depuis la racine :
 
 ```powershell
@@ -55,3 +61,7 @@ analyseurs recommandés. Son harnais sans package tiers couvre les transitions d
 santé, le diagnostic, les arguments invalides et l'annulation. La publication
 produit un dossier self-contained `win-x64` ; single-file, trimming et AOT ne
 sont pas activés sans mesure.
+
+Une trace synthétique prouve le replay déterministe sans MSFS. Elle ne remplace
+ni une trace enregistrée avec provenance, ni les fiches Store/Steam exigées par
+ADR-0003.
