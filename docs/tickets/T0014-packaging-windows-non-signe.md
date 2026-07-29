@@ -390,8 +390,10 @@ l'absence de motif de secret.
   trois signatures sont `NotSigned`, aucun nom sensible ni motif de secret ;
 - installateur CI final : 35 405 932 octets, SHA-256
   `2C49C0EFE056C08DBD854B579099282E3B58A3FFA4751675833C5DA865E31582` ;
-- harnais toolchain : non exécuté, car `pwsh` 7.6 n'est pas disponible dans le
-  `PATH` et le script refuse correctement Windows PowerShell 5.1.
+- harnais toolchain : 15 assertions réussies avec PowerShell `7.6.4` installé
+  sous `C:\Users\andyd\AppData\Local\Microsoft\WindowsApps\pwsh.exe` ; le
+  `PATH` hérité par le shell sandboxé Codex ne l'expose pas, donc le chemin
+  explicite a été utilisé.
 
 Le premier rejeu renforcé a détecté deux affirmations erronées du manifeste :
 nom desktop puis hash du payload. Le nom a été corrigé. Tauri applique des
@@ -423,7 +425,8 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 - MSI, signature, provenance, updater, upgrade N-1 et rollback non testés ;
 - le bundle NSIS contient des métadonnées de build : deux fabrications ont le
   même inventaire logique, mais pas un SHA-256 binaire identique ;
-- PowerShell 7.6 absent du `PATH` local ;
+- le `PATH` du shell sandboxé Codex n'expose pas PowerShell 7.6.4, pourtant
+  installé et validé via son chemin explicite sous `WindowsApps` ;
 - les preuves humaines encore ouvertes dans T0007–T0009 ne sont pas closes par
   ce ticket.
 
