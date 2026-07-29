@@ -292,11 +292,14 @@ PR #16 puis #15 et est présente dans `main`.
 
 ## Prochain ticket recommandé
 
-Ne pas démarrer T0014 tant que sa dépendance T0007 reste `Blocked`. La prochaine
-action de gouvernance consiste à réconcilier ou satisfaire cette dépendance.
-T0012 exige toujours un runtime Docker respectant la liaison loopback, Studio et
-le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
-réels Windows 11/MSFS 2024 exigés par ADR-0003.
+T0014 peut démarrer : les implémentations desktop et bridge T0007–T0010 sont
+fusionnées dans `main` et la CI T0013 est `Done`. Les vérifications humaines
+encore ouvertes sur T0007–T0010 restent des limites à reporter, sans bloquer la
+fabrication et l'installation locale d'un package Windows non signé. T0012 exige
+toujours un runtime Docker respectant la liaison loopback, Studio et le
+redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
+réels Windows 11/MSFS 2024 exigés par ADR-0003 ; ces deux preuves sont hors du
+périmètre de T0014.
 
 ## Mise à jour de ce fichier
 
