@@ -72,7 +72,11 @@ try {
     }
     $cycles = @(
         1..10 | ForEach-Object {
-            [pscustomobject]@{ cycle = $_; cleanExit = $true }
+            [pscustomobject]@{
+                cycle = $_
+                cleanExit = $true
+                cleanBridgeExit = $true
+            }
         }
     )
     $desktop = [pscustomobject]@{
@@ -80,7 +84,11 @@ try {
         sizes = [pscustomobject]@{ launchArtifactsBytes = 6000000 }
         measurements = @(
             1..10 | ForEach-Object {
-                [pscustomobject]@{ run = $_; webView2ProcessCount = 1 }
+                [pscustomobject]@{
+                    run = $_
+                    webView2ProcessCount = 1
+                    bridgeProcessCount = 1
+                }
             }
         )
         statistics = [pscustomobject]@{
@@ -92,6 +100,7 @@ try {
         }
         lifecycleCycles = $cycles
         orphanProcessCount = 0
+        orphanBridgeProcessCount = 0
     }
     $bridge = [pscustomobject]@{
         schemaVersion = 1

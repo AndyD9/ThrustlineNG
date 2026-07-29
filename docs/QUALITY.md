@@ -145,8 +145,12 @@ pnpm performance:check -- `
 ```
 
 Elle exige dix mesures avec un WebView2 associé, dix cycles propres et zéro
-processus orphelin. Une sortie avant 30 ou 60 secondes est un échec. Un budget ne
-peut être relevé qu'avec une mesure comparable et une revue explicite.
+processus orphelin desktop ou bridge. Le harness publie puis stage le bridge dans
+le layout de ressources Release exigé par Tauri. Les cycles rapides sont testés
+avant les mesures longues et attendent la terminaison du bridge associé ; tout
+nettoyage forcé reste un échec. Une sortie avant 30 ou 60 secondes est un échec.
+Un budget ne peut être relevé qu'avec une mesure comparable et une revue
+explicite.
 
 ## CI multi-stack et supply chain
 

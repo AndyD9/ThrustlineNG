@@ -1,6 +1,6 @@
 # T0015 — Fixer les budgets stabilité et performance
 
-Status: Verify
+Status: Review
 Owner: Codex
 Branch: `foundation/t0015-stability-performance-budgets`
 Phase: 0–1
@@ -263,13 +263,20 @@ build. Le bridge a été mesuré sur dix lancements.
 - mesure bridge finale après synchronisation de `main`, sous PowerShell 7.6.4 :
   10/10, médiane 58,75 ms, maximum 118,7 ms ;
 - publication bridge : 110 477 582 octets, 334 fichiers, sous 128 Mio ;
-- gate artefacts : frontend 76 526 octets gzip, desktop 5 560 929 octets,
+- campagne GUI finale : 5 lancements froids, 5 chauds, 10 cycles desktop/bridge
+  propres et zéro orphelin ;
+- affichage froid médian/maximum : 83,1/89,5 ms ; chaud : 81,7/90,9 ms ;
+- mémoire médiane à 60 s : desktop 7 725 056 octets, WebView2
+  127 072 256 octets, croissance desktop nulle entre 30 et 60 s ;
+- gate artefacts : frontend 77 387 octets gzip, desktop 5 560 929 octets,
   bridge 110 477 582 octets, tous conformes ;
 - frontend : typecheck, 8/8 tests et build réussis ;
-- desktop : format, check, Clippy, 2/2 tests Rust, invariants, build Release
+- desktop : format, check, Clippy, 3/3 tests Rust, invariants, build Release
   réussis ;
 - bridge : build sans avertissement, 13/13 tests et publication réussis ;
 - harnais CI T0013 : dépôt et 2 mutations réussis ;
+- GitHub : Windows multi-stack, Supabase PostgreSQL 17, audits, licences et SBOM
+  réussis sur l'exécution de la PR #22 avant le correctif final ;
 - `git diff --check` : réussi, avec avertissements LF/CRLF informatifs sur deux
   scripts existants.
 
@@ -282,28 +289,23 @@ réussi avec son chemin explicite autorisé.
 ### Manual verification result
 
 Les unités, marges et cibles `Not measured` ont été relues. Les scénarios
-négatifs prouvent qu'un seuil abaissé échoue. Aucun processus Thrustline n'est
-resté après les essais.
+négatifs prouvent qu'un seuil abaissé échoue.
 
-La campagne GUI complète n'est pas validée : un premier essai a été bloqué par
-WMI, puis le binaire est sorti avec `-1073740791` dans la session d'outil avant
-la mesure longue. Le harness refuse désormais une sortie avant 30/60 secondes
-et l'absence de WebView2. `KI-020` conserve le constat sans trancher entre cause
-produit et environnement ; une session Windows interactive stable est requise.
+La campagne GUI complète est réussie. L'échec initial venait du bridge absent du
+layout Release nu ; le harness publie et stage désormais cette ressource. Il
+attend aussi la terminaison du bridge de chaque cycle et nettoie en fail-safe
+avant d'échouer si nécessaire. Les dix cycles finaux sont propres, avec zéro
+desktop et zéro bridge restant. `KI-020` est résolu.
 
 ### Risks and limitations
 
 - une seule machine et une seule famille d'environnement ;
 - pas de profil minimum, MSFS réel, vol de quatre heures ou télémétrie bêta ;
-- les timings GUI T0015 ne sont pas prouvés ; T0008 reste la dernière campagne
-  complète ;
 - les budgets détectent les régressions grossières mais ne prouvent pas
   l'expérience du MVP complet.
 
 ### Follow-ups
 
-- relancer `pnpm frontend:measure` dans une session Windows interactive stable,
-  puis le validateur avec les deux JSON ;
 - mesurer le profil minimum et quatre heures lors du vertical slice ;
 - remplacer les cibles `Not measured` avant bêta avec des preuves ;
 - ne relever aucun seuil sans PR et mesure comparable.

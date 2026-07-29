@@ -6,7 +6,8 @@ param(
     [int]$Runs = 5,
     [ValidateRange(1, 600)]
     [int]$DisplayTimeoutSeconds = 30,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [switch]$SkipBridgePublish
 )
 
 Set-StrictMode -Version Latest
@@ -19,8 +20,17 @@ $requestedOutput = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
     Join-Path $root $OutputDirectory
 }
 $output = [System.IO.Path]::GetFullPath($requestedOutput)
-$executable = Join-Path $root 'apps/desktop/src-tauri/target/release/thrustline-desktop.exe'
+$releaseDirectory = [System.IO.Path]::GetFullPath(
+    (Join-Path $root 'apps/desktop/src-tauri/target/release')
+)
+$executable = Join-Path $releaseDirectory 'thrustline-desktop.exe'
 $frontend = Join-Path $root 'apps/desktop/dist'
+$bridgePublishDirectory = [System.IO.Path]::GetFullPath(
+    (Join-Path $root 'apps/bridge/bin/Release/net10.0/win-x64/publish')
+)
+$bridgeResourceDirectory = [System.IO.Path]::GetFullPath(
+    (Join-Path $releaseDirectory 'bridge')
+)
 
 New-Item -ItemType Directory -Force -Path $output | Out-Null
 
@@ -31,6 +41,40 @@ function Invoke-TimedBuild {
     if ($LASTEXITCODE -ne 0) { throw "$Kind build failed with exit code $LASTEXITCODE." }
     $timer.Stop()
     return [math]::Round($timer.Elapsed.TotalSeconds, 3)
+}
+
+function Publish-And-StageBridge {
+    if (@(Get-Process -Name 'Thrustline.Bridge' -ErrorAction SilentlyContinue).Count -ne 0) {
+        throw 'A Thrustline bridge process is already running; refusing to replace its files.'
+    }
+    if (-not $SkipBridgePublish) {
+        & corepack pnpm bridge:publish
+        if ($LASTEXITCODE -ne 0) {
+            throw "Bridge publish failed with exit code $LASTEXITCODE."
+        }
+    }
+
+    $bridgeExecutable = Join-Path $bridgePublishDirectory 'Thrustline.Bridge.exe'
+    if (-not (Test-Path -LiteralPath $bridgeExecutable -PathType Leaf)) {
+        throw 'Published bridge executable not found; run pnpm bridge:publish.'
+    }
+    $expectedResourceDirectory = [System.IO.Path]::GetFullPath(
+        (Join-Path $root 'apps/desktop/src-tauri/target/release/bridge')
+    )
+    if ($bridgeResourceDirectory -ne $expectedResourceDirectory) {
+        throw 'Refusing to replace an unexpected bridge resource directory.'
+    }
+    if (Test-Path -LiteralPath $bridgeResourceDirectory) {
+        Remove-Item -LiteralPath $bridgeResourceDirectory -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $bridgeResourceDirectory | Out-Null
+    Get-ChildItem -LiteralPath $bridgePublishDirectory |
+        Copy-Item -Destination $bridgeResourceDirectory -Recurse -Force
+    if (-not (Test-Path -LiteralPath (
+        Join-Path $bridgeResourceDirectory 'Thrustline.Bridge.exe'
+    ) -PathType Leaf)) {
+        throw 'Bridge resource staging failed.'
+    }
 }
 
 function Stop-MeasuredProcess {
@@ -73,8 +117,12 @@ function Measure-Launch {
         }
         $children = Get-CimInstance Win32_Process | Where-Object ParentProcessId -eq $process.Id
         $webViewChildren = @($children | Where-Object Name -Match 'msedgewebview2')
+        $bridgeChildren = @($children | Where-Object Name -CEQ 'Thrustline.Bridge.exe')
         if ($webViewChildren.Count -eq 0) {
             throw "No associated WebView2 process was detected for $Kind run $Run."
+        }
+        if ($bridgeChildren.Count -ne 1) {
+            throw "Expected one associated bridge process for $Kind run $Run."
         }
         $webViewWorkingSetBytes = [long]0
         foreach ($webViewChild in $webViewChildren) {
@@ -91,6 +139,7 @@ function Measure-Launch {
             handles60Seconds = $process.HandleCount
             webView2ProcessCount = $webViewChildren.Count
             webView2WorkingSetBytes = $webViewWorkingSetBytes
+            bridgeProcessCount = $bridgeChildren.Count
         }
     } finally {
         Stop-MeasuredProcess $process
@@ -100,6 +149,8 @@ function Measure-Launch {
 function Test-LifecycleCycle {
     param([int]$Cycle)
     $process = Start-Process -FilePath $executable -PassThru
+    $bridgeProcessId = $null
+    $bridgeDidNotExit = $false
     try {
         $deadline = (Get-Date).AddSeconds($DisplayTimeoutSeconds)
         do {
@@ -109,10 +160,55 @@ function Test-LifecycleCycle {
         if ($process.HasExited -or $process.MainWindowHandle -eq 0) {
             throw "No visible window was detected for lifecycle cycle $Cycle."
         }
-    } finally {
-        Stop-MeasuredProcess $process
+        $bridgeDeadline = (Get-Date).AddSeconds(5)
+        do {
+            $bridgeChildren = @(
+                Get-CimInstance Win32_Process |
+                    Where-Object {
+                        $_.ParentProcessId -eq $process.Id -and
+                        $_.Name -ceq 'Thrustline.Bridge.exe'
+                    }
+            )
+            if ($bridgeChildren.Count -eq 1) {
+                $bridgeProcessId = [int]$bridgeChildren[0].ProcessId
+            }
+            elseif ($bridgeChildren.Count -gt 1) {
+                throw "Multiple bridge processes were detected for lifecycle cycle $Cycle."
+            }
+            if ($null -eq $bridgeProcessId) {
+                Start-Sleep -Milliseconds 50
+            }
+        } until ($null -ne $bridgeProcessId -or (Get-Date) -ge $bridgeDeadline)
+        if ($null -eq $bridgeProcessId) {
+            throw "No bridge process was detected for lifecycle cycle $Cycle."
+        }
     }
-    return [pscustomobject]@{ cycle = $Cycle; cleanExit = $process.ExitCode -eq 0 }
+    finally {
+        try {
+            Stop-MeasuredProcess $process
+        }
+        finally {
+            if ($null -ne $bridgeProcessId) {
+                $bridgeProcess = Get-Process -Id $bridgeProcessId -ErrorAction SilentlyContinue
+                if ($null -ne $bridgeProcess -and -not $bridgeProcess.WaitForExit(5000)) {
+                    $bridgeProcess.Kill()
+                    $bridgeProcess.WaitForExit()
+                    $bridgeDidNotExit = $true
+                }
+                if ($null -ne $bridgeProcess) {
+                    $bridgeProcess.Dispose()
+                }
+            }
+        }
+    }
+    if ($bridgeDidNotExit) {
+        throw "The bridge did not exit cleanly for lifecycle cycle $Cycle; it was stopped by the harness."
+    }
+    return [pscustomobject]@{
+        cycle = $Cycle
+        cleanExit = $process.ExitCode -eq 0
+        cleanBridgeExit = $true
+    }
 }
 
 function Get-Statistics {
@@ -140,6 +236,12 @@ if (-not $SkipBuild) {
     $incrementalBuildSeconds = Invoke-TimedBuild 'Incremental'
 }
 if (-not (Test-Path -LiteralPath $executable)) { throw "Release executable not found: $executable" }
+Publish-And-StageBridge
+
+$cycles = [System.Collections.Generic.List[object]]::new()
+for ($cycle = 1; $cycle -le 10; $cycle++) {
+    $cycles.Add((Test-LifecycleCycle $cycle))
+}
 
 $measurements = [System.Collections.Generic.List[object]]::new()
 foreach ($kind in @('cold', 'warm')) {
@@ -147,13 +249,12 @@ foreach ($kind in @('cold', 'warm')) {
         $measurements.Add((Measure-Launch $kind $run))
     }
 }
-
-$cycles = [System.Collections.Generic.List[object]]::new()
-for ($cycle = 1; $cycle -le 10; $cycle++) {
-    $cycles.Add((Test-LifecycleCycle $cycle))
-}
 $orphanCount = @(Get-Process -Name 'thrustline-desktop' -ErrorAction SilentlyContinue).Count
 if ($orphanCount -ne 0) { throw "$orphanCount orphan Thrustline process(es) remain." }
+$orphanBridgeCount = @(Get-Process -Name 'Thrustline.Bridge' -ErrorAction SilentlyContinue).Count
+if ($orphanBridgeCount -ne 0) {
+    throw "$orphanBridgeCount orphan Thrustline bridge process(es) remain."
+}
 
 $webViewEntry = Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\EdgeUpdate\Clients\{F1E7E85E-3B6B-4B05-B7D7-2B0E604E9AB5}' -ErrorAction SilentlyContinue
 $webViewVersion = if ($null -ne $webViewEntry -and $null -ne $webViewEntry.PSObject.Properties['pv']) {
@@ -203,6 +304,7 @@ $summary = [pscustomobject]@{
     }
     lifecycleCycles = $cycles
     orphanProcessCount = $orphanCount
+    orphanBridgeProcessCount = $orphanBridgeCount
 }
 
 $jsonPath = Join-Path $output 'tauri-shell-measurements.json'

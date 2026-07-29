@@ -243,9 +243,10 @@ sur les tailles construites. Les baselines T0008 et la nouvelle mesure bridge
 respectent les seuils de fondation.
 
 Les objectifs MVP de démarrage, mémoire intégrée, quatre heures, installation et
-sessions sans crash restent `Not measured`. La campagne GUI T0015 n'a pas abouti
-dans la session d'outil : le binaire est sorti anormalement avant la mesure
-longue. Le ticket reste `Verify` et ne change aucun statut de support.
+sessions sans crash restent `Not measured`. La campagne GUI T0015 passe avec
+cinq lancements froids, cinq chauds, dix cycles propres, un WebView2 et un bridge
+associés par mesure, et zéro processus orphelin. Le ticket est `Review` sur la
+PR #22 et ne change aucun statut de support avant fusion.
 
 ## Backend Supabase local et RLS
 
@@ -346,9 +347,8 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Terminer la campagne GUI T0015 dans une session Windows interactive stable avant
-de clore le ticket. Ne pas présenter ses budgets comme fusionnés tant que sa PR
-ne l'est pas.
+Revoir la PR #22 T0015 ; ses mesures manuelles et automatisées sont terminées,
+mais ses budgets ne sont pas livrés dans `main` avant fusion par Andy.
 T0014 reste `Review` jusqu'à ses contrôles humains de packaging.
 T0012 exige toujours un runtime Docker respectant la liaison loopback, Studio et
 le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais

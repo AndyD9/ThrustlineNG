@@ -234,6 +234,12 @@ if ($DesktopMeasurementsPath) {
     }).Count -gt 0) {
         $issues.Add("desktop measurements must contain ten runs with an associated WebView2 process.")
     }
+    if (@($measurements | Where-Object {
+        $null -eq $_.PSObject.Properties["bridgeProcessCount"] -or
+        [int]$_.bridgeProcessCount -ne 1
+    }).Count -gt 0) {
+        $issues.Add("desktop measurements must contain exactly one associated bridge process per run.")
+    }
     $privateGrowth = (
         (Get-RequiredNumber $private60 "median" "desktop private 60 median") -
         (Get-RequiredNumber $private30 "median" "desktop private 30 median")
@@ -245,12 +251,18 @@ if ($DesktopMeasurementsPath) {
         $cycles.Count `
         (Get-RequiredNumber $desktopBudget "lifecycleCyclesMin" "desktop cycle budget")
     if (@($cycles | Where-Object {
-        $null -eq $_.PSObject.Properties["cleanExit"] -or $_.cleanExit -ne $true
+        $null -eq $_.PSObject.Properties["cleanExit"] -or
+        $_.cleanExit -ne $true -or
+        $null -eq $_.PSObject.Properties["cleanBridgeExit"] -or
+        $_.cleanBridgeExit -ne $true
     }).Count -gt 0) {
-        $issues.Add("desktop lifecycle contains an unclean exit.")
+        $issues.Add("desktop lifecycle contains an unclean desktop or bridge exit.")
     }
     Assert-Maximum "desktop.orphanProcessCount" `
         (Get-RequiredNumber $desktop "orphanProcessCount" "desktop.orphanProcessCount") `
+        (Get-RequiredNumber $desktopBudget "orphanProcessCountMax" "desktop orphan budget")
+    Assert-Maximum "desktop.orphanBridgeProcessCount" `
+        (Get-RequiredNumber $desktop "orphanBridgeProcessCount" "desktop.orphanBridgeProcessCount") `
         (Get-RequiredNumber $desktopBudget "orphanProcessCountMax" "desktop orphan budget")
     $checkedGroups.Add("desktop measurements")
 }

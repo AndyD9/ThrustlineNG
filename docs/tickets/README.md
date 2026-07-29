@@ -28,7 +28,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Verify |
 | T0013 | Consolider la CI multi-stack | 1 | T0006–T0012 | Done |
 | T0014 | Valider le packaging Windows non signé | 1 | T0007–T0010, T0013 | Review |
-| T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Verify |
+| T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Review |
 | T0016 | Corriger l’avis de sécurité React Router | 1 | T0013 | Done |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009,

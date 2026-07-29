@@ -2,7 +2,8 @@
 
 - Date : 29 juillet 2026
 - Branche : `foundation/t0015-stability-performance-budgets`
-- Base mesurée : `0817dfbc92eebefc30396e14225bf994f15fd454`
+- Base mesurée : `7f33073bd931f00dd936384cbd6cfde13511bc96`, arbre
+  T0015 non commité pendant la campagne finale
 - Plateforme : Windows 11 x64
 - Configuration : Release
 - Source des seuils : `eng/stability-performance-budgets.json`
@@ -43,40 +44,43 @@ budget.
 
 | Mesure | Preuve | Résultat | Budget | État |
 | --- | --- | ---: | ---: | --- |
-| Frontend gzip | T0008 | 77 111 o | 262 144 o | Conforme |
-| Artefacts desktop | T0008 | 5 531 158 o | 16 777 216 o | Conforme |
-| Affichage froid médian / max | T0008 | 87,2 / 182,5 ms | 500 / 1 000 ms | Conforme |
-| Affichage chaud médian / max | T0008 | 84,5 / 98,4 ms | 350 / 750 ms | Conforme |
-| Mémoire privée médiane à 60 s | T0008 | 7,30 Mio | 64 Mio | Conforme |
-| WebView2 médian à 60 s | T0008 | 121,04 Mio | 192 Mio | Conforme |
-| Croissance privée 30 → 60 s | T0008 | 0 Mio | 16 Mio | Conforme |
-| Cycles / orphelins | T0008 | 10 / 0 | ≥ 10 / 0 | Conforme |
+| Frontend gzip | T0015 | 77 387 o | 262 144 o | Conforme |
+| Artefacts desktop hors bridge | T0015 | 5 560 929 o | 16 777 216 o | Conforme |
+| Affichage froid médian / max | T0015 | 83,1 / 89,5 ms | 500 / 1 000 ms | Conforme |
+| Affichage chaud médian / max | T0015 | 81,7 / 90,9 ms | 350 / 750 ms | Conforme |
+| Mémoire privée médiane à 60 s | T0015 | 7 725 056 o | 67 108 864 o | Conforme |
+| WebView2 médian à 60 s | T0015 | 127 072 256 o | 201 326 592 o | Conforme |
+| Croissance privée 30 → 60 s | T0015 | 0 o | 16 777 216 o | Conforme |
+| Cycles / orphelins desktop / bridge | T0015 | 10 / 0 / 0 | ≥ 10 / 0 / 0 | Conforme |
 | Publication bridge | T0015 | 110 477 582 o, 334 fichiers | 134 217 728 o | Conforme |
 | Health bridge médian / max | T0015 | 58,75 / 118,7 ms, 10 runs | 1 000 / 2 000 ms | Conforme |
 
 Le contrôle direct des artefacts reconstruits pendant T0015 donne :
 
-- frontend gzip : 76 526 octets ;
+- frontend gzip : 77 387 octets ;
 - artefacts desktop : 5 560 929 octets ;
 - publication bridge : 110 477 582 octets.
 
 Ces trois tailles passent le gate automatisé. Les valeurs T0007/T0008 restent
-dans leurs rapports d'origine ; ce document les compare sans réécrire leur
-provenance.
+dans leurs rapports d'origine ; la campagne finale T0015 les remplace comme
+preuve courante sans réécrire leur provenance.
 
 ## Campagne GUI T0015
 
-Le premier essai a construit l'application et affiché la fenêtre, puis a été
-bloqué par le refus WMI du bac à sable lors de l'inspection WebView2. Le second
-essai, avec accès WMI autorisé, a révélé une agrégation non sûre en mode strict ;
-le harness échoue maintenant explicitement si WebView2 n'est pas associé.
+Le premier essai a lancé l'exécutable Tauri nu produit par `--no-bundle`. Depuis
+T0014, ce binaire exige la publication bridge dans son répertoire de ressources ;
+son absence provoquait la sortie avant 30 secondes. Le harness publie et stage
+maintenant le bridge dans le layout Release attendu avant tout lancement.
 
-Après cette correction, le binaire lancé dans la session d'outil est sorti
-anormalement avec le code `-1073740791` avant la mesure longue. Le harness
-détecte désormais aussi toute sortie avant 30 ou 60 secondes. La campagne T0015
-est donc **non concluante**, pas réussie et pas interprétée comme un dépassement.
-La cause produit ou environnement n'est pas tranchée avant reproduction dans une
-session interactive. La baseline T0008 demeure la seule preuve GUI complète.
+Un second essai a compté les bridges immédiatement après dix fermetures rapides
+et les a pris pour des orphelins. Le préflight de cycle de vie attend désormais
+jusqu'à cinq secondes la terminaison du bridge associé, le nettoie en fail-safe
+si nécessaire et échoue dans ce cas. Les dix cycles finaux ont tous fermé
+desktop et bridge proprement.
+
+La campagne finale contient cinq lancements froids, cinq chauds, dix observations
+à 30/60 secondes avec un WebView2 et un bridge associés, puis dix cycles propres.
+Elle produit zéro processus orphelin et respecte tous les budgets.
 
 ## Objectifs de release — Not measured
 
