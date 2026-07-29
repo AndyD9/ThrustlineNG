@@ -37,6 +37,30 @@ function Wait-Until {
     return $false
 }
 
+function Get-AuthenticodeStatus {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $powerShell7 = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue
+    if ($null -ne $powerShell7) {
+        $previousTarget = $env:THRUSTLINE_AUTHENTICODE_TARGET
+        try {
+            $env:THRUSTLINE_AUTHENTICODE_TARGET = $Path
+            $status = & $powerShell7.Source -NoProfile -NonInteractive -Command `
+                '(Get-AuthenticodeSignature -LiteralPath $env:THRUSTLINE_AUTHENTICODE_TARGET).Status.ToString()'
+            $authenticodeExitCode = $LASTEXITCODE
+        }
+        finally {
+            $env:THRUSTLINE_AUTHENTICODE_TARGET = $previousTarget
+        }
+        if ($authenticodeExitCode -ne 0) {
+            throw "PowerShell 7 could not inspect Authenticode: $([IO.Path]::GetFileName($Path))."
+        }
+        return ($status -join '').Trim()
+    }
+
+    return (Get-AuthenticodeSignature -LiteralPath $Path).Status.ToString()
+}
+
 Assert-ChildPath -Parent $artifactsRoot -Child $packageRoot -Label 'PackageDirectory'
 Assert-ChildPath -Parent $artifactsRoot -Child $validationRoot -Label 'ValidationDirectory'
 
@@ -62,8 +86,7 @@ if ((Get-FileHash -Algorithm SHA256 -LiteralPath $installer).Hash -ne
     [string]$installerEntry[0].sha256) {
     throw 'Installer SHA-256 does not match the manifest.'
 }
-if ((Get-AuthenticodeSignature -LiteralPath $installer).Status -ne
-    [System.Management.Automation.SignatureStatus]::NotSigned) {
+if ((Get-AuthenticodeStatus -Path $installer) -ne 'NotSigned') {
     throw 'Installer must remain unsigned in T0014.'
 }
 $desktopBuildOutput = Join-Path $repositoryRoot (
@@ -74,8 +97,7 @@ if (-not (Test-Path -LiteralPath $desktopBuildOutput -PathType Leaf) -or
     [string]$desktopEntry[0].sha256) {
     throw 'Desktop build output does not match the package manifest.'
 }
-if ((Get-AuthenticodeSignature -LiteralPath $desktopBuildOutput).Status -ne
-    [System.Management.Automation.SignatureStatus]::NotSigned) {
+if ((Get-AuthenticodeStatus -Path $desktopBuildOutput) -ne 'NotSigned') {
     throw 'Desktop build output must remain unsigned in T0014.'
 }
 
@@ -118,8 +140,7 @@ try {
         }
     }
     foreach ($file in @($desktopExecutable, $bridgeExecutable)) {
-        if ((Get-AuthenticodeSignature -LiteralPath $file).Status -ne
-            [System.Management.Automation.SignatureStatus]::NotSigned) {
+        if ((Get-AuthenticodeStatus -Path $file) -ne 'NotSigned') {
             throw "Installed binary must remain unsigned: $([IO.Path]::GetFileName($file))."
         }
     }

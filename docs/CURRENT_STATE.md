@@ -295,15 +295,19 @@ PR #16 puis #15 et est présente dans `main`.
 T0014 est implémenté localement sur
 `foundation/t0014-windows-unsigned-packaging`, empilé sur la réconciliation
 `f3350c6`. Le commit `9b19283` est poussé et la PR brouillon #18 cible
-`docs/t0013-t0016-merge-reconciliation`. Les jobs Windows, Supabase et supply
-chain sont en cours ; T0014 n'est pas présent dans `main`.
+`docs/t0013-t0016-merge-reconciliation`. La première exécution GitHub
+`30449481995` a validé Supabase et la supply chain ; le job Windows a échoué
+après fabrication NSIS sur le chargement Authenticode de Windows PowerShell
+5.1. Un correctif local validé privilégie PowerShell 7 sur le runner et conserve
+un fallback Windows PowerShell. Son rejeu reste à observer. T0014 n'est pas
+présent dans `main`.
 
-Le dernier build local produit un NSIS x64 `currentUser` de 35 398 356 octets. Il
+Le dernier build local produit un NSIS x64 `currentUser` de 35 398 165 octets. Il
 contient le desktop et 334 fichiers de bridge .NET 10 self-contained, soit
 110 477 582 octets avant compression. L'installateur, le desktop et le bridge
 sont `NotSigned`. Le manifeste SHA-256 ne contient aucun chemin utilisateur.
 
-Deux cycles installation/lancement/health check/fermeture/désinstallation ont
+Trois cycles installation/lancement/health check/fermeture/désinstallation ont
 réussi dans une cible explicite. Un contrôle renforcé a ensuite détecté que le
 payload desktop reçoit des métadonnées PE Tauri différentes du fichier de build ;
 le manifeste distingue désormais ce fichier de build du payload installé. Le

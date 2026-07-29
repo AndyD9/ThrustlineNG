@@ -56,6 +56,30 @@ function Invoke-Checked {
     }
 }
 
+function Get-AuthenticodeStatus {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $powerShell7 = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue
+    if ($null -ne $powerShell7) {
+        $previousTarget = $env:THRUSTLINE_AUTHENTICODE_TARGET
+        try {
+            $env:THRUSTLINE_AUTHENTICODE_TARGET = $Path
+            $status = & $powerShell7.Source -NoProfile -NonInteractive -Command `
+                '(Get-AuthenticodeSignature -LiteralPath $env:THRUSTLINE_AUTHENTICODE_TARGET).Status.ToString()'
+            $authenticodeExitCode = $LASTEXITCODE
+        }
+        finally {
+            $env:THRUSTLINE_AUTHENTICODE_TARGET = $previousTarget
+        }
+        if ($authenticodeExitCode -ne 0) {
+            throw "PowerShell 7 could not inspect Authenticode: $([IO.Path]::GetFileName($Path))."
+        }
+        return ($status -join '').Trim()
+    }
+
+    return (Get-AuthenticodeSignature -LiteralPath $Path).Status.ToString()
+}
+
 if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitOperatingSystem) {
     throw 'T0014 packaging requires a 64-bit Windows host.'
 }
@@ -149,8 +173,7 @@ foreach ($requiredFile in @($desktopExecutable, $bridgeExecutable, $installers[0
     if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
         throw "Required packaging artifact is missing: $([IO.Path]::GetFileName($requiredFile))."
     }
-    $signature = Get-AuthenticodeSignature -LiteralPath $requiredFile
-    if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+    if ((Get-AuthenticodeStatus -Path $requiredFile) -ne 'NotSigned') {
         throw "Expected an unsigned artifact: $([IO.Path]::GetFileName($requiredFile))."
     }
 }

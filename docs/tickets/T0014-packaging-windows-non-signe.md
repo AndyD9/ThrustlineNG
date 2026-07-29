@@ -324,10 +324,12 @@ embarque le desktop et les 334 fichiers de la publication .NET 10 self-contained
 du bridge. Le desktop Release résout le bridge sous `$RESOURCE/bridge`, tandis
 que le développement Debug conserve l'override explicite.
 
-Deux cycles finaux installation/lancement/health check/fermeture/désinstallation
-ont réussi. Le ticket passe en `Review`, pas `Done` : le workflow GitHub est
-configuré et ses invariants passent localement, mais son exécution sur la branche
-publiée n'est pas encore observée.
+Trois cycles finaux installation/lancement/health check/fermeture/désinstallation
+ont réussi. Le ticket passe en `Review`, pas `Done` : la première exécution
+GitHub a validé Supabase et la supply chain, mais le job Windows a exposé une
+incompatibilité de chargement Authenticode sous Windows PowerShell 5.1. Le
+contrôle corrigé privilégie PowerShell 7 sur le runner et conserve un fallback
+Windows PowerShell validé localement ; son rejeu GitHub reste à observer.
 
 ### Files changed
 
@@ -346,12 +348,12 @@ publiée n'est pas encore observée.
   détectées (`perMachine` et cible MSI supplémentaire) ;
 - `pnpm windows:package` : réussi après autorisation d'accès au NuGet.Config
   utilisateur et au réseau pour les runtime packs/outils Tauri ;
-- installateur final : `Thrustline_0.0.0_x64-setup.exe`, 35 398 356 octets,
+- installateur final : `Thrustline_0.0.0_x64-setup.exe`, 35 398 165 octets,
   SHA-256
-  `F89EACAFB35EBAAC5C0859ED8D32564F14DDB91F6AC090E40737C709868E9F5B` ;
+  `B8AF42C73701AFBFCBDB7084531F330F97C06146ADC2707F3AF2767BC400208C` ;
 - bridge embarqué : 334 fichiers, 110 477 582 octets avant compression ;
   `Thrustline.Bridge.exe` SHA-256
-  `9FF19B29CD16CB4E400A7251D0337FAECE150E59C4BD3969FE4C59843E2DCF01` ;
+  `5208B1F0F14AA3CBAAD3A68D0487DB8008AD4B726BD7764174535BA5EECE7B73` ;
 - Authenticode : installateur, desktop et bridge `NotSigned` ;
 - frontend : typecheck, 8/8 tests, couverture et build réussis ;
 - desktop : check/Clippy, 8/8 tests frontend, 3/3 tests Rust, invariants et builds
@@ -359,6 +361,13 @@ publiée n'est pas encore observée.
 - bridge : build sans avertissement, 13/13 tests et `Healthy` réussis ;
 - harnais CI T0013 : réussi directement avec Windows PowerShell, dépôt et deux
   mutations ;
+- GitHub `30449481995` : Supabase et supply chain réussis ; job Windows
+  `90567934452` échoué après fabrication NSIS, car Windows PowerShell 5.1
+  détectait `Get-AuthenticodeSignature` sans parvenir à charger
+  `Microsoft.PowerShell.Security` ;
+- correctif Authenticode : build réel et nouveau cycle d'installation réussis
+  localement ; le chemin PowerShell 7 du runner reste à confirmer par le rejeu
+  GitHub ;
 - harnais toolchain : non exécuté, car `pwsh` 7.6 n'est pas disponible dans le
   `PATH` et le script refuse correctement Windows PowerShell 5.1.
 
@@ -371,7 +380,7 @@ d'échec exécute maintenant le désinstalleur de la cible contrôlée.
 
 ### Manual verification result
 
-Deux cycles finaux ont confirmé une fenêtre native intitulée `Thrustline`, un
+Trois cycles finaux ont confirmé une fenêtre native intitulée `Thrustline`, un
 seul bridge, l'arrêt des deux processus, `Healthy`/`0` depuis le bridge installé
 et la disparition du dossier après désinstallation. Les recherches finales ne
 trouvent aucun processus, fichier, raccourci Menu Démarrer, enregistrement de
@@ -392,14 +401,14 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 - MSI, signature, provenance, updater, upgrade N-1 et rollback non testés ;
 - le bundle NSIS contient des métadonnées de build : deux fabrications ont le
   même inventaire logique, mais pas un SHA-256 binaire identique ;
-- exécution GitHub T0014 pas encore observée ;
+- rejeu GitHub du correctif Authenticode pas encore observé ;
 - PowerShell 7.6 absent du `PATH` local ;
 - les preuves humaines encore ouvertes dans T0007–T0009 ne sont pas closes par
   ce ticket.
 
 ### Follow-ups
 
-- observer les jobs et télécharger l'artefact de la Pull Request T0014 ;
+- observer le rejeu des jobs et télécharger l'artefact de la Pull Request T0014 ;
 - après fusion de la réconciliation documentaire, rebaser la branche sur `main`
   ou changer la base de la Pull Request ;
 - traiter signature, provenance, updater et scénarios upgrade/rollback en phase
@@ -418,6 +427,8 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 - PR brouillon : https://github.com/AndyD9/ThrustlineNG/pull/18 ;
 - base/head : `docs/t0013-t0016-merge-reconciliation` /
   `foundation/t0014-windows-unsigned-packaging` ;
-- jobs Windows, Supabase et supply chain en cours lors de l'ouverture ;
+- première exécution `30449481995` : Supabase et supply chain réussis, Windows
+  échoué sur le chargement Authenticode de Windows PowerShell 5.1 ; correctif
+  local prêt à rejouer ;
 - après fusion de la base, rebaser sur `main` ou changer la base de la PR avant
   revue finale.
