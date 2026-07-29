@@ -57,18 +57,20 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts/supply-chain | Out-Null
-          pnpm audit --audit-level high --json |
-            Tee-Object -FilePath artifacts/supply-chain/pnpm-audit.json
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $auditOutput = & pnpm audit --audit-level high --json
+          $auditExitCode = $LASTEXITCODE
+          $auditOutput | Tee-Object -FilePath artifacts/supply-chain/pnpm-audit.json
+          if ($auditExitCode -ne 0) { exit $auditExitCode }
 
       - name: Audit NuGet dependencies
         id: nuget-audit
         continue-on-error: true
         shell: pwsh
         run: |
-          dotnet package list --project ThrustlineNG.slnx --vulnerable --include-transitive --format json --no-restore |
-            Tee-Object -FilePath artifacts/supply-chain/nuget-audit.json
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $auditOutput = & dotnet package list --project ThrustlineNG.slnx --vulnerable --include-transitive --format json --no-restore
+          $auditExitCode = $LASTEXITCODE
+          $auditOutput | Tee-Object -FilePath artifacts/supply-chain/nuget-audit.json
+          if ($auditExitCode -ne 0) { exit $auditExitCode }
 
       - name: Audit Cargo dependencies
         id: cargo-audit
@@ -77,9 +79,10 @@ jobs:
         run: |
           cargo install cargo-audit --version 0.22.2 --locked
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo audit --file apps/desktop/src-tauri/Cargo.lock --json |
-            Tee-Object -FilePath artifacts/supply-chain/cargo-audit.json
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $auditOutput = & cargo audit --file apps/desktop/src-tauri/Cargo.lock --json
+          $auditExitCode = $LASTEXITCODE
+          $auditOutput | Tee-Object -FilePath artifacts/supply-chain/cargo-audit.json
+          if ($auditExitCode -ne 0) { exit $auditExitCode }
 
       - name: Scan committed history for secrets
         id: secret-scan

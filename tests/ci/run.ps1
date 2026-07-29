@@ -94,7 +94,7 @@ function Get-CiIssues {
         "pnpm bridge:test",
         "pnpm bridge:health",
         "pnpm bridge:publish",
-        "pnpm backend:check",
+        "pwsh -NoProfile -File ./tests/backend/run.ps1",
         "pnpm ci:backend"
     )) {
         if (-not $ci.Contains($marker)) {

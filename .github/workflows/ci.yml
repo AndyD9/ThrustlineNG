@@ -108,7 +108,7 @@ jobs:
 
       - name: Validate static backend invariants
         shell: pwsh
-        run: pnpm backend:check
+        run: pwsh -NoProfile -File ./tests/backend/run.ps1
 
       - name: Reset and test local backend
         shell: pwsh
