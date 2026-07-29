@@ -9,14 +9,21 @@ $ErrorActionPreference = "Stop"
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $cli = Join-Path $repositoryRoot "node_modules\.bin\supabase.CMD"
 $target = Join-Path $repositoryRoot "packages\database\src\database.types.ts"
+. (Join-Path $PSScriptRoot "docker-tools.ps1")
 
 if (-not (Test-Path -LiteralPath $cli -PathType Leaf)) {
     throw "Supabase CLI missing. Run pnpm install --frozen-lockfile."
 }
 
+$dockerPath = Get-DockerCliPath
+Enable-DockerCliForProcess -DockerPath $dockerPath
+
 Push-Location $repositoryRoot
 try {
-    $generatedLines = & $cli gen types typescript --local --schema public
+    $generatedLines = & $cli gen types typescript `
+        --local `
+        --schema public `
+        --network-id thrustline-local
     if ($LASTEXITCODE -ne 0) {
         throw "Supabase type generation failed. Ensure the local stack is running."
     }

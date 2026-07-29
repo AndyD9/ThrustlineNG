@@ -20,9 +20,9 @@
     "bridge:publish": "dotnet publish apps/bridge/Thrustline.Bridge.csproj --configuration Release --runtime win-x64 --self-contained true",
     "backend:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/backend/run.ps1",
     "backend:start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/start-supabase-local.ps1",
-    "backend:stop": "supabase stop --project-id thrustline-ng",
-    "backend:reset": "supabase db reset --local",
-    "backend:test": "supabase test db",
+    "backend:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/invoke-supabase-local.ps1 -Action Stop",
+    "backend:reset": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/invoke-supabase-local.ps1 -Action Reset",
+    "backend:test": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/invoke-supabase-local.ps1 -Action Test",
     "backend:types": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1",
     "backend:types:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1 -Check"
   },

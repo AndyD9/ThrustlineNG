@@ -32,6 +32,9 @@ function Get-BackendIssues {
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
     $typesPath = Join-Path $Root "packages\database\src\database.types.ts"
     $startScriptPath = Join-Path $Root "scripts\start-supabase-local.ps1"
+    $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
+    $dockerToolsPath = Join-Path $Root "scripts\docker-tools.ps1"
+    $typeScriptPath = Join-Path $Root "scripts\generate-database-types.ps1"
 
     $requiredPaths = @(
         $packagePath,
@@ -41,7 +44,10 @@ function Get-BackendIssues {
         $structureTestPath,
         $rlsTestPath,
         $typesPath,
-        $startScriptPath
+        $startScriptPath,
+        $invokeScriptPath,
+        $dockerToolsPath,
+        $typeScriptPath
     )
     foreach ($path in $requiredPaths) {
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -74,25 +80,41 @@ function Get-BackendIssues {
         }
     }
 
-    foreach ($script in $backendScripts) {
-        $command = [string]$script.Value
-        if ($command -match "(^|\s)(link|projects)(\s|$)|db\s+(push|pull|dump)|--linked|--db-url") {
-            $issues.Add("Backend script '$($script.Name)' contains a remote-capable command.")
-        }
+    $invokeScript = Get-Content -Raw -Encoding UTF8 $invokeScriptPath
+    $commandSurface = (
+        @($backendScripts | ForEach-Object { [string]$_.Value }) +
+        @($invokeScript)
+    ) -join "`n"
+    if ($commandSurface -match "(^|\s)(link|projects)(\s|$)|db\s+(push|pull|dump)|--linked|--db-url") {
+        $issues.Add("Backend command surface contains a remote-capable command.")
     }
 
-    if ([string]$package.scripts.'backend:reset' -notmatch "db\s+reset\s+--local") {
+    if ([string]$package.scripts.'backend:reset' -notmatch "invoke-supabase-local\.ps1 -Action Reset" -or
+        $invokeScript -notmatch '@\("db", "reset", "--local"\)') {
         $issues.Add("backend:reset must target the local database explicitly.")
     }
+    Require-Text $invokeScript '@\("test", "db", "--network-id", "thrustline-local"\)' "pgTAP does not use the local Docker network."
     if ([string]$package.scripts.'backend:start' -notmatch "start-supabase-local\.ps1") {
         $issues.Add("backend:start must use the loopback-safe start script.")
     }
 
     $startScript = Get-Content -Raw -Encoding UTF8 $startScriptPath
-    Require-Text $startScript 'Get-Command docker -CommandType Application' "Docker must resolve to an application."
+    $dockerTools = Get-Content -Raw -Encoding UTF8 $dockerToolsPath
+    Require-Text $dockerTools 'Get-Command docker\.exe -CommandType Application -All' "Docker must resolve to an application."
+    Require-Text $dockerTools 'Select-Object -First 1' "Docker resolution must select exactly one executable."
+    Require-Text $dockerTools 'Enable-DockerCliForProcess' "Docker CLI directory is not injected into child PATH."
+    Require-Text $startScript 'docker-tools\.ps1' "Supabase start must use the shared Docker resolver."
+    Require-Text $startScript '\$dockerPath info --format' "Docker daemon availability is not checked."
     Require-Text $startScript 'host_binding_ipv4=127\.0\.0\.1' "Docker ports are not restricted to loopback."
     Require-Text $startScript '--network-id \$networkName' "Supabase does not use the restricted Docker network."
-    Require-Text $startScript 'networkBinding\.Trim\(\) -ne "127\.0\.0\.1"' "An unsafe existing Docker network is not rejected."
+    Require-Text $startScript '\$dockerPath network ls --format' "Docker networks must be listed before inspection."
+    Require-Text $startScript '\$networkName -notin \$networkNames' "Missing Docker networks are not handled safely."
+    Require-Text $startScript '\$networkInspection \| ConvertFrom-Json' "Docker network inspection must parse JSON."
+    Require-Text $startScript '\$networkBinding -ne "127\.0\.0\.1"' "An unsafe existing Docker network is not rejected."
+    Require-Text $startScript '\*> \$null' "Supabase start output may expose local credentials."
+    Require-Text $startScript "0\\\.0\\\.0\\\.0:|\\\\\[::\\\\\]:" "Published wildcard ports are not detected."
+    Require-Text $startScript 'Stop-LocalStackQuietly' "Fail-safe shutdown does not isolate CLI stderr."
+    Require-Text $startScript 'the local stack was stopped' "Unsafe bindings do not stop the local stack."
 
     $config = Get-Content -Raw -Encoding UTF8 $configPath
     Require-Text $config '(?m)^project_id = "thrustline-ng"$' "Unexpected Supabase project ID."
@@ -160,6 +182,9 @@ function Get-BackendIssues {
     Require-Text $types 'companies:' "Generated types do not expose companies."
     Require-Text $types 'owner_id: string' "Generated types do not expose owner_id."
 
+    $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
+    Require-Text $typeScript '--network-id thrustline-local' "Type generation does not use the local Docker network."
+
     return $issues
 }
 
@@ -183,7 +208,10 @@ try {
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
         "packages\database\src\database.types.ts",
-        "scripts\start-supabase-local.ps1"
+        "scripts\start-supabase-local.ps1",
+        "scripts\invoke-supabase-local.ps1",
+        "scripts\docker-tools.ps1",
+        "scripts\generate-database-types.ps1"
     )) {
         $destination = Join-Path $temporaryRoot $relativePath
         New-Item -ItemType Directory -Force -Path (Split-Path $destination) | Out-Null
@@ -201,10 +229,10 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260728000100_create_companies.sql") -Destination $migrationCopy
-    $packageCopy = Join-Path $temporaryRoot "package.json"
-    $packageText = Get-Content -Raw -Encoding UTF8 $packageCopy
-    $packageText = $packageText.Replace("supabase db reset --local", "supabase db reset --linked")
-    [System.IO.File]::WriteAllText($packageCopy, $packageText)
+    $invokeCopy = Join-Path $temporaryRoot "scripts\invoke-supabase-local.ps1"
+    $invokeText = Get-Content -Raw -Encoding UTF8 $invokeCopy
+    $invokeText = $invokeText.Replace('@("db", "reset", "--local")', '@("db", "reset", "--linked")')
+    [System.IO.File]::WriteAllText($invokeCopy, $invokeText)
     $remoteCommandIssues = @(Get-BackendIssues -Root $temporaryRoot)
     if (-not ($remoteCommandIssues -match "remote-capable") -or
         -not ($remoteCommandIssues -match "local database explicitly")) {

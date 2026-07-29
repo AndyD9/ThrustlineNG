@@ -172,7 +172,14 @@ Ports locaux réservés par `supabase/config.toml` :
 
 `backend:start` exclut les services hors périmètre T0012.
 Il crée ou réutilise le réseau Docker `thrustline-local`, configuré pour publier
-les ports sur `127.0.0.1` uniquement.
+les ports sur `127.0.0.1` uniquement. Le script retrouve `docker.exe` dans le
+`PATH` ou dans les emplacements utilisateur/système de Docker Desktop, puis
+inspecte les ports réellement publiés. Si Docker utilise `0.0.0.0` ou `[::]`,
+la pile est immédiatement arrêtée et la commande échoue : ne contournez pas ce
+contrôle. Ce comportement a été observé avec Docker Desktop 29.6.2 ; utilisez un
+runtime/configuration qui respecte la liaison loopback avant la vérification
+Studio. La sortie de démarrage est masquée pour ne pas recopier les credentials
+locaux dans les journaux.
 `backend:reset` détruit uniquement la base locale puis rejoue migrations et
 seed. Aucun script du dépôt ne lie ou ne pousse un projet distant. Le seed
 contient deux utilisateurs sans mot de passe et deux compagnies entièrement

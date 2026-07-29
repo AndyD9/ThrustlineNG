@@ -1,8 +1,8 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 28 juillet 2026 (implémentation T0012).
+Dernière revue documentaire : 29 juillet 2026 (vérification T0012).
 Statut : fondations T0006–T0011 fusionnées ; T0012 est implémenté localement et
-reste en vérification faute de runtime Docker.
+reste en vérification car Docker Desktop publie les ports Supabase hors loopback.
 
 ## Produit
 
@@ -28,6 +28,7 @@ Baseline exécutée sous Windows le 24 juillet 2026 :
 - SDK .NET `10.0.201`, projet bridge ciblant `net8.0` ;
 - `rustc 1.94.1` et `cargo 1.94.1` ;
 - Supabase CLI absente lors de la baseline, puis épinglée à 2.109.1 par T0012 ;
+- Docker Desktop 29.6.2 utilisé pour la vérification locale T0012 ;
 - Tauri v2 / Rust, React 18 / TypeScript / Vite / Tailwind ;
 - ASP.NET Core et SimConnect.NET pour le bridge ;
 - REST et SignalR sur loopback entre UI et bridge ;
@@ -108,8 +109,9 @@ explicite. Ces échecs sont classés comme environnement, pas comme défauts du 
 
 - Connexion réelle à MSFS/SimConnect, replay de trace et parcours de vol : MSFS
   absent et aucun replay automatisé fourni.
-- Démarrage/reset Supabase local, application des migrations et tests RLS entre
-  deux utilisateurs : CLI disponible, mais runtime Docker absent.
+- Démarrage Supabase local persistant : Docker Desktop 29.6.2 publie les ports
+  sur toutes les interfaces malgré le réseau loopback demandé ; le script
+  arrête volontairement la pile.
 - Déploiement de l'Edge Function et validation cloud : projet/identifiants
   Supabase absents.
 - Build installable signé, installation, mise à jour et rollback : aucun
@@ -128,7 +130,8 @@ explicite. Ces échecs sont classés comme environnement, pas comme défauts du 
 ## Dette et risques structurants
 
 - Aucun projet de tests .NET dédié constaté.
-- Les tests RLS T0012 sont versionnés mais non exécutés faute de runtime Docker.
+- Le démarrage sûr Supabase reste bloqué par la publication wildcard observée
+  avec Docker Desktop 29.6.2 ; reset, pgTAP et types sont néanmoins prouvés.
 - Le build Tauri complet dépend du sidecar généré dans `externalBin`.
 - L'environnement local Node ne satisfait pas le moteur déclaré.
 - Les README divergent (`Node 24.18 LTS` contre `Node 20+`) et utilisent
@@ -234,17 +237,23 @@ Auth unique, force la RLS et sépare les politiques CRUD du rôle
 `authenticated`.
 
 Le harnais statique passe avec deux mutations négatives : suppression de la
-politique de lecture et remplacement du reset local par `--linked`. La CLI parse
-la configuration, mais `backend:start` refuse l'absence de CLI Docker et
-`backend:reset` confirme l'absence du pipe Docker. `backend:test` et
-`backend:types:check` restent donc non validés ; aucune preuve PostgreSQL réelle
-ou parité cloud n'est revendiquée.
+politique de lecture et remplacement du reset local par `--linked`. Deux resets
+successifs ont rejoué migration et seed ; les 2 fichiers pgTAP et leurs 21 tests
+passent, et les types ont été régénérés puis contrôlés sans écart.
+
+Les scripts résolvent maintenant une seule CLI Docker, propagent son répertoire
+aux sous-processus Supabase et utilisent explicitement le réseau
+`thrustline-local`. Docker Desktop 29.6.2 a toutefois publié les ports sur
+`0.0.0.0`/`[::]` malgré l'option loopback du réseau. `backend:start` inspecte
+donc les ports effectifs, supprime toute sortie contenant les credentials locaux,
+arrête la pile en cas d'exposition et échoue. Aucune parité cloud n'est
+revendiquée.
 
 ## Prochain ticket recommandé
 
-Terminer la vérification de T0012 sur une machine avec Docker actif : reset
-répété, pgTAP A/B/anonyme et régénération des types. T0013 dépend de cette preuve
-et ne doit pas encore être présenté comme exécutable. T0011 reste `Verify`
+Terminer la vérification de T0012 avec un runtime Docker qui respecte la liaison
+loopback, puis vérifier Studio et le redémarrage sûr. T0013 dépend de cette
+preuve et ne doit pas encore être présenté comme exécutable. T0011 reste `Verify`
 jusqu'aux essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier

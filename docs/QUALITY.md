@@ -42,6 +42,12 @@ les deux fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
 découvert n'est pas une réussite. `backend:types:check` régénère les types en
 mémoire et échoue si le fichier versionné diffère.
 
+Preuve T0012 du 29 juillet 2026 sous Docker Desktop 29.6.2 : deux resets
+successifs réussis, 2 fichiers pgTAP/21 tests avec résultat PASS, génération et
+contrôle des types réussis. Le démarrage persistant reste en vérification :
+Docker a publié les ports sur toutes les interfaces malgré le réseau loopback,
+et le fail-safe de `backend:start` a arrêté la pile.
+
 ## Desktop et bridge
 
 Le harnais bridge couvre le parsing strict, les jetons absents/incorrects, la

@@ -160,15 +160,15 @@ preuves locales qui exigent le runtime Docker.
 ## Acceptance criteria
 
 - [x] La CLI Supabase 2.109.1 est épinglée avec un lockfile figé.
-- [ ] La pile locale PostgreSQL 17 est recréable depuis les fichiers versionnés.
+- [x] La pile locale PostgreSQL 17 est recréable depuis les fichiers versionnés.
 - [x] La migration impose un propriétaire unique et une RLS forcée.
-- [x] Le seed est synthétique et stable ; son rejeu réel reste à vérifier.
+- [x] Le seed est synthétique et stable ; son rejeu réel a réussi deux fois.
 - [x] Les tests pgTAP couvrent structure, A, B, anonyme et unicité.
 - [x] Le harnais statique échoue sur une politique manquante ou une commande
       distante.
-- [ ] `supabase db reset --local` réussit depuis une pile vide.
-- [ ] `supabase test db` réussit et découvre effectivement les tests.
-- [ ] Les types TypeScript sont générés depuis le schéma local et sans diff.
+- [x] `supabase db reset --local` réussit depuis une pile vide.
+- [x] `supabase test db` réussit et découvre effectivement les tests.
+- [x] Les types TypeScript sont générés depuis le schéma local et sans diff.
 - [x] Aucun secret, identifiant réel ou donnée de l'ancien dépôt n'est ajouté.
 - [x] La documentation reflète les commandes et limites réellement vérifiées.
 - [x] Le Completion Report distingue réussi, échoué et non exécuté.
@@ -232,33 +232,36 @@ explicite et séparée.
 
 La fondation backend locale est implémentée : CLI épinglée, configuration
 PostgreSQL 17, migration `companies`, seed synthétique, types TypeScript, deux
-fichiers pgTAP et harnais statique avec mutations négatives. Le ticket reste
-`Verify` parce que Docker est absent et que reset, pgTAP et régénération réelle
-des types ne peuvent pas être prouvés sur cette machine.
+fichiers pgTAP et harnais statique avec mutations négatives. Reset, pgTAP et
+régénération réelle des types sont prouvés avec Docker Desktop 29.6.2. Le ticket
+reste `Verify` parce que ce runtime publie les ports sur toutes les interfaces
+malgré l'option loopback du réseau ; le démarrage normal détecte cette exposition,
+arrête la pile et échoue volontairement.
 
 ### Files changed
 
 - toolchain : `package.json`, `pnpm-lock.yaml` ;
 - backend : `supabase/config.toml`, `.gitignore`, migration, seed et tests SQL ;
-- contrat : `packages/database/` et script de génération ;
-- qualité : `tests/backend/run.ps1` ;
+- contrat : `packages/database/` et scripts de génération/invocation Docker ;
+- qualité : `tests/backend/run.ps1`, y compris les invariants de démarrage sûr ;
 - documentation : architecture, sécurité, qualité, setup, état actuel,
   problèmes connus, ticket et index.
 
 ### Commands and results
 
-- `pnpm install --frozen-lockfile` : réussi avec pnpm 11.17.0, 231 entrées
-  validées par les politiques supply-chain ;
+- `pnpm install --frozen-lockfile` : réussi avec pnpm 11.17.0 ;
 - `pnpm supabase --version` : réussi, Supabase 2.109.1 ;
 - `pnpm backend:check` : réussi ; dépôt réel et deux mutations détectées
   (politique de lecture supprimée, reset remplacé par `--linked`) ;
-- `pnpm backend:start` : échoué proprement avant mutation, CLI Docker compatible
-  absente ; un essai direct antérieur de la CLI Supabase avait également
-  confirmé l'absence du pipe `docker_engine` après parsing de la configuration ;
-- `pnpm backend:reset` : échoué, même prérequis Docker absent ;
-- `pnpm backend:test` : échoué, aucune connexion PostgreSQL locale ; aucun test
-  n'est annoncé comme exécuté ;
-- `pnpm backend:types:check` : échoué, pile locale indisponible ;
+- deux `pnpm backend:reset` : réussis ; migration et seed rejoués ;
+- `pnpm backend:test` : réussi, 2 fichiers pgTAP et 21 tests, résultat PASS ;
+- `pnpm backend:types` puis `pnpm backend:types:check` : réussis ; types
+  régénérés depuis le schéma local et conformes ;
+- `pnpm backend:stop` : réussi après la session de validation ;
+- `pnpm backend:start` : échec de sécurité attendu ; Docker Desktop 29.6.2
+  publie API, PostgreSQL et Studio sur `0.0.0.0`/`[::]` malgré le réseau
+  `thrustline-local`. Le script a arrêté la pile et zéro conteneur Supabase est
+  resté actif ;
 - `pnpm frontend:typecheck` : réussi ;
 - `pnpm frontend:test` : réussi, 3 fichiers et 8 tests ;
 - `pnpm frontend:build` : réussi, build Vite ;
@@ -269,26 +272,25 @@ des types ne peuvent pas être prouvés sur cette machine.
 
 ### Manual verification result
 
-Non exécutée. Docker Desktop, Rancher Desktop ou un runtime compatible n'est pas
-installé/actif. Studio, le double reset, pgTAP et la stabilité des types restent
-à vérifier.
+Partielle. Le double reset, pgTAP et la stabilité des types sont confirmés.
+Studio n'a pas été ouvert : le contrôle des ports réels a détecté une publication
+non loopback et a immédiatement arrêté la pile. Le démarrage normal sûr reste à
+valider sur un runtime qui respecte la liaison `127.0.0.1`.
 
 ### Risks and limitations
 
-- Le SQL et les messages pgTAP exacts n'ont pas été exécutés par PostgreSQL.
-- `database.types.ts` reflète le schéma attendu mais n'a pas encore été régénéré
-  par la CLI ; `backend:types:check` doit en fournir la preuve.
+- Docker Desktop 29.6.2 ignore dans l'environnement observé l'option
+  `com.docker.network.bridge.host_binding_ipv4=127.0.0.1` du réseau transmis à
+  Supabase ; le fail-safe empêche désormais toute pile exposée de rester active.
 - La pile locale ne prouve pas la parité avec un projet Supabase managé.
 - T0006 reste `Verify` pour sa preuve clean-clone, sans bloquer la capacité
   technique utilisée ici.
 
 ### Follow-ups
 
-- Démarrer un runtime Docker compatible.
-- Exécuter deux fois `pnpm backend:reset`, puis `pnpm backend:test`.
-- Exécuter `pnpm backend:types`, vérifier le diff, puis
-  `pnpm backend:types:check`.
-- Ne rendre T0012 `Done` qu'après ces preuves et la vérification manuelle.
+- Résoudre ou confirmer la liaison loopback avec un runtime Docker compatible,
+  puis exécuter le parcours manuel complet incluant Studio.
+- Ne rendre T0012 `Done` qu'après ce démarrage sûr et la vérification manuelle.
 - Garder T0013 en backlog jusque-là.
 
 ### Documentation updated

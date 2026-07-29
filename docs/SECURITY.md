@@ -15,10 +15,13 @@ non fiables. La table `companies` impose côté PostgreSQL :
 Le seed utilise uniquement deux UUID, adresses `.invalid` et compagnies
 synthétiques, sans mot de passe utilisable. Les scripts racine ciblent
 explicitement la pile locale et n'exposent ni `link`, ni `db push`, ni reset
-`--linked`. Le démarrage crée ou réutilise un réseau Docker dont les ports sont
-liés à `127.0.0.1` et le transmet explicitement à la CLI. Le harnais statique
-injecte une politique manquante et un reset distant pour prouver que ces deux
-régressions sont détectées.
+`--linked`. Le démarrage crée ou réutilise un réseau Docker demandé en loopback
+et le transmet explicitement à la CLI. Il masque la sortie de démarrage, inspecte
+ensuite les ports réellement publiés et arrête immédiatement la pile si Docker
+expose un port sur `0.0.0.0` ou `[::]`. Cette protection est nécessaire car
+Docker Desktop 29.6.2 a ignoré l'option loopback dans l'environnement vérifié.
+Le harnais statique injecte une politique manquante et un reset distant pour
+prouver que ces deux régressions sont détectées.
 
 La pile locale utilise des credentials de développement, n'a pas de TLS ni les
 contrôles complets de la plateforme managée. Elle doit rester sur la machine de
