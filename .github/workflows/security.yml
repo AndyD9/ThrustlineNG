@@ -1,0 +1,145 @@
+name: Supply chain
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supply-chain-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+
+jobs:
+  supply-chain:
+    name: Audits, licences and SBOM
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout full history without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.201
+
+      - name: Restore locked dependencies
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack install
+          pnpm install --frozen-lockfile
+          dotnet restore ThrustlineNG.slnx --locked-mode
+          cargo fetch --locked --manifest-path apps/desktop/src-tauri/Cargo.toml
+
+      - name: Validate workflow policy
+        shell: pwsh
+        run: pnpm ci:check
+
+      - name: Audit pnpm dependencies
+        id: pnpm-audit
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/supply-chain | Out-Null
+          $auditOutput = & pnpm audit --audit-level high --json
+          $auditExitCode = $LASTEXITCODE
+          $auditOutput | Tee-Object -FilePath artifacts/supply-chain/pnpm-audit.json
+          if ($auditExitCode -ne 0) { exit $auditExitCode }
+
+      - name: Audit NuGet dependencies
+        id: nuget-audit
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $auditOutput = & dotnet package list --project ThrustlineNG.slnx --vulnerable --include-transitive --format json --no-restore
+          $auditExitCode = $LASTEXITCODE
+          $auditOutput | Tee-Object -FilePath artifacts/supply-chain/nuget-audit.json
+          if ($auditExitCode -ne 0) { exit $auditExitCode }
+
+      - name: Audit Cargo dependencies
+        id: cargo-audit
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          cargo install cargo-audit --version 0.22.2 --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $auditOutput = & cargo audit --file apps/desktop/src-tauri/Cargo.lock --json
+          $auditExitCode = $LASTEXITCODE
+          $auditOutput | Tee-Object -FilePath artifacts/supply-chain/cargo-audit.json
+          if ($auditExitCode -ne 0) { exit $auditExitCode }
+
+      - name: Scan committed history for secrets
+        id: secret-scan
+        continue-on-error: true
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+
+      - name: Generate licence report
+        id: licences
+        continue-on-error: true
+        shell: pwsh
+        run: pnpm supply-chain:report
+
+      - name: Generate SPDX JSON SBOM
+        id: sbom
+        continue-on-error: true
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: .
+          format: spdx-json
+          output-file: artifacts/supply-chain/thrustline.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Upload supply-chain evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: t0013-supply-chain-${{ github.sha }}
+          path: artifacts/supply-chain/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Enforce supply-chain results
+        if: always()
+        shell: pwsh
+        env:
+          PNPM_AUDIT: ${{ steps.pnpm-audit.outcome }}
+          NUGET_AUDIT: ${{ steps.nuget-audit.outcome }}
+          CARGO_AUDIT: ${{ steps.cargo-audit.outcome }}
+          SECRET_SCAN: ${{ steps.secret-scan.outcome }}
+          LICENCES: ${{ steps.licences.outcome }}
+          SBOM: ${{ steps.sbom.outcome }}
+        run: |
+          $results = @(
+            $env:PNPM_AUDIT,
+            $env:NUGET_AUDIT,
+            $env:CARGO_AUDIT,
+            $env:SECRET_SCAN,
+            $env:LICENCES,
+            $env:SBOM
+          )
+          if (@($results | Where-Object { $_ -ne "success" }).Count -gt 0) {
+            Write-Error "At least one supply-chain gate failed; inspect its redacted report."
+            exit 1
+          }

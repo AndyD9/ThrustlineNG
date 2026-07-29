@@ -1,7 +1,7 @@
 # Stack cible de la refonte
 
 Statut : proposition acceptée par ADR-0004 le 26 juillet 2026.
-Date de consultation des sources : 26 juillet 2026.
+Date de consultation des sources : 29 juillet 2026.
 
 ## Décision en bref
 
@@ -46,8 +46,8 @@ de fin absente signifie que le projet ne publie pas de LTS contractuelle.
 | Node.js | moteur `>=24.18.0 <25`; machine 24.14.1; CI 24.18.0 | 26.5.0 Current (08/07/2026) | **24.18.0 LTS** | avril 2028 | Vite 8 exige 20.19+ ou 22.12+; pnpm 11 exige 22.13+ | LTS ici : 26 reste Current jusqu'en octobre et n'apporte rien au runtime distribué. |
 | pnpm | absent; npm 11.11.0 | 11.17.0 | **11.17.0** | sans LTS publiée | Node >=22.13; Corepack désactivé par défaut côté Node moderne | Remplace npm : lockfile strict, économie disque, contrôle des scripts et âge minimal des paquets. |
 | TypeScript | `^5.6.2` → 5.9.3 | 7.0.2 | **6.0.3** | sans LTS publiée | React 19, Vite 8 et Testing Library; valider TS 7 séparément | TS 7 est une nouvelle majeure/native toolchain trop récente pour le socle; réévaluation mensuelle. |
-| React / React DOM | `^18.3.1` → 18.3.1 | 19.2.8 | **19.2.8** | sans LTS publiée | types React 19, Testing Library 16, routeur 7 | Reste le choix le plus mature pour l'équipe et l'écosystème Tauri; pas de Server Components. |
-| Routeur | `^6.27.0` → 6.30.4 | 7.18.1 (29/06/2026) | **7.18.1** | sans LTS publiée | React 19; Node >=20; mode SPA uniquement | Nouvelle base sans dette v6; ne pas activer les fonctions serveur du routeur. |
+| React / React DOM | `^18.3.1` → 18.3.1 | 19.2.8 | **19.2.8** | sans LTS publiée | types React 19, Testing Library 16, routeur 8 | Reste le choix le plus mature pour l'équipe et l'écosystème Tauri; pas de Server Components. |
+| Routeur | `^6.27.0` → 6.30.4 | 8.3.0 | **8.3.0** | sans LTS publiée | React >=19.2.7; Node >=22.22; mode SPA uniquement | Corrige `GHSA-qwww-vcr4-c8h2`; imports directs depuis `react-router`, sans fonctions serveur. |
 | Vite | `^8.1.5` → 8.1.5 | 8.1.5 | **8.1.5** | correctifs réguliers sur 8.1 | Node 24; plugin React 6; Tailwind Vite 4 | Retenu après stabilisation de Rolldown; version mineure exacte, pas `^`. |
 | Vitest / couverture | `^4.1.10` → 4.1.10 | 4.1.10 | **4.1.10** | sans LTS publiée | Vite 6–8; Node 20+; couverture exactement alignée | Même pipeline que Vite; épingler `vitest` et `coverage-v8` à la même version. |
 | jsdom | `^29.1.1` → 29.1.1 | 29.1.1 | **29.1.1** | sans LTS publiée | Node 20.19/22.13/24+ | Seulement en développement; tests UI, jamais embarqué. |
@@ -81,9 +81,9 @@ et jsdom 29. React 19.2.8 est compatible avec Testing Library 16. TypeScript 6
 est préféré à 7 pendant le bootstrap. `pnpm-lock.yaml` est obligatoire et
 `pnpm install --frozen-lockfile` est la seule restauration CI.
 
-Risques : Vite 8 remplace Rollup/esbuild par Rolldown; React 19 change quelques
-API et comportements; React Router 7 est une majeure. Chacun exige un ticket
-minimal et ses tests avant ajout de la couche suivante.
+Risques : Vite 8 remplace Rollup/esbuild par Rolldown; React 19 et React Router 8
+changent quelques API et comportements. Chacun exige un ticket minimal et ses
+tests avant ajout de la couche suivante.
 
 ### Groupe B — desktop
 

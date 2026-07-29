@@ -7,7 +7,7 @@
   "tauriCli": "2.11.4",
   "typescript": "6.0.3",
   "react": "19.2.8",
-  "reactRouter": "7.18.1",
+  "reactRouter": "8.3.0",
   "vite": "8.1.5",
   "viteReactPlugin": "6.0.4",
   "vitest": "4.1.10",

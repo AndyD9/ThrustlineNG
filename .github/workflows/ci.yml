@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+
+jobs:
+  windows:
+    name: Windows multi-stack
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.201
+
+      - name: Restore locked dependencies
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack install
+          pnpm install --frozen-lockfile
+
+      - name: Verify pinned toolchain
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File ./scripts/check-toolchain.ps1
+          pwsh -NoProfile -File ./tests/toolchain/run.ps1
+
+      - name: Validate frontend
+        shell: pwsh
+        run: |
+          pnpm frontend:typecheck
+          pnpm frontend:test
+          pnpm frontend:coverage
+          pnpm frontend:build
+
+      - name: Validate desktop
+        shell: pwsh
+        run: |
+          pnpm desktop:check
+          pnpm desktop:test
+          pnpm desktop:build
+
+      - name: Restore locked Microsoft runtime packs
+        shell: pwsh
+        run: >-
+          dotnet restore apps/bridge/Thrustline.Bridge.csproj
+          --runtime win-x64
+          --locked-mode
+          --source https://api.nuget.org/v3/index.json
+
+      - name: Validate bridge
+        shell: pwsh
+        run: |
+          pnpm bridge:build
+          pnpm bridge:test
+          pnpm bridge:health
+          pnpm bridge:publish
+
+      - name: Upload unsigned Windows evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: t0013-windows-unsigned-${{ github.sha }}
+          path: |
+            apps/desktop/coverage/
+            apps/desktop/src-tauri/target/release/thrustline-desktop.exe
+            apps/bridge/bin/Release/net10.0/win-x64/publish/
+          if-no-files-found: error
+          retention-days: 30
+
+  backend:
+    name: Supabase PostgreSQL 17
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Restore locked dependencies
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack install
+          pnpm install --frozen-lockfile
+
+      - name: Validate static backend invariants
+        shell: pwsh
+        run: pwsh -NoProfile -File ./tests/backend/run.ps1
+
+      - name: Reset and test local backend
+        shell: pwsh
+        run: pnpm ci:backend
+
+      - name: Stop local backend
+        if: always()
+        shell: pwsh
+        run: pnpm exec supabase stop --project-id thrustline-ng

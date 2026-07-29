@@ -197,3 +197,30 @@ explicite.
 La pile locale Supabase n'est pas strictement identique à la plateforme
 managée. PostgreSQL 17, migrations et tests RLS devront être rejoués séparément
 sur les futurs environnements dev/staging avant promotion.
+
+## Vérifier la CI et la supply chain
+
+Depuis la racine, après la restauration figée :
+
+```powershell
+$env:CI = 'true'
+pnpm install --frozen-lockfile
+pnpm ci:check
+pnpm supply-chain:report
+```
+
+`ci:check` fonctionne sous Windows PowerShell et vérifie statiquement les
+workflows, y compris deux mutations négatives. `supply-chain:report` exige
+PowerShell 7, Cargo et .NET ; il écrit uniquement sous
+`artifacts/supply-chain/`, ignoré par Git.
+
+`pnpm ci:backend` est réservé au runner `ubuntu-24.04` disposant de Docker. Ne
+pas le substituer au parcours local T0012 sous Windows : les deux scripts
+vérifient la publication réelle des ports mais ciblent leur environnement
+respectif.
+
+Les workflows ne nécessitent aucun secret applicatif. Le dépôt appartient
+actuellement à un compte GitHub personnel ; l'action Gitleaks n'exige donc pas de
+licence d'organisation. Si le dépôt est transféré à une organisation, remplacer
+ou configurer ce scanner par un ticket de sécurité avant de rendre le workflow
+obligatoire, sans ajouter silencieusement un secret sur les PR externes.
