@@ -12,7 +12,7 @@ export function HomePage() {
       </section>
       <StatusCard
         status="Ready"
-        detail="React 19 · TypeScript 6 · Vite 8 · Tailwind CSS 4 · React Router 7"
+        detail="React 19 · TypeScript 6 · Vite 8 · Tailwind CSS 4 · React Router 8"
       />
     </main>
   );
