@@ -139,5 +139,6 @@ aucune vulnérabilité, mais signale des avertissements informatifs suivis par
 `KI-019`.
 
 Les commandes locales ne prouvent pas l'interprétation YAML ni l'exécution des
-runners GitHub. Avant de promouvoir T0013, consulter les jobs de la PR,
-télécharger les artefacts et vérifier qu'ils ne contiennent aucun credential.
+runners GitHub. Pour T0013, les jobs de la PR et les artefacts ont été inspectés
+avant fusion sans trouver de credential. Toute modification future des workflows
+doit répéter cette vérification avant promotion.

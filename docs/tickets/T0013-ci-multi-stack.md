@@ -1,6 +1,6 @@
 # T0013 — Consolider la CI multi-stack
 
-Status: Verify
+Status: Done
 Owner: Andy
 Branch: `foundation/t0013-multistack-ci`
 Phase: 1
@@ -257,6 +257,12 @@ React Router suivie par `KI-018`. Le ticket passe donc `Verify`, pas `Done`.
 T0012 reste `Verify` malgré son intégration dans `main`. La PR T0013 cible
 désormais `main`.
 
+T0016 a ensuite corrigé `KI-018` sans abaisser le gate. Après sa fusion dans la
+branche T0013 par la PR #16, les exécutions finales GitHub `30442195734` et
+`30442195776` ont validé Windows, Supabase et toute la supply chain. Andy a
+fusionné la PR #15 dans `main` le 29 juillet 2026. Les critères, la vérification
+manuelle et les preuves sont complets ; T0013 passe donc à `Done`.
+
 ### Files changed
 
 - workflows : `.github/workflows/ci.yml` et
@@ -342,12 +348,9 @@ explicitement non signés.
 
 ### Follow-ups
 
-- Corriger `KI-018` dans un ticket sécurité borné avec mise à jour de
-  `eng/versions.json`, du manifest desktop et du lockfile.
 - Revoir `KI-019` lors de la maintenance Tauri/Cargo.
-- Intégrer la correction T0016 de `KI-018`, puis confirmer que le workflow
-  supply-chain devient vert avant de promouvoir T0013.
-- T0014 reste dépendant d'une CI révisable et du traitement des blocages.
+- T0014 dispose désormais d'une CI révisable, mais reste dépendant du statut
+  `Blocked` de T0007.
 
 ### Documentation updated
 
