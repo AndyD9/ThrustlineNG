@@ -11,8 +11,11 @@ if (-not $IsLinux) {
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $networkName = "thrustline-ci"
+$testNetworkName = "thrustline-ci-tests"
 $projectId = "thrustline-ng"
 $started = $false
+$testNetworkCreated = $false
+$dockerPath = $null
 
 function Invoke-Supabase {
     param(
@@ -108,8 +111,30 @@ try {
     Invoke-Supabase -Arguments @("db", "reset", "--local")
     Invoke-Supabase -Arguments @("db", "reset", "--local")
 
+    & $dockerPath network create $testNetworkName *> $null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to create the isolated pgTAP network."
+    }
+    $testNetworkCreated = $true
+    $databaseContainers = @(
+        & $dockerPath ps `
+            --filter "label=com.supabase.cli.project=$projectId" `
+            --filter "name=supabase_db_" `
+            --format "{{.ID}}"
+    )
+    if ($LASTEXITCODE -ne 0 -or $databaseContainers.Count -ne 1) {
+        throw "Expected exactly one local Supabase database container."
+    }
+    & $dockerPath network connect `
+        --alias db `
+        $testNetworkName `
+        $databaseContainers[0]
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to attach the database alias to the pgTAP network."
+    }
+
     $testOutput = @(
-        & pnpm exec supabase test db --network-id $networkName 2>&1
+        & pnpm exec supabase test db --network-id $testNetworkName 2>&1
     )
     $testExitCode = $LASTEXITCODE
     $testOutput | Write-Output
@@ -144,6 +169,9 @@ try {
 finally {
     if ($started) {
         Stop-SupabaseQuietly
+    }
+    if ($testNetworkCreated -and $null -ne $dockerPath) {
+        & $dockerPath network rm $testNetworkName *> $null
     }
     Pop-Location
 }

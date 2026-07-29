@@ -117,7 +117,10 @@ function Get-CiIssues {
     }
     foreach ($marker in @(
         "pnpm exec supabase --version",
-        "pnpm install --frozen-lockfile --force"
+        "pnpm install --frozen-lockfile --force",
+        "network connect",
+        "--alias db",
+        "supabase test db --network-id"
     )) {
         if (-not $backend.Contains($marker)) {
             $issues.Add("Missing resilient backend restore invariant: $marker")
