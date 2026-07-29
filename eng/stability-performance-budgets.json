@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-07-29",
+  "context": "Foundation guardrails measured on Windows 11 x64; release targets remain unproven until their named validation exists.",
+  "automated": {
+    "frontend": {
+      "totalGzipBytesMax": 262144
+    },
+    "desktop": {
+      "launchArtifactsBytesMax": 16777216,
+      "coldDisplayMedianMillisecondsMax": 500,
+      "coldDisplayMaximumMillisecondsMax": 1000,
+      "warmDisplayMedianMillisecondsMax": 350,
+      "warmDisplayMaximumMillisecondsMax": 750,
+      "privateBytes60MedianMax": 67108864,
+      "webView2WorkingSetBytesMedianMax": 201326592,
+      "privateBytesMedianGrowth30To60Max": 16777216,
+      "lifecycleCyclesMin": 10,
+      "orphanProcessCountMax": 0
+    },
+    "bridge": {
+      "publishBytesMax": 134217728,
+      "healthCheckRunsMin": 10,
+      "healthCheckMedianMillisecondsMax": 1000,
+      "healthCheckMaximumMillisecondsMax": 2000
+    }
+  },
+  "releaseTargets": {
+    "status": "Not measured",
+    "usableStartupP50MillisecondsMax": 2000,
+    "usableStartupP95MillisecondsMax": 4000,
+    "idleDesktopWebViewBridgeBytesP50Max": 536870912,
+    "fourHourMemoryGrowthBytesMax": 134217728,
+    "installedBytesMax": 367001600,
+    "crashFreeSessionsPercentMin": 99.5,
+    "crashFreeWindowDays": 30,
+    "crashFreeSampleSizeMin": 1000,
+    "orphanProcessesMax": 0,
+    "doubleFlightClosuresMax": 0,
+    "silentDataLossEventsMax": 0,
+    "financialMutationsWithoutLedgerMax": 0
+  }
+}

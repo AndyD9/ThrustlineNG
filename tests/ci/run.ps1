@@ -105,6 +105,8 @@ function Get-CiIssues {
         "pnpm bridge:test",
         "pnpm bridge:health",
         "pnpm bridge:publish",
+        "pnpm performance:test",
+        "pnpm performance:check:build",
         "pwsh -NoProfile -File ./tests/backend/run.ps1",
         "pnpm ci:backend"
     )) {
@@ -179,7 +181,13 @@ function Get-CiIssues {
         }
     }
 
-    foreach ($scriptName in @("ci:check", "ci:backend", "supply-chain:report")) {
+    foreach ($scriptName in @(
+        "ci:check",
+        "ci:backend",
+        "supply-chain:report",
+        "performance:test",
+        "performance:check:build"
+    )) {
         if ($null -eq $package.scripts.PSObject.Properties[$scriptName]) {
             $issues.Add("Missing package script: $scriptName")
         }

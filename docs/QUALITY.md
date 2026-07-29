@@ -115,6 +115,43 @@ Une trace synthétique prouve le replay déterministe sans MSFS. Elle ne remplac
 ni une trace enregistrée avec provenance, ni les fiches Store/Steam exigées par
 ADR-0003.
 
+## Budgets stabilité et performance
+
+La source unique `eng/stability-performance-budgets.json` distingue les budgets
+de fondation automatisés des objectifs de release encore `Not measured`.
+
+Depuis la racine :
+
+```powershell
+pnpm performance:test
+pnpm performance:measure:bridge
+pnpm performance:check -- `
+  -BridgeMeasurementsPath .\artifacts\t0015\bridge-measurements.json
+pnpm performance:check:build
+```
+
+`performance:test` couvre une mesure conforme et quatre mutations négatives.
+`performance:check:build` contrôle les tailles réellement construites du bundle,
+des artefacts desktop et de la publication bridge sans lancer l'application.
+La CI Windows exécute ces deux gates après les builds.
+
+La campagne GUI reste locale :
+
+```powershell
+pnpm frontend:measure
+pnpm performance:check -- `
+  -FrontendMeasurementsPath .\artifacts\t0008\frontend-measurements.json `
+  -DesktopMeasurementsPath .\artifacts\t0008\tauri-shell-measurements.json
+```
+
+Elle exige dix mesures avec un WebView2 associé, dix cycles propres et zéro
+processus orphelin desktop ou bridge. Le harness publie puis stage le bridge dans
+le layout de ressources Release exigé par Tauri. Les cycles rapides sont testés
+avant les mesures longues et attendent la terminaison du bridge associé ; tout
+nettoyage forcé reste un échec. Une sortie avant 30 ou 60 secondes est un échec.
+Un budget ne peut être relevé qu'avec une mesure comparable et une revue
+explicite.
+
 ## CI multi-stack et supply chain
 
 T0013 ajoute deux workflows GitHub sans permission d'écriture :

@@ -108,8 +108,8 @@ explicite. Ces échecs sont classés comme environnement, pas comme défauts du 
 
 ## Contrôles non exécutables dans cette baseline
 
-- Connexion réelle à MSFS/SimConnect, replay de trace et parcours de vol : MSFS
-  absent et aucun replay automatisé fourni.
+- Connexion réelle à MSFS/SimConnect et parcours de vol : MSFS absent. Le replay
+  synthétique automatisé T0011 ne remplace pas une trace réelle avec provenance.
 - Démarrage Supabase local persistant : Docker Desktop 29.6.2 publie les ports
   sur toutes les interfaces malgré le réseau loopback demandé ; le script
   arrête volontairement la pile.
@@ -211,8 +211,9 @@ et gère une annulation propre. Quatre scénarios unitaires passent sans package
 NuGet tiers. Le bridge n'est pas encore lancé par Tauri, n'ouvre aucun port et
 ne contient ni SimConnect, ni secret, ni donnée métier.
 
-La publication vérifiée contient 191 fichiers pour environ 80,5 Mo. Cette mesure
-est informative ; T0015 fixera les budgets.
+La publication courante mesurée par T0015 contient 334 fichiers pour
+110 477 582 octets. Le budget de fondation proposé est 128 Mio ; il est présent
+sur `foundation/t0015-stability-performance-budgets`, pas encore dans `main`.
 
 ## Contrat local
 
@@ -233,6 +234,19 @@ Une trace synthétique de huit points se rejoue sans MSFS. Elle couvre sol,
 décollage, montée, croisière, descente et retour au sol, mais ne prouve ni le SDK
 installé, ni MSFS 2024 Store/Steam, ni un comportement d'avion réel. Aucun
 binaire de l'ancien build n'est copié.
+
+## Budgets stabilité et performance
+
+La branche `foundation/t0015-stability-performance-budgets` ajoute une source
+JSON unique, un validateur fail-closed, cinq scénarios de harnais et un gate CI
+sur les tailles construites. Les baselines T0008 et la nouvelle mesure bridge
+respectent les seuils de fondation.
+
+Les objectifs MVP de démarrage, mémoire intégrée, quatre heures, installation et
+sessions sans crash restent `Not measured`. La campagne GUI T0015 passe avec
+cinq lancements froids, cinq chauds, dix cycles propres, un WebView2 et un bridge
+associés par mesure, et zéro processus orphelin. Le ticket est `Review` sur la
+PR #22 et ne change aucun statut de support avant fusion.
 
 ## Backend Supabase local et RLS
 
@@ -333,12 +347,12 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Observer les jobs GitHub de la PR #18 avant revue. La branche devra être rebasée
-sur `main`, ou sa base de PR changée, après fusion de la réconciliation
-documentaire. T0012 exige toujours
-un runtime Docker respectant la liaison loopback, Studio et le redémarrage sûr
-pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais réels Windows
-11/MSFS 2024 exigés par ADR-0003.
+Revoir la PR #22 T0015 ; ses mesures manuelles et automatisées sont terminées,
+mais ses budgets ne sont pas livrés dans `main` avant fusion par Andy.
+T0014 reste `Review` jusqu'à ses contrôles humains de packaging.
+T0012 exige toujours un runtime Docker respectant la liaison loopback, Studio et
+le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
+réels Windows 11/MSFS 2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier
 

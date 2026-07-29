@@ -82,6 +82,12 @@ jobs:
           pnpm bridge:health
           pnpm bridge:publish
 
+      - name: Enforce stability and performance budgets
+        shell: pwsh
+        run: |
+          pnpm performance:test
+          pnpm performance:check:build
+
       - name: Build unsigned Windows package
         shell: pwsh
         run: |
