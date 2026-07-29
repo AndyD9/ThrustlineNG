@@ -16,7 +16,7 @@ Statut : `Open`, `Accepted`, `Scheduled`, `Resolved`, `Invalid`.
 | ID | Sévérité | Zone | Résumé | Preuve | Ticket cible | Statut |
 | --- | --- | --- | --- | --- | --- | --- |
 | KI-001 | High | Data | Certaines mutations métier sont encore effectuées directement par le client. | Audit initial | Phase 2 | Open |
-| KI-002 | High | Quality | Absence de suite automatisée RLS A/B/anonyme. | Audit initial | Phase 1–2 | Open |
+| KI-002 | High | Quality | L'exécution PostgreSQL de la suite RLS A/B/anonyme T0012 devait être prouvée sur un runtime Docker réel. | `pnpm backend:test` réussi le 29 juillet 2026 : 2 fichiers, 21 tests, résultat PASS | T0012 | Resolved |
 | KI-003 | High | Release | Pas de pipeline complet d'artefacts/updater signés. | Audit initial | Phase 6 | Open |
 | KI-004 | Medium | Bridge | Pas de projet de tests .NET/replay SimConnect constaté. | T0011 ajoute un harnais .NET et un replay synthétique versionné | T0011 | Resolved |
 | KI-005 | Medium | Frontend | Plusieurs pages mélangent UI, règles et accès aux données. | Audit initial | Phase 4 | Open |
@@ -31,6 +31,7 @@ Statut : `Open`, `Accepted`, `Scheduled`, `Resolved`, `Invalid`.
 | KI-014 | Medium | Backend | La stack Supabase locale n'est pas strictement identique au cloud et PostgreSQL 17 doit être confirmé sur chaque projet dev/staging/prod. | Documentation officielle Supabase consultée dans T0005 | T0012 | Open |
 | KI-015 | High | Bridge | Le SDK managed SimConnect officiel documente .NET Framework et dépend de binaires/installation SDK ; sa publication self-contained .NET 10 reste à prouver. | Documentation MSFS 2024 SimConnect consultée dans T0005 | T0011 | Open |
 | KI-016 | Medium | Delivery | L'implémentation T0010 a été fusionnée par la PR #7 dans une branche déjà intégrée auparavant, mais le commit T0010 n'est pas présent dans `main`. | PR #7 et test d'ascendance Git au 28 juillet 2026 | Intégration T0010 | Open |
+| KI-017 | High | Backend / Security | Docker Desktop 29.6.2 publie les ports Supabase sur toutes les interfaces malgré l'option loopback du réseau Docker. | Inspection des ports effectifs le 29 juillet 2026 ; `backend:start` arrête la pile et laisse zéro conteneur Supabase actif | T0012 | Open |
 
 ## Règles
 

@@ -1,5 +1,28 @@
 # Architecture du desktop
 
+## Backend Supabase local T0012
+
+Le backend initial est recréé depuis `supabase/config.toml`, les migrations
+append-only puis `supabase/seed.sql`. PostgreSQL 17, Auth et PostgREST suffisent
+à cette tranche ; Realtime, Storage, Edge Runtime et Analytics restent
+désactivés.
+
+`public.companies` porte la première frontière de propriété du MVP solo :
+
+```text
+auth.users.id → companies.owner_id unique → une compagnie au plus par utilisateur
+```
+
+La clé étrangère impose un propriétaire Auth existant. La RLS est activée et
+forcée. Quatre politiques séparées limitent select/insert/update/delete à
+`auth.uid() = owner_id` et au rôle `authenticated`. Les types versionnés sous
+`packages/database` sont destinés à être régénérés depuis la pile locale ; aucun
+client applicatif ne les consomme encore.
+
+Cette table ne constitue pas l'onboarding transactionnel complet. Les futures
+mutations multi-écritures et économiques resteront des commandes serveur
+transactionnelles et idempotentes.
+
 ## Télémétrie SimConnect T0011
 
 `ISimConnectAdapter` est la seule frontière consommable par le futur moteur de

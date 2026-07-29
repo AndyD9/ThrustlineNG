@@ -143,3 +143,57 @@ La dernière commande produit le dossier autonome Windows x64 sous
 `apps/bridge/bin/Release/net10.0/win-x64/publish`. Lancez
 `Thrustline.Bridge.exe --health-check` pour un diagnostic ponctuel ou sans
 argument pour observer son cycle de vie. Ctrl+C demande un arrêt propre.
+
+## Backend Supabase local
+
+T0012 épingle Supabase CLI 2.109.1 comme dépendance du workspace. Installer et
+démarrer Docker Desktop, Rancher Desktop ou un runtime compatible avec l'API
+Docker avant la pile locale. Le runtime doit rester lié à la machine locale :
+les services de développement n'ont ni TLS, ni durcissement de production.
+
+Depuis la racine :
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm backend:check
+pnpm backend:start
+pnpm backend:reset
+pnpm backend:test
+pnpm backend:types:check
+pnpm backend:stop
+```
+
+Ports locaux réservés par `supabase/config.toml` :
+
+- API : `127.0.0.1:54321` ;
+- PostgreSQL : `127.0.0.1:54322` ;
+- Studio : `127.0.0.1:54323` ;
+- base shadow : `127.0.0.1:54320`.
+
+`backend:start` exclut les services hors périmètre T0012.
+Il crée ou réutilise le réseau Docker `thrustline-local`, configuré pour publier
+les ports sur `127.0.0.1` uniquement. Le script retrouve `docker.exe` dans le
+`PATH` ou dans les emplacements utilisateur/système de Docker Desktop, puis
+inspecte les ports réellement publiés. Si Docker utilise `0.0.0.0` ou `[::]`,
+la pile est immédiatement arrêtée et la commande échoue : ne contournez pas ce
+contrôle. Ce comportement a été observé avec Docker Desktop 29.6.2 ; utilisez un
+runtime/configuration qui respecte la liaison loopback avant la vérification
+Studio. La sortie de démarrage est masquée pour ne pas recopier les credentials
+locaux dans les journaux.
+`backend:reset` détruit uniquement la base locale puis rejoue migrations et
+seed. Aucun script du dépôt ne lie ou ne pousse un projet distant. Le seed
+contient deux utilisateurs sans mot de passe et deux compagnies entièrement
+synthétiques ; aucun secret n'est requis.
+
+Après une migration, démarrer la pile puis exécuter `pnpm backend:types` et
+versionner le diff de `packages/database/src/database.types.ts`. Utiliser
+`backend:types:check` pour détecter un fichier périmé. Une connexion Docker
+absente produit un échec avant toute migration ; démarrer le runtime et relancer.
+
+Après `backend:stop`, le réseau vide peut être conservé pour le prochain
+démarrage. Sa suppression éventuelle reste une action Docker locale manuelle et
+explicite.
+
+La pile locale Supabase n'est pas strictement identique à la plateforme
+managée. PostgreSQL 17, migrations et tests RLS devront être rejoués séparément
+sur les futurs environnements dev/staging avant promotion.
