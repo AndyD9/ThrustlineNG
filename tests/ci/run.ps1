@@ -71,6 +71,13 @@ function Get-CiIssues {
     if ($checkoutCount -ne $credentialCount) {
         $issues.Add("Every checkout must disable persisted credentials.")
     }
+    $setupNodeCount = ([regex]::Matches($workflows, "actions/setup-node@")).Count
+    $disabledNodeCacheCount = (
+        [regex]::Matches($workflows, "package-manager-cache:\s+false")
+    ).Count
+    if ($setupNodeCount -ne $disabledNodeCacheCount) {
+        $issues.Add("Every setup-node action must disable its automatic package-manager cache.")
+    }
     if ($workflows -match "(?m)^\s+cache:\s+" -and
         ($workflows -notmatch "cache-dependency-path:\s+pnpm-lock\.yaml" -or
          $workflows -match "(?m)^\s+cache-dependency-path:\s+(?!pnpm-lock\.yaml\s*$)")) {
@@ -132,6 +139,7 @@ function Get-CiIssues {
         "companies_structure\.test\.sql",
         "companies_rls\.test\.sql",
         "Result:\s+PASS",
+        "Select-Object -First 1",
         "Stop-SupabaseQuietly"
     )) {
         if (-not $backend.Contains($marker)) {

@@ -45,18 +45,23 @@ function Stop-SupabaseQuietly {
 
 Push-Location $repositoryRoot
 try {
-    $docker = Get-Command docker -CommandType Application -ErrorAction Stop
-    & $docker.Source info --format "{{.ServerVersion}}" *> $null
+    $dockerPath = @(
+        Get-Command docker -CommandType Application -All -ErrorAction Stop |
+            Select-Object -ExpandProperty Source |
+            Select-Object -Unique |
+            Select-Object -First 1
+    )[0]
+    & $dockerPath info --format "{{.ServerVersion}}" *> $null
     if ($LASTEXITCODE -ne 0) {
         throw "Docker daemon is unavailable on the CI runner."
     }
 
-    $existingNetworks = @(& $docker.Source network ls --format "{{.Name}}")
+    $existingNetworks = @(& $dockerPath network ls --format "{{.Name}}")
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to list Docker networks."
     }
     if ($networkName -notin $existingNetworks) {
-        & $docker.Source network create `
+        & $dockerPath network create `
             --opt "com.docker.network.bridge.host_binding_ipv4=127.0.0.1" `
             $networkName *> $null
         if ($LASTEXITCODE -ne 0) {
@@ -73,7 +78,7 @@ try {
     $started = $true
 
     $publishedPorts = @(
-        & $docker.Source ps `
+        & $dockerPath ps `
             --filter "label=com.supabase.cli.project=$projectId" `
             --format "{{.Ports}}"
     )
