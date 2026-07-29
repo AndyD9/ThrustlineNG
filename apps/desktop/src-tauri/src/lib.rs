@@ -5,7 +5,8 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            let supervisor = bridge::BridgeSupervisor::start()?;
+            let resource_directory = app.path().resource_dir()?;
+            let supervisor = bridge::BridgeSupervisor::start(&resource_directory)?;
             app.manage(supervisor);
             Ok(())
         })

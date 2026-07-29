@@ -303,11 +303,53 @@ réussissent. Les workflows GitHub `30440481257` et `30440480513` valident
 Windows, Supabase et la supply chain. La correction a été intégrée par les
 PR #16 puis #15 et est présente dans `main`.
 
+## Package Windows non signé
+
+T0014 est implémenté localement sur
+`foundation/t0014-windows-unsigned-packaging`, empilé sur la réconciliation
+`f3350c6`. Le commit `9b19283` est poussé et la PR brouillon #18 cible
+`docs/t0013-t0016-merge-reconciliation`. La première exécution GitHub
+`30449481995` a validé Supabase et la supply chain ; le job Windows a échoué
+après fabrication NSIS sur le chargement Authenticode de Windows PowerShell
+5.1. Le rejeu `30451302116` a franchi Authenticode puis échoué sur
+`Get-FileHash`, indisponible depuis le même module. Le calcul SHA-256 utilise
+désormais directement l'API cryptographique .NET ; le build et le cycle
+d'installation locaux passent. Le rejeu `30452603753` est vert, comme Supabase
+et la supply chain. L'inspection de l'artefact `8724603795` a ensuite détecté que
+le chemin desktop téléversé n'était pas celui du manifeste ; le chemin et son
+invariant CI sont corrigés. Le rejeu final `30454097418` / `30454097327` est
+entièrement vert. L'artefact `8725167519`, conservé jusqu'au 28 août 2026, a été
+téléchargé : ses trois hashes correspondent au manifeste, les trois binaires
+sont `NotSigned` et aucun motif de secret n'a été détecté. T0014 n'est pas
+présent dans `main`.
+
+PowerShell `7.6.4` est installé sous
+`C:\Users\andyd\AppData\Local\Microsoft\WindowsApps\pwsh.exe`. Le `PATH` du
+shell sandboxé Codex ne l'expose pas, mais le harnais toolchain exécuté avec ce
+chemin explicite réussit ses 15 assertions.
+
+Le dernier build local produit un NSIS x64 `currentUser` de 35 396 442 octets. Il
+contient le desktop et 334 fichiers de bridge .NET 10 self-contained, soit
+110 477 582 octets avant compression. L'installateur, le desktop et le bridge
+sont `NotSigned`. Le manifeste SHA-256 ne contient aucun chemin utilisateur.
+
+Quatre cycles installation/lancement/health check/fermeture/désinstallation ont
+réussi dans une cible explicite. Un contrôle renforcé a ensuite détecté que le
+payload desktop reçoit des métadonnées PE Tauri différentes du fichier de build ;
+le manifeste distingue désormais ce fichier de build du payload installé. Le
+hash de l'installateur couvre le conteneur et celui du bridge installé est
+comparé à la publication. Aucun processus, fichier, raccourci Menu Démarrer ou
+enregistrement de désinstallation Thrustline n'est resté après les cycles.
+
+Signature, SmartScreen, MSI, updater, provenance, upgrade N-1 et rollback de
+version restent non validés et relèvent de la phase 6.
+
 ## Prochain ticket recommandé
 
 Terminer la campagne GUI T0015 dans une session Windows interactive stable avant
 de clore le ticket. Ne pas présenter ses budgets comme fusionnés tant que sa PR
 ne l'est pas.
+T0014 reste `Review` jusqu'à ses contrôles humains de packaging.
 T0012 exige toujours un runtime Docker respectant la liaison loopback, Studio et
 le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
 réels Windows 11/MSFS 2024 exigés par ADR-0003.

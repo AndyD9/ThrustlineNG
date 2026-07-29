@@ -52,12 +52,12 @@ budget.
 | Croissance privée 30 → 60 s | T0008 | 0 Mio | 16 Mio | Conforme |
 | Cycles / orphelins | T0008 | 10 / 0 | ≥ 10 / 0 | Conforme |
 | Publication bridge | T0015 | 110 477 582 o, 334 fichiers | 134 217 728 o | Conforme |
-| Health bridge médian / max | T0015 | 63,65 / 73,5 ms, 10 runs | 1 000 / 2 000 ms | Conforme |
+| Health bridge médian / max | T0015 | 58,75 / 118,7 ms, 10 runs | 1 000 / 2 000 ms | Conforme |
 
 Le contrôle direct des artefacts reconstruits pendant T0015 donne :
 
 - frontend gzip : 76 526 octets ;
-- artefacts desktop : 5 559 905 octets ;
+- artefacts desktop : 5 560 929 octets ;
 - publication bridge : 110 477 582 octets.
 
 Ces trois tailles passent le gate automatisé. Les valeurs T0007/T0008 restent

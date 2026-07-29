@@ -260,10 +260,10 @@ build. Le bridge a été mesuré sur dix lancements.
 ### Commands and results
 
 - harnais T0015 : 1 scénario conforme et 4 mutations négatives réussis ;
-- mesure bridge finale sous PowerShell 7.6.4 : 10/10, médiane 63,65 ms,
-  maximum 73,5 ms ;
+- mesure bridge finale après synchronisation de `main`, sous PowerShell 7.6.4 :
+  10/10, médiane 58,75 ms, maximum 118,7 ms ;
 - publication bridge : 110 477 582 octets, 334 fichiers, sous 128 Mio ;
-- gate artefacts : frontend 76 526 octets gzip, desktop 5 559 905 octets,
+- gate artefacts : frontend 76 526 octets gzip, desktop 5 560 929 octets,
   bridge 110 477 582 octets, tous conformes ;
 - frontend : typecheck, 8/8 tests et build réussis ;
 - desktop : format, check, Clippy, 2/2 tests Rust, invariants, build Release
