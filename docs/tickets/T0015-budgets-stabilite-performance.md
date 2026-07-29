@@ -315,9 +315,11 @@ produit et environnement ; une session Windows interactive stable est requise.
 ### Git and GitHub result
 
 - branche : `foundation/t0015-stability-performance-budgets` ;
-- base/head : `main` à `0817dfb` /
+- base/head : `main` à `eb1656a` /
   `foundation/t0015-stability-performance-budgets` ;
 - commit d'implémentation : `fd123cc` ;
+- synchronisation sans force-push de `origin/main` : merge `0265a66`, conflits
+  T0014/T0015 résolus en conservant les deux gates ;
 - push : réussi, upstream
   `origin/foundation/t0015-stability-performance-budgets` ;
 - PR brouillon : https://github.com/AndyD9/ThrustlineNG/pull/22 ;
