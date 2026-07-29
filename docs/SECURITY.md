@@ -1,5 +1,27 @@
 # Sécurité du desktop
 
+## Frontière installateur Windows T0014
+
+Le package T0014 est une preuve interne non signée, jamais une release. Il
+utilise uniquement NSIS `currentUser`, sans élévation, service, tâche planifiée,
+association de fichiers, protocole URL, auto-start, updater ou permission CI
+d'écriture. L'avertissement SmartScreen éventuel n'est ni masqué ni contourné.
+
+Le script de build borne les suppressions aux sorties attendues, publie le
+bridge self-contained, inclut tout son dossier comme ressource, exige
+`NotSigned` pour les trois binaires et produit un manifeste relatif contenant
+tailles et SHA-256, sans chemin personnel ni secret.
+
+Le hash du fichier desktop de build ne prétend pas être celui du payload
+installé : Tauri applique des métadonnées PE propres au type de bundle. Le hash
+de l'installateur couvre le conteneur distribué ; le test confirme séparément que
+le desktop installé reste non signé, démarre une seule fenêtre et lance un seul
+bridge. Le bridge installé est comparé au SHA-256 de la publication.
+
+Le test d'installation exige une cible explicite sous `artifacts/t0014`,
+contrôle le nom et le chemin avant toute suppression, ferme les processus
+identifiés puis utilise uniquement le désinstalleur de cette cible.
+
 ## Frontière Supabase T0012
 
 Le client distribué, les rôles `anon`/`authenticated` et tout JWT présenté sont
@@ -116,7 +138,9 @@ Le backend CI ne lie aucun projet Supabase. Il crée une pile locale jetable sur
 un réseau Docker demandé en loopback, masque la sortie de démarrage, inspecte
 les ports effectifs et arrête la pile sur toute publication wildcard. Les
 artefacts sont non signés, ne sont jamais publiés comme release et expirent sous
-30 jours. Signature, provenance et updater restent hors de cette frontière.
+30 jours. Le job Windows ajoute l'installateur NSIS T0014 et son manifeste à ces
+preuves, sans exécuter l'installateur sur le runner. Signature, provenance et
+updater restent hors de cette frontière.
 
 Le lancement authentifié et le contrat local de T0010 considèrent le processus
 desktop et le bridge comme mutuellement non fiables.

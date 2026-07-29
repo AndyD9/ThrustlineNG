@@ -1,9 +1,9 @@
 # Préparer l'environnement ThrustlineNG
 
 Pour T0010, `THRUSTLINE_BRIDGE_PATH` désigne en développement le bridge publié.
-Une distribution place `Thrustline.Bridge.exe` à côté du desktop. Le jeton et le
-port sont générés à chaque lancement par Tauri, jamais par variable
-d'environnement.
+Le package T0014 place sa publication self-contained sous
+`$RESOURCE/bridge/Thrustline.Bridge.exe`. Le jeton et le port sont générés à
+chaque lancement par Tauri, jamais par variable d'environnement.
 
 ## Plateforme prise en charge
 
@@ -143,6 +143,29 @@ La dernière commande produit le dossier autonome Windows x64 sous
 `apps/bridge/bin/Release/net10.0/win-x64/publish`. Lancez
 `Thrustline.Bridge.exe --health-check` pour un diagnostic ponctuel ou sans
 argument pour observer son cycle de vie. Ctrl+C demande un arrêt propre.
+
+## Package Windows non signé
+
+T0014 produit une preuve NSIS x64 en mode utilisateur courant. Restaurer les
+dépendances figées, puis exécuter :
+
+```powershell
+pnpm windows:package:check
+pnpm windows:package
+pnpm windows:package:test
+```
+
+Les sorties sont sous `artifacts/t0014/package`. Le premier build peut
+télécharger les runtime packs Microsoft depuis NuGet et les outils NSIS gérés
+par Tauri ; aucun script distant n'est exécuté. Le test installe temporairement
+le package sous `artifacts/t0014/validation`, ouvre le desktop, vérifie le bridge
+et désinstalle.
+
+Le package est volontairement non signé. Ne le publier ni comme release ni
+comme binaire recommandé : Windows peut afficher SmartScreen après un
+téléchargement. WebView2 Evergreen est requis ; l'installateur utilise le
+bootstrapper téléchargé si le runtime manque. MSI, signature, updater, upgrade
+N-1 et rollback appartiennent à la phase de distribution sûre.
 
 ## Backend Supabase local
 
