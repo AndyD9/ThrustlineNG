@@ -1,6 +1,6 @@
 # T0016 — Corriger l’avis de sécurité React Router
 
-Status: Verify
+Status: Review
 Owner: Andy
 Branch: `security/t0016-react-router-advisory`
 Phase: 1
@@ -146,8 +146,8 @@ React Router 7.18.1 et le paquet de réexport `react-router-dom` sont remplacés
 par `react-router` 8.3.0 exact. Les imports déclaratifs, le libellé visible de
 l’accueil, la source de versions et le lockfile sont alignés. L’audit local ne
 trouve plus de vulnérabilité connue et la navigation SPA reste fonctionnelle.
-Le ticket reste `Verify` jusqu’à l’observation de la CI GitHub sur la branche
-empilée.
+Les workflows GitHub Windows, Supabase et supply-chain sont verts sur la branche
+empilée. Le ticket passe en `Review`.
 
 ### Files changed
 
@@ -176,7 +176,10 @@ empilée.
 - `scripts/check-toolchain.ps1` et `tests/toolchain/run.ps1` sous Windows
   PowerShell 5.1 : non exécutés, les scripts exigent PowerShell 7.6 ;
 - `git diff --check` : réussi, avec avertissements informatifs LF/CRLF ;
-- CI GitHub : non exécutée au moment de ce rapport.
+- GitHub CI `30440481257` : réussi ; Windows multi-stack en 8 min 55 s et
+  Supabase PostgreSQL 17 en 2 min 30 s ;
+- GitHub supply-chain `30440480513` : réussi en 3 min 48 s ; audits, licences,
+  Gitleaks et SBOM sont verts, notamment le gate pnpm.
 
 ### Manual verification result
 
@@ -187,7 +190,8 @@ console de niveau erreur n’est observé. Le serveur local a ensuite été arr�
 
 ### Risks and limitations
 
-- La preuve canonique PowerShell 7.6 et la CI GitHub restent à observer.
+- PowerShell 7.6 est absent localement ; les contrôles canoniques de toolchain
+  ont toutefois réussi dans le job Windows GitHub.
 - React Router 8 exige Node >=22.22 et React/React DOM >=19.2.7 ; les pins du
   dépôt, Node 24.18.0 et React 19.2.8, satisfont ces bornes.
 - La branche reste empilée sur T0013 ; aucune correction n’est encore présente
@@ -195,14 +199,12 @@ console de niveau erreur n’est observé. Le serveur local a ensuite été arr�
 
 ### Follow-ups
 
-- Pousser la branche et ouvrir une PR basée sur
+- Faire relire puis fusionner la PR T0016 dans
   `foundation/t0013-multistack-ci`.
-- Observer les workflows CI et supply-chain, puis résoudre `KI-018` seulement
-  si le gate pnpm est vert.
-- Intégrer T0016 dans T0013 avant de promouvoir la PR T0013 vers `main`.
+- Après intégration, confirmer les checks de T0013 puis promouvoir sa PR vers
+  `main`.
 
 ### Documentation updated
 
-`CURRENT_STATE.md`, `KNOWN_ISSUES.md`, `QUALITY.md`, `STACK.md` et l’index
-reflètent la correction locale, la branche empilée et les preuves encore
-manquantes.
+`CURRENT_STATE.md`, `KNOWN_ISSUES.md`, `QUALITY.md`, `STACK.md`, le suivi T0013
+et l’index reflètent la correction, la branche empilée et les preuves GitHub.

@@ -29,7 +29,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0013 | Consolider la CI multi-stack | 1 | T0006–T0012 | Verify |
 | T0014 | Valider le packaging Windows non signé | 1 | T0007–T0013 | Backlog |
 | T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Backlog |
-| T0016 | Corriger l’avis de sécurité React Router | 1 | T0013 | Verify |
+| T0016 | Corriger l’avis de sécurité React Router | 1 | T0013 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009,
 mais leurs statuts documentaires restent inchangés tant que leurs vérifications

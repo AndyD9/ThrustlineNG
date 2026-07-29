@@ -3,8 +3,8 @@
 Dernière revue documentaire : 29 juillet 2026 (implémentation T0016).
 Statut : fondations T0006–T0012 fusionnées ; T0012 reste en vérification car
 Docker Desktop publie les ports Supabase hors loopback. La PR T0013 cible
-désormais `main`. T0016 corrige localement son gate pnpm ; la CI GitHub reste à
-observer.
+désormais `main`. T0016 corrige son gate pnpm et ses trois jobs GitHub sont
+verts ; la correction reste à intégrer dans T0013.
 
 ## Produit
 
@@ -146,8 +146,8 @@ explicite. Ces échecs sont classés comme environnement, pas comme défauts du 
 - Pas de pipeline complet de release signée/updater.
 - Versions répétées dans plusieurs manifestes.
 - T0016 remplace `react-router` 7.18.1 par 8.3.0 pour
-  `GHSA-qwww-vcr4-c8h2` ; l'audit local est vert, mais `KI-018` reste suivi
-  jusqu'à la preuve GitHub.
+  `GHSA-qwww-vcr4-c8h2` ; l'audit local et le workflow supply-chain GitHub sont
+  verts, et `KI-018` est résolu sur cette branche.
 - Cargo ne signale aucune vulnérabilité, mais plusieurs crates GTK3 non
   maintenues et `glib` 0.18.5 unsound restent dans le lockfile multi-plateforme.
 - Politique de suppression/récupération du propriétaire et durée de rétention à
@@ -282,15 +282,17 @@ credential. Aucune capacité CI de T0013 n'est encore revendiquée dans `main`.
 T0016 remplace le paquet de réexport `react-router-dom` par `react-router` 8.3.0
 et conserve le routage déclaratif SPA. Localement, l'installation figée,
 l'audit pnpm, le typecheck, les 8 tests frontend, la couverture et le build
-réussissent. La branche reste empilée sur T0013 et sa CI GitHub n'est pas encore
-observée.
+réussissent. Les workflows GitHub `30440481257` et `30440480513` valident
+Windows, Supabase et la supply chain. La branche reste empilée sur T0013 et
+n'est pas encore intégrée dans `main`.
 
 ## Prochain ticket recommandé
 
-Observer la CI de T0016, puis intégrer la correction dans T0013 sans abaisser le
-seuil supply-chain. T0012 exige toujours un runtime Docker respectant la liaison
-loopback, Studio et le redémarrage sûr pour quitter `Verify`. T0011 reste
-`Verify` jusqu'aux essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
+Faire relire puis intégrer T0016 dans T0013 ; les jobs Windows, Supabase et
+supply-chain de la PR #16 sont verts. T0012 exige toujours un runtime Docker
+respectant la liaison loopback, Studio et le redémarrage sûr pour quitter
+`Verify`. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS 2024
+exigés par ADR-0003.
 
 ## Mise à jour de ce fichier
 
