@@ -183,6 +183,15 @@ exigent les contrôles de `tests/toolchain/`. Les changements SQL exigent un tes
 local ou staging d'isolation A/B/anonyme. Les changements SimConnect exigent un
 replay de trace ou une vérification MSFS documentée selon le ticket.
 
+Le `PATH` d'un shell sandboxé Codex ne prouve jamais qu'un outil est absent de
+la machine. Avant de déclarer PowerShell 7 indisponible sous Windows, vérifier
+`Get-Command pwsh.exe`, puis le chemin utilisateur
+`%LOCALAPPDATA%\Microsoft\WindowsApps\pwsh.exe` résolu sans nom d'utilisateur
+codé en dur. Si l'exécutable existe, relever sa version et exécuter le contrôle
+avec son chemin explicite ; consigner séparément « installé mais absent du
+`PATH` sandboxé » et « réellement non installé ». Appliquer la même distinction
+aux autres outils dont le lanceur peut dépendre du contexte utilisateur.
+
 Pour un ticket purement documentaire, vérifier au minimum :
 
 - cohérence des statuts, références, chemins et commandes ;
