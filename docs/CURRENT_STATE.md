@@ -310,6 +310,11 @@ téléchargé : ses trois hashes correspondent au manifeste, les trois binaires
 sont `NotSigned` et aucun motif de secret n'a été détecté. T0014 n'est pas
 présent dans `main`.
 
+PowerShell `7.6.4` est installé sous
+`C:\Users\andyd\AppData\Local\Microsoft\WindowsApps\pwsh.exe`. Le `PATH` du
+shell sandboxé Codex ne l'expose pas, mais le harnais toolchain exécuté avec ce
+chemin explicite réussit ses 15 assertions.
+
 Le dernier build local produit un NSIS x64 `currentUser` de 35 396 442 octets. Il
 contient le desktop et 334 fichiers de bridge .NET 10 self-contained, soit
 110 477 582 octets avant compression. L'installateur, le desktop et le bridge
