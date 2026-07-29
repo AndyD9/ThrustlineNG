@@ -322,6 +322,7 @@ desktop et zéro bridge restant. `KI-020` est résolu.
 - commit d'implémentation : `fd123cc` ;
 - synchronisation sans force-push de `origin/main` : merge `0265a66`, conflits
   T0014/T0015 résolus en conservant les deux gates ;
+- correctif et preuve GUI finale : `20e9e3d` ;
 - push : réussi, upstream
   `origin/foundation/t0015-stability-performance-budgets` ;
 - PR brouillon : https://github.com/AndyD9/ThrustlineNG/pull/22 ;
