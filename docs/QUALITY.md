@@ -71,6 +71,9 @@ pnpm bridge:build
 pnpm bridge:test
 pnpm bridge:health
 pnpm bridge:publish
+pnpm windows:package:check
+pnpm windows:package
+pnpm windows:package:test
 ```
 
 Le typecheck active notamment `strict`, `noUncheckedIndexedAccess`,
@@ -82,8 +85,21 @@ arbitraire.
 
 Le contrôle desktop combine le frontend, le format Rust, `cargo check --locked`,
 Clippy avec les avertissements refusés, les tests Rust et les invariants Tauri.
-Le build release est effectué sans bundle : packaging, signature et
-installateur restent hors périmètre.
+`desktop:build` reste un build Release sans bundle. `windows:package` ajoute
+séparément un bundle NSIS x64 non signé après publication du bridge complet.
+
+Le harnais T0014 contrôle la cible NSIS unique, le mode `currentUser`, WebView2
+`downloadBootstrapper`, l'absence de signature/updater/permission d'écriture et
+l'inclusion du bridge. Il prouve deux mutations négatives : installation
+`perMachine` et ajout d'une cible MSI.
+
+`windows:package:test` installe silencieusement dans une cible explicite sous
+`artifacts/t0014`, compare le hash de l'installateur et du bridge au manifeste,
+confirme les trois statuts Authenticode `NotSigned`, ouvre la fenêtre
+`Thrustline`, observe un seul bridge, ferme les deux processus, exécute
+`Healthy`/`0`, désinstalle et exige la disparition de la cible. Ce parcours
+modifie temporairement le profil utilisateur via NSIS ; il doit être exécuté sur
+un poste ou une VM de validation, pas dans le job CI.
 
 La mesure exige une fenêtre réellement visible, cinq lancements froids, cinq
 lancements chauds et dix cycles de fermeture. Un échec de fenêtre ou un
