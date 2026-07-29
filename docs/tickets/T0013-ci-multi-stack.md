@@ -1,6 +1,6 @@
 # T0013 — Consolider la CI multi-stack
 
-Status: Review
+Status: Verify
 Owner: Andy
 Branch: `foundation/t0013-multistack-ci`
 Phase: 1
@@ -251,10 +251,11 @@ Supabase Linux, puis les audits, licences, secrets et SBOM. Les actions sont
 dépendances n'est activé. Les rapports continuent à être produits après un
 scanner en échec, puis un gate final agrège les résultats.
 
-Le ticket est prêt à être publié pour revue, mais ne peut pas passer `Done` :
-l'exécution GitHub n'est pas encore observée et le nouveau gate pnpm révèle une
-vulnérabilité haute préexistante dans React Router. T0012 reste `Verify` ; cette
-branche est empilée sur son commit `8b6df56`.
+L'exécution GitHub `30437716790` valide les jobs Windows et Supabase. Le
+workflow supply-chain `30437717487` produit tous ses rapports puis échoue
+uniquement sur le gate pnpm, qui révèle la vulnérabilité haute préexistante
+React Router suivie par `KI-018`. Le ticket passe donc `Verify`, pas `Done`.
+T0012 reste `Verify` ; cette branche est empilée sur son commit `8b6df56`.
 
 ### Files changed
 
@@ -299,6 +300,11 @@ branche est empilée sur son commit `8b6df56`.
   `GHSA-qwww-vcr4-c8h2` dans `react-router` 7.18.1, consignée dans `KI-018` ;
 - Gitleaks, Syft/SPDX et backend Docker Linux : non exécutés localement, réservés
   aux jobs GitHub ;
+- GitHub CI `30437716790` : réussi ; Windows, bridge, artefact non signé,
+  backend loopback, deux resets, deux fichiers pgTAP, types stables et arrêt
+  Supabase sont tous réussis ;
+- GitHub supply-chain `30437717487` : NuGet, Cargo, Gitleaks, licences, SBOM et
+  upload réussis ; gate final échoué uniquement sur `KI-018`, comme attendu ;
 - `git diff --check` : réussi.
 
 Le premier lancement .NET en bac à sable a échoué avant compilation par refus
@@ -308,9 +314,12 @@ JSON .NET 10 sans package tiers.
 
 ### Manual verification result
 
-Partielle. Les événements, permissions, runners, SHA d'actions, credentials,
-commandes, artefacts et rétention ont été inspectés dans les sources. Les jobs
-GitHub et le téléchargement de leurs artefacts restent à vérifier après push.
+Terminée pour la CI. Les événements, permissions, runners, SHA d'actions,
+credentials, commandes et rétention ont été inspectés. Les artefacts
+supply-chain et Windows ont été téléchargés : les cinq rapports, la couverture,
+le binaire desktop et le bridge self-contained sont présents. La recherche de
+motifs de credentials n'a produit aucun résultat. Les artefacts restent
+explicitement non signés.
 
 ### Risks and limitations
 
@@ -333,7 +342,6 @@ GitHub et le téléchargement de leurs artefacts restent à vérifier après pus
 
 ### Follow-ups
 
-- Observer tous les jobs GitHub et télécharger les deux artefacts.
 - Corriger `KI-018` dans un ticket sécurité borné avec mise à jour de
   `eng/versions.json`, du manifest desktop et du lockfile.
 - Revoir `KI-019` lors de la maintenance Tauri/Cargo.
@@ -344,6 +352,6 @@ GitHub et le téléchargement de leurs artefacts restent à vérifier après pus
 ### Documentation updated
 
 `CURRENT_STATE.md`, `QUALITY.md`, `SECURITY.md`, `SETUP.md`,
-`KNOWN_ISSUES.md` et l'index distinguent l'implémentation locale, la future
-preuve GitHub, les artefacts non signés et les deux problèmes supply-chain
+`KNOWN_ISSUES.md` et l'index distinguent l'implémentation locale, la preuve
+GitHub observée, les artefacts non signés et les deux problèmes supply-chain
 découverts.

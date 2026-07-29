@@ -26,7 +26,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0010 | Établir le contrat local et le health check | 1 | T0007–T0009 | Done |
 | T0011 | Créer l'adaptateur SimConnect et le replay | 1–3 | T0009–T0010 | Verify |
 | T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Verify |
-| T0013 | Consolider la CI multi-stack | 1 | T0006–T0012 | Review |
+| T0013 | Consolider la CI multi-stack | 1 | T0006–T0012 | Verify |
 | T0014 | Valider le packaging Windows non signé | 1 | T0007–T0013 | Backlog |
 | T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Backlog |
 

@@ -3,7 +3,7 @@
 Dernière revue documentaire : 29 juillet 2026 (implémentation T0013).
 Statut : fondations T0006–T0011 fusionnées ; T0012 reste en vérification car
 Docker Desktop publie les ports Supabase hors loopback ; T0013 est implémenté sur
-une branche empilée et attend sa preuve GitHub.
+une branche empilée, avec CI GitHub observée et un gate pnpm bloqué par KI-018.
 
 ## Produit
 
@@ -273,13 +273,15 @@ autres rapports d'être produits après un premier échec.
 Localement, le harnais CI et ses deux mutations passent, le rapport couvre
 566 composants, NuGet ne relève aucun package vulnérable et Cargo aucune
 vulnérabilité. Le gate pnpm échoue correctement sur la vulnérabilité haute
-`GHSA-qwww-vcr4-c8h2`. L'exécution réelle GitHub et les artefacts restent à
-observer ; aucune capacité CI de T0013 n'est encore revendiquée dans `main`.
+`GHSA-qwww-vcr4-c8h2`. L'exécution GitHub `30437716790` valide Windows et
+Supabase ; `30437717487` valide tous les contrôles supply-chain sauf le gate
+pnpm attendu. Les deux artefacts ont été téléchargés et inspectés sans motif de
+credential. Aucune capacité CI de T0013 n'est encore revendiquée dans `main`.
 
 ## Prochain ticket recommandé
 
-Vérifier les jobs et artefacts GitHub de T0013, puis traiter `KI-018` sans
-abaisser le seuil de sécurité. La branche reste empilée sur T0012, dont la
+Traiter `KI-018` sans abaisser le seuil de sécurité. La branche T0013 reste
+empilée sur T0012, dont la
 vérification exige toujours un runtime Docker respectant la liaison loopback,
 Studio et le redémarrage sûr. T0011 reste `Verify` jusqu'aux essais réels
 Windows 11/MSFS 2024 exigés par ADR-0003.
