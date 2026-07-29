@@ -91,5 +91,26 @@ Le bridge minimal n'ouvre aucune frontière :
 - arguments inconnus rejetés sans les recopier ;
 - aucun lien avec Tauri ou SimConnect.
 
+## Frontière CI T0013
+
+Le code d'une Pull Request est non fiable. Les workflows T0013 utilisent
+uniquement `pull_request` et `push` vers `main`, avec `contents: read` et sans
+permission d'écriture. `pull_request_target` et les secrets applicatifs sont
+interdits. Checkout désactive la persistance des credentials et toutes les
+actions sont référencées par un SHA Git complet accompagné du tag contrôlé.
+
+Les runners sont explicites (`windows-2025` et `ubuntu-24.04`). Aucun cache de
+dépendances n'est activé. Les audits n'altèrent pas les manifests : pnpm bloque
+les vulnérabilités hautes, NuGet inspecte les transitifs et `cargo-audit` 0.22.2
+lit le `Cargo.lock`. Gitleaks parcourt l'historique avec les commentaires et
+uploads propres à l'action désactivés ; il reçoit seulement le jeton GitHub
+éphémère en lecture.
+
+Le backend CI ne lie aucun projet Supabase. Il crée une pile locale jetable sur
+un réseau Docker demandé en loopback, masque la sortie de démarrage, inspecte
+les ports effectifs et arrête la pile sur toute publication wildcard. Les
+artefacts sont non signés, ne sont jamais publiés comme release et expirent sous
+30 jours. Signature, provenance et updater restent hors de cette frontière.
+
 Le lancement authentifié et le contrat local de T0010 considèrent le processus
 desktop et le bridge comme mutuellement non fiables.

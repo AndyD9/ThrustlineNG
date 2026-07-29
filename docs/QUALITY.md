@@ -98,3 +98,45 @@ sont pas activés sans mesure.
 Une trace synthétique prouve le replay déterministe sans MSFS. Elle ne remplace
 ni une trace enregistrée avec provenance, ni les fiches Store/Steam exigées par
 ADR-0003.
+
+## CI multi-stack et supply chain
+
+T0013 ajoute deux workflows GitHub sans permission d'écriture :
+
+- `CI` utilise `windows-2025` pour frontend, Tauri et bridge, puis
+  `ubuntu-24.04` pour PostgreSQL 17, deux resets, pgTAP et types ;
+- `Supply chain` utilise `ubuntu-24.04` pour les audits pnpm/NuGet/Cargo, le
+  rapport de licences, Gitleaks et un SBOM SPDX JSON.
+
+Chaque action est épinglée par SHA, checkout ne conserve pas ses credentials et
+aucun cache de dépendances n'est activé. Les artefacts sont nommés comme non
+signés ou comme preuves supply-chain et expirent après 30 jours.
+
+Le harnais statique local couvre aussi deux mutations négatives :
+
+```powershell
+pnpm ci:check
+```
+
+La génération locale du rapport de licences exige les dépendances restaurées :
+
+```powershell
+pnpm supply-chain:report
+```
+
+Le job backend Linux utilise `pnpm ci:backend`. Il masque la sortie de démarrage,
+inspecte les ports Docker réels, exige les deux fichiers pgTAP et `Result: PASS`,
+compare les types en mémoire et arrête la pile dans le script ainsi que dans une
+étape `always()`.
+
+Le workflow supply-chain laisse chaque scanner produire son rapport, même si un
+scanner échoue, puis un gate final agrège les résultats. Au 29 juillet 2026,
+`pnpm audit --audit-level high` échoue sur `GHSA-qwww-vcr4-c8h2` dans
+`react-router` 7.18.1. Cet échec est réel et ne doit pas être neutralisé ;
+`KI-018` suit la mise à jour. L'audit NuGet ne trouve aucun package vulnérable et
+Cargo ne trouve aucune vulnérabilité, mais signale des avertissements
+informatifs suivis par `KI-019`.
+
+Les commandes locales ne prouvent pas l'interprétation YAML ni l'exécution des
+runners GitHub. Avant de promouvoir T0013, consulter les jobs de la PR,
+télécharger les artefacts et vérifier qu'ils ne contiennent aucun credential.

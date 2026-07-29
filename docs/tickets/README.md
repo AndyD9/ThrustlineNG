@@ -26,7 +26,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0010 | Établir le contrat local et le health check | 1 | T0007–T0009 | Done |
 | T0011 | Créer l'adaptateur SimConnect et le replay | 1–3 | T0009–T0010 | Verify |
 | T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Verify |
-| T0013 | Consolider la CI multi-stack | 1 | T0006–T0012 | Backlog |
+| T0013 | Consolider la CI multi-stack | 1 | T0006–T0012 | Review |
 | T0014 | Valider le packaging Windows non signé | 1 | T0007–T0013 | Backlog |
 | T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Backlog |
 
@@ -34,4 +34,6 @@ Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009
 mais leurs statuts documentaires restent inchangés tant que leurs vérifications
 humaines ne sont pas closes. T0011 possède un replay synthétique automatisé et
 reste en vérification jusqu'au test réel MSFS 2024. T0012 est le prochain ticket
-technique indépendant recommandé.
+technique indépendant recommandé. T0013 est exécuté sur une branche empilée sur
+T0012 avec l'autorisation explicite d'Andy du 29 juillet 2026 ; cette exécution
+ne transforme pas la vérification loopback manquante de T0012 en réussite.

@@ -32,6 +32,8 @@ Statut : `Open`, `Accepted`, `Scheduled`, `Resolved`, `Invalid`.
 | KI-015 | High | Bridge | Le SDK managed SimConnect officiel documente .NET Framework et dépend de binaires/installation SDK ; sa publication self-contained .NET 10 reste à prouver. | Documentation MSFS 2024 SimConnect consultée dans T0005 | T0011 | Open |
 | KI-016 | Medium | Delivery | L'implémentation T0010 a été fusionnée par la PR #7 dans une branche déjà intégrée auparavant, mais le commit T0010 n'est pas présent dans `main`. | PR #7 et test d'ascendance Git au 28 juillet 2026 | Intégration T0010 | Open |
 | KI-017 | High | Backend / Security | Docker Desktop 29.6.2 publie les ports Supabase sur toutes les interfaces malgré l'option loopback du réseau Docker. | Inspection des ports effectifs le 29 juillet 2026 ; `backend:start` arrête la pile et laisse zéro conteneur Supabase actif | T0012 | Open |
+| KI-018 | High | Frontend / Security | `react-router` 7.18.1 est concerné par `GHSA-qwww-vcr4-c8h2` ; le gate pnpm T0013 échoue comme prévu. | `pnpm audit --audit-level high` exécuté le 29 juillet 2026 ; version corrigée annoncée >= 8.3.0 | Ticket sécurité de mise à jour React Router | Open |
+| KI-019 | Medium | Desktop / Supply chain | Le lockfile Cargo contient des dépendances GTK3 non maintenues et `glib` 0.18.5 signalé unsound, même si la cible Windows ne compile pas ce chemin. | `cargo audit 0.22.2 --file apps/desktop/src-tauri/Cargo.lock --json` le 29 juillet 2026 : 0 vulnérabilité, avertissements RustSec informatifs | Revue des dépendances Tauri/Cargo | Open |
 
 ## Règles
 
