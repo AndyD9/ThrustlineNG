@@ -98,11 +98,12 @@ try {
     $testOutput = @(
         & pnpm exec supabase test db --network-id $networkName 2>&1
     )
-    if ($LASTEXITCODE -ne 0) {
+    $testExitCode = $LASTEXITCODE
+    $testOutput | Write-Output
+    if ($testExitCode -ne 0) {
         throw "Supabase pgTAP execution failed."
     }
     $testText = $testOutput -join "`n"
-    $testOutput | Write-Output
     if ($testText -notmatch "companies_structure\.test\.sql" -or
         $testText -notmatch "companies_rls\.test\.sql" -or
         $testText -notmatch "Result:\s+PASS") {
