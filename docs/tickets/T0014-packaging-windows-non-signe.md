@@ -233,7 +233,7 @@ Sur le job Windows T0013 :
 - [x] Le bridge installé répond `Healthy`/`0`.
 - [x] La désinstallation réussit et ne laisse aucun fichier dans la cible.
 - [x] Frontend, desktop, bridge et harnais CI existants restent verts.
-- [ ] La CI construit et conserve uniquement une preuve non signée pendant
+- [x] La CI construit et conserve uniquement une preuve non signée pendant
       30 jours, sans permission d'écriture ni release.
 - [x] Les limites SmartScreen, WebView2, signature, updater et distribution sont
       documentées.
@@ -325,14 +325,11 @@ du bridge. Le desktop Release résout le bridge sous `$RESOURCE/bridge`, tandis
 que le développement Debug conserve l'override explicite.
 
 Quatre cycles finaux installation/lancement/health check/fermeture/désinstallation
-ont réussi. Le ticket passe en `Review`, pas `Done` : la première exécution
-GitHub a validé Supabase et la supply chain, mais le job Windows a exposé une
-incompatibilité de chargement Authenticode sous Windows PowerShell 5.1. Le
-contrôle corrigé privilégie PowerShell 7 sur le runner et conserve un fallback
-Windows PowerShell validé localement. Un second rejeu a franchi Authenticode,
-puis exposé la même indisponibilité de module sur `Get-FileHash` ; le calcul
-SHA-256 utilise désormais directement l'API cryptographique .NET. Ce second
-correctif reste à observer sur GitHub.
+ont réussi. Le ticket passe en `Review`, pas `Done`. Les incompatibilités
+Authenticode puis `Get-FileHash` de Windows PowerShell 5.1 ont été corrigées sans
+affaiblir les contrôles. Le dernier rejeu GitHub est entièrement vert et son
+artefact téléchargé prouve les trois hashes, les signatures absentes et
+l'absence de motif de secret.
 
 ### Files changed
 
@@ -351,7 +348,7 @@ correctif reste à observer sur GitHub.
   détectées (`perMachine` et cible MSI supplémentaire) ;
 - `pnpm windows:package` : réussi après autorisation d'accès au NuGet.Config
   utilisateur et au réseau pour les runtime packs/outils Tauri ;
-- installateur final : `Thrustline_0.0.0_x64-setup.exe`, 35 396 442 octets,
+- installateur local final : `Thrustline_0.0.0_x64-setup.exe`, 35 396 442 octets,
   SHA-256
   `2B44C4013095BEEC4C1E0173E31A4A3A3E8EC3C71B7003AB3BE15566302F521B` ;
 - bridge embarqué : 334 fichiers, 110 477 582 octets avant compression ;
@@ -383,7 +380,16 @@ correctif reste à observer sur GitHub.
   trois binaires `NotSigned`, aucun motif de secret ; le chemin d'upload desktop
   pointait toutefois vers `target/release` au lieu de la sortie exacte
   `target/x86_64-pc-windows-msvc/release`, rendant son hash non vérifiable hors
-  runner. Le chemin et l'invariant CI sont corrigés ; le rejeu reste à observer ;
+  runner. Le chemin et l'invariant CI sont corrigés ;
+- GitHub final `30454097418` / `30454097327` : Windows réussi en 13 min 50 s,
+  Supabase en 2 min 45 s et supply chain en 4 min 02 s ;
+- artefact final `8725167519`,
+  `t0014-windows-unsigned-49b243c033e05856110dd8f1345c944b91febb21`,
+  conservé jusqu'au 28 août 2026 : 338 fichiers extraits, 148 824 184 octets ;
+  les hashes installateur, desktop et bridge correspondent au manifeste, les
+  trois signatures sont `NotSigned`, aucun nom sensible ni motif de secret ;
+- installateur CI final : 35 405 932 octets, SHA-256
+  `2C49C0EFE056C08DBD854B579099282E3B58A3FFA4751675833C5DA865E31582` ;
 - harnais toolchain : non exécuté, car `pwsh` 7.6 n'est pas disponible dans le
   `PATH` et le script refuse correctement Windows PowerShell 5.1.
 
@@ -417,14 +423,12 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 - MSI, signature, provenance, updater, upgrade N-1 et rollback non testés ;
 - le bundle NSIS contient des métadonnées de build : deux fabrications ont le
   même inventaire logique, mais pas un SHA-256 binaire identique ;
-- rejeu GitHub du chemin desktop corrigé pas encore observé ;
 - PowerShell 7.6 absent du `PATH` local ;
 - les preuves humaines encore ouvertes dans T0007–T0009 ne sont pas closes par
   ce ticket.
 
 ### Follow-ups
 
-- observer le rejeu des jobs et télécharger l'artefact de la Pull Request T0014 ;
 - après fusion de la réconciliation documentaire, rebaser la branche sur `main`
   ou changer la base de la Pull Request ;
 - traiter signature, provenance, updater et scénarios upgrade/rollback en phase
@@ -451,5 +455,8 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 - troisième rejeu `30452603753` / `30452603583` : trois jobs verts ; l'inspection
   de l'artefact `8724603795` a détecté un chemin desktop distinct de celui du
   manifeste, corrigé et protégé par un invariant avant rejeu final ;
+- rejeu final `30454097418` / `30454097327` : trois jobs verts ; artefact
+  `8725167519` téléchargé, trois hashes conformes, trois signatures `NotSigned`
+  et aucun motif de secret ;
 - après fusion de la base, rebaser sur `main` ou changer la base de la PR avant
   revue finale.

@@ -304,7 +304,10 @@ désormais directement l'API cryptographique .NET ; le build et le cycle
 d'installation locaux passent. Le rejeu `30452603753` est vert, comme Supabase
 et la supply chain. L'inspection de l'artefact `8724603795` a ensuite détecté que
 le chemin desktop téléversé n'était pas celui du manifeste ; le chemin et son
-invariant CI sont corrigés, et leur rejeu reste à observer. T0014 n'est pas
+invariant CI sont corrigés. Le rejeu final `30454097418` / `30454097327` est
+entièrement vert. L'artefact `8725167519`, conservé jusqu'au 28 août 2026, a été
+téléchargé : ses trois hashes correspondent au manifeste, les trois binaires
+sont `NotSigned` et aucun motif de secret n'a été détecté. T0014 n'est pas
 présent dans `main`.
 
 Le dernier build local produit un NSIS x64 `currentUser` de 35 396 442 octets. Il
