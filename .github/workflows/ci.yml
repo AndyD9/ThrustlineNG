@@ -66,6 +66,14 @@ jobs:
           pnpm desktop:test
           pnpm desktop:build
 
+      - name: Restore locked Microsoft runtime packs
+        shell: pwsh
+        run: >-
+          dotnet restore apps/bridge/Thrustline.Bridge.csproj
+          --runtime win-x64
+          --locked-mode
+          --source https://api.nuget.org/v3/index.json
+
       - name: Validate bridge
         shell: pwsh
         run: |

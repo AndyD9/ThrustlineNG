@@ -316,6 +316,10 @@ GitHub et le téléchargement de leurs artefacts restent à vérifier après pus
 
 - Le workflow supply-chain doit rester rouge tant que `KI-018` n'est pas
   corrigé ; le seuil ne doit pas être abaissé.
+- Le runner Windows nu ne contient pas les runtime packs self-contained
+  `win-x64`. La CI les restaure en mode verrouillé depuis l'unique source
+  officielle NuGet, sans modifier la configuration fermée du dépôt ni ajouter
+  de dépendance tierce.
 - `cargo audit` signale des chemins GTK3 non maintenus et `glib` unsound dans le
   lockfile multi-plateforme ; aucune vulnérabilité n'est signalée et la cible
   Windows n'emprunte pas ces dépendances, mais `KI-019` reste ouvert.

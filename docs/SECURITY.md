@@ -106,6 +106,12 @@ lit le `Cargo.lock`. Gitleaks parcourt l'historique avec les commentaires et
 uploads propres à l'action désactivés ; il reçoit seulement le jeton GitHub
 éphémère en lecture.
 
+Le dépôt garde les sources NuGet désactivées par défaut. Le job Windows autorise
+uniquement `https://api.nuget.org/v3/index.json` pendant un `dotnet restore`
+explicite en mode verrouillé pour obtenir les runtime packs Microsoft
+`win-x64` absents du SDK nu du runner. Aucun `PackageReference` tiers n'est
+introduit et les commandes suivantes reviennent à la configuration du dépôt.
+
 Le backend CI ne lie aucun projet Supabase. Il crée une pile locale jetable sur
 un réseau Docker demandé en loopback, masque la sortie de démarrage, inspecte
 les ports effectifs et arrête la pile sur toute publication wildcard. Les

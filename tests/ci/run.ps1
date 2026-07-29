@@ -97,6 +97,10 @@ function Get-CiIssues {
         "pnpm desktop:check",
         "pnpm desktop:test",
         "pnpm desktop:build",
+        "dotnet restore apps/bridge/Thrustline.Bridge.csproj",
+        "--runtime win-x64",
+        "--locked-mode",
+        "--source https://api.nuget.org/v3/index.json",
         "pnpm bridge:build",
         "pnpm bridge:test",
         "pnpm bridge:health",
@@ -110,6 +114,14 @@ function Get-CiIssues {
     }
     if ($ci -notmatch "(?ms)if:\s+always\(\).*?supabase stop --project-id thrustline-ng") {
         $issues.Add("Backend cleanup must run always against the local project.")
+    }
+    foreach ($marker in @(
+        "pnpm exec supabase --version",
+        "pnpm install --frozen-lockfile --force"
+    )) {
+        if (-not $backend.Contains($marker)) {
+            $issues.Add("Missing resilient backend restore invariant: $marker")
+        }
     }
 
     foreach ($marker in @(

@@ -45,6 +45,19 @@ function Stop-SupabaseQuietly {
 
 Push-Location $repositoryRoot
 try {
+    & pnpm exec supabase --version *> $null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Supabase CLI binary is missing; retrying the frozen install once."
+        & pnpm install --frozen-lockfile --force
+        if ($LASTEXITCODE -ne 0) {
+            throw "Frozen dependency reinstall failed."
+        }
+        & pnpm exec supabase --version *> $null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Supabase CLI binary is unavailable after one frozen reinstall."
+        }
+    }
+
     $dockerPath = @(
         Get-Command docker -CommandType Application -All -ErrorAction Stop |
             Select-Object -ExpandProperty Source |
