@@ -1,10 +1,9 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 29 juillet 2026 (implémentation T0016).
-Statut : fondations T0006–T0012 fusionnées ; T0012 reste en vérification car
-Docker Desktop publie les ports Supabase hors loopback. La PR T0013 cible
-désormais `main`. T0016 corrige son gate pnpm et ses trois jobs GitHub sont
-verts ; la correction reste à intégrer dans T0013.
+Dernière revue documentaire : 29 juillet 2026 (fusion de T0013 et T0016).
+Statut : les implémentations T0012, T0013 et T0016 sont fusionnées dans `main`.
+T0013 et T0016 sont `Done`. T0012 reste en vérification car Docker Desktop
+publie les ports Supabase hors loopback sur la machine locale.
 
 ## Produit
 
@@ -48,7 +47,7 @@ et Rust stable.
   `tauri`, `tauri:dev`, `tauri:build`, `sidecar:build`.
 - Scripts dépôt : `scripts/build-sidecar.ps1` et
   `scripts/security-check.ps1`.
-- Workflows du nouveau socle sur la branche T0013 :
+- Workflows du nouveau socle dans `main` :
   `.github/workflows/ci.yml` et `.github/workflows/security.yml`.
 - Migrations Supabase append-only constatées : 25.
 - Dépendances directes : 11 npm runtime, 12 npm développement, 2 NuGet,
@@ -147,7 +146,7 @@ explicite. Ces échecs sont classés comme environnement, pas comme défauts du 
 - Versions répétées dans plusieurs manifestes.
 - T0016 remplace `react-router` 7.18.1 par 8.3.0 pour
   `GHSA-qwww-vcr4-c8h2` ; l'audit local et le workflow supply-chain GitHub sont
-  verts, et `KI-018` est résolu sur cette branche.
+  verts, et `KI-018` est résolu dans `main`.
 - Cargo ne signale aucune vulnérabilité, mais plusieurs crates GTK3 non
   maintenues et `glib` 0.18.5 unsound restent dans le lockfile multi-plateforme.
 - Politique de suppression/récupération du propriétaire et durée de rétention à
@@ -277,22 +276,27 @@ vulnérabilité. Le gate pnpm échoue correctement sur la vulnérabilité haute
 `GHSA-qwww-vcr4-c8h2`. L'exécution GitHub `30437716790` valide Windows et
 Supabase ; `30437717487` valide tous les contrôles supply-chain sauf le gate
 pnpm attendu. Les deux artefacts ont été téléchargés et inspectés sans motif de
-credential. Aucune capacité CI de T0013 n'est encore revendiquée dans `main`.
+credential.
+
+Après intégration de T0016 par la PR #16, les exécutions finales
+`30442195734` et `30442195776` ont validé Windows, Supabase et la supply chain.
+Andy a fusionné la PR #15 dans `main` le 29 juillet 2026 ; la capacité CI de
+T0013 est désormais livrée.
 
 T0016 remplace le paquet de réexport `react-router-dom` par `react-router` 8.3.0
 et conserve le routage déclaratif SPA. Localement, l'installation figée,
 l'audit pnpm, le typecheck, les 8 tests frontend, la couverture et le build
 réussissent. Les workflows GitHub `30440481257` et `30440480513` valident
-Windows, Supabase et la supply chain. La branche reste empilée sur T0013 et
-n'est pas encore intégrée dans `main`.
+Windows, Supabase et la supply chain. La correction a été intégrée par les
+PR #16 puis #15 et est présente dans `main`.
 
 ## Prochain ticket recommandé
 
-Faire relire puis intégrer T0016 dans T0013 ; les jobs Windows, Supabase et
-supply-chain de la PR #16 sont verts. T0012 exige toujours un runtime Docker
-respectant la liaison loopback, Studio et le redémarrage sûr pour quitter
-`Verify`. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS 2024
-exigés par ADR-0003.
+Ne pas démarrer T0014 tant que sa dépendance T0007 reste `Blocked`. La prochaine
+action de gouvernance consiste à réconcilier ou satisfaire cette dépendance.
+T0012 exige toujours un runtime Docker respectant la liaison loopback, Studio et
+le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
+réels Windows 11/MSFS 2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier
 

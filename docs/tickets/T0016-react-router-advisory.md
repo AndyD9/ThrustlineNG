@@ -1,6 +1,6 @@
 # T0016 — Corriger l’avis de sécurité React Router
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `security/t0016-react-router-advisory`
 Phase: 1
@@ -146,8 +146,9 @@ React Router 7.18.1 et le paquet de réexport `react-router-dom` sont remplacés
 par `react-router` 8.3.0 exact. Les imports déclaratifs, le libellé visible de
 l’accueil, la source de versions et le lockfile sont alignés. L’audit local ne
 trouve plus de vulnérabilité connue et la navigation SPA reste fonctionnelle.
-Les workflows GitHub Windows, Supabase et supply-chain sont verts sur la branche
-empilée. Le ticket passe en `Review`.
+Les workflows GitHub Windows, Supabase et supply-chain sont verts. Andy a
+fusionné la PR #16 dans T0013 le 29 juillet 2026, puis la PR #15 a propagé la
+correction dans `main`. Le ticket passe à `Done`.
 
 ### Files changed
 
@@ -194,17 +195,15 @@ console de niveau erreur n’est observé. Le serveur local a ensuite été arr�
   ont toutefois réussi dans le job Windows GitHub.
 - React Router 8 exige Node >=22.22 et React/React DOM >=19.2.7 ; les pins du
   dépôt, Node 24.18.0 et React 19.2.8, satisfont ces bornes.
-- La branche reste empilée sur T0013 ; aucune correction n’est encore présente
-  dans `main`.
+- La correction est présente dans `main` via les PR #16 puis #15.
 
 ### Follow-ups
 
-- Faire relire puis fusionner la PR T0016 dans
-  `foundation/t0013-multistack-ci`.
-- Après intégration, confirmer les checks de T0013 puis promouvoir sa PR vers
-  `main`.
+- Aucun follow-up pour `GHSA-qwww-vcr4-c8h2`.
+- Conserver les mises à jour majeures du routeur dans des tickets sécurité
+  bornés avec audit et tests de navigation.
 
 ### Documentation updated
 
 `CURRENT_STATE.md`, `KNOWN_ISSUES.md`, `QUALITY.md`, `STACK.md`, le suivi T0013
-et l’index reflètent la correction, la branche empilée et les preuves GitHub.
+et l’index reflètent la correction, les fusions et les preuves GitHub.
