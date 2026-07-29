@@ -21,12 +21,11 @@ encore les workflows de l'ancien dépôt : cette affirmation doit être corrigé
 car une capacité historique non importée n'est pas une capacité du nouveau
 socle.
 
-T0012 est implémenté au commit `8b6df56` mais reste `Verify` : Docker Desktop
-29.6.2 publie encore les ports Supabase hors loopback sur la machine locale et
-le fail-safe arrête la pile. Andy a autorisé le 29 juillet 2026 l'exécution de
-T0013 sans falsifier cette preuve. La branche T0013 est donc empilée sur
-`foundation/t0012-supabase-local-rls`; sa PR doit garder cette branche comme base
-tant que T0012 n'est pas intégrée dans `main`.
+T0012 est implémenté au commit `8b6df56` et fusionné dans `main` par la PR #14,
+mais reste `Verify` : Docker Desktop 29.6.2 publie encore les ports Supabase hors
+loopback sur la machine locale et le fail-safe arrête la pile. Andy a autorisé
+le 29 juillet 2026 l'exécution de T0013 sans falsifier cette preuve. La PR T0013
+cible désormais `main`.
 
 ADR-0004 et `STACK.md` imposent un runner Windows explicite, des actions
 épinglées par SHA, des permissions minimales, des caches dérivés uniquement des
@@ -37,8 +36,8 @@ secrets, un SBOM et une rétention de 30 jours pour les artefacts de build.
 
 - implémentation T0006 présente dans `main` ;
 - implémentations T0007–T0011 présentes dans `main` ;
-- implémentation T0012 présente sur la branche de base empilée au commit
-  `8b6df56`, sans revendiquer sa vérification manuelle ;
+- implémentation T0012 présente dans `main` au commit `8b6df56`, sans
+  revendiquer sa vérification manuelle ;
 - `docs/decisions/ADR-0004-stack-cible.md` ;
 - `docs/STACK.md`, `docs/SECURITY.md` et `docs/QUALITY.md`.
 
@@ -255,7 +254,8 @@ L'exécution GitHub `30437716790` valide les jobs Windows et Supabase. Le
 workflow supply-chain `30437717487` produit tous ses rapports puis échoue
 uniquement sur le gate pnpm, qui révèle la vulnérabilité haute préexistante
 React Router suivie par `KI-018`. Le ticket passe donc `Verify`, pas `Done`.
-T0012 reste `Verify` ; cette branche est empilée sur son commit `8b6df56`.
+T0012 reste `Verify` malgré son intégration dans `main`. La PR T0013 cible
+désormais `main`.
 
 ### Files changed
 
@@ -345,8 +345,8 @@ explicitement non signés.
 - Corriger `KI-018` dans un ticket sécurité borné avec mise à jour de
   `eng/versions.json`, du manifest desktop et du lockfile.
 - Revoir `KI-019` lors de la maintenance Tauri/Cargo.
-- Rebaser T0013 sur `main` ou changer la base de PR seulement après intégration
-  de T0012 ; ne pas présenter la branche empilée comme fusionnée.
+- Intégrer la correction T0016 de `KI-018`, puis confirmer que le workflow
+  supply-chain devient vert avant de promouvoir T0013.
 - T0014 reste dépendant d'une CI révisable et du traitement des blocages.
 
 ### Documentation updated

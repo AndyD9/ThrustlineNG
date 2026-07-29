@@ -130,12 +130,12 @@ compare les types en mémoire et arrête la pile dans le script ainsi que dans u
 étape `always()`.
 
 Le workflow supply-chain laisse chaque scanner produire son rapport, même si un
-scanner échoue, puis un gate final agrège les résultats. Au 29 juillet 2026,
-`pnpm audit --audit-level high` échoue sur `GHSA-qwww-vcr4-c8h2` dans
-`react-router` 7.18.1. Cet échec est réel et ne doit pas être neutralisé ;
-`KI-018` suit la mise à jour. L'audit NuGet ne trouve aucun package vulnérable et
-Cargo ne trouve aucune vulnérabilité, mais signale des avertissements
-informatifs suivis par `KI-019`.
+scanner échoue, puis un gate final agrège les résultats. T0013 a ainsi détecté
+`GHSA-qwww-vcr4-c8h2` dans `react-router` 7.18.1. T0016 épingle 8.3.0 et l'audit
+local du 29 juillet 2026 ne trouve plus de vulnérabilité connue ; la preuve
+GitHub reste requise avant de résoudre `KI-018`. L'audit NuGet ne trouve aucun
+package vulnérable et Cargo ne trouve aucune vulnérabilité, mais signale des
+avertissements informatifs suivis par `KI-019`.
 
 Les commandes locales ne prouvent pas l'interprétation YAML ni l'exécution des
 runners GitHub. Avant de promouvoir T0013, consulter les jobs de la PR,
