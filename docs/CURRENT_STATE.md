@@ -108,8 +108,8 @@ explicite. Ces échecs sont classés comme environnement, pas comme défauts du 
 
 ## Contrôles non exécutables dans cette baseline
 
-- Connexion réelle à MSFS/SimConnect, replay de trace et parcours de vol : MSFS
-  absent et aucun replay automatisé fourni.
+- Connexion réelle à MSFS/SimConnect et parcours de vol : MSFS absent. Le replay
+  synthétique automatisé T0011 ne remplace pas une trace réelle avec provenance.
 - Démarrage Supabase local persistant : Docker Desktop 29.6.2 publie les ports
   sur toutes les interfaces malgré le réseau loopback demandé ; le script
   arrête volontairement la pile.
@@ -211,8 +211,9 @@ et gère une annulation propre. Quatre scénarios unitaires passent sans package
 NuGet tiers. Le bridge n'est pas encore lancé par Tauri, n'ouvre aucun port et
 ne contient ni SimConnect, ni secret, ni donnée métier.
 
-La publication vérifiée contient 191 fichiers pour environ 80,5 Mo. Cette mesure
-est informative ; T0015 fixera les budgets.
+La publication courante mesurée par T0015 contient 334 fichiers pour
+110 477 582 octets. Le budget de fondation proposé est 128 Mio ; il est présent
+sur `foundation/t0015-stability-performance-budgets`, pas encore dans `main`.
 
 ## Contrat local
 
@@ -233,6 +234,18 @@ Une trace synthétique de huit points se rejoue sans MSFS. Elle couvre sol,
 décollage, montée, croisière, descente et retour au sol, mais ne prouve ni le SDK
 installé, ni MSFS 2024 Store/Steam, ni un comportement d'avion réel. Aucun
 binaire de l'ancien build n'est copié.
+
+## Budgets stabilité et performance
+
+La branche `foundation/t0015-stability-performance-budgets` ajoute une source
+JSON unique, un validateur fail-closed, cinq scénarios de harnais et un gate CI
+sur les tailles construites. Les baselines T0008 et la nouvelle mesure bridge
+respectent les seuils de fondation.
+
+Les objectifs MVP de démarrage, mémoire intégrée, quatre heures, installation et
+sessions sans crash restent `Not measured`. La campagne GUI T0015 n'a pas abouti
+dans la session d'outil : le binaire est sorti anormalement avant la mesure
+longue. Le ticket reste `Verify` et ne change aucun statut de support.
 
 ## Backend Supabase local et RLS
 
@@ -292,8 +305,9 @@ PR #16 puis #15 et est présente dans `main`.
 
 ## Prochain ticket recommandé
 
-Ne pas démarrer T0014 tant que sa dépendance T0007 reste `Blocked`. La prochaine
-action de gouvernance consiste à réconcilier ou satisfaire cette dépendance.
+Terminer la campagne GUI T0015 dans une session Windows interactive stable avant
+de clore le ticket. Ne pas présenter ses budgets comme fusionnés tant que sa PR
+ne l'est pas.
 T0012 exige toujours un runtime Docker respectant la liaison loopback, Studio et
 le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
 réels Windows 11/MSFS 2024 exigés par ADR-0003.

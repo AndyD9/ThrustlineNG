@@ -61,11 +61,25 @@ function Measure-Launch {
         $timer.Stop()
         Start-Sleep -Seconds 30
         $process.Refresh()
+        if ($process.HasExited) {
+            throw "The shell exited unexpectedly before the 30-second measurement."
+        }
         $private30 = $process.PrivateMemorySize64
         $handles30 = $process.HandleCount
         Start-Sleep -Seconds 30
         $process.Refresh()
+        if ($process.HasExited) {
+            throw "The shell exited unexpectedly before the 60-second measurement."
+        }
         $children = Get-CimInstance Win32_Process | Where-Object ParentProcessId -eq $process.Id
+        $webViewChildren = @($children | Where-Object Name -Match 'msedgewebview2')
+        if ($webViewChildren.Count -eq 0) {
+            throw "No associated WebView2 process was detected for $Kind run $Run."
+        }
+        $webViewWorkingSetBytes = [long]0
+        foreach ($webViewChild in $webViewChildren) {
+            $webViewWorkingSetBytes += [long]$webViewChild.WorkingSetSize
+        }
         [pscustomobject]@{
             kind = $Kind
             run = $Run
@@ -75,8 +89,8 @@ function Measure-Launch {
             privateBytes60Seconds = $process.PrivateMemorySize64
             handles30Seconds = $handles30
             handles60Seconds = $process.HandleCount
-            webView2ProcessCount = @($children | Where-Object Name -Match 'msedgewebview2').Count
-            webView2WorkingSetBytes = [long](($children | Where-Object Name -Match 'msedgewebview2' | Measure-Object WorkingSetSize -Sum).Sum)
+            webView2ProcessCount = $webViewChildren.Count
+            webView2WorkingSetBytes = $webViewWorkingSetBytes
         }
     } finally {
         Stop-MeasuredProcess $process
