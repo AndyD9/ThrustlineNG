@@ -294,7 +294,9 @@ PR #16 puis #15 et est présente dans `main`.
 
 T0014 est implémenté localement sur
 `foundation/t0014-windows-unsigned-packaging`, empilé sur la réconciliation
-`f3350c6` ; il n'est ni poussé, ni en Pull Request, ni présent dans `main`.
+`f3350c6`. Le commit `9b19283` est poussé et la PR brouillon #18 cible
+`docs/t0013-t0016-merge-reconciliation`. Les jobs Windows, Supabase et supply
+chain sont en cours ; T0014 n'est pas présent dans `main`.
 
 Le dernier build local produit un NSIS x64 `currentUser` de 35 398 356 octets. Il
 contient le desktop et 334 fichiers de bridge .NET 10 self-contained, soit
@@ -314,9 +316,9 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Terminer la validation locale T0014, publier sa branche empilée et observer ses
-jobs GitHub avant revue. La branche devra être rebasée sur `main`, ou sa base de
-PR changée, après fusion de la réconciliation documentaire. T0012 exige toujours
+Observer les jobs GitHub de la PR #18 avant revue. La branche devra être rebasée
+sur `main`, ou sa base de PR changée, après fusion de la réconciliation
+documentaire. T0012 exige toujours
 un runtime Docker respectant la liaison loopback, Studio et le redémarrage sûr
 pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais réels Windows
 11/MSFS 2024 exigés par ADR-0003.

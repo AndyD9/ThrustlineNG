@@ -414,4 +414,10 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 
 - branche : `foundation/t0014-windows-unsigned-packaging` ;
 - base empilée : `docs/t0013-t0016-merge-reconciliation` au commit `f3350c6` ;
-- commit, push, Pull Request et checks GitHub à compléter après publication.
+- commit d'implémentation : `9b19283` ;
+- PR brouillon : https://github.com/AndyD9/ThrustlineNG/pull/18 ;
+- base/head : `docs/t0013-t0016-merge-reconciliation` /
+  `foundation/t0014-windows-unsigned-packaging` ;
+- jobs Windows, Supabase et supply chain en cours lors de l'ouverture ;
+- après fusion de la base, rebaser sur `main` ou changer la base de la PR avant
+  revue finale.
