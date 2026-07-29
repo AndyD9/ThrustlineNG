@@ -61,6 +61,26 @@ function Get-AuthenticodeStatus {
     return (Get-AuthenticodeSignature -LiteralPath $Path).Status.ToString()
 }
 
+function Get-Sha256Hex {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $stream = [IO.File]::OpenRead($Path)
+    try {
+        $sha256 = [Security.Cryptography.SHA256]::Create()
+        try {
+            $hash = $sha256.ComputeHash($stream)
+        }
+        finally {
+            $sha256.Dispose()
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+
+    return ([BitConverter]::ToString($hash)).Replace('-', '')
+}
+
 Assert-ChildPath -Parent $artifactsRoot -Child $packageRoot -Label 'PackageDirectory'
 Assert-ChildPath -Parent $artifactsRoot -Child $validationRoot -Label 'ValidationDirectory'
 
@@ -82,7 +102,7 @@ $installer = Join-Path $packageRoot ([string]$installerEntry[0].path)
 if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
     throw 'Installer referenced by the manifest is missing.'
 }
-if ((Get-FileHash -Algorithm SHA256 -LiteralPath $installer).Hash -ne
+if ((Get-Sha256Hex -Path $installer) -ne
     [string]$installerEntry[0].sha256) {
     throw 'Installer SHA-256 does not match the manifest.'
 }
@@ -93,7 +113,7 @@ $desktopBuildOutput = Join-Path $repositoryRoot (
     'apps\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\thrustline-desktop.exe'
 )
 if (-not (Test-Path -LiteralPath $desktopBuildOutput -PathType Leaf) -or
-    (Get-FileHash -Algorithm SHA256 -LiteralPath $desktopBuildOutput).Hash -ne
+    (Get-Sha256Hex -Path $desktopBuildOutput) -ne
     [string]$desktopEntry[0].sha256) {
     throw 'Desktop build output does not match the package manifest.'
 }
@@ -144,7 +164,7 @@ try {
             throw "Installed binary must remain unsigned: $([IO.Path]::GetFileName($file))."
         }
     }
-    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $bridgeExecutable).Hash -ne
+    if ((Get-Sha256Hex -Path $bridgeExecutable) -ne
         [string]$bridgeEntry[0].sha256) {
         throw 'Installed bridge SHA-256 does not match the package manifest.'
     }

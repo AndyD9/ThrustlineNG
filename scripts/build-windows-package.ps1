@@ -80,6 +80,26 @@ function Get-AuthenticodeStatus {
     return (Get-AuthenticodeSignature -LiteralPath $Path).Status.ToString()
 }
 
+function Get-Sha256Hex {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $stream = [IO.File]::OpenRead($Path)
+    try {
+        $sha256 = [Security.Cryptography.SHA256]::Create()
+        try {
+            $hash = $sha256.ComputeHash($stream)
+        }
+        finally {
+            $sha256.Dispose()
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+
+    return ([BitConverter]::ToString($hash)).Replace('-', '')
+}
+
 if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitOperatingSystem) {
     throw 'T0014 packaging requires a 64-bit Windows host.'
 }
@@ -187,21 +207,21 @@ $manifestFiles = @(
         role = 'installer'
         path = $installers[0].Name
         bytes = (Get-Item -LiteralPath $installerDestination).Length
-        sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $installerDestination).Hash
+        sha256 = Get-Sha256Hex -Path $installerDestination
         authenticode = 'NotSigned'
     },
     [pscustomobject]@{
         role = 'desktop-build-output'
         path = 'build-output/thrustline-desktop.exe'
         bytes = (Get-Item -LiteralPath $desktopExecutable).Length
-        sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $desktopExecutable).Hash
+        sha256 = Get-Sha256Hex -Path $desktopExecutable
         authenticode = 'NotSigned'
     },
     [pscustomobject]@{
         role = 'bridge'
         path = 'bridge/Thrustline.Bridge.exe'
         bytes = (Get-Item -LiteralPath $bridgeExecutable).Length
-        sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $bridgeExecutable).Hash
+        sha256 = Get-Sha256Hex -Path $bridgeExecutable
         authenticode = 'NotSigned'
     }
 )

@@ -298,16 +298,18 @@ T0014 est implémenté localement sur
 `docs/t0013-t0016-merge-reconciliation`. La première exécution GitHub
 `30449481995` a validé Supabase et la supply chain ; le job Windows a échoué
 après fabrication NSIS sur le chargement Authenticode de Windows PowerShell
-5.1. Un correctif local validé privilégie PowerShell 7 sur le runner et conserve
-un fallback Windows PowerShell. Son rejeu reste à observer. T0014 n'est pas
-présent dans `main`.
+5.1. Le rejeu `30451302116` a franchi Authenticode puis échoué sur
+`Get-FileHash`, indisponible depuis le même module. Le calcul SHA-256 utilise
+désormais directement l'API cryptographique .NET ; le build et le cycle
+d'installation locaux passent. Son rejeu GitHub reste à observer. T0014 n'est
+pas présent dans `main`.
 
-Le dernier build local produit un NSIS x64 `currentUser` de 35 398 165 octets. Il
+Le dernier build local produit un NSIS x64 `currentUser` de 35 396 442 octets. Il
 contient le desktop et 334 fichiers de bridge .NET 10 self-contained, soit
 110 477 582 octets avant compression. L'installateur, le desktop et le bridge
 sont `NotSigned`. Le manifeste SHA-256 ne contient aucun chemin utilisateur.
 
-Trois cycles installation/lancement/health check/fermeture/désinstallation ont
+Quatre cycles installation/lancement/health check/fermeture/désinstallation ont
 réussi dans une cible explicite. Un contrôle renforcé a ensuite détecté que le
 payload desktop reçoit des métadonnées PE Tauri différentes du fichier de build ;
 le manifeste distingue désormais ce fichier de build du payload installé. Le

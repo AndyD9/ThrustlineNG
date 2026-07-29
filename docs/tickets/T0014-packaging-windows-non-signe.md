@@ -324,12 +324,15 @@ embarque le desktop et les 334 fichiers de la publication .NET 10 self-contained
 du bridge. Le desktop Release résout le bridge sous `$RESOURCE/bridge`, tandis
 que le développement Debug conserve l'override explicite.
 
-Trois cycles finaux installation/lancement/health check/fermeture/désinstallation
+Quatre cycles finaux installation/lancement/health check/fermeture/désinstallation
 ont réussi. Le ticket passe en `Review`, pas `Done` : la première exécution
 GitHub a validé Supabase et la supply chain, mais le job Windows a exposé une
 incompatibilité de chargement Authenticode sous Windows PowerShell 5.1. Le
 contrôle corrigé privilégie PowerShell 7 sur le runner et conserve un fallback
-Windows PowerShell validé localement ; son rejeu GitHub reste à observer.
+Windows PowerShell validé localement. Un second rejeu a franchi Authenticode,
+puis exposé la même indisponibilité de module sur `Get-FileHash` ; le calcul
+SHA-256 utilise désormais directement l'API cryptographique .NET. Ce second
+correctif reste à observer sur GitHub.
 
 ### Files changed
 
@@ -348,12 +351,12 @@ Windows PowerShell validé localement ; son rejeu GitHub reste à observer.
   détectées (`perMachine` et cible MSI supplémentaire) ;
 - `pnpm windows:package` : réussi après autorisation d'accès au NuGet.Config
   utilisateur et au réseau pour les runtime packs/outils Tauri ;
-- installateur final : `Thrustline_0.0.0_x64-setup.exe`, 35 398 165 octets,
+- installateur final : `Thrustline_0.0.0_x64-setup.exe`, 35 396 442 octets,
   SHA-256
-  `B8AF42C73701AFBFCBDB7084531F330F97C06146ADC2707F3AF2767BC400208C` ;
+  `2B44C4013095BEEC4C1E0173E31A4A3A3E8EC3C71B7003AB3BE15566302F521B` ;
 - bridge embarqué : 334 fichiers, 110 477 582 octets avant compression ;
   `Thrustline.Bridge.exe` SHA-256
-  `5208B1F0F14AA3CBAAD3A68D0487DB8008AD4B726BD7764174535BA5EECE7B73` ;
+  `D57912F252DE9AD776C57D94F02AEAC76F6977BC65BF267C03133AC6A138EBE2` ;
 - Authenticode : installateur, desktop et bridge `NotSigned` ;
 - frontend : typecheck, 8/8 tests, couverture et build réussis ;
 - desktop : check/Clippy, 8/8 tests frontend, 3/3 tests Rust, invariants et builds
@@ -366,8 +369,13 @@ Windows PowerShell validé localement ; son rejeu GitHub reste à observer.
   détectait `Get-AuthenticodeSignature` sans parvenir à charger
   `Microsoft.PowerShell.Security` ;
 - correctif Authenticode : build réel et nouveau cycle d'installation réussis
-  localement ; le chemin PowerShell 7 du runner reste à confirmer par le rejeu
-  GitHub ;
+  localement ;
+- GitHub `30451302116` : Supabase réussi en 2 min 15 s ; job Windows
+  `90573746993` échoué en 13 min 26 s après avoir franchi Authenticode, sur
+  `Get-FileHash` indisponible depuis le même module PowerShell ;
+- correctif SHA-256 : les scripts utilisent l'API .NET
+  `System.Security.Cryptography.SHA256`, et le build réel suivi d'un nouveau
+  cycle d'installation réussit localement ; le rejeu GitHub reste à observer ;
 - harnais toolchain : non exécuté, car `pwsh` 7.6 n'est pas disponible dans le
   `PATH` et le script refuse correctement Windows PowerShell 5.1.
 
@@ -380,7 +388,7 @@ d'échec exécute maintenant le désinstalleur de la cible contrôlée.
 
 ### Manual verification result
 
-Trois cycles finaux ont confirmé une fenêtre native intitulée `Thrustline`, un
+Quatre cycles finaux ont confirmé une fenêtre native intitulée `Thrustline`, un
 seul bridge, l'arrêt des deux processus, `Healthy`/`0` depuis le bridge installé
 et la disparition du dossier après désinstallation. Les recherches finales ne
 trouvent aucun processus, fichier, raccourci Menu Démarrer, enregistrement de
@@ -401,7 +409,7 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 - MSI, signature, provenance, updater, upgrade N-1 et rollback non testés ;
 - le bundle NSIS contient des métadonnées de build : deux fabrications ont le
   même inventaire logique, mais pas un SHA-256 binaire identique ;
-- rejeu GitHub du correctif Authenticode pas encore observé ;
+- rejeu GitHub du correctif SHA-256 pas encore observé ;
 - PowerShell 7.6 absent du `PATH` local ;
 - les preuves humaines encore ouvertes dans T0007–T0009 ne sont pas closes par
   ce ticket.
@@ -428,7 +436,9 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 - base/head : `docs/t0013-t0016-merge-reconciliation` /
   `foundation/t0014-windows-unsigned-packaging` ;
 - première exécution `30449481995` : Supabase et supply chain réussis, Windows
-  échoué sur le chargement Authenticode de Windows PowerShell 5.1 ; correctif
-  local prêt à rejouer ;
+  échoué sur le chargement Authenticode de Windows PowerShell 5.1 ;
+- second rejeu `30451302116` / `30451302412` : Supabase et supply chain réussis,
+  Windows échoué après Authenticode sur `Get-FileHash` ; correctif SHA-256 .NET
+  validé localement et prêt à rejouer ;
 - après fusion de la base, rebaser sur `main` ou changer la base de la PR avant
   revue finale.

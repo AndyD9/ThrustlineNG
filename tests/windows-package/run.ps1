@@ -76,7 +76,7 @@ $bridgeRust = Get-Content -Raw -LiteralPath $bridgeRustPath
 
 $issues = @(Get-PackagingIssues -WindowsConfigText $windowsConfigText -WorkflowText $workflowText)
 if ($buildScript -notmatch 'Get-AuthenticodeSignature' -or
-    $buildScript -notmatch 'Get-FileHash\s+-Algorithm SHA256' -or
+    $buildScript -notmatch '\[Security\.Cryptography\.SHA256\]::Create\(\)' -or
     $buildScript -notmatch 'Assert-ChildPath') {
     $issues += 'The build script must bound deletion, hash artifacts and reject signatures.'
 }
