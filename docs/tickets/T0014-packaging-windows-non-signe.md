@@ -375,7 +375,15 @@ correctif reste à observer sur GitHub.
   `Get-FileHash` indisponible depuis le même module PowerShell ;
 - correctif SHA-256 : les scripts utilisent l'API .NET
   `System.Security.Cryptography.SHA256`, et le build réel suivi d'un nouveau
-  cycle d'installation réussit localement ; le rejeu GitHub reste à observer ;
+  cycle d'installation réussit localement ;
+- GitHub `30452603753` / `30452603583` : Windows réussi en 15 min 42 s,
+  Supabase en 2 min 14 s et supply chain en 4 min ; artefact `8724603795`
+  téléchargé et inspecté ;
+- inspection de l'artefact : installateur et bridge conformes au manifeste,
+  trois binaires `NotSigned`, aucun motif de secret ; le chemin d'upload desktop
+  pointait toutefois vers `target/release` au lieu de la sortie exacte
+  `target/x86_64-pc-windows-msvc/release`, rendant son hash non vérifiable hors
+  runner. Le chemin et l'invariant CI sont corrigés ; le rejeu reste à observer ;
 - harnais toolchain : non exécuté, car `pwsh` 7.6 n'est pas disponible dans le
   `PATH` et le script refuse correctement Windows PowerShell 5.1.
 
@@ -409,7 +417,7 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 - MSI, signature, provenance, updater, upgrade N-1 et rollback non testés ;
 - le bundle NSIS contient des métadonnées de build : deux fabrications ont le
   même inventaire logique, mais pas un SHA-256 binaire identique ;
-- rejeu GitHub du correctif SHA-256 pas encore observé ;
+- rejeu GitHub du chemin desktop corrigé pas encore observé ;
 - PowerShell 7.6 absent du `PATH` local ;
 - les preuves humaines encore ouvertes dans T0007–T0009 ne sont pas closes par
   ce ticket.
@@ -439,6 +447,9 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
   échoué sur le chargement Authenticode de Windows PowerShell 5.1 ;
 - second rejeu `30451302116` / `30451302412` : Supabase et supply chain réussis,
   Windows échoué après Authenticode sur `Get-FileHash` ; correctif SHA-256 .NET
-  validé localement et prêt à rejouer ;
+  validé localement ;
+- troisième rejeu `30452603753` / `30452603583` : trois jobs verts ; l'inspection
+  de l'artefact `8724603795` a détecté un chemin desktop distinct de celui du
+  manifeste, corrigé et protégé par un invariant avant rejeu final ;
 - après fusion de la base, rebaser sur `main` ou changer la base de la PR avant
   revue finale.

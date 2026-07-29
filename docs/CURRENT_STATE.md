@@ -301,8 +301,11 @@ après fabrication NSIS sur le chargement Authenticode de Windows PowerShell
 5.1. Le rejeu `30451302116` a franchi Authenticode puis échoué sur
 `Get-FileHash`, indisponible depuis le même module. Le calcul SHA-256 utilise
 désormais directement l'API cryptographique .NET ; le build et le cycle
-d'installation locaux passent. Son rejeu GitHub reste à observer. T0014 n'est
-pas présent dans `main`.
+d'installation locaux passent. Le rejeu `30452603753` est vert, comme Supabase
+et la supply chain. L'inspection de l'artefact `8724603795` a ensuite détecté que
+le chemin desktop téléversé n'était pas celui du manifeste ; le chemin et son
+invariant CI sont corrigés, et leur rejeu reste à observer. T0014 n'est pas
+présent dans `main`.
 
 Le dernier build local produit un NSIS x64 `currentUser` de 35 396 442 octets. Il
 contient le desktop et 334 fichiers de bridge .NET 10 self-contained, soit

@@ -51,6 +51,10 @@ function Get-PackagingIssues {
     if ($WorkflowText -notmatch 't0014-windows-unsigned-\$\{\{ github\.sha \}\}') {
         $issues.Add('The CI artifact name must explicitly identify T0014 as unsigned.')
     }
+    if ($WorkflowText -notmatch
+        'apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/thrustline-desktop\.exe') {
+        $issues.Add('The CI artifact must retain the exact desktop build output from the manifest.')
+    }
     if ($WorkflowText -notmatch '(?m)^\s+retention-days:\s*30\s*$') {
         $issues.Add('Unsigned evidence must expire after 30 days.')
     }
