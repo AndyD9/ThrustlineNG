@@ -152,7 +152,7 @@ try {
         & pnpm exec supabase gen types typescript `
             --local `
             --schema public `
-            --network-id $networkName
+            --network-id $testNetworkName
     )
     if ($LASTEXITCODE -ne 0) {
         throw "Supabase type generation failed."
