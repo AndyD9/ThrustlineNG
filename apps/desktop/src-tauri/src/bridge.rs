@@ -1,7 +1,7 @@
 use std::{
     io::{self, Write},
     net::{Ipv4Addr, TcpListener},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     sync::Mutex,
 };
@@ -11,11 +11,11 @@ pub struct BridgeSupervisor {
 }
 
 impl BridgeSupervisor {
-    pub fn start() -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn start(resource_directory: &Path) -> Result<Self, Box<dyn std::error::Error>> {
         let port = reserve_loopback_port()?;
         let token = generate_instance_token()
             .map_err(|error| io::Error::other(format!("OS random source failed: {error}")))?;
-        let executable = bridge_executable()?;
+        let executable = bridge_executable(resource_directory);
         let mut child = Command::new(executable)
             .args(["--port", &port.to_string()])
             .stdin(Stdio::piped())
@@ -70,21 +70,26 @@ fn generate_instance_token() -> Result<String, getrandom::Error> {
     Ok(bytes.iter().map(|byte| format!("{byte:02x}")).collect())
 }
 
-fn bridge_executable() -> io::Result<PathBuf> {
-    if cfg!(debug_assertions)
-        && let Some(path) = std::env::var_os("THRUSTLINE_BRIDGE_PATH")
-    {
-        return Ok(PathBuf::from(path));
+fn bridge_executable(resource_directory: &Path) -> PathBuf {
+    #[cfg(debug_assertions)]
+    if let Some(path) = std::env::var_os("THRUSTLINE_BRIDGE_PATH") {
+        return PathBuf::from(path);
     }
 
-    let mut path = std::env::current_exe()?;
-    path.set_file_name("Thrustline.Bridge.exe");
-    Ok(path)
+    installed_bridge_executable(resource_directory)
+}
+
+fn installed_bridge_executable(resource_directory: &Path) -> PathBuf {
+    resource_directory
+        .join("bridge")
+        .join("Thrustline.Bridge.exe")
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{generate_instance_token, reserve_loopback_port};
+    use std::path::Path;
+
+    use super::{generate_instance_token, installed_bridge_executable, reserve_loopback_port};
 
     #[test]
     fn instance_tokens_are_random_hex_values() {
@@ -98,5 +103,17 @@ mod tests {
     #[test]
     fn selected_port_is_dynamic() {
         assert!(reserve_loopback_port().expect("dynamic port") >= 49152);
+    }
+
+    #[test]
+    fn installed_bridge_is_resolved_from_the_resource_directory() {
+        let resource_directory = Path::new(r"C:\Program Files\Thrustline");
+        let executable = installed_bridge_executable(resource_directory);
+        assert_eq!(
+            executable,
+            resource_directory
+                .join("bridge")
+                .join("Thrustline.Bridge.exe")
+        );
     }
 }

@@ -1,5 +1,30 @@
 # Architecture du desktop
 
+## Packaging Windows T0014
+
+Le package Windows est un installateur NSIS x64 en mode utilisateur courant.
+La configuration commune Tauri reste indépendante du packaging ;
+`tauri.package.conf.json`, chargée uniquement par la commande T0014, active NSIS
+et inclut comme ressource le dossier complet du bridge .NET 10 publié
+self-contained :
+
+```text
+installateur NSIS
+├── thrustline-desktop.exe
+└── bridge/
+    ├── Thrustline.Bridge.exe
+    └── runtime .NET self-contained
+```
+
+En Release, Tauri résout le bridge depuis `$RESOURCE/bridge/`. En Debug seulement,
+`THRUSTLINE_BRIDGE_PATH` permet de viser une publication locale. Le package
+n'ajoute ni plugin, ni capability invitée, ni service Windows, ni accès de la
+WebView au système de fichiers ou au processus enfant.
+
+Le bundle utilise WebView2 Evergreen et le mode `downloadBootstrapper`. Il
+n'embarque ni runtime WebView2 fixe, ni updater. MSI, signature, provenance,
+upgrade et rollback de version restent hors du socle.
+
 ## Backend Supabase local T0012
 
 Le backend initial est recréé depuis `supabase/config.toml`, les migrations

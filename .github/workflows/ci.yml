@@ -82,14 +82,21 @@ jobs:
           pnpm bridge:health
           pnpm bridge:publish
 
+      - name: Build unsigned Windows package
+        shell: pwsh
+        run: |
+          pnpm windows:package:check
+          pnpm windows:package
+
       - name: Upload unsigned Windows evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: t0013-windows-unsigned-${{ github.sha }}
+          name: t0014-windows-unsigned-${{ github.sha }}
           path: |
             apps/desktop/coverage/
             apps/desktop/src-tauri/target/release/thrustline-desktop.exe
             apps/bridge/bin/Release/net10.0/win-x64/publish/
+            artifacts/t0014/package/
           if-no-files-found: error
           retention-days: 30
 

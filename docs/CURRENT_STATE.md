@@ -290,16 +290,36 @@ réussissent. Les workflows GitHub `30440481257` et `30440480513` valident
 Windows, Supabase et la supply chain. La correction a été intégrée par les
 PR #16 puis #15 et est présente dans `main`.
 
+## Package Windows non signé
+
+T0014 est implémenté localement sur
+`foundation/t0014-windows-unsigned-packaging`, empilé sur la réconciliation
+`f3350c6` ; il n'est ni poussé, ni en Pull Request, ni présent dans `main`.
+
+Le dernier build local produit un NSIS x64 `currentUser` de 35 398 356 octets. Il
+contient le desktop et 334 fichiers de bridge .NET 10 self-contained, soit
+110 477 582 octets avant compression. L'installateur, le desktop et le bridge
+sont `NotSigned`. Le manifeste SHA-256 ne contient aucun chemin utilisateur.
+
+Deux cycles installation/lancement/health check/fermeture/désinstallation ont
+réussi dans une cible explicite. Un contrôle renforcé a ensuite détecté que le
+payload desktop reçoit des métadonnées PE Tauri différentes du fichier de build ;
+le manifeste distingue désormais ce fichier de build du payload installé. Le
+hash de l'installateur couvre le conteneur et celui du bridge installé est
+comparé à la publication. Aucun processus, fichier, raccourci Menu Démarrer ou
+enregistrement de désinstallation Thrustline n'est resté après les cycles.
+
+Signature, SmartScreen, MSI, updater, provenance, upgrade N-1 et rollback de
+version restent non validés et relèvent de la phase 6.
+
 ## Prochain ticket recommandé
 
-T0014 peut démarrer : les implémentations desktop et bridge T0007–T0010 sont
-fusionnées dans `main` et la CI T0013 est `Done`. Les vérifications humaines
-encore ouvertes sur T0007–T0010 restent des limites à reporter, sans bloquer la
-fabrication et l'installation locale d'un package Windows non signé. T0012 exige
-toujours un runtime Docker respectant la liaison loopback, Studio et le
-redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
-réels Windows 11/MSFS 2024 exigés par ADR-0003 ; ces deux preuves sont hors du
-périmètre de T0014.
+Terminer la validation locale T0014, publier sa branche empilée et observer ses
+jobs GitHub avant revue. La branche devra être rebasée sur `main`, ou sa base de
+PR changée, après fusion de la réconciliation documentaire. T0012 exige toujours
+un runtime Docker respectant la liaison loopback, Studio et le redémarrage sûr
+pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais réels Windows
+11/MSFS 2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier
 
