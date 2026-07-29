@@ -315,5 +315,11 @@ produit et environnement ; une session Windows interactive stable est requise.
 ### Git and GitHub result
 
 - branche : `foundation/t0015-stability-performance-budgets` ;
-- base/head local : `origin/main` à `0817dfb` / travail non encore commité ;
-- push et PR : non exécutés au moment de cette preuve.
+- base/head : `main` à `0817dfb` /
+  `foundation/t0015-stability-performance-budgets` ;
+- commit d'implémentation : `fd123cc` ;
+- push : réussi, upstream
+  `origin/foundation/t0015-stability-performance-budgets` ;
+- PR brouillon : https://github.com/AndyD9/ThrustlineNG/pull/22 ;
+- vérification restante : reproduire `KI-020` dans une session Windows
+  interactive stable avant de demander la revue finale.
