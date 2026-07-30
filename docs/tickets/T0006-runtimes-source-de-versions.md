@@ -542,7 +542,10 @@ preuve clean-clone.
 - commit : `60f0aba` ;
 - PR : https://github.com/AndyD9/ThrustlineNG/pull/1 ;
 - PR fusionnée dans `main` le 26 juillet 2026.
-- branche de vérification : `docs/T0006-clean-clone-verification`.
+- branche de vérification : `docs/T0006-clean-clone-verification` ;
+- commit de clôture : `49f4f93` ;
+- PR de clôture prête : https://github.com/AndyD9/ThrustlineNG/pull/27,
+  base/head `main` / `docs/T0006-clean-clone-verification`.
 
 Indiquer séparément pour chaque dépôt :
 
