@@ -1,6 +1,6 @@
 # T0015 — Fixer les budgets stabilité et performance
 
-Status: Review
+Status: Done
 Owner: Codex
 Branch: `foundation/t0015-stability-performance-budgets`
 Phase: 0–1
@@ -297,6 +297,10 @@ attend aussi la terminaison du bridge de chaque cycle et nettoie en fail-safe
 avant d'échouer si nécessaire. Les dix cycles finaux sont propres, avec zéro
 desktop et zéro bridge restant. `KI-020` est résolu.
 
+Andy a validé T0015 le 30 juillet 2026 après revue des preuves automatisées et
+de la campagne GUI. Les objectifs encore `Not measured` restent des limites de
+release et ne sont pas promus par cette validation.
+
 ### Risks and limitations
 
 - une seule machine et une seule famille d'environnement ;
@@ -325,6 +329,6 @@ desktop et zéro bridge restant. `KI-020` est résolu.
 - correctif et preuve GUI finale : `20e9e3d` ;
 - push : réussi, upstream
   `origin/foundation/t0015-stability-performance-budgets` ;
-- PR brouillon : https://github.com/AndyD9/ThrustlineNG/pull/22 ;
-- vérification restante : reproduire `KI-020` dans une session Windows
-  interactive stable avant de demander la revue finale.
+- PR #22 fusionnée dans `main` ;
+- vérification finale : campagne Windows interactive réussie, puis validation
+  humaine d'Andy le 30 juillet 2026.

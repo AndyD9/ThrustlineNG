@@ -1,6 +1,6 @@
 # T0005 — Sélectionner la stack cible et ses versions compatibles
 
-Status: Verify
+Status: Done
 Owner: Andy
 Branch: `docs/t0005-stack-cible`
 Phase: 0
@@ -520,7 +520,10 @@ seulement. Aucun build applicatif exécuté, conformément au ticket documentair
 ### Manual verification result
 
 Revue agent effectuée sur Node, Tauri, .NET, SimConnect, Supabase et les
-dépendances critiques. Revue humaine Andy encore requise avant `Done`.
+dépendances critiques. Andy a validé T0005 le 30 juillet 2026. La direction de
+stack reste celle de l'ADR-0004 acceptée ; les performances, le packaging et la
+compatibilité MSFS demeurent des preuves à produire dans leurs tickets
+d'adoption respectifs.
 
 ### Risks and limitations
 
@@ -547,3 +550,10 @@ T0005. `docs/CURRENT_STATE.md` et `docs/tickets/README.md` contenaient déjà de
 modifications préexistantes avant T0005 et ont aussi reçu des changements du
 ticket : une revue/staging par hunks est nécessaire avant commit. Aucun commit,
 push ou PR n'a été exécuté.
+
+### Closure evidence
+
+Andy a approuvé la revue humaine le 30 juillet 2026. Le ticket passe de `Verify`
+à `Done` dans la maintenance documentaire `docs/phase0-gate-closure`; aucune
+version, dépendance, ADR ou frontière technique n'est modifiée par cette
+transition.
