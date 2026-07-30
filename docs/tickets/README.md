@@ -18,7 +18,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0002 | Choisir le modèle produit solo ou collaboratif | 0 | T0001 | Done |
 | T0003 | Choisir la stratégie de refonte | 0 | T0001–T0002 | Done |
 | T0004 | Définir la matrice de support Windows et MSFS | 0 | T0001–T0003 | Done |
-| T0005 | Sélectionner la stack cible et ses versions compatibles | 0 | T0001–T0004 | Verify |
+| T0005 | Sélectionner la stack cible et ses versions compatibles | 0 | T0001–T0004 | Done |
 | T0006 | Épingler les runtimes et créer la source de versions | 1 | T0005 | Verify |
 | T0007 | Créer le shell Tauri minimal et mesurer son empreinte | 1 | T0006 | Verify |
 | T0008 | Créer le frontend React minimal | 1 | T0006–T0007 | Verify |
@@ -28,7 +28,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Verify |
 | T0013 | Consolider la CI multi-stack | 1 | T0006–T0012 | Done |
 | T0014 | Valider le packaging Windows non signé | 1 | T0007–T0010, T0013 | Review |
-| T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Review |
+| T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Done |
 | T0016 | Corriger l’avis de sécurité React Router | 1 | T0013 | Done |
 | T0017 | Définir et contrôler la politique de données | 0 | T0002–T0003, T0012 | Review |
 

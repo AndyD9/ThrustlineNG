@@ -1,8 +1,9 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 30 juillet 2026 (démarrage de T0017).
-Statut : les implémentations T0012, T0013, T0015 et T0016 sont fusionnées dans
-`main`. T0013 et T0016 sont `Done`. T0015 reste `Review` malgré sa fusion.
+Dernière revue documentaire : 30 juillet 2026 (validation de T0005 et T0015
+après fusion de T0017).
+Statut : les implémentations T0012, T0013, T0015, T0016 et T0017 sont fusionnées
+dans `main`. T0005, T0013, T0015 et T0016 sont `Done`. T0017 reste `Review` et
 T0012 reste en vérification car Docker Desktop publie les ports Supabase hors
 loopback sur la machine locale.
 
@@ -168,6 +169,11 @@ ultérieure : au plus une compagnie par utilisateur, un propriétaire humain
 unique, aucun membre ni rôle collaboratif dans le MVP. La collaboration probable
 après le MVP exigera une nouvelle ADR.
 
+La vision et le périmètre de `PRODUCT.md` ont passé leur revue de cohérence et
+sont validés pour la phase 1 depuis le 30 juillet 2026. Cette validation ne
+prouve ni les objectifs encore non mesurés, ni le support réel d'un canal
+Windows/MSFS.
+
 ## Décision de refonte
 
 `ADR-0002` retient une réécriture totale isolée dans un nouveau dépôt avec un
@@ -246,8 +252,8 @@ fusionnée dans `main` par la PR #22.
 Les objectifs MVP de démarrage, mémoire intégrée, quatre heures, installation et
 sessions sans crash restent `Not measured`. La campagne GUI T0015 passe avec
 cinq lancements froids, cinq chauds, dix cycles propres, un WebView2 et un bridge
-associés par mesure, et zéro processus orphelin. Le ticket reste `Review` et ne
-change aucun statut de support.
+associés par mesure, et zéro processus orphelin. Andy a validé le ticket le
+30 juillet 2026 ; il est `Done` sans changer aucun statut de support.
 
 ## Backend Supabase local et RLS
 
@@ -363,8 +369,9 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Revoir T0017 puis créer un ticket borné pour l'export et la suppression
-transactionnelle/idempotente d'un compte avant toute donnée utilisateur réelle.
+Clore le statut `Review` de T0017 après validation humaine, puis créer un ticket
+borné pour l'export et la suppression transactionnelle/idempotente d'un compte
+avant toute donnée utilisateur réelle.
 T0014 reste `Review` jusqu'à ses contrôles humains de packaging.
 T0012 exige toujours un runtime Docker respectant la liaison loopback, Studio et
 le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais

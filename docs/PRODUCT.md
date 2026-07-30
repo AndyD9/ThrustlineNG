@@ -1,6 +1,12 @@
 # Vision produit — Thrustline Rebuild
 
-Statut : Draft à valider avant la phase 1.
+Statut : Validé pour la phase 1 le 30 juillet 2026.
+
+Revue de cohérence : le périmètre MVP, le modèle solo connecté, le golden path,
+les contraintes de distribution et les mesures de réussite sont cohérents avec
+les ADR-0001 à ADR-0004 acceptées. Cette validation ne promeut aucun canal
+Windows/MSFS vers `Supported` et ne transforme pas une cible non mesurée en
+capacité prouvée.
 
 ## Vision
 
