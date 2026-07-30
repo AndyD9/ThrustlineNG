@@ -16,10 +16,9 @@ leur propriétaire pour les rôles authentifié et anonyme.
 ## Context
 
 T0006 a livré la toolchain du nouveau dépôt et son implémentation est fusionnée
-dans `main`. T0006 reste `Verify` uniquement parce que sa preuve humaine depuis
-un clone Windows 11 vierge manque ; cette limite ne bloque pas la capacité
-technique nécessaire à T0012. `docs/CURRENT_STATE.md` recommande explicitement
-T0012 comme prochain ticket indépendant de la vérification MSFS de T0011.
+dans `main`. Sa preuve clean-clone du 30 juillet 2026 est réussie et T0006 est
+désormais `Done`. `docs/CURRENT_STATE.md` recommandait T0012 comme ticket
+indépendant de la vérification MSFS de T0011.
 
 ADR-0001 impose un MVP solo : un utilisateur possède au plus une compagnie et
 une compagnie a exactement un propriétaire humain. ADR-0002 impose un schéma
@@ -283,8 +282,6 @@ valider sur un runtime qui respecte la liaison `127.0.0.1`.
   `com.docker.network.bridge.host_binding_ipv4=127.0.0.1` du réseau transmis à
   Supabase ; le fail-safe empêche désormais toute pile exposée de rester active.
 - La pile locale ne prouve pas la parité avec un projet Supabase managé.
-- T0006 reste `Verify` pour sa preuve clean-clone, sans bloquer la capacité
-  technique utilisée ici.
 
 ### Follow-ups
 

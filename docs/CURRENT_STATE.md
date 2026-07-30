@@ -1,10 +1,10 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 30 juillet 2026 (clôture de T0017 et activation
-formelle de la phase 1).
+Dernière revue documentaire : 30 juillet 2026 (clôture clean-clone de T0006
+après activation formelle de la phase 1).
 Statut : les implémentations T0012, T0013, T0015, T0016 et T0017 sont fusionnées
-dans `main`. T0005, T0013, T0015, T0016 et T0017 sont `Done`. La phase 0 est
-terminée et la phase 1 est active. T0012 reste en vérification car Docker
+dans `main`. T0005, T0006, T0013, T0015, T0016 et T0017 sont `Done`. La phase 0
+est terminée et la phase 1 est active. T0012 reste en vérification car Docker
 Desktop publie les ports Supabase hors loopback sur la machine locale.
 
 ## Produit
@@ -107,6 +107,19 @@ par refus d'accès du bac à sable aux caches/configurations utilisateur, puis o
 réussi avec cet accès autorisé. Le premier lancement direct du script de sécurité
 a été bloqué par la politique PowerShell locale, puis a réussi avec le bypass
 explicite. Ces échecs sont classés comme environnement, pas comme défauts du code.
+
+## Vérification clean-clone du socle
+
+Le 30 juillet 2026, un clone distant propre de `main` au commit `c9966e2` a
+suivi `docs/SETUP.md` sur Windows 11 x64. Les versions épinglées ont été
+confirmées, `CheckOnly` n'a rien modifié et deux bootstraps successifs ont laissé
+le clone sans diff.
+
+Les 15 assertions toolchain, le frontend, le desktop Tauri, le bridge .NET et
+les contrôles statiques backend, politique de données, CI, budgets et packaging
+ont réussi. Le build Tauri Release et le build bridge Release ont été produits
+sans secret. Cette preuve clôt T0006 ; elle ne clôt pas les vérifications
+interactives T0007 à T0009, les essais MSFS T0011 ni le démarrage loopback T0012.
 
 ## Contrôles non exécutables dans cette baseline
 
