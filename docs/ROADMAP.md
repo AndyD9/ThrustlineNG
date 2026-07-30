@@ -14,10 +14,12 @@ Objectif : rendre l'existant mesurable et décider ce que l'on reconstruit.
   stable, Store et Steam prouvés séparément.
 - Stack cible acceptée (`ADR-0004`) : Tauri/WebView2, React, .NET 10,
   SimConnect officiel abstrait et Supabase/PostgreSQL 17.
-- Budgets stabilité/performance (`T0015`) et politique de données.
+- Budgets stabilité/performance (`T0015`) et politique de données (`T0017`).
 - Stratégie acceptée : réécriture totale isolée dans un nouveau dépôt
   (`ADR-0002`), sans migration des données de développement.
-- Environnements dev/staging/prod documentés.
+- Environnements local/CI/staging/production documentés (`T0017`) ; leur
+  provisionnement distant reste interdit tant qu'un ticket dédié ne le contrôle
+  pas.
 
 Gate : baseline verte ou écarts connus, ADR majeures acceptées, périmètre MVP
 gelé, golden path à caractériser identifié et protocole de preuve plateforme

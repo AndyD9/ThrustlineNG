@@ -1,5 +1,23 @@
 # Sécurité du desktop
 
+## Politique de données T0017
+
+La collecte est refusée par défaut et les données utilisateur réelles restent
+bloquées tant que suppression, export, purge et restauration ne sont pas
+implémentés et testés. Local et CI acceptent uniquement les seeds synthétiques ;
+staging accepte des données synthétiques ou irréversiblement anonymisées, jamais
+un clone de production.
+
+`eng/data-policy.json` borne la télémétrie brute à 7 jours, les diagnostics
+facultatifs et sauvegardes à 30 jours, et les journaux sécurité à 90 jours. Les
+diagnostics exigent un consentement explicite. Une restauration doit rester
+isolée, vérifier l'intégrité et rejouer les suppressions avant réouverture.
+
+Le gate `data-policy:check` contrôle ces invariants et trois mutations négatives
+sans service, réseau ou secret. Il ne prouve pas les futures commandes de
+suppression/export, la configuration d'une sauvegarde ni un exercice de
+restauration.
+
 ## Frontière installateur Windows T0014
 
 Le package T0014 est une preuve interne non signée, jamais une release. Il

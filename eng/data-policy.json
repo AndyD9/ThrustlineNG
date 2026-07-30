@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "policyVersion": "1.0.0",
+  "review": {
+    "adoptedOn": "2026-07-30",
+    "reviewBefore": "2026-10-30",
+    "context": "MVP solo connecté avant toute donnée utilisateur réelle",
+    "legalReviewStatus": "required-before-closed-beta"
+  },
+  "admission": {
+    "realUserData": "blocked-until-deletion-export-and-restore-controls-exist",
+    "historicalRepositoryDataMigration": "forbidden",
+    "defaultCollection": "deny"
+  },
+  "environments": [
+    {
+      "name": "local",
+      "productionDataAllowed": false,
+      "dataSource": "synthetic-only",
+      "remoteProject": "forbidden"
+    },
+    {
+      "name": "ci",
+      "productionDataAllowed": false,
+      "dataSource": "synthetic-only",
+      "remoteProject": "forbidden"
+    },
+    {
+      "name": "staging",
+      "productionDataAllowed": false,
+      "dataSource": "synthetic-or-irreversibly-anonymized",
+      "remoteProject": "dedicated-not-provisioned"
+    },
+    {
+      "name": "production",
+      "productionDataAllowed": true,
+      "dataSource": "user-provided-and-server-derived",
+      "remoteProject": "dedicated-not-provisioned"
+    }
+  ],
+  "categories": {
+    "authIdentity": {
+      "purpose": "authenticate-the-account",
+      "personalData": true,
+      "collection": "email-and-provider-identifiers-only-when-required",
+      "retention": {
+        "mode": "account-lifetime",
+        "maxDaysAfterVerifiedDeletionRequest": 30
+      },
+      "endOfLife": "erase",
+      "backupHandling": "expire-and-replay-deletion-after-restore"
+    },
+    "companyState": {
+      "purpose": "operate-the-users-virtual-airline",
+      "personalData": true,
+      "collection": "minimum-game-state-linked-to-owner",
+      "retention": {
+        "mode": "account-lifetime",
+        "maxDaysAfterVerifiedDeletionRequest": 30
+      },
+      "endOfLife": "erase-or-irreversibly-anonymize",
+      "backupHandling": "expire-and-replay-deletion-after-restore"
+    },
+    "financialLedger": {
+      "purpose": "preserve-authoritative-economic-integrity",
+      "personalData": true,
+      "collection": "server-derived-game-transactions-only",
+      "retention": {
+        "mode": "append-only-while-personal-link-is-needed",
+        "maxDaysToAnonymizePersonalLinkAfterVerifiedDeletionRequest": 30
+      },
+      "endOfLife": "retain-only-non-personal-integrity-record",
+      "backupHandling": "expire-and-replay-anonymization-after-restore"
+    },
+    "rawFlightTelemetry": {
+      "purpose": "derive-and-investigate-a-flight-report",
+      "personalData": true,
+      "collection": "minimum-samples-required-by-the-versioned-flight-engine",
+      "retention": {
+        "mode": "after-flight-report-created",
+        "maxDays": 7
+      },
+      "endOfLife": "erase",
+      "backupHandling": "do-not-add-to-long-lived-backups"
+    },
+    "flightReports": {
+      "purpose": "show-flight-history-and-drive-authoritative-progression",
+      "personalData": true,
+      "collection": "versioned-summary-without-unneeded-raw-samples",
+      "retention": {
+        "mode": "account-lifetime",
+        "maxDaysAfterVerifiedDeletionRequest": 30
+      },
+      "endOfLife": "erase-or-irreversibly-anonymize",
+      "backupHandling": "expire-and-replay-deletion-after-restore"
+    },
+    "securityLogs": {
+      "purpose": "detect-and-investigate-security-events",
+      "personalData": true,
+      "collection": "redacted-events-without-secrets-or-payloads",
+      "retention": {
+        "mode": "rolling",
+        "maxDays": 90
+      },
+      "endOfLife": "erase",
+      "backupHandling": "same-retention-as-primary-data"
+    },
+    "optionalDiagnostics": {
+      "purpose": "diagnose-user-reported-failures",
+      "personalData": true,
+      "collection": "explicit-opt-in-redacted-diagnostics",
+      "explicitConsentRequired": true,
+      "retention": {
+        "mode": "rolling",
+        "maxDays": 30
+      },
+      "endOfLife": "erase",
+      "backupHandling": "exclude-when-possible-otherwise-expire"
+    },
+    "backups": {
+      "purpose": "recover-from-loss-or-corruption",
+      "personalData": true,
+      "collection": "encrypted-copy-of-required-production-data",
+      "retention": {
+        "mode": "rolling",
+        "maxDays": 30
+      },
+      "endOfLife": "expire-automatically",
+      "backupHandling": "not-applicable"
+    }
+  },
+  "restore": {
+    "accessDuringRestore": "closed-to-users",
+    "deletionReplayRequiredBeforeReopen": true,
+    "integrityVerificationRequired": true,
+    "scheduledDrillRequired": true
+  },
+  "capabilities": {
+    "syntheticSeedGuard": "enforced",
+    "accountExport": "not-implemented",
+    "accountDeletion": "not-implemented",
+    "retentionPurge": "not-implemented",
+    "ledgerAnonymization": "not-implemented",
+    "managedBackups": "not-implemented",
+    "restoreDrill": "not-implemented",
+    "deletionReplayAfterRestore": "not-implemented"
+  }
+}

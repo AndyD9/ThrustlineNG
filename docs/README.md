@@ -15,6 +15,7 @@ Codex. Il est inspiré d'un workflow « planifier → ticket → implémenter �
 | Exécuter un ticket | `WORKFLOW.md` |
 | Vérifier une modification | `QUALITY.md` |
 | Appliquer les règles de sécurité | `SECURITY.md` |
+| Appliquer la politique de données | `DATA_POLICY.md` |
 | Voir les problèmes différés | `KNOWN_ISSUES.md` |
 | Prendre une décision structurante | `decisions/README.md` |
 | Créer un ticket | `templates/TICKET.md` |
