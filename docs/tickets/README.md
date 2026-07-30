@@ -27,7 +27,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0011 | Créer l'adaptateur SimConnect et le replay | 1–3 | T0009–T0010 | Verify |
 | T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Verify |
 | T0013 | Consolider la CI multi-stack | 1 | T0006–T0012 | Done |
-| T0014 | Valider le packaging Windows non signé | 1 | T0007–T0010, T0013 | Review |
+| T0014 | Valider le packaging Windows non signé | 1 | T0007–T0010, T0013 | Done |
 | T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Done |
 | T0016 | Corriger l’avis de sécurité React Router | 1 | T0013 | Done |
 | T0017 | Définir et contrôler la politique de données | 0 | T0002–T0003, T0012 | Done |
@@ -46,7 +46,7 @@ PR #24. Andy a validé sa clôture le 30 juillet 2026 ; aucune donnée réelle n
 capacité de suppression/restauration n'est revendiquée.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
-T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Les preuves
-humaines encore ouvertes restent des limites à consigner dans T0014 ; les essais
-MSFS de T0011 et le runtime Supabase de T0012 ne conditionnent pas la fabrication
-et l'installation locale d'un package Windows.
+T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
+cycles manuels et ses preuves CI sont validés ; T0014 est `Done` depuis le
+30 juillet 2026. Les vérifications encore ouvertes de T0007–T0009, les essais
+MSFS de T0011 et le runtime Supabase de T0012 restent suivis séparément.
