@@ -221,6 +221,24 @@ La pile locale Supabase n'est pas strictement identique à la plateforme
 managée. PostgreSQL 17, migrations et tests RLS devront être rejoués séparément
 sur les futurs environnements dev/staging avant promotion.
 
+## Respecter la politique de données
+
+Avant toute modification de données ou d'environnement :
+
+```powershell
+pnpm data-policy:check
+```
+
+Local et CI utilisent uniquement `supabase/seed.sql` et d'autres données
+synthétiques. Ne copiez jamais un dump, une sauvegarde, un log ou un export de
+production vers local, CI ou staging. Staging doit être un projet distinct,
+alimenté par migrations et données synthétiques ou irréversiblement anonymisées.
+
+L'admission de données utilisateur réelles reste bloquée : suppression, export,
+purges, sauvegarde distante, restauration et replay des suppressions ne sont pas
+encore implémentés. `docs/DATA_POLICY.md` contient les durées et la procédure
+cible ; sa présence ne prouve pas ces capacités.
+
 ## Vérifier la CI et la supply chain
 
 Depuis la racine, après la restauration figée :

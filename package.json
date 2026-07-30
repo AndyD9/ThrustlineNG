@@ -34,7 +34,8 @@
     "backend:reset": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/invoke-supabase-local.ps1 -Action Reset",
     "backend:test": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/invoke-supabase-local.ps1 -Action Test",
     "backend:types": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1",
-    "backend:types:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1 -Check"
+    "backend:types:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1 -Check",
+    "data-policy:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/data-policy/run.ps1"
   },
   "engines": {
     "node": "24.18.0",

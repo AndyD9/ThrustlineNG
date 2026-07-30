@@ -1,5 +1,22 @@
 # Qualité du dépôt
 
+## Politique de données
+
+Depuis la racine :
+
+```powershell
+pnpm data-policy:check
+```
+
+Le harnais T0017 valide la source JSON, quatre environnements, huit catégories,
+les maxima de rétention, les seeds synthétiques et l'intégration CI. Il doit
+réussir sur le dépôt et détecter trois mutations : catégorie absente, donnée de
+production autorisée en staging et délai de journaux supérieur à 90 jours.
+
+Ce contrôle est statique : il ne transforme pas une suppression, une sauvegarde
+ou une restauration non exécutée en preuve. Ces capacités restent
+`Not implemented` jusqu'à un test sur l'environnement concerné.
+
 ## Toolchain et bootstrap
 
 Depuis la racine, avec PowerShell 7.6 ou plus récent :

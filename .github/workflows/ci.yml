@@ -51,6 +51,10 @@ jobs:
           pwsh -NoProfile -File ./scripts/check-toolchain.ps1
           pwsh -NoProfile -File ./tests/toolchain/run.ps1
 
+      - name: Validate data policy
+        shell: pwsh
+        run: pnpm data-policy:check
+
       - name: Validate frontend
         shell: pwsh
         run: |

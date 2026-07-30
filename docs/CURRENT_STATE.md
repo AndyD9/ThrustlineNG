@@ -1,9 +1,10 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 29 juillet 2026 (fusion de T0013 et T0016).
-Statut : les implémentations T0012, T0013 et T0016 sont fusionnées dans `main`.
-T0013 et T0016 sont `Done`. T0012 reste en vérification car Docker Desktop
-publie les ports Supabase hors loopback sur la machine locale.
+Dernière revue documentaire : 30 juillet 2026 (démarrage de T0017).
+Statut : les implémentations T0012, T0013, T0015 et T0016 sont fusionnées dans
+`main`. T0013 et T0016 sont `Done`. T0015 reste `Review` malgré sa fusion.
+T0012 reste en vérification car Docker Desktop publie les ports Supabase hors
+loopback sur la machine locale.
 
 ## Produit
 
@@ -212,8 +213,8 @@ NuGet tiers. Le bridge n'est pas encore lancé par Tauri, n'ouvre aucun port et
 ne contient ni SimConnect, ni secret, ni donnée métier.
 
 La publication courante mesurée par T0015 contient 334 fichiers pour
-110 477 582 octets. Le budget de fondation proposé est 128 Mio ; il est présent
-sur `foundation/t0015-stability-performance-budgets`, pas encore dans `main`.
+110 477 582 octets. Le budget de fondation est 128 Mio et son gate est présent
+dans `main`.
 
 ## Contrat local
 
@@ -237,16 +238,16 @@ binaire de l'ancien build n'est copié.
 
 ## Budgets stabilité et performance
 
-La branche `foundation/t0015-stability-performance-budgets` ajoute une source
-JSON unique, un validateur fail-closed, cinq scénarios de harnais et un gate CI
-sur les tailles construites. Les baselines T0008 et la nouvelle mesure bridge
-respectent les seuils de fondation.
+T0015 ajoute une source JSON unique, un validateur fail-closed, cinq scénarios de
+harnais et un gate CI sur les tailles construites. Les baselines T0008 et la
+nouvelle mesure bridge respectent les seuils de fondation. L'implémentation est
+fusionnée dans `main` par la PR #22.
 
 Les objectifs MVP de démarrage, mémoire intégrée, quatre heures, installation et
 sessions sans crash restent `Not measured`. La campagne GUI T0015 passe avec
 cinq lancements froids, cinq chauds, dix cycles propres, un WebView2 et un bridge
-associés par mesure, et zéro processus orphelin. Le ticket est `Review` sur la
-PR #22 et ne change aucun statut de support avant fusion.
+associés par mesure, et zéro processus orphelin. Le ticket reste `Review` et ne
+change aucun statut de support.
 
 ## Backend Supabase local et RLS
 
@@ -268,6 +269,21 @@ aux sous-processus Supabase et utilisent explicitement le réseau
 donc les ports effectifs, supprime toute sortie contenant les credentials locaux,
 arrête la pile en cas d'exposition et échoue. Aucune parité cloud n'est
 revendiquée.
+
+## Politique de données
+
+La branche `docs/t0017-data-policy` ajoute une source JSON versionnée et une
+politique d'ingénierie pour huit catégories et quatre environnements. Local, CI
+et staging refusent les données de production. Les maxima initiaux sont de
+7 jours pour la télémétrie brute après rapport, 30 jours pour diagnostics et
+sauvegardes, et 90 jours pour les journaux sécurité.
+
+L'admission de données utilisateur réelles reste bloquée. Export, suppression,
+purge, anonymisation du futur grand livre, sauvegarde managée, restauration et
+replay des suppressions sont `Not implemented`. La FK actuelle
+`companies.owner_id ... on delete restrict` bloque la suppression directe d'un
+propriétaire Auth et est suivie par `KI-021`. La politique et son gate ne sont
+pas présents dans `main` avant fusion de T0017.
 
 ## CI multi-stack
 
@@ -347,8 +363,8 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Revoir la PR #22 T0015 ; ses mesures manuelles et automatisées sont terminées,
-mais ses budgets ne sont pas livrés dans `main` avant fusion par Andy.
+Revoir T0017 puis créer un ticket borné pour l'export et la suppression
+transactionnelle/idempotente d'un compte avant toute donnée utilisateur réelle.
 T0014 reste `Review` jusqu'à ses contrôles humains de packaging.
 T0012 exige toujours un runtime Docker respectant la liaison loopback, Studio et
 le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
