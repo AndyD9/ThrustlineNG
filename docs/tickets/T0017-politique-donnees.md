@@ -1,6 +1,6 @@
 # T0017 — Définir et contrôler la politique de données
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `docs/t0017-data-policy`
 Phase: 0
@@ -275,6 +275,11 @@ trois mutations prouvent l'échec sur catégorie absente, production autorisée 
 staging et délai supérieur à 90 jours. Aucun secret, identifiant réel, dump,
 payload ou donnée de vol n'est ajouté.
 
+Andy a validé la clôture de T0017 le 30 juillet 2026 après fusion de la PR #24.
+Les capacités marquées `Blocked` ou `Not implemented` restent explicitement
+hors du résultat livré et conditionnent toujours l'admission de données
+utilisateur réelles.
+
 ### Risks and limitations
 
 - les maxima sont des garde-fous d'ingénierie, pas une validation juridique ni
@@ -315,4 +320,5 @@ Completion Report.
 - base/head : `main` / `docs/t0017-data-policy` ;
 - première exécution GitHub observée : CI `30562879555` et supply-chain
   `30562879551`, tous les jobs réussis ;
-- fusion : non exécutée, réservée à Andy.
+- fusion : PR #24 fusionnée dans `main` par Andy le 30 juillet 2026 ;
+- clôture : validation humaine d'Andy le 30 juillet 2026, ticket `Done`.

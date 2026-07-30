@@ -30,7 +30,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0014 | Valider le packaging Windows non signé | 1 | T0007–T0010, T0013 | Review |
 | T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Done |
 | T0016 | Corriger l’avis de sécurité React Router | 1 | T0013 | Done |
-| T0017 | Définir et contrôler la politique de données | 0 | T0002–T0003, T0012 | Review |
+| T0017 | Définir et contrôler la politique de données | 0 | T0002–T0003, T0012 | Done |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009,
 mais leurs tickets restent en vérification tant que leurs contrôles humains ne
@@ -40,9 +40,9 @@ reste en vérification jusqu'au test réel MSFS 2024. T0012 est fusionné dans
 `main` par la PR #14 mais reste `Verify` pour la preuve loopback manquante.
 T0016 a corrigé `KI-018` sans affaiblir le gate, puis les PR #16 et #15 ont
 intégré T0016 et T0013 dans `main` avec tous les checks verts.
-T0017 fixe la politique de données et son gate sur
-`docs/t0017-data-policy`. Il reste `Review` jusqu'à la revue de la PR ; aucune
-donnée réelle ni capacité de suppression/restauration n'est revendiquée.
+T0017 fixe la politique de données et son gate, fusionnés dans `main` par la
+PR #24. Andy a validé sa clôture le 30 juillet 2026 ; aucune donnée réelle ni
+capacité de suppression/restauration n'est revendiquée.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Les preuves
