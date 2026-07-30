@@ -36,6 +36,7 @@ Références permanentes :
 - `docs/SECURITY.md` — menaces, autorités et contrôles ;
 - `docs/QUALITY.md` — commandes de validation actives ;
 - `docs/WORKFLOW.md` — cycle d'un ticket ;
+- `docs/LEARNINGS.md` — apprentissages opérationnels prouvés et candidats ;
 - `docs/STACK.md` — versions et politique d'adoption ;
 - `docs/SUPPORT.md` — plateformes supportées et preuves requises ;
 - `docs/KNOWN_ISSUES.md` — découvertes hors périmètre.
@@ -125,6 +126,28 @@ dépendance et la condition de rebase ou de changement de base.
   sécurité, les données, le support ou l'architecture.
 - Consigner une découverte hors périmètre dans `docs/KNOWN_ISSUES.md` avec preuve,
   sévérité et cible ; ne pas la corriger opportunément.
+
+## Apprentissage contrôlé
+
+L'agent peut capturer de façon autonome une difficulté ou une méthode utile dans
+le Completion Report, puis appliquer le cycle de `docs/LEARNINGS.md`. Une
+observation isolée ne devient pas une règle globale.
+
+- Distinguer systématiquement observation, hypothèse, cause confirmée et règle.
+- Conserver les commandes, l'environnement utile, le résultat et les limites,
+  sans secret ni donnée personnelle.
+- Promouvoir une règle après deux occurrences indépendantes ou une reproduction
+  déterministe. Une seule occurrence suffit uniquement pour un risque élevé de
+  sécurité, perte de données ou faux succès, avec revue explicite.
+- Encoder l'apprentissage au niveau le plus vérifiable : test ou script avant
+  procédure spécialisée, procédure avant règle globale.
+- Respecter `Allowed areas`. Hors périmètre, consigner le candidat dans le
+  Completion Report ou `KNOWN_ISSUES.md` au lieu de modifier opportunément les
+  règles, scripts ou tests.
+- Ne jamais modifier le produit, l'architecture, la sécurité, les données, le
+  support ou un budget sur la seule base d'un apprentissage opérationnel.
+- Revalider les règles dépendantes d'un outil ou de l'environnement et retirer
+  ou remplacer explicitement celles devenues obsolètes.
 
 ## Frontières techniques
 
