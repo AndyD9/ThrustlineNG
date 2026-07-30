@@ -304,6 +304,8 @@ Completion Report.
 
 - branche : `docs/t0017-data-policy` ;
 - base : `origin/main` à `99b87c3` au démarrage ;
-- commit : en attente ;
-- push : en attente ;
-- Pull Request : en attente.
+- commit d'implémentation : `bfdc193` (`feat(data): enforce T0017 data policy`) ;
+- push : réussi, upstream `origin/docs/t0017-data-policy` ;
+- Pull Request prête : https://github.com/AndyD9/ThrustlineNG/pull/24 ;
+- base/head : `main` / `docs/t0017-data-policy` ;
+- fusion : non exécutée, réservée à Andy.
