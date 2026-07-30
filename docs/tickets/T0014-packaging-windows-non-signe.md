@@ -474,4 +474,7 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
   `8725167519` téléchargé, trois hashes conformes, trois signatures `NotSigned`
   et aucun motif de secret ;
 - commit final T0014 `30dcb393`, présent dans `main` ;
-- branche de clôture : `docs/T0014-packaging-closure`.
+- branche de clôture : `docs/T0014-packaging-closure` ;
+- commit de clôture : `4a67b29` ;
+- PR de clôture prête : https://github.com/AndyD9/ThrustlineNG/pull/28,
+  base/head `main` / `docs/T0014-packaging-closure`.
