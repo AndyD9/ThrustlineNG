@@ -7,6 +7,10 @@ détails d'exécution appartiennent aux tickets.
 
 Objectif : rendre l'existant mesurable et décider ce que l'on reconstruit.
 
+Statut : terminée le 30 juillet 2026. Le gate est franchi avec les écarts connus
+documentés ; la promotion effective des canaux Windows/MSFS reste reportée aux
+preuves réelles prévues par ADR-0003.
+
 - Inventaire reproductible, tests/builds et matrice de dépendances.
 - Décision du modèle produit : MVP solo connecté préparé pour une collaboration
   ultérieure (`ADR-0001`, acceptée).
@@ -26,10 +30,17 @@ gelé, golden path à caractériser identifié et protocole de preuve plateforme
 défini. La promotion effective d'un canal MSFS vers `Supported` peut intervenir
 avec les tests réels du vertical slice.
 
+Preuve de clôture : T0001 à T0005, T0015 et T0017 sont `Done`; `PRODUCT.md` est
+validé, ADR-0001 à ADR-0004 sont acceptées, le golden path est défini dans
+ADR-0002 et le protocole plateforme dans ADR-0003.
+
 ## Phase 1 — Socle reproductible
 
 Objectif : créer dans le nouveau dépôt un socle reconstruisible et testable à
 tout moment.
+
+Statut : active depuis le 30 juillet 2026. Ce statut autorise la poursuite des
+tickets de phase 1 ; il ne signifie pas que son gate de sortie est franchi.
 
 - Nouveau dépôt, historique neuf, règles de branches courtes et CI obligatoire.
 - Versions/outils supportés selon `docs/STACK.md` et bootstrap automatisé.
