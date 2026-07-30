@@ -1,27 +1,26 @@
 # T0006 — Épingler les runtimes et créer la source de versions
 
-Status: Verify
+Status: Done
 Owner: Andy
-Branch: `foundation/t0006-toolchain-pins`
+Branch: `docs/T0006-clean-clone-verification`
 Phase: 1
 Risk: High
 Security-sensitive: Yes
 
-## Réconciliation du suivi — 28 juillet 2026
+## Clôture du suivi — 30 juillet 2026
 
 L'implémentation a été fusionnée dans `main` par la PR #1 le 26 juillet 2026.
 Les anciens blockers décrivaient la situation avant la création de
 ThrustlineNG ; ils ne correspondent plus à l'état Git réel.
 
-Le ticket reste `Verify` parce que :
+T0005 est désormais `Done`. La preuve manquante a été exécutée le 30 juillet
+2026 depuis un clone distant propre de `main` au commit `c9966e2`, sur la branche
+de suivi `docs/T0006-clean-clone-verification`.
 
-- T0005 est toujours `Verify` et son acceptation humaine n'est pas consignée ;
-- la vérification rétrospective n'a pas reproduit le parcours complet depuis une
-  VM ou un clone Windows 11 vierge ;
-- le Completion Report n'avait pas été rempli lors de la fusion.
-
-Les contrôles de toolchain, le mode JSON, les 15 assertions et deux exécutions
-idempotentes du bootstrap ont été rejoués avec succès le 28 juillet 2026.
+Le contrôle de toolchain, le mode JSON, les 15 assertions, `CheckOnly`, deux
+exécutions idempotentes du bootstrap, les tests et les builds représentatifs du
+socle ont réussi. Le clone est resté sans diff ; le ticket peut donc passer de
+`Verify` à `Done`.
 
 ## Goal
 
@@ -337,8 +336,8 @@ Le script ne doit pas mettre automatiquement les versions à jour.
 
 ## Acceptance criteria
 
-- [ ] T0005 est `Done`.
-- [ ] Le nouveau dépôt, sa visibilité et sa branche principale sont confirmés.
+- [x] T0005 est `Done`.
+- [x] Le nouveau dépôt, sa visibilité et sa branche principale sont confirmés.
 - [x] Le travail se trouve sur `foundation/t0006-toolchain-pins`.
 - [x] `eng/versions.json` contient uniquement des versions exactes validées.
 - [x] Les pins Node, pnpm, Rust et .NET sont cohérents avec la source canonique.
@@ -350,7 +349,7 @@ Le script ne doit pas mettre automatiquement les versions à jour.
 - [x] Aucun téléchargement distant arbitraire ou privilège administrateur.
 - [x] Les fins de ligne et UTF-8 sont explicitement configurés.
 - [x] Les tests couvrent les incohérences principales et une fuite factice.
-- [ ] Un clone propre peut suivre `docs/SETUP.md`.
+- [x] Un clone propre peut suivre `docs/SETUP.md`.
 - [x] `AGENTS.md` du nouveau dépôt ne décrit aucun dossier inexistant.
 - [x] Aucun fichier applicatif de l'ancien dépôt n'est modifié ou copié.
 - [x] Le Completion Report indique le commit des deux dépôts si l'ancien ticket
@@ -477,16 +476,42 @@ Sans objet : ThrustlineNG est le nouveau dépôt effectivement retenu.
   synchronisation du dépôt synthétique avec les manifests Tauri ;
 - `bootstrap.ps1 -CheckOnly` : réussi, sans modification ;
 - deux `bootstrap.ps1` successifs : réussis, lockfile inchangé.
+- `git clone --branch main --single-branch
+  https://github.com/AndyD9/ThrustlineNG.git` : réussi le 30 juillet 2026 ;
+  `HEAD` vaut `c9966e2` et le clone suit `origin/main` ;
+- un premier clone depuis le dépôt local a été refusé avant copie par la
+  protection Git `dubious ownership` du compte sandboxé ; aucune exception
+  globale n'a été ajoutée et le clone distant a servi de preuve ;
+- `pwsh -NoProfile -File .\scripts\check-toolchain.ps1` et `-Json` : réussis,
+  17 contrôles conformes, PowerShell `7.6.4` détecté ;
+- `pwsh -NoProfile -File .\tests\toolchain\run.ps1` : 15 assertions réussies,
+  incluant les mauvaises versions et la fuite factice ;
+- `pwsh -NoProfile -File .\scripts\bootstrap.ps1 -CheckOnly`, puis deux
+  exécutions sans option : réussies ; la seconde restauration indique
+  `Already up to date` ;
+- `pnpm frontend:typecheck`, `frontend:test`, `frontend:build`,
+  `desktop:check`, `desktop:test`, `desktop:build`, `bridge:build`,
+  `bridge:test` et `bridge:health` : réussis ; 8 tests frontend, 3 tests Rust,
+  13 tests bridge, builds Tauri/.NET Release et diagnostic `Healthy` ;
+- `pnpm backend:check`, `data-policy:check`, `ci:check`,
+  `performance:test` et `windows:package:check` : réussis avec leurs mutations
+  négatives attendues ;
+- `git diff --exit-code`, `git diff --check` et
+  `git status --short --branch` : réussis ; clone final propre.
 
 ### Clean-clone verification
 
-Non rejouée depuis une VM ou un clone Windows 11 vierge pendant la
-réconciliation. `docs/SETUP.md` et la restauration figée ont été relus.
+Réussie le 30 juillet 2026 depuis un clone distant propre de
+`https://github.com/AndyD9/ThrustlineNG.git`, branche `main`, commit `c9966e2`.
+La machine Windows 11 x64 possédait les versions épinglées. `CheckOnly`, deux
+bootstraps et les validations représentatives du socle ont réussi sans modifier
+un fichier suivi.
 
 ### Manual verification result
 
-Contrôle lisible, sortie JSON et idempotence vérifiés. La validation clean-clone
-reste à effectuer avant `Done`.
+Contrôle lisible, sortie JSON sans chemin ni secret inutile, détection des
+mauvaises versions, idempotence et restauration depuis un clone propre vérifiés.
+Le clone final est resté propre.
 
 ### Security review result
 
@@ -495,17 +520,21 @@ globale du poste n'est effectué par les scripts.
 
 ### Risks and limitations
 
-- T0005 reste `Verify`.
-- La preuve clean-clone/VM manque.
+- La preuve a été exécutée depuis un clone propre sur la machine Windows 11 de
+  validation, pas depuis une VM fraîche sans caches utilisateur.
+- Les caches pnpm, Cargo et NuGet étaient déjà alimentés ; la restauration
+  déterministe et l'absence de secret sont prouvées, pas un téléchargement
+  entièrement à froid.
 
 ### Follow-ups
 
-- Faire accepter T0005.
-- Exécuter `docs/SETUP.md` depuis un clone ou une VM Windows 11 vierge.
+- Aucun follow-up T0006 bloquant. Les vérifications interactives des tickets
+  T0007 à T0009 et les limites T0011/T0012 restent suivies séparément.
 
 ### Documentation updated
 
-Ticket, backlog et `CURRENT_STATE.md` réconciliés le 28 juillet 2026.
+Ticket, backlog et `CURRENT_STATE.md` mis à jour le 30 juillet 2026 avec la
+preuve clean-clone.
 
 ### Git handoff
 
@@ -513,6 +542,10 @@ Ticket, backlog et `CURRENT_STATE.md` réconciliés le 28 juillet 2026.
 - commit : `60f0aba` ;
 - PR : https://github.com/AndyD9/ThrustlineNG/pull/1 ;
 - PR fusionnée dans `main` le 26 juillet 2026.
+- branche de vérification : `docs/T0006-clean-clone-verification` ;
+- commit de clôture : `49f4f93` ;
+- PR de clôture prête : https://github.com/AndyD9/ThrustlineNG/pull/27,
+  base/head `main` / `docs/T0006-clean-clone-verification`.
 
 Indiquer séparément pour chaque dépôt :
 

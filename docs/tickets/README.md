@@ -19,7 +19,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0003 | Choisir la stratégie de refonte | 0 | T0001–T0002 | Done |
 | T0004 | Définir la matrice de support Windows et MSFS | 0 | T0001–T0003 | Done |
 | T0005 | Sélectionner la stack cible et ses versions compatibles | 0 | T0001–T0004 | Done |
-| T0006 | Épingler les runtimes et créer la source de versions | 1 | T0005 | Verify |
+| T0006 | Épingler les runtimes et créer la source de versions | 1 | T0005 | Done |
 | T0007 | Créer le shell Tauri minimal et mesurer son empreinte | 1 | T0006 | Verify |
 | T0008 | Créer le frontend React minimal | 1 | T0006–T0007 | Verify |
 | T0009 | Créer le bridge .NET minimal | 1 | T0006 | Verify |
@@ -32,9 +32,10 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0016 | Corriger l’avis de sécurité React Router | 1 | T0013 | Done |
 | T0017 | Définir et contrôler la politique de données | 0 | T0002–T0003, T0012 | Done |
 
-Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009,
-mais leurs tickets restent en vérification tant que leurs contrôles humains ne
-sont pas clos. T0009 reste aussi en vérification pour son smoke test interactif.
+Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
+T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
+restent en vérification tant que leurs contrôles humains ne sont pas clos. T0009
+reste aussi en vérification pour son smoke test interactif.
 T0011 possède un replay synthétique automatisé et
 reste en vérification jusqu'au test réel MSFS 2024. T0012 est fusionné dans
 `main` par la PR #14 mais reste `Verify` pour la preuve loopback manquante.

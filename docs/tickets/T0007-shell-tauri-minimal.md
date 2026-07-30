@@ -13,9 +13,10 @@ L'implémentation a été fusionnée dans `main` par la PR #2 le 27 juillet 2026
 La baseline prouve une fenêtre visible, cinq lancements froids, cinq chauds et
 dix fermetures sans processus orphelin.
 
-Le ticket reste `Verify` : T0006 n'est pas encore `Done`, l'absence de WebView2
-n'a pas été testée sur une VM propre et la checklist interactive complète
-(titre, redimensionnement, zoom et console/réseau) n'a pas été consignée.
+T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. Le présent
+ticket reste `Verify` : l'absence de WebView2 n'a pas été testée sur une VM
+propre et la checklist interactive complète (titre, redimensionnement, zoom et
+console/réseau) n'a pas été consignée.
 
 ## Goal
 
@@ -367,7 +368,7 @@ Dans l'ancien dépôt :
 
 ## Acceptance criteria
 
-- [ ] T0006 est `Done`.
+- [x] T0006 est `Done`.
 - [x] Le travail est réalisé sur `foundation/t0007-tauri-shell`.
 - [x] Le contrôle de toolchain T0006 reste vert.
 - [x] Les versions Tauri/Rust correspondent exactement à ADR-0004.
@@ -539,7 +540,6 @@ Aucun plugin, IPC, accès réseau ou capability large détecté par les invarian
 
 ### Risks and limitations
 
-- T0006 reste `Verify`.
 - Une seule machine Windows mesurée.
 - WebView2 absent non testé.
 

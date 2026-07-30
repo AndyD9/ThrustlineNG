@@ -12,9 +12,10 @@ Security-sensitive: Yes
 L'implémentation a été fusionnée dans `main` par les PR #3 et #8. La baseline,
 les tests de comportement et de sécurité ainsi que le build Tauri sont présents.
 
-Le ticket reste `Verify` : T0006/T0007 ne sont pas encore `Done` et la checklist
-interactive focus, zoom 200 %, réduction des animations et inspection
-console/réseau n'a pas été consignée intégralement.
+T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. Le présent
+ticket reste `Verify` : T0007 n'est pas encore `Done` et la checklist interactive
+focus, zoom 200 %, réduction des animations et inspection console/réseau n'a pas
+été consignée intégralement.
 
 ## Goal
 
@@ -429,7 +430,8 @@ Dans l'ancien dépôt :
 
 ## Acceptance criteria
 
-- [ ] T0006 et T0007 sont `Done`.
+- [x] T0006 est `Done`.
+- [ ] T0007 est `Done`.
 - [x] Le travail se trouve sur `foundation/t0008-react-frontend`.
 - [x] Le contrôle de toolchain T0006 reste vert.
 - [x] Les commandes et la baseline T0007 restent vertes.
@@ -600,7 +602,7 @@ restent à confirmer manuellement.
 
 ### Risks and limitations
 
-- T0006/T0007 restent `Verify`.
+- T0007 reste `Verify`.
 - Une seule machine a servi aux mesures.
 
 ### Follow-ups
