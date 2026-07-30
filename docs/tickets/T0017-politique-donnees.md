@@ -257,7 +257,12 @@ n'est modifié.
 - même exécutable avec accès autorisé : PowerShell `7.6.4` ;
 - harnais T0017 et T0013 avec ce chemin PowerShell 7 explicite : réussis ;
 - `git diff --check` : réussi ; avertissement LF/CRLF informatif sur le script
-  T0013 existant.
+  T0013 existant ;
+- GitHub CI `30562879555` : Supabase PostgreSQL 17 réussi en 2 min 30 s et
+  Windows multi-stack réussi en 14 min 19 s ; l'étape `Validate data policy`
+  réussit en 7 s ;
+- GitHub supply-chain `30562879551` : audits, licences et SBOM réussis en
+  4 min.
 
 ### Manual verification result
 
@@ -308,4 +313,6 @@ Completion Report.
 - push : réussi, upstream `origin/docs/t0017-data-policy` ;
 - Pull Request prête : https://github.com/AndyD9/ThrustlineNG/pull/24 ;
 - base/head : `main` / `docs/t0017-data-policy` ;
+- première exécution GitHub observée : CI `30562879555` et supply-chain
+  `30562879551`, tous les jobs réussis ;
 - fusion : non exécutée, réservée à Andy.
