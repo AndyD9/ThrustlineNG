@@ -35,6 +35,7 @@ Statut : `Open`, `Accepted`, `Scheduled`, `Resolved`, `Invalid`.
 | KI-018 | High | Frontend / Security | `react-router` 7.18.1 était concerné par `GHSA-qwww-vcr4-c8h2` ; le gate pnpm T0013 a échoué comme prévu. | T0016 épingle 8.3.0 ; audit local sans vulnérabilité connue et supply-chain GitHub `30440480513` réussie le 29 juillet 2026 | T0016 | Resolved |
 | KI-019 | Medium | Desktop / Supply chain | Le lockfile Cargo contient des dépendances GTK3 non maintenues et `glib` 0.18.5 signalé unsound, même si la cible Windows ne compile pas ce chemin. | `cargo audit 0.22.2 --file apps/desktop/src-tauri/Cargo.lock --json` le 29 juillet 2026 : 0 vulnérabilité, avertissements RustSec informatifs | Revue des dépendances Tauri/Cargo | Open |
 | KI-020 | High | Desktop / Stability | Le binaire Tauri Release sortait avant 30 s dans le harness, puis les bridges des cycles rapides étaient comptés trop tôt comme orphelins. | T0015 stage la publication bridge dans le layout Release, attend sa terminaison avec nettoyage fail-safe, puis réussit 5 lancements froids, 5 chauds et 10 cycles avec zéro orphelin | T0015 | Resolved |
+| KI-021 | High | Backend / Privacy | La FK `companies.owner_id ... on delete restrict` empêche de supprimer directement un utilisateur Auth propriétaire ; aucun workflow transactionnel d'export, suppression, anonymisation ni replay après restauration n'existe. | Migration T0012 et politique T0017 inspectées le 30 juillet 2026 ; l'admission de données réelles reste bloquée | Suppression/export de compte avant données réelles | Open |
 
 ## Règles
 

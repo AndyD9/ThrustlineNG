@@ -1,5 +1,30 @@
 # Architecture du desktop
 
+## Cycle de vie des données T0017
+
+`eng/data-policy.json` est la source canonique des catégories, environnements,
+durées maximales et capacités de cycle de vie. `docs/DATA_POLICY.md` en donne la
+lecture humaine. La CI refuse les données de production hors production, une
+catégorie obligatoire absente ou une durée supérieure aux maxima.
+
+```text
+collecte minimale
+  → état actif autorisé
+  → demande vérifiée / durée atteinte
+  → effacement ou anonymisation irréversible
+  → expiration des sauvegardes sous 30 jours
+```
+
+Une restauration reste fermée aux utilisateurs jusqu'au contrôle d'intégrité et
+au replay des suppressions postérieures au point restauré. Ces workflows sont
+des contraintes d'architecture, pas des capacités actuelles : export,
+suppression, purge, sauvegarde distante et restauration restent non implémentés.
+
+Le futur grand livre est append-only, mais son lien personnel doit être
+anonymisable. La FK T0012 `companies.owner_id ... on delete restrict` impose une
+migration append-only et une commande serveur dédiées avant toute suppression de
+compte ; T0017 ne modifie pas le schéma existant.
+
 ## Packaging Windows T0014
 
 Le package Windows est un installateur NSIS x64 en mode utilisateur courant.

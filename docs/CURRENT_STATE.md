@@ -1,10 +1,11 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 30 juillet 2026 (validation de T0005 et T0015).
-Statut : les implémentations T0012, T0013, T0015 et T0016 sont fusionnées dans
-`main`. T0005, T0013, T0015 et T0016 sont `Done`. T0012 reste en vérification
-car Docker Desktop publie les ports Supabase hors loopback sur la machine
-locale.
+Dernière revue documentaire : 30 juillet 2026 (validation de T0005 et T0015
+après fusion de T0017).
+Statut : les implémentations T0012, T0013, T0015, T0016 et T0017 sont fusionnées
+dans `main`. T0005, T0013, T0015 et T0016 sont `Done`. T0017 reste `Review` et
+T0012 reste en vérification car Docker Desktop publie les ports Supabase hors
+loopback sur la machine locale.
 
 ## Produit
 
@@ -275,6 +276,21 @@ donc les ports effectifs, supprime toute sortie contenant les credentials locaux
 arrête la pile en cas d'exposition et échoue. Aucune parité cloud n'est
 revendiquée.
 
+## Politique de données
+
+La branche `docs/t0017-data-policy` ajoute une source JSON versionnée et une
+politique d'ingénierie pour huit catégories et quatre environnements. Local, CI
+et staging refusent les données de production. Les maxima initiaux sont de
+7 jours pour la télémétrie brute après rapport, 30 jours pour diagnostics et
+sauvegardes, et 90 jours pour les journaux sécurité.
+
+L'admission de données utilisateur réelles reste bloquée. Export, suppression,
+purge, anonymisation du futur grand livre, sauvegarde managée, restauration et
+replay des suppressions sont `Not implemented`. La FK actuelle
+`companies.owner_id ... on delete restrict` bloque la suppression directe d'un
+propriétaire Auth et est suivie par `KI-021`. La politique et son gate ne sont
+pas présents dans `main` avant fusion de T0017.
+
 ## CI multi-stack
 
 T0013 ajoute un workflow de validation sur `windows-2025` et `ubuntu-24.04`,
@@ -353,6 +369,9 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
+Clore le statut `Review` de T0017 après validation humaine, puis créer un ticket
+borné pour l'export et la suppression transactionnelle/idempotente d'un compte
+avant toute donnée utilisateur réelle.
 T0014 reste `Review` jusqu'à ses contrôles humains de packaging.
 T0012 exige toujours un runtime Docker respectant la liaison loopback, Studio et
 le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
