@@ -1,11 +1,24 @@
 # T0014 — Valider le packaging Windows non signé
 
-Status: Review
+Status: Done
 Owner: Andy
-Branch: `foundation/t0014-windows-unsigned-packaging`
+Branch: `docs/T0014-packaging-closure`
 Phase: 1
 Risk: High
 Security-sensitive: Yes
+
+## Clôture du suivi — 30 juillet 2026
+
+La PR #18 a été fusionnée le 29 juillet 2026 dans
+`docs/t0013-t0016-merge-reconciliation`. Le commit final `30dcb393` est présent
+dans `main`, confirmé par ascendance Git le 30 juillet 2026.
+
+Tous les critères d'acceptation sont cochés, les trois checks GitHub finaux sont
+verts, l'artefact CI a été inspecté et quatre cycles manuels
+installation/lancement/health check/fermeture/désinstallation ont réussi sans
+résidu. Les limites de signature et de mise à jour restent explicitement
+reportées à la phase 6 ; elles ne font pas partie du résultat T0014. Le ticket
+peut donc passer de `Review` à `Done`.
 
 ## Workflow evidence — 29 juillet 2026
 
@@ -325,7 +338,8 @@ du bridge. Le desktop Release résout le bridge sous `$RESOURCE/bridge`, tandis
 que le développement Debug conserve l'override explicite.
 
 Quatre cycles finaux installation/lancement/health check/fermeture/désinstallation
-ont réussi. Le ticket passe en `Review`, pas `Done`. Les incompatibilités
+ont réussi. Le ticket est d'abord passé en `Review`, puis en `Done` le 30 juillet
+2026 après confirmation de sa présence dans `main`. Les incompatibilités
 Authenticode puis `Get-FileHash` de Windows PowerShell 5.1 ont été corrigées sans
 affaiblir les contrôles. Le dernier rejeu GitHub est entièrement vert et son
 artefact téléchargé prouve les trois hashes, les signatures absentes et
@@ -432,11 +446,8 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 
 ### Follow-ups
 
-- après fusion de la réconciliation documentaire, rebaser la branche sur `main`
-  ou changer la base de la Pull Request ;
 - traiter signature, provenance, updater et scénarios upgrade/rollback en phase
-  6 ;
-- fixer les budgets de taille et de temps dans T0015.
+  6.
 
 ### Documentation updated
 
@@ -447,7 +458,8 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 - branche : `foundation/t0014-windows-unsigned-packaging` ;
 - base empilée : `docs/t0013-t0016-merge-reconciliation` au commit `f3350c6` ;
 - commit d'implémentation : `9b19283` ;
-- PR brouillon : https://github.com/AndyD9/ThrustlineNG/pull/18 ;
+- PR #18, fusionnée le 29 juillet 2026 :
+  https://github.com/AndyD9/ThrustlineNG/pull/18 ;
 - base/head : `docs/t0013-t0016-merge-reconciliation` /
   `foundation/t0014-windows-unsigned-packaging` ;
 - première exécution `30449481995` : Supabase et supply chain réussis, Windows
@@ -461,5 +473,5 @@ réseau ajouté, CI `contents: read`, aucun secret et aucune release.
 - rejeu final `30454097418` / `30454097327` : trois jobs verts ; artefact
   `8725167519` téléchargé, trois hashes conformes, trois signatures `NotSigned`
   et aucun motif de secret ;
-- après fusion de la base, rebaser sur `main` ou changer la base de la PR avant
-  revue finale.
+- commit final T0014 `30dcb393`, présent dans `main` ;
+- branche de clôture : `docs/T0014-packaging-closure`.

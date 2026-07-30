@@ -349,8 +349,9 @@ explicitement non signés.
 ### Follow-ups
 
 - Revoir `KI-019` lors de la maintenance Tauri/Cargo.
-- T0014 dispose désormais d'une CI révisable, mais reste dépendant du statut
-  `Blocked` de T0007.
+- T0014 a réutilisé cette CI, validé son artefact non signé et atteint `Done` le
+  30 juillet 2026. Les vérifications interactives de T0007 restent suivies
+  séparément.
 
 ### Documentation updated
 
