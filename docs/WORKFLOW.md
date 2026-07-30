@@ -80,11 +80,45 @@ la faire et sur quel environnement ; le ticket reste `Verify`.
 1. Remplir le Completion Report dans le ticket.
 2. Actualiser `CURRENT_STATE.md` si l'état réel a changé.
 3. Ajouter les problèmes différés dans `KNOWN_ISSUES.md`.
-4. Mettre à jour une ADR seulement par une nouvelle ADR qui la remplace.
-5. Préparer le handoff Git avec les fichiers exacts du ticket.
-6. Vérifier le diff indexé, committer, pousser et ouvrir ou mettre à jour la PR.
-7. Faire relire la PR à Andy ; lui seul peut décider et effectuer le merge.
-8. Choisir le prochain ticket Ready.
+4. Traiter les candidats d'apprentissage selon `LEARNINGS.md`, sans dépasser les
+   zones autorisées du ticket.
+5. Mettre à jour une ADR seulement par une nouvelle ADR qui la remplace.
+6. Préparer le handoff Git avec les fichiers exacts du ticket.
+7. Vérifier le diff indexé, committer, pousser et ouvrir ou mettre à jour la PR.
+8. Faire relire la PR à Andy ; lui seul peut décider et effectuer le merge.
+9. Choisir le prochain ticket Ready.
+
+## Boucle d'apprentissage
+
+L'apprentissage du dépôt porte sur des faits observables, jamais sur une mémoire
+implicite de l'agent. Une difficulté rencontrée pendant un ticket suit cette
+boucle :
+
+1. **Capturer** : décrire le symptôme, le contexte, la conclusion erronée à
+   éviter et les diagnostics non destructifs exécutés.
+2. **Qualifier** : séparer `Observed`, `Reproduced`, `Codified`, `Enforced` et
+   `Stale` selon les définitions de `LEARNINGS.md`.
+3. **Reproduire** : chercher un second contexte indépendant ou une reproduction
+   déterministe, avec au moins un contre-exemple lorsque cela apporte une preuve.
+4. **Classer** : choisir la destination la plus étroite : Completion Report,
+   `KNOWN_ISSUES.md`, document spécialisé, script/test, puis seulement
+   `AGENTS.md` pour un invariant global.
+5. **Promouvoir** : relire la preuve, la portée, les risques et la date de
+   revalidation. Une promotion ne permet jamais de contourner `Allowed areas`.
+6. **Automatiser** : lorsqu'un contrôle déterministe est possible, créer un
+   ticket borné pour le script ou le test au lieu de conserver durablement une
+   consigne manuelle.
+7. **Revalider** : lors de la date prévue ou d'un changement de version,
+   confirmer, remplacer ou marquer `Stale` sans effacer l'historique.
+
+La capture d'une première occurrence est immédiate. La promotion exige deux
+occurrences indépendantes ou une reproduction déterministe. Une exception est
+admise pour un risque élevé de sécurité, de perte de données ou de faux succès :
+une occurrence reproductible peut alors être promue après revue explicite.
+
+Un candidat n'est pas un problème connu par défaut. Il rejoint
+`KNOWN_ISSUES.md` seulement s'il décrit un défaut réel hors périmètre nécessitant
+un suivi produit ou technique.
 
 ## Handoff Git de fin de ticket
 
@@ -179,4 +213,6 @@ Completion Report avec preuves, risques et follow-ups.
 - quels documents ont dérivé ?
 - quelle automatisation répétée mérite un script ou une skill ?
 
-Modifier le workflow uniquement sur la base d'un problème répété.
+Enregistrer une première observation sans attendre sa répétition. Modifier le
+workflow uniquement après avoir satisfait les seuils de promotion de
+`LEARNINGS.md`.
