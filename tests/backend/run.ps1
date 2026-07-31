@@ -284,6 +284,9 @@ function Get-BackendIssues {
     foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
         Require-Text $ciBackend "--schema $schema" "Backend CI backup scope is missing schema: $schema."
     }
+    if ($ciBackend -match '--no-privileges') {
+        $issues.Add("Backend CI restore must preserve database grants.")
+    }
     Require-Text $ciBackend 'pg_restore' "Backend CI does not restore into an isolated PostgreSQL database."
     Require-Text $ciBackend 'drop schema public cascade' "Backend CI does not remove the empty target public schema before restore."
     Require-Text $ciBackend '\\copy' "Backend CI does not export the replay journal through the unprivileged psql client."

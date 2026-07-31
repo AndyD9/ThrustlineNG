@@ -374,7 +374,6 @@ values
     $dumpTimer = [System.Diagnostics.Stopwatch]::StartNew()
     & $dockerPath exec $databaseContainer `
         pg_dump -U postgres -d postgres --format=custom --no-owner `
-            --no-privileges `
             --schema auth `
             --schema public `
             --schema private `
@@ -481,7 +480,7 @@ commit;
     $restoreTimer = [System.Diagnostics.Stopwatch]::StartNew()
     & $dockerPath exec $databaseContainer `
         pg_restore -U postgres --dbname $restoreDatabaseName --exit-on-error `
-            --no-owner --no-privileges $restoreBackupPath
+            --no-owner $restoreBackupPath
     if ($LASTEXITCODE -ne 0) {
         throw "PostgreSQL isolated restore failed."
     }
