@@ -281,6 +281,9 @@ function Get-BackendIssues {
     Require-Text $ciBackend '"1\|2\|1"' "Backend CI does not verify one request and two idempotency records."
     Require-Text $ciBackend 'Account lifecycle concurrency passed' "Backend CI does not report the concurrency proof."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
+    foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
+        Require-Text $ciBackend "--schema $schema" "Backend CI backup scope is missing schema: $schema."
+    }
     Require-Text $ciBackend 'pg_restore' "Backend CI does not restore into an isolated PostgreSQL database."
     Require-Text $ciBackend '\\copy' "Backend CI does not export the replay journal through the unprivileged psql client."
     Require-Text $ciBackend 'replay_account_deletion_event' "Backend CI does not replay deletion events."

@@ -112,6 +112,10 @@ Références :
 - La CI crée une identité et une compagnie synthétiques, prend un dump avant la
   demande de suppression, finalise la suppression dans la source, puis restaure
   le dump dans une base distincte du même moteur PostgreSQL 17.
+- Le dump logique est borné aux schémas applicatifs et Auth nécessaires
+  (`auth`, `public`, `private`, `extensions`, `supabase_migrations`) ; il exclut
+  notamment les secrets Vault et ne prétend pas restaurer tous les services
+  Supabase.
 - La base restaurée n'est pas servie par l'API Supabase et n'est jamais promue.
 - Le journal post-sauvegarde est extrait de la source puis appliqué sur la cible.
 - L'exercice confirme migrations, RLS, absence de résurrection, préservation du

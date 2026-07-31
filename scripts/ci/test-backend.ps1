@@ -374,7 +374,13 @@ values
     $dumpTimer = [System.Diagnostics.Stopwatch]::StartNew()
     & $dockerPath exec $databaseContainer `
         pg_dump -U postgres -d postgres --format=custom --no-owner `
-            --no-privileges --file $restoreBackupPath
+            --no-privileges `
+            --schema auth `
+            --schema public `
+            --schema private `
+            --schema extensions `
+            --schema supabase_migrations `
+            --file $restoreBackupPath
     if ($LASTEXITCODE -ne 0) {
         throw "PostgreSQL synthetic backup failed."
     }
@@ -632,6 +638,13 @@ select
         schemaVersion = 1
         environment = "ci-synthetic-postgresql-17"
         backupPoint = $backupPoint[0]
+        backupScope = @(
+            "auth",
+            "public",
+            "private",
+            "extensions",
+            "supabase_migrations"
+        )
         eventCount = 1
         dumpMilliseconds = $dumpTimer.ElapsedMilliseconds
         restoreMilliseconds = $restoreTimer.ElapsedMilliseconds
