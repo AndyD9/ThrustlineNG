@@ -1,6 +1,6 @@
 # Architecture du desktop
 
-## Cycle de vie des données T0017
+## Cycle de vie des données T0017–T0018
 
 `eng/data-policy.json` est la source canonique des catégories, environnements,
 durées maximales et capacités de cycle de vie. `docs/DATA_POLICY.md` en donne la
@@ -16,14 +16,20 @@ collecte minimale
 ```
 
 Une restauration reste fermée aux utilisateurs jusqu'au contrôle d'intégrité et
-au replay des suppressions postérieures au point restauré. Ces workflows sont
-des contraintes d'architecture, pas des capacités actuelles : export,
-suppression, purge, sauvegarde distante et restauration restent non implémentés.
+au replay des suppressions postérieures au point restauré. Purge, sauvegarde
+distante, restauration et replay restent non implémentés.
 
-Le futur grand livre est append-only, mais son lien personnel doit être
-anonymisable. La FK T0012 `companies.owner_id ... on delete restrict` impose une
-migration append-only et une commande serveur dédiées avant toute suppression de
-compte ; T0017 ne modifie pas le schéma existant.
+T0018 ajoute une migration append-only sans modifier la FK T0012. Trois
+commandes authentifiées demandent la suppression, récupèrent l'export et
+annulent pendant une fenêtre de 7 jours ; elles exigent une nouvelle session
+Supabase de 5 minutes au plus. Une quatrième commande, exécutable seulement par
+`service_role`, finalise la suppression dans une transaction. Les tables de
+cycle de vie sont dans `private`, sans privilège API et avec RLS activée/forcée.
+Les mutations directes de `companies` sont bloquées pendant l'attente.
+
+Le futur grand livre est append-only, mais son lien personnel doit rester
+anonymisable. T0018 couvre seulement l'identité Auth et la compagnie présentes ;
+il n'anticipe aucune écriture financière.
 
 ## Packaging Windows T0014
 

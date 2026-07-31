@@ -304,13 +304,27 @@ refusent les données de production. Les maxima initiaux sont de
 7 jours pour la télémétrie brute après rapport, 30 jours pour diagnostics et
 sauvegardes, et 90 jours pour les journaux sécurité.
 
-L'admission de données utilisateur réelles reste bloquée. Export, suppression,
+L'admission de données utilisateur réelles reste bloquée. T0018 implémente
+l'export et la suppression transactionnelle du compte actuel en local/CI, mais
 purge, anonymisation du futur grand livre, sauvegarde managée, restauration et
-replay des suppressions sont `Not implemented`. La FK actuelle
-`companies.owner_id ... on delete restrict` bloque la suppression directe d'un
-propriétaire Auth et est suivie par `KI-021`. La politique et son gate ne sont
-pas une preuve d'implémentation de ces capacités. Andy a validé T0017 le
-30 juillet 2026 ; le ticket est `Done`.
+replay des suppressions sont `Not implemented`. `KI-021` suit désormais ces
+contrôles de restauration manquants. Andy a validé T0017 le 30 juillet 2026 ; le
+ticket est `Done`.
+
+## Export et suppression de compte
+
+T0018 ajoute une migration append-only et quatre commandes serveur. Une session
+Supabase créée depuis 5 minutes au plus peut demander une suppression,
+récupérer l'export versionné et annuler pendant 7 jours. Les mutations directes
+de compagnie sont bloquées pendant ce délai. Seul `service_role` peut finaliser
+la suppression de la compagnie, de l'identité Auth et des liens temporaires.
+
+Deux resets, 4 fichiers pgTAP et 70 assertions passent sur PostgreSQL 17 dans le
+run GitHub `30616958479`. Deux transactions réellement concurrentes avec des
+clés différentes convergent vers une demande et deux enregistrements
+d'idempotence ; les types générés restent stables. La vérification manuelle
+Windows reste impossible car `KI-017` déclenche correctement l'arrêt fail-safe.
+T0018 reste donc `Verify` et aucune donnée réelle n'est admise.
 
 ## CI multi-stack
 
@@ -389,10 +403,10 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Créer T0018, ticket borné pour l'export et la suppression
-transactionnelle/idempotente d'un compte avant toute donnée utilisateur réelle.
-T0012 exige toujours un runtime Docker respectant la liaison loopback, Studio et
-le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
+Créer T0019, ticket borné pour une restauration PostgreSQL 17 isolée et le replay
+des suppressions T0018, sans projet distant ni donnée réelle. T0012 exige
+toujours un runtime Docker respectant la liaison loopback, Studio et le
+redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
 réels Windows 11/MSFS 2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier

@@ -27,27 +27,35 @@ function Get-BackendIssues {
     $packagePath = Join-Path $Root "package.json"
     $configPath = Join-Path $Root "supabase\config.toml"
     $migrationPath = Join-Path $Root "supabase\migrations\20260728000100_create_companies.sql"
+    $lifecycleMigrationPath = Join-Path $Root "supabase\migrations\20260731000100_account_lifecycle.sql"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $structureTestPath = Join-Path $Root "supabase\tests\database\companies_structure.test.sql"
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
+    $lifecycleStructureTestPath = Join-Path $Root "supabase\tests\database\account_lifecycle_structure.test.sql"
+    $lifecycleTestPath = Join-Path $Root "supabase\tests\database\account_lifecycle.test.sql"
     $typesPath = Join-Path $Root "packages\database\src\database.types.ts"
     $startScriptPath = Join-Path $Root "scripts\start-supabase-local.ps1"
     $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
     $dockerToolsPath = Join-Path $Root "scripts\docker-tools.ps1"
     $typeScriptPath = Join-Path $Root "scripts\generate-database-types.ps1"
+    $ciBackendPath = Join-Path $Root "scripts\ci\test-backend.ps1"
 
     $requiredPaths = @(
         $packagePath,
         $configPath,
         $migrationPath,
+        $lifecycleMigrationPath,
         $seedPath,
         $structureTestPath,
         $rlsTestPath,
+        $lifecycleStructureTestPath,
+        $lifecycleTestPath,
         $typesPath,
         $startScriptPath,
         $invokeScriptPath,
         $dockerToolsPath,
-        $typeScriptPath
+        $typeScriptPath,
+        $ciBackendPath
     )
     foreach ($path in $requiredPaths) {
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -148,6 +156,36 @@ function Get-BackendIssues {
         $issues.Add("A company policy grants an unintended role.")
     }
 
+    $lifecycleMigration = Get-Content -Raw -Encoding UTF8 $lifecycleMigrationPath
+    $lifecycleRequirements = @{
+        "private schema" = 'create schema if not exists private'
+        "deletion requests" = 'create table private\.account_deletion_requests'
+        "idempotency ledger" = 'create table private\.account_lifecycle_commands'
+        "non-personal markers" = 'create table private\.account_deletion_markers'
+        "seven-day window" = "interval '7 days'"
+        "forced private RLS" = 'alter table private\.account_deletion_requests force row level security'
+        "no API table grants" = 'revoke all on all tables in schema private from authenticated'
+        "session correlation" = 'from auth\.sessions as sessions'
+        "five-minute freshness" = "interval '5 minutes'"
+        "AMR validation" = "claims -> 'amr'"
+        "mutation gate" = 'private\.account_is_active\(owner_id\)'
+        "request command" = 'create function public\.request_account_deletion\(idempotency_key uuid\)'
+        "export recovery" = 'create function public\.get_account_export\(request_id uuid\)'
+        "cancel command" = 'create function public\.cancel_account_deletion\('
+        "server finalization" = 'create function public\.finalize_account_deletion\(request_id uuid\)'
+        "empty search path" = "set search_path = ''"
+        "SHA-256 export" = "'sha256'"
+        "Auth deletion" = 'delete from auth\.users'
+        "service-only finalizer" = 'grant execute on function public\.finalize_account_deletion\(uuid\) to service_role'
+        "authenticated finalizer revoked" = 'revoke all on function public\.finalize_account_deletion\(uuid\) from authenticated'
+    }
+    foreach ($entry in $lifecycleRequirements.GetEnumerator()) {
+        Require-Text $lifecycleMigration $entry.Value "Account lifecycle invariant missing: $($entry.Key)."
+    }
+    if ($lifecycleMigration -match '(?i)grant\s+execute\s+on\s+function\s+public\.finalize_account_deletion\(uuid\)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Account finalization must remain service-role-only.")
+    }
+
     $seed = Get-Content -Raw -Encoding UTF8 $seedPath
     Require-Text $seed 'pilot-a@thrustline\.invalid' "Synthetic user A is missing."
     Require-Text $seed 'pilot-b@thrustline\.invalid' "Synthetic user B is missing."
@@ -159,7 +197,11 @@ function Get-BackendIssues {
     $allTests = (
         (Get-Content -Raw -Encoding UTF8 $structureTestPath) +
         "`n" +
-        (Get-Content -Raw -Encoding UTF8 $rlsTestPath)
+        (Get-Content -Raw -Encoding UTF8 $rlsTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $lifecycleStructureTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $lifecycleTestPath)
     )
     foreach ($marker in @(
         "set local role authenticated",
@@ -171,6 +213,11 @@ function Get-BackendIssues {
         "anonymous cannot read companies",
         "anonymous cannot insert companies",
         "companies_one_per_owner",
+        "B cannot recover A export",
+        "a session older than five minutes is rejected",
+        "a token refresh is not accepted as reauthentication",
+        "an injected finalization failure rolls back the command",
+        "finalization replay returns the same non-personal marker",
         "rollback;"
     )) {
         if (-not $allTests.Contains($marker)) {
@@ -181,9 +228,19 @@ function Get-BackendIssues {
     $types = Get-Content -Raw -Encoding UTF8 $typesPath
     Require-Text $types 'companies:' "Generated types do not expose companies."
     Require-Text $types 'owner_id: string' "Generated types do not expose owner_id."
+    Require-Text $types 'request_account_deletion:' "Generated types do not expose the deletion request command."
+    Require-Text $types 'get_account_export:' "Generated types do not expose export recovery."
+    Require-Text $types 'cancel_account_deletion:' "Generated types do not expose deletion cancellation."
+    Require-Text $types 'finalize_account_deletion:' "Generated types do not expose server finalization."
 
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $typeScript '--network-id thrustline-local' "Type generation does not use the local Docker network."
+
+    $ciBackend = Get-Content -Raw -Encoding UTF8 $ciBackendPath
+    Require-Text $ciBackend 'Start-Job -ScriptBlock' "Backend CI does not create concurrent database sessions."
+    Require-Text $ciBackend 'select pg_sleep\(4\)' "Backend CI does not hold the first transaction for concurrency."
+    Require-Text $ciBackend '"1\|2\|1"' "Backend CI does not verify one request and two idempotency records."
+    Require-Text $ciBackend 'Account lifecycle concurrency passed' "Backend CI does not report the concurrency proof."
 
     return $issues
 }
@@ -196,7 +253,7 @@ if ($repositoryIssues.Count -gt 0) {
 }
 
 $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
-    "thrustline-t0012-" + [Guid]::NewGuid().ToString("N")
+    "thrustline-backend-" + [Guid]::NewGuid().ToString("N")
 )
 try {
     New-Item -ItemType Directory -Path $temporaryRoot | Out-Null
@@ -204,14 +261,18 @@ try {
         "package.json",
         "supabase\config.toml",
         "supabase\migrations\20260728000100_create_companies.sql",
+        "supabase\migrations\20260731000100_account_lifecycle.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
+        "supabase\tests\database\account_lifecycle_structure.test.sql",
+        "supabase\tests\database\account_lifecycle.test.sql",
         "packages\database\src\database.types.ts",
         "scripts\start-supabase-local.ps1",
         "scripts\invoke-supabase-local.ps1",
         "scripts\docker-tools.ps1",
-        "scripts\generate-database-types.ps1"
+        "scripts\generate-database-types.ps1",
+        "scripts\ci\test-backend.ps1"
     )) {
         $destination = Join-Path $temporaryRoot $relativePath
         New-Item -ItemType Directory -Force -Path (Split-Path $destination) | Out-Null
@@ -239,6 +300,21 @@ try {
         Write-Error "Harness self-test failed to detect a remote reset command."
         exit 1
     }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "scripts\invoke-supabase-local.ps1") -Destination $invokeCopy
+    $lifecycleMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260731000100_account_lifecycle.sql"
+    $lifecycleText = Get-Content -Raw -Encoding UTF8 $lifecycleMigrationCopy
+    $lifecycleText = $lifecycleText.Replace(
+        "grant execute on function public.finalize_account_deletion(uuid) to service_role;",
+        "grant execute on function public.finalize_account_deletion(uuid) to authenticated;"
+    )
+    [System.IO.File]::WriteAllText($lifecycleMigrationCopy, $lifecycleText)
+    $unsafeFinalizerIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unsafeFinalizerIssues -match "service-role-only") -or
+        -not ($unsafeFinalizerIssues -match "service-only finalizer")) {
+        Write-Error "Harness self-test failed to detect a client-executable finalizer."
+        exit 1
+    }
 }
 finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
@@ -246,4 +322,4 @@ finally {
     }
 }
 
-Write-Output "T0012 backend checks passed (repository plus 2 mutation scenarios)."
+Write-Output "Backend checks passed (T0012/T0018 repository plus 3 mutation scenarios)."

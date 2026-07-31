@@ -137,8 +137,8 @@
   },
   "capabilities": {
     "syntheticSeedGuard": "enforced",
-    "accountExport": "not-implemented",
-    "accountDeletion": "not-implemented",
+    "accountExport": "enforced-local-ci",
+    "accountDeletion": "enforced-local-ci",
     "retentionPurge": "not-implemented",
     "ledgerAnonymization": "not-implemented",
     "managedBackups": "not-implemented",
