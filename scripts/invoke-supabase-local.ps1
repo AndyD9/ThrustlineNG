@@ -8,28 +8,41 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$cli = Join-Path $repositoryRoot "node_modules\.bin\supabase.CMD"
 . (Join-Path $PSScriptRoot "docker-tools.ps1")
-
-if (-not (Test-Path -LiteralPath $cli -PathType Leaf)) {
-    throw "Supabase CLI missing. Run pnpm install --frozen-lockfile."
-}
+. (Join-Path $PSScriptRoot "supabase-local-runtime.ps1")
 
 $dockerPath = Get-DockerCliPath
 Enable-DockerCliForProcess -DockerPath $dockerPath
 
-$arguments = switch ($Action) {
-    "Reset" { @("db", "reset", "--local") }
-    "Test" { @("test", "db", "--network-id", "thrustline-local") }
-    "Stop" { @("stop", "--project-id", "thrustline-ng") }
+$runtimeExists = Test-DockerResourceExists `
+    -ResourceType container `
+    -Name $script:SupabaseEngineContainer `
+    -DockerPath $dockerPath
+
+if ($Action -eq "Stop") {
+    if (-not $runtimeExists) {
+        Write-Output "Supabase local runtime is already stopped."
+        exit 0
+    }
+    try {
+        Invoke-IsolatedSupabaseCli `
+            -DockerPath $dockerPath `
+            -Arguments @("stop", "--project-id", $script:SupabaseProjectId) `
+            -SuppressOutput
+    }
+    finally {
+        Remove-SupabaseLocalRuntime -DockerPath $dockerPath -PreserveImageCache
+    }
+    Write-Output "Supabase local runtime stopped; only its source-free image cache is retained."
+    exit 0
 }
 
-Push-Location $repositoryRoot
-try {
-    & $cli @arguments
-    exit $LASTEXITCODE
+if (-not $runtimeExists) {
+    throw "Supabase local runtime is not running. Run pnpm backend:start first."
 }
-finally {
-    Pop-Location
+
+$arguments = switch ($Action) {
+    "Reset" { @("db", "reset", "--local") }
+    "Test" { @("test", "db") }
 }
+Invoke-IsolatedSupabaseCli -DockerPath $dockerPath -Arguments $arguments

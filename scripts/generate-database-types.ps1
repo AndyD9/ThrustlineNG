@@ -7,30 +7,26 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$cli = Join-Path $repositoryRoot "node_modules\.bin\supabase.CMD"
 $target = Join-Path $repositoryRoot "packages\database\src\database.types.ts"
 . (Join-Path $PSScriptRoot "docker-tools.ps1")
-
-if (-not (Test-Path -LiteralPath $cli -PathType Leaf)) {
-    throw "Supabase CLI missing. Run pnpm install --frozen-lockfile."
-}
+. (Join-Path $PSScriptRoot "supabase-local-runtime.ps1")
 
 $dockerPath = Get-DockerCliPath
 Enable-DockerCliForProcess -DockerPath $dockerPath
 
-Push-Location $repositoryRoot
-try {
-    $generatedLines = & $cli gen types typescript `
-        --local `
-        --schema public `
-        --network-id thrustline-local
-    if ($LASTEXITCODE -ne 0) {
-        throw "Supabase type generation failed. Ensure the local stack is running."
-    }
+if (-not (Test-DockerResourceExists -ResourceType container -Name $script:SupabaseEngineContainer -DockerPath $dockerPath)) {
+    throw "Supabase local runtime is not running. Run pnpm backend:start first."
 }
-finally {
-    Pop-Location
-}
+
+$generatedLines = @(
+    Invoke-IsolatedSupabaseCli `
+        -DockerPath $dockerPath `
+        -Arguments @(
+            "gen", "types", "typescript",
+            "--local",
+            "--schema", "public"
+        )
+)
 
 $generated = (($generatedLines -join "`n").TrimEnd() + "`n")
 

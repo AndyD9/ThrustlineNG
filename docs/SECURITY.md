@@ -86,13 +86,16 @@ non fiables. La table `companies` impose côté PostgreSQL :
 Le seed utilise uniquement deux UUID, adresses `.invalid` et compagnies
 synthétiques, sans mot de passe utilisable. Les scripts racine ciblent
 explicitement la pile locale et n'exposent ni `link`, ni `db push`, ni reset
-`--linked`. Le démarrage crée ou réutilise un réseau Docker demandé en loopback
-et le transmet explicitement à la CLI. Il masque la sortie de démarrage, inspecte
-ensuite les ports réellement publiés et arrête immédiatement la pile si Docker
-expose un port sur `0.0.0.0` ou `[::]`. Cette protection est nécessaire car
-Docker Desktop 29.6.2 a ignoré l'option loopback dans l'environnement vérifié.
-Le harnais statique injecte une politique manquante et un reset distant pour
-prouver que ces deux régressions sont détectées.
+`--linked`. T0021 place Supabase dans un daemon Docker-in-Docker privilégié mais
+sans socket Docker hôte, montage du dépôt ou port d'administration publié. La
+CLI reçoit seulement une copie filtrée de `supabase/`; son paquet Linux est
+vérifié contre l'intégrité SHA-512 du lockfile et les images de base sont
+épinglées par digest. Les publications wildcard restent dans cette frontière et
+les trois ports utiles sont republiés vers Windows avec un `HostIp` explicite
+`127.0.0.1`. Le démarrage désactive la télémétrie CLI, masque les credentials,
+vérifie les liaisons externes et nettoie la pile sur tout écart. Le harnais statique exécute sept mutations,
+notamment politique manquante, reset distant, publication wildcard et montage
+du socket Docker hôte.
 
 La pile locale utilise des credentials de développement, n'a pas de TLS ni les
 contrôles complets de la plateforme managée. Elle doit rester sur la machine de
