@@ -38,6 +38,7 @@ function Get-BackendIssues {
     $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
     $dockerToolsPath = Join-Path $Root "scripts\docker-tools.ps1"
     $typeScriptPath = Join-Path $Root "scripts\generate-database-types.ps1"
+    $ciBackendPath = Join-Path $Root "scripts\ci\test-backend.ps1"
 
     $requiredPaths = @(
         $packagePath,
@@ -53,7 +54,8 @@ function Get-BackendIssues {
         $startScriptPath,
         $invokeScriptPath,
         $dockerToolsPath,
-        $typeScriptPath
+        $typeScriptPath,
+        $ciBackendPath
     )
     foreach ($path in $requiredPaths) {
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -234,6 +236,12 @@ function Get-BackendIssues {
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $typeScript '--network-id thrustline-local' "Type generation does not use the local Docker network."
 
+    $ciBackend = Get-Content -Raw -Encoding UTF8 $ciBackendPath
+    Require-Text $ciBackend 'Start-Job -ScriptBlock' "Backend CI does not create concurrent database sessions."
+    Require-Text $ciBackend 'select pg_sleep\(4\)' "Backend CI does not hold the first transaction for concurrency."
+    Require-Text $ciBackend '"1\|2\|1"' "Backend CI does not verify one request and two idempotency records."
+    Require-Text $ciBackend 'Account lifecycle concurrency passed' "Backend CI does not report the concurrency proof."
+
     return $issues
 }
 
@@ -263,7 +271,8 @@ try {
         "scripts\start-supabase-local.ps1",
         "scripts\invoke-supabase-local.ps1",
         "scripts\docker-tools.ps1",
-        "scripts\generate-database-types.ps1"
+        "scripts\generate-database-types.ps1",
+        "scripts\ci\test-backend.ps1"
     )) {
         $destination = Join-Path $temporaryRoot $relativePath
         New-Item -ItemType Directory -Force -Path (Split-Path $destination) | Out-Null

@@ -150,6 +150,153 @@ try {
         throw "Supabase pgTAP did not prove all four files with Result: PASS."
     }
 
+    $concurrencyUserId = "44000000-0000-4000-8000-000000000004"
+    $concurrencySessionId = "44100000-0000-4000-8000-000000000004"
+    $concurrencyCompanyId = "d4000000-0000-4000-8000-000000000004"
+    $concurrencyClaims = @{
+        role = "authenticated"
+        sub = $concurrencyUserId
+        session_id = $concurrencySessionId
+        is_anonymous = $false
+        amr = @(
+            @{
+                method = "password"
+                timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+            }
+        )
+    } | ConvertTo-Json -Compress -Depth 4
+    $escapedClaims = $concurrencyClaims.Replace("'", "''")
+    $setupSql = @"
+insert into auth.users (id, email, raw_user_meta_data)
+values (
+    '$concurrencyUserId',
+    'lifecycle-concurrency@thrustline.invalid',
+    '{}'
+);
+insert into auth.sessions (id, user_id, created_at, updated_at)
+values (
+    '$concurrencySessionId',
+    '$concurrencyUserId',
+    clock_timestamp(),
+    clock_timestamp()
+);
+insert into public.companies (id, owner_id, name)
+values (
+    '$concurrencyCompanyId',
+    '$concurrencyUserId',
+    'Lifecycle Concurrency Air'
+);
+"@
+    $firstSql = @"
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '$escapedClaims', true);
+select public.request_account_deletion(
+    'aa400000-0000-4000-8000-000000000001'
+) ->> 'requestId';
+select pg_sleep(4);
+commit;
+"@
+    $secondSql = @"
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '$escapedClaims', true);
+select public.request_account_deletion(
+    'aa400000-0000-4000-8000-000000000002'
+) ->> 'requestId';
+commit;
+"@
+    $cleanupSql = @"
+delete from private.account_lifecycle_commands
+where owner_id = '$concurrencyUserId';
+delete from private.account_deletion_requests
+where owner_id = '$concurrencyUserId';
+delete from public.companies
+where owner_id = '$concurrencyUserId';
+delete from auth.users
+where id = '$concurrencyUserId';
+"@
+
+    & $dockerPath exec $databaseContainers[0] `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $setupSql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the account lifecycle concurrency scenario."
+    }
+
+    $concurrencyJobs = @()
+    try {
+        $concurrencyJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) {
+                throw "First concurrent database session failed."
+            }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $firstSql
+
+        Start-Sleep -Milliseconds 750
+
+        $concurrencyJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) {
+                throw "Second concurrent database session failed."
+            }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $secondSql
+
+        $concurrencyJobs | Wait-Job | Out-Null
+        $concurrencyOutput = @(
+            $concurrencyJobs | Receive-Job
+        )
+        $requestIds = @(
+            $concurrencyOutput |
+                ForEach-Object { [string]$_ } |
+                Where-Object { $_ -match '^[0-9a-f-]{36}$' }
+        )
+        if ($concurrencyJobs.State -contains "Failed" -or
+            $requestIds.Count -ne 2 -or
+            @($requestIds | Select-Object -Unique).Count -ne 1) {
+            throw "Concurrent account deletion requests did not converge."
+        }
+
+        $convergenceSql = @"
+select
+    count(*) filter (where cancelled_at is null),
+    (
+        select count(*)
+        from private.account_lifecycle_commands
+        where owner_id = '$concurrencyUserId'
+          and operation = 'request_deletion'
+    ),
+    (
+        select count(distinct response ->> 'requestId')
+        from private.account_lifecycle_commands
+        where owner_id = '$concurrencyUserId'
+          and operation = 'request_deletion'
+    )
+from private.account_deletion_requests
+where owner_id = '$concurrencyUserId';
+"@
+        $convergence = @(
+            & $dockerPath exec $databaseContainers[0] `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $convergenceSql
+        )
+        if ($LASTEXITCODE -ne 0 -or
+            ($convergence -join "").Trim() -ne "1|2|1") {
+            throw "Concurrent account lifecycle state is not idempotent."
+        }
+        Write-Output "Account lifecycle concurrency passed: 2 sessions, 1 request, 2 idempotency records."
+    }
+    finally {
+        $concurrencyJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+        & $dockerPath exec $databaseContainers[0] `
+            psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $cleanupSql
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to clean the synthetic concurrency scenario."
+        }
+    }
+
     $generatedLines = @(
         & pnpm exec supabase gen types typescript `
             --local `
@@ -169,7 +316,7 @@ try {
         throw "Generated database types are stale."
     }
 
-    Write-Output "Backend CI passed: 2 resets, 4 pgTAP files, PASS, stable types, loopback ports."
+    Write-Output "Backend CI passed: 2 resets, 4 pgTAP files, 70 assertions, concurrent idempotence, stable types, loopback ports."
 }
 finally {
     if ($started) {
