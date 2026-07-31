@@ -28,11 +28,14 @@ function Get-BackendIssues {
     $configPath = Join-Path $Root "supabase\config.toml"
     $migrationPath = Join-Path $Root "supabase\migrations\20260728000100_create_companies.sql"
     $lifecycleMigrationPath = Join-Path $Root "supabase\migrations\20260731000100_account_lifecycle.sql"
+    $restoreMigrationPath = Join-Path $Root "supabase\migrations\20260731000200_account_deletion_restore_replay.sql"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $structureTestPath = Join-Path $Root "supabase\tests\database\companies_structure.test.sql"
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
     $lifecycleStructureTestPath = Join-Path $Root "supabase\tests\database\account_lifecycle_structure.test.sql"
     $lifecycleTestPath = Join-Path $Root "supabase\tests\database\account_lifecycle.test.sql"
+    $restoreStructureTestPath = Join-Path $Root "supabase\tests\database\account_restore_replay_structure.test.sql"
+    $restoreTestPath = Join-Path $Root "supabase\tests\database\account_restore_replay.test.sql"
     $typesPath = Join-Path $Root "packages\database\src\database.types.ts"
     $startScriptPath = Join-Path $Root "scripts\start-supabase-local.ps1"
     $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
@@ -45,11 +48,14 @@ function Get-BackendIssues {
         $configPath,
         $migrationPath,
         $lifecycleMigrationPath,
+        $restoreMigrationPath,
         $seedPath,
         $structureTestPath,
         $rlsTestPath,
         $lifecycleStructureTestPath,
         $lifecycleTestPath,
+        $restoreStructureTestPath,
+        $restoreTestPath,
         $typesPath,
         $startScriptPath,
         $invokeScriptPath,
@@ -186,6 +192,29 @@ function Get-BackendIssues {
         $issues.Add("Account finalization must remain service-role-only.")
     }
 
+    $restoreMigration = Get-Content -Raw -Encoding UTF8 $restoreMigrationPath
+    $restoreRequirements = @{
+        "private restoration subjects" = 'create table private\.account_restoration_subjects'
+        "private replay events" = 'create table private\.account_deletion_replay_events'
+        "opaque subject token" = 'subject_token uuid primary key default gen_random_uuid\(\)'
+        "existing company backfill" = 'from public\.companies as companies'
+        "future company trigger" = 'create trigger companies_create_restoration_subject'
+        "forced subject RLS" = 'alter table private\.account_restoration_subjects force row level security'
+        "forced event RLS" = 'alter table private\.account_deletion_replay_events force row level security'
+        "atomic source event" = 'insert into private\.account_deletion_replay_events'
+        "replay command" = 'create function public\.replay_account_deletion_event\('
+        "service-only replay" = 'to service_role'
+        "conflict rejection" = 'Deletion replay event conflicts with the recorded event'
+        "unknown event rejection" = 'Deletion replay event does not match the restored backup'
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $restoreRequirements.GetEnumerator()) {
+        Require-Text $restoreMigration $entry.Value "Restore replay invariant missing: $($entry.Key)."
+    }
+    if ($restoreMigration -match '(?is)grant\s+execute\s+on\s+function\s+public\.replay_account_deletion_event\(.*?\)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Deletion replay must remain service-role-only.")
+    }
+
     $seed = Get-Content -Raw -Encoding UTF8 $seedPath
     Require-Text $seed 'pilot-a@thrustline\.invalid' "Synthetic user A is missing."
     Require-Text $seed 'pilot-b@thrustline\.invalid' "Synthetic user B is missing."
@@ -201,7 +230,11 @@ function Get-BackendIssues {
         "`n" +
         (Get-Content -Raw -Encoding UTF8 $lifecycleStructureTestPath) +
         "`n" +
-        (Get-Content -Raw -Encoding UTF8 $lifecycleTestPath)
+        (Get-Content -Raw -Encoding UTF8 $lifecycleTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $restoreStructureTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $restoreTestPath)
     )
     foreach ($marker in @(
         "set local role authenticated",
@@ -218,6 +251,11 @@ function Get-BackendIssues {
         "a token refresh is not accepted as reauthentication",
         "an injected finalization failure rolls back the command",
         "finalization replay returns the same non-personal marker",
+        "authenticated cannot invoke deletion replay",
+        "replay preserves the unrelated owner B",
+        "an altered replay event is rejected",
+        "an unknown replay subject fails closed",
+        "an injected replay failure rolls back the transaction",
         "rollback;"
     )) {
         if (-not $allTests.Contains($marker)) {
@@ -232,6 +270,7 @@ function Get-BackendIssues {
     Require-Text $types 'get_account_export:' "Generated types do not expose export recovery."
     Require-Text $types 'cancel_account_deletion:' "Generated types do not expose deletion cancellation."
     Require-Text $types 'finalize_account_deletion:' "Generated types do not expose server finalization."
+    Require-Text $types 'replay_account_deletion_event:' "Generated types do not expose deletion replay."
 
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $typeScript '--network-id thrustline-local' "Type generation does not use the local Docker network."
@@ -241,6 +280,23 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'select pg_sleep\(4\)' "Backend CI does not hold the first transaction for concurrency."
     Require-Text $ciBackend '"1\|2\|1"' "Backend CI does not verify one request and two idempotency records."
     Require-Text $ciBackend 'Account lifecycle concurrency passed' "Backend CI does not report the concurrency proof."
+    Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
+    foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
+        Require-Text $ciBackend "--schema $schema" "Backend CI backup scope is missing schema: $schema."
+    }
+    if ($ciBackend -match '--no-privileges') {
+        $issues.Add("Backend CI restore must preserve database grants.")
+    }
+    Require-Text $ciBackend "grep -v ' DEFAULT ACL '" "Backend CI does not narrowly exclude role-owned default ACL entries."
+    Require-Text $ciBackend '--use-list \$restoreFilteredListPath' "Backend CI does not restore from the reviewed archive list."
+    Require-Text $ciBackend 'pg_restore' "Backend CI does not restore into an isolated PostgreSQL database."
+    Require-Text $ciBackend 'create extension if not exists pgcrypto with schema extensions' "Backend CI does not reinstall pgcrypto after logical restore."
+    Require-Text $ciBackend 'Restored pgcrypto extension version differs from the source' "Backend CI does not compare source and restored pgcrypto versions."
+    Require-Text $ciBackend 'drop schema public cascade' "Backend CI does not remove the empty target public schema before restore."
+    Require-Text $ciBackend '\\copy' "Backend CI does not export the replay journal through the unprivileged psql client."
+    Require-Text $ciBackend 'replay_account_deletion_event' "Backend CI does not replay deletion events."
+    Require-Text $ciBackend 'Isolated restore replay passed' "Backend CI does not report the restore replay proof."
+    Require-Text $ciBackend 'dropdb.+--if-exists' "Backend CI does not guarantee restored database cleanup."
 
     return $issues
 }
@@ -262,11 +318,14 @@ try {
         "supabase\config.toml",
         "supabase\migrations\20260728000100_create_companies.sql",
         "supabase\migrations\20260731000100_account_lifecycle.sql",
+        "supabase\migrations\20260731000200_account_deletion_restore_replay.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
         "supabase\tests\database\account_lifecycle_structure.test.sql",
         "supabase\tests\database\account_lifecycle.test.sql",
+        "supabase\tests\database\account_restore_replay_structure.test.sql",
+        "supabase\tests\database\account_restore_replay.test.sql",
         "packages\database\src\database.types.ts",
         "scripts\start-supabase-local.ps1",
         "scripts\invoke-supabase-local.ps1",
@@ -315,6 +374,21 @@ try {
         Write-Error "Harness self-test failed to detect a client-executable finalizer."
         exit 1
     }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260731000100_account_lifecycle.sql") -Destination $lifecycleMigrationCopy
+    $restoreMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260731000200_account_deletion_restore_replay.sql"
+    $restoreText = Get-Content -Raw -Encoding UTF8 $restoreMigrationCopy
+    $restoreText = $restoreText.Replace(
+        ") to service_role;",
+        ") to authenticated;"
+    )
+    [System.IO.File]::WriteAllText($restoreMigrationCopy, $restoreText)
+    $unsafeReplayIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unsafeReplayIssues -match "service-role-only") -or
+        -not ($unsafeReplayIssues -match "service-only replay")) {
+        Write-Error "Harness self-test failed to detect a client-executable restore replay."
+        exit 1
+    }
 }
 finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
@@ -322,4 +396,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012/T0018 repository plus 3 mutation scenarios)."
+Write-Output "Backend checks passed (T0012/T0018/T0019 repository plus 4 mutation scenarios)."

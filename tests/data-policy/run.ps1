@@ -34,6 +34,8 @@ function Get-DataPolicyIssues {
     $migrationPath = Join-Path $Root "supabase\migrations\20260728000100_create_companies.sql"
     $lifecycleMigrationPath = Join-Path $Root "supabase\migrations\20260731000100_account_lifecycle.sql"
     $lifecycleTestPath = Join-Path $Root "supabase\tests\database\account_lifecycle.test.sql"
+    $restoreMigrationPath = Join-Path $Root "supabase\migrations\20260731000200_account_deletion_restore_replay.sql"
+    $restoreTestPath = Join-Path $Root "supabase\tests\database\account_restore_replay.test.sql"
     $backendCiPath = Join-Path $Root "scripts\ci\test-backend.ps1"
     $packagePath = Join-Path $Root "package.json"
     $ciPath = Join-Path $Root ".github\workflows\ci.yml"
@@ -47,6 +49,8 @@ function Get-DataPolicyIssues {
         $migrationPath,
         $lifecycleMigrationPath,
         $lifecycleTestPath,
+        $restoreMigrationPath,
+        $restoreTestPath,
         $backendCiPath,
         $packagePath,
         $ciPath,
@@ -184,8 +188,8 @@ function Get-DataPolicyIssues {
         retentionPurge = "not-implemented"
         ledgerAnonymization = "not-implemented"
         managedBackups = "not-implemented"
-        restoreDrill = "not-implemented"
-        deletionReplayAfterRestore = "not-implemented"
+        restoreDrill = "enforced-local-ci"
+        deletionReplayAfterRestore = "enforced-local-ci"
     }
     foreach ($entry in $expectedCapabilities.GetEnumerator()) {
         if ([string]$policy.capabilities.($entry.Key) -ne $entry.Value) {
@@ -225,6 +229,17 @@ function Get-DataPolicyIssues {
         $lifecycleTest -notmatch "an injected finalization failure rolls back" -or
         $backendCi -notmatch "Account lifecycle concurrency passed") {
         $issues.Add("Local-CI account export/deletion evidence is incomplete.")
+    }
+
+    $restoreMigration = Get-Content -Raw -Encoding UTF8 $restoreMigrationPath
+    $restoreTest = Get-Content -Raw -Encoding UTF8 $restoreTestPath
+    if ($restoreMigration -notmatch "private\.account_restoration_subjects" -or
+        $restoreMigration -notmatch "public\.replay_account_deletion_event" -or
+        $restoreTest -notmatch "replay preserves the unrelated owner B" -or
+        $restoreTest -notmatch "an injected replay failure rolls back" -or
+        $backendCi -notmatch "pg_restore" -or
+        $backendCi -notmatch "Isolated restore replay passed") {
+        $issues.Add("Local-CI isolated restore/deletion replay evidence is incomplete.")
     }
 
     $documentation = Get-Content -Raw -Encoding UTF8 $documentationPath
@@ -278,6 +293,8 @@ try {
         "supabase\migrations\20260728000100_create_companies.sql",
         "supabase\migrations\20260731000100_account_lifecycle.sql",
         "supabase\tests\database\account_lifecycle.test.sql",
+        "supabase\migrations\20260731000200_account_deletion_restore_replay.sql",
+        "supabase\tests\database\account_restore_replay.test.sql",
         "scripts\ci\test-backend.ps1",
         "package.json",
         ".github\workflows\ci.yml",
@@ -339,6 +356,19 @@ try {
     if (-not ($capabilityIssues -match "Unexpected capability status for accountDeletion")) {
         throw "Harness self-test failed to detect account-deletion status drift."
     }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "eng\data-policy.json") -Destination $policyCopy
+    $mutation = Get-Content -Raw -Encoding UTF8 $policyCopy | ConvertFrom-Json
+    $mutation.capabilities.deletionReplayAfterRestore = "not-implemented"
+    [System.IO.File]::WriteAllText(
+        $policyCopy,
+        ($mutation | ConvertTo-Json -Depth 12),
+        [System.Text.UTF8Encoding]::new($false)
+    )
+    $restoreCapabilityIssues = @(Get-DataPolicyIssues -Root $temporaryRoot)
+    if (-not ($restoreCapabilityIssues -match "Unexpected capability status for deletionReplayAfterRestore")) {
+        throw "Harness self-test failed to detect restore-replay status drift."
+    }
 }
 finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
@@ -346,4 +376,4 @@ finally {
     }
 }
 
-Write-Output "Data policy checks passed (T0017/T0018 repository plus 4 mutation scenarios)."
+Write-Output "Data policy checks passed (T0017/T0018/T0019 repository plus 5 mutation scenarios)."

@@ -1,6 +1,6 @@
 begin;
 
-select plan(33);
+select plan(35);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -491,6 +491,13 @@ select results_eq(
     'rollback leaves no false completion marker'
 );
 
+select results_eq(
+    $$select count(*)::bigint
+      from private.account_deletion_replay_events$$,
+    array[0::bigint],
+    'rollback leaves no false deletion replay event'
+);
+
 drop trigger t0018_inject_auth_delete_failure on auth.users;
 drop function public.t0018_inject_auth_delete_failure();
 
@@ -552,6 +559,19 @@ select ok(
         from private.account_deletion_markers as markers
     ),
     'the completion marker contains no direct identity or exported content'
+);
+
+select results_eq(
+    $$select count(*)::bigint
+      from private.account_deletion_replay_events as events
+      join private.account_deletion_markers as markers
+        on markers.request_token_hash = events.request_token_hash
+       and markers.marker_id = events.marker_id
+       and markers.completed_at = events.completed_at
+       and markers.export_schema_version = events.export_schema_version
+      where events.event_schema_version = 1$$,
+    array[1::bigint],
+    'finalization atomically records one versioned deletion replay event'
 );
 
 select * from finish();

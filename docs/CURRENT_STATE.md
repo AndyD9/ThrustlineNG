@@ -1,13 +1,17 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 30 juillet 2026 (revue conditionnelle du gate de
-phase 1 après clôture de T0006 et T0014).
+Dernière revue documentaire : 31 juillet 2026 (preuve CI T0019 de restauration
+isolée et replay des suppressions).
 Statut : les implémentations T0012 à T0017 sont fusionnées dans `main`. T0005,
 T0006 et T0013 à T0017 sont `Done`. La phase 0 est terminée, la phase 1 a
 franchi conditionnellement son gate de reproductibilité et la phase 2 est
 active sous interdiction de données utilisateur réelles. T0012 reste en
 vérification car Docker Desktop publie les ports Supabase hors loopback sur la
 machine locale.
+
+Les implémentations T0018 et T0019 sont présentes sur deux branches empilées,
+pas dans `main`. Elles restent `Verify` car la checklist Windows est bloquée par
+la même protection loopback.
 
 ## Produit
 
@@ -305,11 +309,12 @@ refusent les données de production. Les maxima initiaux sont de
 sauvegardes, et 90 jours pour les journaux sécurité.
 
 L'admission de données utilisateur réelles reste bloquée. T0018 implémente
-l'export et la suppression transactionnelle du compte actuel en local/CI, mais
-purge, anonymisation du futur grand livre, sauvegarde managée, restauration et
-replay des suppressions sont `Not implemented`. `KI-021` suit désormais ces
-contrôles de restauration manquants. Andy a validé T0017 le 30 juillet 2026 ; le
-ticket est `Done`.
+l'export et la suppression transactionnelle du compte actuel en local/CI. T0019
+prouve une restauration PostgreSQL 17 isolée et le replay post-sauvegarde sur
+données synthétiques. Purge, anonymisation du futur grand livre, sauvegarde
+managée, purge du journal pseudonyme et restauration de production restent
+`Not implemented`. `KI-021` suit ces contrôles restants. Andy a validé T0017 le
+30 juillet 2026 ; le ticket est `Done`.
 
 ## Export et suppression de compte
 
@@ -325,6 +330,29 @@ clés différentes convergent vers une demande et deux enregistrements
 d'idempotence ; les types générés restent stables. La vérification manuelle
 Windows reste impossible car `KI-017` déclenche correctement l'arrêt fail-safe.
 T0018 reste donc `Verify` et aucune donnée réelle n'est admise.
+
+## Restauration isolée et replay des suppressions
+
+T0019 ajoute un sujet de restauration opaque par compagnie et un événement
+pseudonyme écrit dans la transaction de finalisation T0018. `anon` et
+`authenticated` n'accèdent ni aux tables privées ni au replay ; seul
+`service_role` peut appliquer un événement. Le rejeu identique est idempotent,
+un contenu altéré ou un sujet inconnu échoue fermé et une panne injectée restaure
+la transaction.
+
+Le run GitHub `30621209180` valide deux resets, 6 fichiers pgTAP et
+105 assertions sur PostgreSQL 17, la concurrence T0018 et les types stables. Un
+dump pris avant la demande est restauré dans une base distincte non servie par
+PostgREST : A est supprimé, B reste intact, `pgcrypto` 1.3 correspond à la
+source, puis la cible et les fichiers temporaires sont détruits. Dump,
+restauration et replay ont pris respectivement 158 ms, 228 ms et 76 ms sur ce
+runner ; ces durées ne sont pas des objectifs RPO/RTO.
+
+La preuve est bornée aux schémas `auth`, `public`, `private`, `extensions` et
+`supabase_migrations`. Elle exclut Vault, Storage et les `DEFAULT ACL` des rôles
+internes ; elle ne prouve ni sauvegarde managée/chiffrée, ni purge, ni
+restauration ou promotion de production. T0019 reste `Verify` car la checklist
+Windows est bloquée par `KI-017`.
 
 ## CI multi-stack
 
@@ -403,11 +431,11 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Créer T0019, ticket borné pour une restauration PostgreSQL 17 isolée et le replay
-des suppressions T0018, sans projet distant ni donnée réelle. T0012 exige
-toujours un runtime Docker respectant la liaison loopback, Studio et le
-redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
-réels Windows 11/MSFS 2024 exigés par ADR-0003.
+Créer T0020, premier ticket borné du grand livre immuable et des commandes
+économiques transactionnelles/idempotentes, sans exposer de mutation sensible au
+client. T0012 exige toujours un runtime Docker respectant la liaison loopback,
+Studio et le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify`
+jusqu'aux essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier
 

@@ -142,7 +142,7 @@
     "retentionPurge": "not-implemented",
     "ledgerAnonymization": "not-implemented",
     "managedBackups": "not-implemented",
-    "restoreDrill": "not-implemented",
-    "deletionReplayAfterRestore": "not-implemented"
+    "restoreDrill": "enforced-local-ci",
+    "deletionReplayAfterRestore": "enforced-local-ci"
   }
 }
