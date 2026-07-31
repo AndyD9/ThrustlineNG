@@ -80,6 +80,7 @@ loopback du réseau et l'option daemon sont ignorées par Docker Desktop 29.6.2
 lorsque la CLI Supabase transmet un `HostIp` vide. Docker et les sockets Windows
 confirment les trois liaisons `127.0.0.1`; 8 fichiers/148 assertions et les types
 passent localement. T0021 reste `Verify` jusqu'à l'inspection visuelle de Studio.
+La PR brouillon #33 est empilée sur la branche T0020 de la PR #32.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

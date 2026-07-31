@@ -211,3 +211,12 @@ remet pas en cause la preuve réseau, mais empêche T0021 et T0012 de passer
 
 `docs/SETUP.md`, `docs/SECURITY.md`, `docs/QUALITY.md`,
 `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md` et l'index des tickets.
+
+### Git and PR
+
+- branche : `fix/T0021-windows-supabase-loopback` ;
+- commit d'implémentation : `14f9a45` ;
+- PR : #33, brouillon, base `feature/T0020-immutable-ledger`, head
+  `fix/T0021-windows-supabase-loopback` ;
+- dépendance : PR #32 et ses propres branches parentes ; aucun merge n'est
+  revendiqué.
