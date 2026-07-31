@@ -8,10 +8,11 @@ Depuis la racine :
 pnpm data-policy:check
 ```
 
-Le harnais T0017 valide la source JSON, quatre environnements, huit catégories,
-les maxima de rétention, les seeds synthétiques et l'intégration CI. Il doit
-réussir sur le dépôt et détecter trois mutations : catégorie absente, donnée de
-production autorisée en staging et délai de journaux supérieur à 90 jours.
+Le harnais T0017–T0019 valide la source JSON, quatre environnements, huit
+catégories, les maxima de rétention, les seeds synthétiques et l'intégration CI.
+Il détecte cinq mutations : catégorie absente, donnée de production autorisée en
+staging, délai de journaux supérieur à 90 jours, dérive de la suppression de
+compte et dérive du replay après restauration.
 
 Ce contrôle est statique : il ne transforme pas une suppression, une sauvegarde
 ou une restauration non exécutée en preuve. Ces capacités restent
@@ -55,12 +56,15 @@ pnpm backend:stop
 ```
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les quatre fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. Les 70 assertions couvrent aussi le cycle de
-compte T0018. Le job CI lance ensuite deux sessions PostgreSQL concurrentes et
-exige une demande unique, deux enregistrements d'idempotence et un identifiant
-de demande commun. `backend:types:check` régénère les types en mémoire et échoue
-si le fichier versionné diffère.
+les six fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 105 assertions couvrent le cycle de compte
+T0018 et le replay T0019. Le job CI lance ensuite deux sessions PostgreSQL
+concurrentes et exige une demande unique, deux enregistrements d'idempotence et
+un identifiant de demande commun. Il restaure aussi un dump synthétique pris
+avant suppression dans une base distincte, vérifie les ACL/RLS et `pgcrypto`,
+rejoue le journal, refuse les événements altéré/inconnu et détruit les fichiers
+et la cible. `backend:types:check` régénère les types en mémoire et échoue si le
+fichier versionné diffère.
 
 Preuve T0012 du 29 juillet 2026 sous Docker Desktop 29.6.2 : deux resets
 successifs réussis, 2 fichiers pgTAP/21 tests avec résultat PASS, génération et

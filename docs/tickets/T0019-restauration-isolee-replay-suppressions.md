@@ -1,6 +1,6 @@
 # T0019 — Restaurer sans ressusciter un compte supprimé
 
-Status: In progress
+Status: Verify
 Owner: Andy
 Branch: `security/T0019-isolated-restore-replay`
 Phase: 2
@@ -145,21 +145,21 @@ Références :
 
 ## Acceptance criteria
 
-- [ ] Une migration append-only attribue une identité opaque aux compagnies
+- [x] Une migration append-only attribue une identité opaque aux compagnies
       existantes et futures sans l'exposer aux rôles clients.
-- [ ] La finalisation T0018 et son événement de replay restent atomiques.
-- [ ] Le journal final est versionné, classé pseudonyme et ne contient aucune
+- [x] La finalisation T0018 et son événement de replay restent atomiques.
+- [x] Le journal final est versionné, classé pseudonyme et ne contient aucune
       identité directe ni contenu exporté.
-- [ ] Le replay `service_role` est idempotent, rejette une altération et échoue
+- [x] Le replay `service_role` est idempotent, rejette une altération et échoue
       fermé sur un événement inconnu.
-- [ ] Les pgTAP couvrent privilèges, RLS, A/B, rollback et invariants de format.
-- [ ] PostgreSQL 17 restaure un dump pris avant la demande, rejoue l'événement et
+- [x] Les pgTAP couvrent privilèges, RLS, A/B, rollback et invariants de format.
+- [x] PostgreSQL 17 restaure un dump pris avant la demande, rejoue l'événement et
       prouve que A ne ressuscite pas tandis que B reste intact.
-- [ ] Le harnais détruit la base, le dump et le journal temporaires dans un bloc
+- [x] Le harnais détruit la base, le dump et le journal temporaires dans un bloc
       de nettoyage garanti.
-- [ ] Deux resets, tous les pgTAP découverts, la concurrence T0018, les types et
+- [x] Deux resets, tous les pgTAP découverts, la concurrence T0018, les types et
       le nouvel exercice de restauration passent en CI.
-- [ ] La politique marque restauration/replay comme prouvés uniquement en
+- [x] La politique marque restauration/replay comme prouvés uniquement en
       local/CI synthétique ; sauvegardes managées et admission réelle restent
       bloquées.
 
@@ -220,18 +220,88 @@ rollback destructif n'est autorisé sur une pile contenant des données réelles
 
 ## Completion Report
 
-À remplir après implémentation.
-
 ### Summary
+
+Implémentation et validations automatisées terminées le 31 juillet 2026. La
+migration append-only ajoute un sujet de restauration opaque antérieur aux
+sauvegardes, écrit un événement pseudonyme dans la transaction T0018 et expose
+un replay `service_role` idempotent et fail-closed.
+
+Le ticket passe en `Verify` sur la PR brouillon empilée #31. La checklist Windows
+reste impossible car `KI-017` déclenche correctement l'arrêt fail-safe de la pile
+locale.
 
 ### Files changed
 
+- `supabase/migrations/20260731000200_account_deletion_restore_replay.sql` ;
+- `supabase/tests/database/account_restore_replay_structure.test.sql` et
+  `account_restore_replay.test.sql` ;
+- `supabase/tests/database/account_lifecycle.test.sql` ;
+- `scripts/ci/test-backend.ps1`, `tests/backend/run.ps1` et
+  `tests/data-policy/run.ps1` ;
+- `packages/database/src/database.types.ts` et `eng/data-policy.json` ;
+- documents architecture, sécurité, politique, qualité, état et suivi.
+
 ### Commands and results
+
+- `pnpm backend:check` — réussi : dépôt T0012/T0018/T0019 et 4 mutations
+  négatives, dont un replay rendu exécutable par `authenticated`.
+- `pnpm data-policy:check` — réussi après synchronisation : dépôt
+  T0017/T0018/T0019 et 5 mutations négatives.
+- analyse syntaxique PowerShell 7.6 de `scripts/ci/test-backend.ps1` — réussie.
+- `pnpm backend:start` sous Windows/Docker Desktop 29.6.2 — fail-safe réussi,
+  mais validation SQL locale bloquée : publication hors loopback détectée et
+  pile arrêtée (`KI-017`).
+- premier run CI `30619514780` — échec de fixture : date synthétique future ;
+  corrigée sans modifier le contrôle fail-closed.
+- runs intermédiaires `30619753208`, `30619983832`, `30620274874`,
+  `30620512711`, `30620726447` et `30620964468` — les 6 fichiers/105 assertions
+  passent progressivement ; les échecs de harnais ont révélé puis corrigé
+  l'export serveur trop privilégié, la portée Vault, le schéma `public` vide, la
+  restauration des ACL, les `DEFAULT ACL` de rôles internes et `pgcrypto`.
+- run GitHub `30621209180`, job `Supabase PostgreSQL 17` — réussi : 2 resets,
+  6 fichiers pgTAP, 105 assertions, `Result: PASS`, concurrence T0018, types
+  stables et ports loopback.
+- exercice T0019 du même run — réussi : dump 158 ms, restauration 228 ms,
+  replay 76 ms, `pgcrypto` 1.3 identique, un événement, A absent, B préservé,
+  rejeu idempotent, événements altéré/inconnu refusés, cible non servie par
+  PostgREST et nettoyage exécuté.
+- `git diff --check` et `git diff --cached --check` — réussis avant chaque
+  publication.
 
 ### Manual verification result
 
+Non exécutée sur Windows. `pnpm backend:start` reproduit `KI-017` et arrête la
+pile exposée ; les cinq scénarios sont automatisés sur PostgreSQL 17 CI mais ne
+sont pas requalifiés en vérification manuelle. Le ticket reste `Verify`.
+
 ### Risks and limitations
+
+- la preuve utilise uniquement des données synthétiques et une base distincte
+  dans le même conteneur PostgreSQL 17 ;
+- le dump couvre `auth`, `public`, `private`, `extensions` et
+  `supabase_migrations`, pas Vault, Storage ou tous les services Supabase ;
+- les ACL d'objets sont restaurées, mais les `DEFAULT ACL` des rôles internes
+  sont exclues ; la cible ne peut pas être promue ;
+- `pgcrypto` est réinstallé depuis la même image et comparé par version ;
+- aucune sauvegarde managée/chiffrée, purge du journal pseudonyme, rétention
+  automatique, RPO/RTO de production ou restauration de production n'est
+  prouvée ;
+- aucune donnée utilisateur réelle n'est admise.
 
 ### Follow-ups
 
+- `KI-017`/T0012 : runtime Windows loopback et checklist manuelle ;
+- `KI-021` : sauvegarde managée, purge du journal pseudonyme, Vault/Storage et
+  exercice de production avant admission de données réelles ;
+- T0020 recommandé : grand livre immuable et première commande économique
+  transactionnelle/idempotente.
+
 ### Documentation updated
+
+- `eng/data-policy.json` marque restauration/replay uniquement
+  `enforced-local-ci` et conserve `managedBackups` à `not-implemented` ;
+- `docs/DATA_POLICY.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md` et
+  `docs/QUALITY.md` décrivent la frontière prouvée et ses limites ;
+- `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md` et l'index distinguent branche,
+  PR, CI, vérification manuelle et admission réelle.
