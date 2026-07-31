@@ -44,6 +44,17 @@ export type Database = {
       }
       finalize_account_deletion: { Args: { request_id: string }; Returns: Json }
       get_account_export: { Args: { request_id: string }; Returns: Json }
+      replay_account_deletion_event: {
+        Args: {
+          completed_at: string
+          event_schema_version: number
+          export_schema_version: number
+          marker_id: string
+          request_token_hash: string
+          subject_token: string
+        }
+        Returns: Json
+      }
       request_account_deletion: {
         Args: { idempotency_key: string }
         Returns: Json

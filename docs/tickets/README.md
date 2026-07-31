@@ -32,6 +32,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0016 | Corriger l’avis de sécurité React Router | 1 | T0013 | Done |
 | T0017 | Définir et contrôler la politique de données | 0 | T0002–T0003, T0012 | Done |
 | T0018 | Exporter puis supprimer un compte sans perte ni double opération | 2 | T0012, T0017, revue phase 1 | Verify |
+| T0019 | Restaurer sans ressusciter un compte supprimé | 2 | T0017–T0018, T0013 | In progress |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -52,6 +53,11 @@ T0018 est le premier ticket détaillé de phase 2. Andy a validé le 31 juillet
 valide 4 fichiers/70 assertions, la concurrence et les types. Le ticket reste
 `Verify` sur `security/T0018-account-lifecycle` car `KI-017` empêche encore sa
 checklist manuelle Windows.
+
+T0019 est empilé sur `security/T0018-account-lifecycle`. Il borne la preuve à
+une sauvegarde synthétique restaurée dans une base PostgreSQL 17 distincte et au
+replay des suppressions T0018 avant réouverture. Il ne provisionne aucun projet
+distant, ne prouve aucune sauvegarde managée et n'autorise aucune donnée réelle.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

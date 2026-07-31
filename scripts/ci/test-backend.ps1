@@ -16,6 +16,10 @@ $projectId = "thrustline-ng"
 $started = $false
 $testNetworkCreated = $false
 $dockerPath = $null
+$databaseContainer = $null
+$restoreDatabaseName = "thrustline_t0019_restore"
+$restoreBackupPath = "/tmp/thrustline-t0019-restore.dump"
+$restoreJournalPath = "/tmp/thrustline-t0019-replay.tsv"
 
 function Invoke-Supabase {
     param(
@@ -125,6 +129,7 @@ try {
     if ($LASTEXITCODE -ne 0 -or $databaseContainers.Count -ne 1) {
         throw "Expected exactly one local Supabase database container."
     }
+    $databaseContainer = $databaseContainers[0]
     & $dockerPath network connect `
         --alias db `
         $testNetworkName `
@@ -146,8 +151,10 @@ try {
         $testText -notmatch "companies_rls\.test\.sql" -or
         $testText -notmatch "account_lifecycle_structure\.test\.sql" -or
         $testText -notmatch "account_lifecycle\.test\.sql" -or
+        $testText -notmatch "account_restore_replay_structure\.test\.sql" -or
+        $testText -notmatch "account_restore_replay\.test\.sql" -or
         $testText -notmatch "Result:\s+PASS") {
-        throw "Supabase pgTAP did not prove all four files with Result: PASS."
+        throw "Supabase pgTAP did not prove all six files with Result: PASS."
     }
 
     $concurrencyUserId = "44000000-0000-4000-8000-000000000004"
@@ -297,6 +304,358 @@ where owner_id = '$concurrencyUserId';
         }
     }
 
+    $restoreUserId = "48000000-0000-4000-8000-000000000008"
+    $restoreSessionId = "48100000-0000-4000-8000-000000000008"
+    $restoreCompanyId = "d8000000-0000-4000-8000-000000000008"
+    $witnessUserId = "49000000-0000-4000-8000-000000000009"
+    $witnessCompanyId = "d9000000-0000-4000-8000-000000000009"
+    $restoreRequestKey = "aa800000-0000-4000-8000-000000000008"
+    $restoreClaims = @{
+        role = "authenticated"
+        sub = $restoreUserId
+        session_id = $restoreSessionId
+        is_anonymous = $false
+        amr = @(
+            @{
+                method = "password"
+                timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+            }
+        )
+    } | ConvertTo-Json -Compress -Depth 4
+    $escapedRestoreClaims = $restoreClaims.Replace("'", "''")
+    $restoreSetupSql = @"
+insert into auth.users (id, email, raw_user_meta_data)
+values
+    (
+        '$restoreUserId',
+        'restore-drill-a@thrustline.invalid',
+        '{}'
+    ),
+    (
+        '$witnessUserId',
+        'restore-drill-b@thrustline.invalid',
+        '{}'
+    );
+insert into auth.sessions (id, user_id, created_at, updated_at)
+values (
+    '$restoreSessionId',
+    '$restoreUserId',
+    clock_timestamp(),
+    clock_timestamp()
+);
+insert into public.companies (id, owner_id, name)
+values
+    (
+        '$restoreCompanyId',
+        '$restoreUserId',
+        'Restore Drill Alpha Air'
+    ),
+    (
+        '$witnessCompanyId',
+        '$witnessUserId',
+        'Restore Drill Bravo Air'
+    );
+"@
+    & $dockerPath exec $databaseContainer `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $restoreSetupSql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the isolated restore scenario."
+    }
+
+    $backupPoint = @(
+        & $dockerPath exec $databaseContainer `
+            psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres `
+                -c "select clock_timestamp();"
+    )
+    if ($LASTEXITCODE -ne 0 -or $backupPoint.Count -ne 1) {
+        throw "Failed to record the synthetic backup point."
+    }
+
+    $dumpTimer = [System.Diagnostics.Stopwatch]::StartNew()
+    & $dockerPath exec $databaseContainer `
+        pg_dump -U postgres -d postgres --format=custom --no-owner `
+            --no-privileges --file $restoreBackupPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "PostgreSQL synthetic backup failed."
+    }
+    $dumpTimer.Stop()
+
+    $sourceDeletionSql = @"
+begin;
+set local role authenticated;
+select set_config('request.jwt.claims', '$escapedRestoreClaims', true);
+select public.request_account_deletion('$restoreRequestKey');
+commit;
+update private.account_deletion_requests
+set requested_at = statement_timestamp() - interval '8 days',
+    delete_after = statement_timestamp() - interval '1 day'
+where owner_id = '$restoreUserId';
+select set_config(
+    't0019.request_id',
+    (
+        select (commands.response ->> 'requestId')::text
+        from private.account_lifecycle_commands as commands
+        where commands.owner_id = '$restoreUserId'
+          and commands.operation = 'request_deletion'
+        order by commands.created_at
+        limit 1
+    ),
+    false
+);
+begin;
+set local role service_role;
+select public.finalize_account_deletion(
+    current_setting('t0019.request_id')::uuid
+);
+commit;
+"@
+    & $dockerPath exec $databaseContainer `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres `
+            -c $sourceDeletionSql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to finalize the post-backup synthetic deletion."
+    }
+
+    $journalSql = @"
+copy (
+    select
+        subject_token,
+        request_token_hash,
+        marker_id,
+        completed_at,
+        export_schema_version,
+        event_schema_version
+    from private.account_deletion_replay_events
+    where completed_at > '$($backupPoint[0])'::timestamptz
+    order by completed_at, subject_token
+) to '$restoreJournalPath' with (format csv, delimiter E'\t');
+"@
+    & $dockerPath exec $databaseContainer `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres `
+            -c $journalSql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to export the post-backup deletion journal."
+    }
+    $journalRows = @(
+        & $dockerPath exec $databaseContainer `
+            sh -c "wc -l < '$restoreJournalPath'"
+    )
+    if ($LASTEXITCODE -ne 0 -or
+        $journalRows.Count -ne 1 -or
+        ($journalRows[0] -as [int]) -ne 1) {
+        throw "Expected exactly one post-backup deletion replay event."
+    }
+    $eventFields = @(
+        & $dockerPath exec $databaseContainer `
+            cat $restoreJournalPath
+    )
+    if ($LASTEXITCODE -ne 0 -or $eventFields.Count -ne 1) {
+        throw "Failed to read the exported pseudonymous deletion replay event."
+    }
+    $event = $eventFields[0].Split("`t")
+    if ($event.Count -ne 6 -or
+        $event[0] -notmatch '^[0-9a-f-]{36}$' -or
+        $event[1] -notmatch '^[0-9a-f]{64}$' -or
+        $event[2] -notmatch '^[0-9a-f-]{36}$' -or
+        $event[4] -ne "1" -or
+        $event[5] -ne "1") {
+        throw "Deletion replay event format is invalid."
+    }
+
+    & $dockerPath exec $databaseContainer `
+        dropdb -U postgres --if-exists $restoreDatabaseName
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to clear the isolated restore database name."
+    }
+    & $dockerPath exec $databaseContainer `
+        createdb -U postgres --template=template0 $restoreDatabaseName
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to create the isolated restore database."
+    }
+
+    $restoreTimer = [System.Diagnostics.Stopwatch]::StartNew()
+    & $dockerPath exec $databaseContainer `
+        pg_restore -U postgres --dbname $restoreDatabaseName --exit-on-error `
+            --no-owner --no-privileges $restoreBackupPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "PostgreSQL isolated restore failed."
+    }
+    $restoreTimer.Stop()
+
+    $restContainers = @(
+        & $dockerPath ps `
+            --filter "label=com.supabase.cli.project=$projectId" `
+            --filter "name=supabase_rest_" `
+            --format "{{.ID}}"
+    )
+    if ($LASTEXITCODE -ne 0 -or $restContainers.Count -ne 1) {
+        throw "Expected exactly one local PostgREST container."
+    }
+    $restEnvironment = @(
+        & $dockerPath inspect `
+            --format "{{range .Config.Env}}{{println .}}{{end}}" `
+            $restContainers[0]
+    )
+    if ($LASTEXITCODE -ne 0 -or
+        -not ($restEnvironment -match '^PGRST_DB_URI=.*[/:]postgres(?:\?.*)?$')) {
+        throw "Could not prove that PostgREST remains bound to the source database."
+    }
+
+    $preReplayCheckSql = @"
+select
+    (select count(*) from auth.users where id = '$restoreUserId'),
+    (select count(*) from public.companies where owner_id = '$restoreUserId'),
+    (select count(*) from auth.users where id = '$witnessUserId'),
+    (select count(*) from public.companies where owner_id = '$witnessUserId'),
+    (
+        select count(*)
+        from pg_class
+        where oid in (
+            'private.account_restoration_subjects'::regclass,
+            'private.account_deletion_replay_events'::regclass
+        )
+          and relrowsecurity
+          and relforcerowsecurity
+    );
+"@
+    $preReplayState = @(
+        & $dockerPath exec $databaseContainer `
+            psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres `
+                -d $restoreDatabaseName -c $preReplayCheckSql
+    )
+    if ($LASTEXITCODE -ne 0 -or
+        ($preReplayState -join "").Trim() -ne "1|1|1|1|2") {
+        throw "Restored database integrity check failed before deletion replay."
+    }
+
+    $replaySql = @'
+begin;
+set local role service_role;
+select public.replay_account_deletion_event(
+    '__SUBJECT__',
+    '__REQUEST_HASH__',
+    '__MARKER__',
+    '__COMPLETED_AT__',
+    __EXPORT_VERSION__,
+    __EVENT_VERSION__
+);
+commit;
+begin;
+set local role service_role;
+select public.replay_account_deletion_event(
+    '__SUBJECT__',
+    '__REQUEST_HASH__',
+    '__MARKER__',
+    '__COMPLETED_AT__',
+    __EXPORT_VERSION__,
+    __EVENT_VERSION__
+);
+commit;
+do $altered$
+begin
+    begin
+        perform public.replay_account_deletion_event(
+            '__SUBJECT__',
+            '__REQUEST_HASH__',
+            'ee000000-0000-4000-8000-000000000001',
+            '__COMPLETED_AT__',
+            __EXPORT_VERSION__,
+            __EVENT_VERSION__
+        );
+        raise exception 'Altered replay event was accepted.';
+    exception
+        when invalid_parameter_value then
+            if sqlerrm <> 'Deletion replay event conflicts with the recorded event.' then
+                raise;
+            end if;
+    end;
+end;
+$altered$;
+do $unknown$
+begin
+    begin
+        perform public.replay_account_deletion_event(
+            'ee000000-0000-4000-8000-000000000002',
+            repeat('e', 64),
+            'ee000000-0000-4000-8000-000000000003',
+            '__COMPLETED_AT__',
+            1,
+            1
+        );
+        raise exception 'Unknown replay event was accepted.';
+    exception
+        when object_not_in_prerequisite_state then
+            if sqlerrm <> 'Deletion replay event does not match the restored backup.' then
+                raise;
+            end if;
+    end;
+end;
+$unknown$;
+'@
+    $replaySql = $replaySql.
+        Replace("__SUBJECT__", $event[0]).
+        Replace("__REQUEST_HASH__", $event[1]).
+        Replace("__MARKER__", $event[2]).
+        Replace("__COMPLETED_AT__", $event[3]).
+        Replace("__EXPORT_VERSION__", $event[4]).
+        Replace("__EVENT_VERSION__", $event[5])
+
+    $replayTimer = [System.Diagnostics.Stopwatch]::StartNew()
+    & $dockerPath exec $databaseContainer `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres `
+            -d $restoreDatabaseName -c $replaySql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Deletion replay failed in the isolated restored database."
+    }
+    $replayTimer.Stop()
+
+    $postReplayCheckSql = @"
+select
+    (select count(*) from auth.users where id = '$restoreUserId'),
+    (select count(*) from public.companies where owner_id = '$restoreUserId'),
+    (select count(*) from auth.users where id = '$witnessUserId'),
+    (select count(*) from public.companies where owner_id = '$witnessUserId'),
+    (
+        select count(*)
+        from private.account_deletion_replay_events
+        where subject_token = '$($event[0])'
+          and request_token_hash = '$($event[1])'
+          and marker_id = '$($event[2])'
+          and export_schema_version = 1
+          and event_schema_version = 1
+    );
+"@
+    $postReplayState = @(
+        & $dockerPath exec $databaseContainer `
+            psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres `
+                -d $restoreDatabaseName -c $postReplayCheckSql
+    )
+    if ($LASTEXITCODE -ne 0 -or
+        ($postReplayState -join "").Trim() -ne "0|0|1|1|1") {
+        throw "Deletion replay resurrected an account or changed the witness owner."
+    }
+
+    $restoreReport = [ordered]@{
+        schemaVersion = 1
+        environment = "ci-synthetic-postgresql-17"
+        backupPoint = $backupPoint[0]
+        eventCount = 1
+        dumpMilliseconds = $dumpTimer.ElapsedMilliseconds
+        restoreMilliseconds = $restoreTimer.ElapsedMilliseconds
+        replayMilliseconds = $replayTimer.ElapsedMilliseconds
+        restoredDatabaseServedBySupabaseApi = $false
+        replayIdempotent = $true
+        alteredEventRejected = $true
+        unknownEventRejected = $true
+        deletedOwnerAbsent = $true
+        witnessOwnerPreserved = $true
+        managedBackupProven = $false
+        realUserDataUsed = $false
+        result = "PASS"
+    }
+    Write-Output "Isolated restore replay passed:"
+    Write-Output ($restoreReport | ConvertTo-Json -Compress)
+
     $generatedLines = @(
         & pnpm exec supabase gen types typescript `
             --local `
@@ -316,9 +675,15 @@ where owner_id = '$concurrencyUserId';
         throw "Generated database types are stale."
     }
 
-    Write-Output "Backend CI passed: 2 resets, 4 pgTAP files, 70 assertions, concurrent idempotence, stable types, loopback ports."
+    Write-Output "Backend CI passed: 2 resets, 6 pgTAP files, 105 assertions, concurrent idempotence, isolated restore replay, stable types, loopback ports."
 }
 finally {
+    if ($null -ne $databaseContainer -and $null -ne $dockerPath) {
+        & $dockerPath exec $databaseContainer `
+            dropdb -U postgres --if-exists $restoreDatabaseName *> $null
+        & $dockerPath exec $databaseContainer `
+            rm -f $restoreBackupPath $restoreJournalPath *> $null
+    }
     if ($started) {
         Stop-SupabaseQuietly
     }
