@@ -7,14 +7,16 @@ T0006 et T0013 à T0017 sont `Done`. La phase 0 est terminée, la phase 1 a
 franchi conditionnellement son gate de reproductibilité et la phase 2 est
 active sous interdiction de données utilisateur réelles. T0021 résout `KI-017` :
 la pile locale est isolée et ses trois sockets Windows écoutent uniquement sur
-`127.0.0.1`. T0012 reste `Verify` car Studio n'a pas encore été inspecté
-visuellement.
+`127.0.0.1`. Andy confirme l'inspection visuelle de Studio le 31 juillet 2026.
+T0012 reste `Verify` tant que la correction T0021 n'est pas fusionnée dans
+`main`.
 
 Les implémentations T0018 et T0019 sont présentes sur deux branches empilées,
 pas dans `main`. Elles restent `Verify` car leurs checklists humaines n'ont pas
 été exécutées. T0020 est présent sur une troisième branche empilée et reste aussi
 `Verify` pour sa checklist humaine ; ses preuves PostgreSQL 17 CI et locale sont
-vertes. T0021 est empilé sur T0020 et reste `Verify` pour l'inspection Studio.
+vertes. T0021 est empilé sur T0020 et passe à `Review` après la confirmation
+visuelle de Studio.
 
 ## Produit
 
@@ -139,8 +141,6 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
 
 - Connexion réelle à MSFS/SimConnect et parcours de vol : MSFS absent. Le replay
   synthétique automatisé T0011 ne remplace pas une trace réelle avec provenance.
-- Inspection visuelle de Studio Supabase : le serveur local répond sur loopback,
-  mais le navigateur intégré n'a pas pu initialiser son moteur de contrôle.
 - Déploiement de l'Edge Function et validation cloud : projet/identifiants
   Supabase absents.
 - Build installable signé, installation, mise à jour et rollback : aucun
@@ -297,8 +297,9 @@ Docker et `Get-NetTCPConnection` confirment le 31 juillet 2026 que 54321–54323
 écoutent uniquement sur `127.0.0.1`. Deux resets successifs, 8 fichiers/148
 assertions pgTAP et le contrôle des types passent localement. Le redémarrage avec
 cache prend 45,5 s ; Studio répond 200 et PostgreSQL contient uniquement les
-deux identités `.invalid`. L'inspection visuelle de Studio reste à faire et
-aucune parité cloud n'est revendiquée.
+deux identités `.invalid`. Andy confirme leur inspection visuelle dans Studio le
+31 juillet 2026. Aucune parité cloud n'est revendiquée et la capacité n'est pas
+présente dans `main` avant fusion de la pile de PR.
 
 ## Politique de données
 

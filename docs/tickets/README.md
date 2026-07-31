@@ -34,7 +34,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0018 | Exporter puis supprimer un compte sans perte ni double opération | 2 | T0012, T0017, revue phase 1 | Verify |
 | T0019 | Restaurer sans ressusciter un compte supprimé | 2 | T0017–T0018, T0013 | Verify |
 | T0020 | Ouvrir un grand livre financier immuable | 2 | T0012, T0017–T0019 | Verify |
-| T0021 | Isoler Supabase local sur Windows | 1–2 | T0012, T0018–T0020 | Verify |
+| T0021 | Isoler Supabase local sur Windows | 1–2 | T0012, T0018–T0020 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -79,8 +79,9 @@ Docker dédié et seuls ses trois ports utiles sont republiés explicitement sur
 loopback du réseau et l'option daemon sont ignorées par Docker Desktop 29.6.2
 lorsque la CLI Supabase transmet un `HostIp` vide. Docker et les sockets Windows
 confirment les trois liaisons `127.0.0.1`; 8 fichiers/148 assertions et les types
-passent localement. T0021 reste `Verify` jusqu'à l'inspection visuelle de Studio.
-La PR brouillon #33 est empilée sur la branche T0020 de la PR #32.
+passent localement. Andy confirme l'inspection visuelle de Studio le 31 juillet
+2026 ; T0021 passe à `Review`. La PR brouillon #33 reste empilée sur la branche
+T0020 de la PR #32.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

@@ -302,5 +302,6 @@ capacité réellement livrée et ses limites.
 Windows confirment API, PostgreSQL et Studio uniquement sur `127.0.0.1` ; deux
 resets, 8 fichiers/148 assertions et les types passent localement, puis
 l'arrêt/redémarrage réussit. PostgreSQL contient uniquement les deux identités
-`.invalid`. L'inspection visuelle de Studio reste non exécutée à cause d'un
-échec d'initialisation du navigateur intégré ; T0012 reste donc `Verify`.
+`.invalid`. Andy confirme l'inspection visuelle de Studio le 31 juillet 2026.
+T0012 reste `Verify` jusqu'à la fusion de la correction T0021 dans `main` ; la
+preuve ne doit pas être présentée comme une capacité livrée avant cette fusion.

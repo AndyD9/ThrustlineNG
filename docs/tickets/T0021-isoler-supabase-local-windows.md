@@ -1,6 +1,6 @@
 # T0021 — Isoler Supabase local sur Windows
 
-Status: Verify
+Status: Review
 Owner: Codex
 Branch: `fix/T0021-windows-supabase-loopback`
 Phase: 1–2
@@ -150,8 +150,8 @@ nommés par le runtime Thrustline local. Ne supprimer aucune ressource Docker
 Implémentation et preuve réseau terminées le 31 juillet 2026. Supabase s'exécute
 dans un daemon Docker-in-Docker dédié ; Docker externe republie API, PostgreSQL
 et Studio uniquement sur `127.0.0.1`. La CLI ne reçoit ni socket Docker hôte ni
-dépôt complet. `KI-017` passe à `Resolved`. Le ticket reste `Verify` car
-l'inspection visuelle de Studio n'a pas pu être exécutée.
+dépôt complet. `KI-017` passe à `Resolved`. Andy confirme l'inspection visuelle
+de Studio le 31 juillet 2026 ; le ticket passe à `Review` sur sa PR empilée.
 
 ### Files changed
 
@@ -181,12 +181,11 @@ l'inspection visuelle de Studio n'a pas pu être exécutée.
 
 ### Manual verification result
 
-Partielle. Les publications Docker, les sockets Windows, l'arrêt/redémarrage et
-les identités synthétiques ont été inspectés directement. L'ouverture visuelle
-de Studio est non exécutée : le navigateur intégré Codex a échoué avant toute
-navigation lors de l'initialisation de son moteur local. Ce blocage d'outil ne
-remet pas en cause la preuve réseau, mais empêche T0021 et T0012 de passer
-`Done`.
+Réussie. Les publications Docker, les sockets Windows, l'arrêt/redémarrage et
+les identités synthétiques ont été inspectés directement. Andy confirme le
+31 juillet 2026 l'inspection visuelle de Studio local et des deux identités
+synthétiques. Cette preuve clôt la vérification humaine T0021 ; elle ne rend pas
+la branche fusionnée dans `main`.
 
 ### Risks and limitations
 
@@ -201,8 +200,6 @@ remet pas en cause la preuve réseau, mais empêche T0021 et T0012 de passer
 
 ### Follow-ups
 
-- Andy : ouvrir `http://127.0.0.1:54323` et confirmer visuellement les deux
-  identités synthétiques ;
 - exécuter séparément les checklists humaines T0018, T0019 et T0020 ;
 - après fusion des branches parentes, rebaser ou changer la base de la PR sans
   force-push.
