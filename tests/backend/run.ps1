@@ -285,6 +285,7 @@ function Get-BackendIssues {
         Require-Text $ciBackend "--schema $schema" "Backend CI backup scope is missing schema: $schema."
     }
     Require-Text $ciBackend 'pg_restore' "Backend CI does not restore into an isolated PostgreSQL database."
+    Require-Text $ciBackend 'drop schema public cascade' "Backend CI does not remove the empty target public schema before restore."
     Require-Text $ciBackend '\\copy' "Backend CI does not export the replay journal through the unprivileged psql client."
     Require-Text $ciBackend 'replay_account_deletion_event' "Backend CI does not replay deletion events."
     Require-Text $ciBackend 'Isolated restore replay passed' "Backend CI does not report the restore replay proof."

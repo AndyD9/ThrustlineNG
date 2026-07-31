@@ -417,7 +417,7 @@ commit;
 "@
     & $dockerPath exec $databaseContainer `
         psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres `
-            -c $sourceDeletionSql
+            -c $sourceDeletionSql *> $null
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to finalize the post-backup synthetic deletion."
     }
@@ -470,6 +470,12 @@ commit;
         createdb -U postgres --template=template0 $restoreDatabaseName
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to create the isolated restore database."
+    }
+    & $dockerPath exec $databaseContainer `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres `
+            -d $restoreDatabaseName -c "drop schema public cascade;" *> $null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the empty isolated restore database."
     }
 
     $restoreTimer = [System.Diagnostics.Stopwatch]::StartNew()
