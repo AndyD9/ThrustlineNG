@@ -1,6 +1,6 @@
 # T0020 — Ouvrir un grand livre financier immuable
 
-Status: In progress
+Status: Verify
 Owner: Andy
 Branch: `feature/T0020-immutable-ledger`
 Phase: 2
@@ -126,18 +126,18 @@ Références :
 
 ## Acceptance criteria
 
-- [ ] Une migration append-only crée sujets privés, écritures immuables et
+- [x] Une migration append-only crée sujets privés, écritures immuables et
       fonctions à `search_path` vide.
-- [ ] Seul `service_role` peut créer l'ouverture ; aucun rôle client ne peut
+- [x] Seul `service_role` peut créer l'ouverture ; aucun rôle client ne peut
       muter directement le grand livre.
-- [ ] Rejeu identique, collision de payload, deuxième ouverture, concurrence et
+- [x] Rejeu identique, collision de payload, deuxième ouverture, concurrence et
       rollback sont couverts.
-- [ ] Les lectures A/B/anonyme et le blocage `deletion_pending` sont prouvés.
-- [ ] La suppression et le replay détachent le lien personnel sans modifier ni
+- [x] Les lectures A/B/anonyme et le blocage `deletion_pending` sont prouvés.
+- [x] La suppression et le replay détachent le lien personnel sans modifier ni
       supprimer les écritures.
-- [ ] Deux resets, tous les pgTAP découverts et les types générés passent sur
+- [x] Deux resets, tous les pgTAP découverts et les types générés passent sur
       PostgreSQL 17 CI.
-- [ ] La politique marque l'anonymisation du grand livre comme prouvée seulement
+- [x] La politique marque l'anonymisation du grand livre comme prouvée seulement
       en local/CI synthétique ; l'admission de données réelles reste bloquée.
 
 ## Security review
@@ -193,11 +193,28 @@ destructif n'est autorisé sur une pile contenant des données réelles.
 
 ## Completion Report
 
-### État intermédiaire du 31 juillet 2026
+### Summary
 
-La migration, les deux fichiers pgTAP, la concurrence CI, les types et les
-gates statiques sont implémentés sur `feature/T0020-immutable-ledger`. Le ticket
-reste `In progress` jusqu'à la preuve PostgreSQL 17 CI.
+Implémentation et validations automatisées terminées le 31 juillet 2026. Une
+commande réservée à `service_role` ouvre le grand livre de façon
+transactionnelle/idempotente ; les rôles clients ne peuvent pas écrire et le
+propriétaire lit uniquement son historique. La suppression et son replay
+détachent le lien personnel sans modifier les écritures.
+
+Le ticket passe en `Verify` sur la PR brouillon empilée #32. La checklist
+Windows reste impossible car `KI-017` déclenche correctement l'arrêt fail-safe
+de la pile locale.
+
+### Files changed
+
+- migration append-only
+  `supabase/migrations/20260731000300_immutable_financial_ledger.sql` ;
+- pgTAP `financial_ledger_structure.test.sql` et
+  `financial_ledger.test.sql` ;
+- harnais backend, concurrence CI, types générés et politique de données ;
+- documents architecture, sécurité, qualité, état et suivi.
+
+### Commands and results
 
 - `pnpm backend:check` — réussi : dépôt T0012/T0018/T0019/T0020 et 5 mutations
   négatives ;
@@ -209,13 +226,62 @@ reste `In progress` jusqu'à la preuve PostgreSQL 17 CI.
   ports hors loopback (`KI-017`), donc aucun pgTAP local n'est revendiqué.
 - premier run CI `30628297597` — les deux resets et migrations réussissent,
   puis le test T0020 échoue car une assertion interne conserve volontairement le
-  rôle `service_role`, correctement privé d'accès direct à `private`; correction
-  du contexte de rôle en cours, sans élargir aucun grant.
+  rôle `service_role`, correctement privé d'accès direct à `private`; corrigé
+  sans élargir aucun grant ;
 - second run CI `30628549511` — 8 fichiers/148 assertions `PASS`, concurrence
   T0018 et T0020 réussie, restauration/replay réussi ; seul le contrôle des
-  types signale l'ordre canonique des fonctions et `Args: never`, désormais
-  alignés sur la sortie exacte du générateur.
+  types signale l'ordre canonique des fonctions et `Args: never`; corrigé avec
+  la sortie exacte du générateur ;
+- run final CI `30628851680`, job `Supabase PostgreSQL 17` — réussi : 2 resets,
+  8 fichiers pgTAP, 148 assertions, `Result: PASS`, deux sessions concurrentes
+  vers une écriture immuable, restauration/replay T0019 et types stables ;
+- exercice restauré du même run — réussi : dump 140 ms, restauration 254 ms,
+  replay 66 ms, A absent, B préservé et données réelles absentes ; ces durées ne
+  sont pas des objectifs RPO/RTO ;
+- `pnpm frontend:typecheck` — réussi après synchronisation des types ;
+- run `30628851680`, job `Windows multi-stack` — réussi : toolchain, politique,
+  frontend, desktop, bridge, budgets et package Windows non signé ;
+- run supply-chain `30628851756` — réussi : audits, licences et SBOM ;
+- `git diff --check` et `git diff --cached --check` — réussis avant publication.
 
-La vérification manuelle Windows n'est pas exécutée. Aucune donnée réelle,
-staging ou production n'est utilisée et aucune mutation économique n'est
-exposée au desktop.
+### Manual verification result
+
+Non exécutée sur Windows. `pnpm backend:start` reproduit `KI-017` et arrête la
+pile exposée ; les scénarios sont automatisés sur PostgreSQL 17 CI mais ne sont
+pas requalifiés en vérification manuelle. Le ticket reste `Verify`.
+
+### Risks and limitations
+
+- branche empilée sur T0019, elle-même empilée sur T0018, aucune capacité dans
+  `main` tant que les PR ne sont pas fusionnées ;
+- une seule écriture `opening_balance`, sans partie double, revenus, coûts,
+  achat, clôture de vol ou solde matérialisé ;
+- montant et devise viennent d'une autorité serveur future, jamais d'un client
+  distribué dans cette tranche ;
+- l'export financier T0018 version 2 n'est pas implémenté ;
+- aucune donnée réelle, staging, production ou sauvegarde managée n'est admise.
+
+### Follow-ups
+
+- Andy : exécuter la checklist manuelle lorsque `KI-017` dispose d'un runtime
+  Docker Windows respectant le loopback ;
+- après fusion T0018/T0019 : rebaser ou changer la base de la PR #32 sans
+  force-push ;
+- créer un ticket séparé avant toute deuxième commande économique ou export
+  financier version 2.
+
+### Documentation updated
+
+- `eng/data-policy.json` marque l'anonymisation du grand livre uniquement
+  `enforced-local-ci` ;
+- `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/DATA_POLICY.md` et
+  `docs/QUALITY.md` décrivent la frontière et ses limites ;
+- `docs/CURRENT_STATE.md` et l'index distinguent branche, CI et vérification
+  manuelle.
+
+### Git and PR
+
+- branche : `feature/T0020-immutable-ledger` ;
+- PR : #32, brouillon, base `security/T0019-isolated-restore-replay` ;
+- checks publiés : PostgreSQL 17 et Windows multi-stack verts sur
+  `30628851680`, supply-chain verte sur `30628851756`.

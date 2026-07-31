@@ -202,7 +202,8 @@ pnpm supply-chain:report
 ```
 
 Le job backend Linux utilise `pnpm ci:backend`. Il masque la sortie de démarrage,
-inspecte les ports Docker réels, exige les deux fichiers pgTAP et `Result: PASS`,
+inspecte les ports Docker réels, exige tous les fichiers pgTAP attendus et
+`Result: PASS`,
 compare les types en mémoire et arrête la pile dans le script ainsi que dans une
 étape `always()`.
 
