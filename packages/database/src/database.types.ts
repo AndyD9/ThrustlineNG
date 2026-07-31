@@ -42,14 +42,8 @@ export type Database = {
         Args: { idempotency_key: string; request_id: string }
         Returns: Json
       }
-      finalize_account_deletion: {
-        Args: { request_id: string }
-        Returns: Json
-      }
-      get_account_export: {
-        Args: { request_id: string }
-        Returns: Json
-      }
+      finalize_account_deletion: { Args: { request_id: string }; Returns: Json }
+      get_account_export: { Args: { request_id: string }; Returns: Json }
       request_account_deletion: {
         Args: { idempotency_key: string }
         Returns: Json
