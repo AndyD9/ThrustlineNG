@@ -1,11 +1,13 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 30 juillet 2026 (clôture de T0014 après la preuve
-clean-clone de T0006 et l'activation formelle de la phase 1).
+Dernière revue documentaire : 30 juillet 2026 (revue conditionnelle du gate de
+phase 1 après clôture de T0006 et T0014).
 Statut : les implémentations T0012 à T0017 sont fusionnées dans `main`. T0005,
-T0006 et T0013 à T0017 sont `Done`. La phase 0 est terminée et la phase 1 est
-active. T0012 reste en vérification car Docker Desktop publie les ports Supabase
-hors loopback sur la machine locale.
+T0006 et T0013 à T0017 sont `Done`. La phase 0 est terminée, la phase 1 a
+franchi conditionnellement son gate de reproductibilité et la phase 2 est
+active sous interdiction de données utilisateur réelles. T0012 reste en
+vérification car Docker Desktop publie les ports Supabase hors loopback sur la
+machine locale.
 
 ## Produit
 
@@ -120,6 +122,11 @@ les contrôles statiques backend, politique de données, CI, budgets et packagin
 ont réussi. Le build Tauri Release et le build bridge Release ont été produits
 sans secret. Cette preuve clôt T0006 ; elle ne clôt pas les vérifications
 interactives T0007 à T0009, les essais MSFS T0011 ni le démarrage loopback T0012.
+
+La revue `docs/reviews/PHASE-1.md` combine cette preuve Windows avec le backend
+PostgreSQL 17 réel de la CI T0013. Elle accorde un passage conditionnel vers la
+phase 2 sans fermer les vérifications environnementales restantes, sans
+provisionner staging/production et sans autoriser de donnée utilisateur réelle.
 
 ## Contrôles non exécutables dans cette baseline
 
@@ -382,7 +389,7 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Créer un ticket borné pour l'export et la suppression
+Créer T0018, ticket borné pour l'export et la suppression
 transactionnelle/idempotente d'un compte avant toute donnée utilisateur réelle.
 T0012 exige toujours un runtime Docker respectant la liaison loopback, Studio et
 le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify` jusqu'aux essais
