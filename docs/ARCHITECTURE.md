@@ -37,9 +37,19 @@ exact et échoue fermée sur un sujet absent ou un contenu différent. Le jeton
 reste traité comme personnel tant qu'une sauvegarde permet de le relier au
 compte.
 
-Le futur grand livre est append-only, mais son lien personnel doit rester
-anonymisable. T0018 couvre seulement l'identité Auth et la compagnie présentes ;
-il n'anticipe aucune écriture financière.
+T0020 ajoute un sujet financier UUID privé par compagnie et une table d'écritures
+append-only sans identité Auth, identifiant ou nom de compagnie. La première
+commande économique, `post_company_opening_balance`, est réservée à
+`service_role`, verrouille la compagnie et compare exactement clé
+d'idempotence, montant et devise avant tout rejeu. `authenticated` dispose
+uniquement de `get_company_ledger()`, qui dérive la compagnie de `auth.uid()` ;
+aucune mutation financière directe n'est exposée à un client.
+
+La suppression T0018 et son replay T0019 déclenchent le détachement transactionnel
+du lien compagnie–sujet. Les écritures restent immuables et ne conservent que le
+sujet opaque nécessaire à l'intégrité. Cette première tranche n'est pas une
+comptabilité en partie double et ne définit encore ni revenus, ni coûts, ni
+clôture de vol.
 
 ## Packaging Windows T0014
 

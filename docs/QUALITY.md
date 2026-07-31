@@ -202,9 +202,15 @@ pnpm supply-chain:report
 ```
 
 Le job backend Linux utilise `pnpm ci:backend`. Il masque la sortie de démarrage,
-inspecte les ports Docker réels, exige les deux fichiers pgTAP et `Result: PASS`,
+inspecte les ports Docker réels, exige tous les fichiers pgTAP attendus et
+`Result: PASS`,
 compare les types en mémoire et arrête la pile dans le script ainsi que dans une
 étape `always()`.
+
+T0020 étend ce gate à 8 fichiers pgTAP et 148 assertions. La CI doit aussi
+prouver deux appels concurrents identiques vers l'ouverture financière qui
+convergent vers une seule écriture immuable, puis conserver la preuve T0019 de
+restauration/replay et la stabilité des types générés.
 
 Le workflow supply-chain laisse chaque scanner produire son rapport, même si un
 scanner échoue, puis un gate final agrège les résultats. T0013 a ainsi détecté

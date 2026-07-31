@@ -186,7 +186,7 @@ function Get-DataPolicyIssues {
         accountExport = "enforced-local-ci"
         accountDeletion = "enforced-local-ci"
         retentionPurge = "not-implemented"
-        ledgerAnonymization = "not-implemented"
+        ledgerAnonymization = "enforced-local-ci"
         managedBackups = "not-implemented"
         restoreDrill = "enforced-local-ci"
         deletionReplayAfterRestore = "enforced-local-ci"
@@ -369,6 +369,19 @@ try {
     if (-not ($restoreCapabilityIssues -match "Unexpected capability status for deletionReplayAfterRestore")) {
         throw "Harness self-test failed to detect restore-replay status drift."
     }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "eng\data-policy.json") -Destination $policyCopy
+    $mutation = Get-Content -Raw -Encoding UTF8 $policyCopy | ConvertFrom-Json
+    $mutation.capabilities.ledgerAnonymization = "not-implemented"
+    [System.IO.File]::WriteAllText(
+        $policyCopy,
+        ($mutation | ConvertTo-Json -Depth 12),
+        [System.Text.UTF8Encoding]::new($false)
+    )
+    $ledgerCapabilityIssues = @(Get-DataPolicyIssues -Root $temporaryRoot)
+    if (-not ($ledgerCapabilityIssues -match "Unexpected capability status for ledgerAnonymization")) {
+        throw "Harness self-test failed to detect ledger-anonymization status drift."
+    }
 }
 finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
@@ -376,4 +389,4 @@ finally {
     }
 }
 
-Write-Output "Data policy checks passed (T0017/T0018/T0019 repository plus 5 mutation scenarios)."
+Write-Output "Data policy checks passed (T0017-T0020 repository plus 6 mutation scenarios)."

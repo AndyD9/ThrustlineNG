@@ -155,8 +155,10 @@ try {
         $testText -notmatch "account_lifecycle\.test\.sql" -or
         $testText -notmatch "account_restore_replay_structure\.test\.sql" -or
         $testText -notmatch "account_restore_replay\.test\.sql" -or
+        $testText -notmatch "financial_ledger_structure\.test\.sql" -or
+        $testText -notmatch "financial_ledger\.test\.sql" -or
         $testText -notmatch "Result:\s+PASS") {
-        throw "Supabase pgTAP did not prove all six files with Result: PASS."
+        throw "Supabase pgTAP did not prove all eight files with Result: PASS."
     }
 
     $concurrencyUserId = "44000000-0000-4000-8000-000000000004"
@@ -304,6 +306,110 @@ where owner_id = '$concurrencyUserId';
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to clean the synthetic concurrency scenario."
         }
+    }
+
+    $ledgerConcurrencyUserId = "54000000-0000-4000-8000-000000000004"
+    $ledgerConcurrencyCompanyId = "f4000000-0000-4000-8000-000000000004"
+    $ledgerConcurrencyKey = "a4000000-0000-4000-8000-000000000004"
+    $ledgerSetupSql = @"
+insert into auth.users (id, email, raw_user_meta_data)
+values (
+    '$ledgerConcurrencyUserId',
+    'ledger-concurrency@thrustline.invalid',
+    '{}'
+);
+insert into public.companies (id, owner_id, name)
+values (
+    '$ledgerConcurrencyCompanyId',
+    '$ledgerConcurrencyUserId',
+    'Ledger Concurrency Air'
+);
+"@
+    $ledgerFirstSql = @"
+begin;
+set local role service_role;
+select public.post_company_opening_balance(
+    '$ledgerConcurrencyCompanyId',
+    '$ledgerConcurrencyKey',
+    42000000,
+    'EUR'
+) ->> 'entryId';
+select pg_sleep(4);
+commit;
+"@
+    $ledgerSecondSql = @"
+begin;
+set local role service_role;
+select public.post_company_opening_balance(
+    '$ledgerConcurrencyCompanyId',
+    '$ledgerConcurrencyKey',
+    42000000,
+    'EUR'
+) ->> 'entryId';
+commit;
+"@
+
+    & $dockerPath exec $databaseContainers[0] `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $ledgerSetupSql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the financial ledger concurrency scenario."
+    }
+
+    $ledgerConcurrencyJobs = @()
+    try {
+        $ledgerConcurrencyJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) {
+                throw "First concurrent ledger session failed."
+            }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $ledgerFirstSql
+
+        Start-Sleep -Milliseconds 750
+
+        $ledgerConcurrencyJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) {
+                throw "Second concurrent ledger session failed."
+            }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $ledgerSecondSql
+
+        $ledgerConcurrencyJobs | Wait-Job | Out-Null
+        $ledgerConcurrencyOutput = @(
+            $ledgerConcurrencyJobs | Receive-Job |
+                ForEach-Object { [string]$_ } |
+                Where-Object { $_ -match '^[0-9a-f-]{36}$' }
+        )
+        if ($ledgerConcurrencyJobs.State -contains "Failed" -or
+            $ledgerConcurrencyOutput.Count -ne 2 -or
+            @($ledgerConcurrencyOutput | Select-Object -Unique).Count -ne 1) {
+            throw "Concurrent financial ledger commands did not converge."
+        }
+
+        $ledgerConvergenceSql = @"
+select
+    count(*),
+    count(distinct idempotency_key)
+from private.financial_ledger_entries as entries
+join private.financial_ledger_subjects as subjects
+  on subjects.subject_id = entries.subject_id
+where subjects.company_id = '$ledgerConcurrencyCompanyId';
+"@
+        $ledgerConvergence = @(
+            & $dockerPath exec $databaseContainers[0] `
+                psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres -c $ledgerConvergenceSql
+        )
+        if ($LASTEXITCODE -ne 0 -or
+            ($ledgerConvergence -join "").Trim() -ne "1|1") {
+            throw "Concurrent financial ledger state is not idempotent."
+        }
+        Write-Output "Financial ledger concurrency passed: 2 sessions, 1 immutable entry."
+    }
+    finally {
+        $ledgerConcurrencyJobs | Remove-Job -Force -ErrorAction SilentlyContinue
     }
 
     $restoreUserId = "48000000-0000-4000-8000-000000000008"
@@ -732,7 +838,7 @@ select
         throw "Generated database types are stale."
     }
 
-    Write-Output "Backend CI passed: 2 resets, 6 pgTAP files, 105 assertions, concurrent idempotence, isolated restore replay, stable types, loopback ports."
+    Write-Output "Backend CI passed: 2 resets, 8 pgTAP files, 148 assertions, concurrent idempotence, isolated restore replay, immutable ledger, stable types, loopback ports."
 }
 finally {
     if ($null -ne $databaseContainer -and $null -ne $dockerPath) {
