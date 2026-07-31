@@ -290,6 +290,8 @@ function Get-BackendIssues {
     Require-Text $ciBackend "grep -v ' DEFAULT ACL '" "Backend CI does not narrowly exclude role-owned default ACL entries."
     Require-Text $ciBackend '--use-list \$restoreFilteredListPath' "Backend CI does not restore from the reviewed archive list."
     Require-Text $ciBackend 'pg_restore' "Backend CI does not restore into an isolated PostgreSQL database."
+    Require-Text $ciBackend 'create extension if not exists pgcrypto with schema extensions' "Backend CI does not reinstall pgcrypto after logical restore."
+    Require-Text $ciBackend 'Restored pgcrypto extension version differs from the source' "Backend CI does not compare source and restored pgcrypto versions."
     Require-Text $ciBackend 'drop schema public cascade' "Backend CI does not remove the empty target public schema before restore."
     Require-Text $ciBackend '\\copy' "Backend CI does not export the replay journal through the unprivileged psql client."
     Require-Text $ciBackend 'replay_account_deletion_event' "Backend CI does not replay deletion events."

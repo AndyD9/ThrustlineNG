@@ -372,6 +372,14 @@ values
     if ($LASTEXITCODE -ne 0 -or $backupPoint.Count -ne 1) {
         throw "Failed to record the synthetic backup point."
     }
+    $sourcePgcryptoVersion = @(
+        & $dockerPath exec $databaseContainer `
+            psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres `
+                -c "select extversion from pg_extension where extname = 'pgcrypto';"
+    )
+    if ($LASTEXITCODE -ne 0 -or $sourcePgcryptoVersion.Count -ne 1) {
+        throw "Failed to record the source pgcrypto extension version."
+    }
 
     $dumpTimer = [System.Diagnostics.Stopwatch]::StartNew()
     & $dockerPath exec $databaseContainer `
@@ -501,6 +509,24 @@ commit;
         throw "PostgreSQL isolated restore failed."
     }
     $restoreTimer.Stop()
+    & $dockerPath exec $databaseContainer `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres `
+            -d $restoreDatabaseName `
+            -c "create extension if not exists pgcrypto with schema extensions;" *> $null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to reinstall pgcrypto in the isolated restored database."
+    }
+    $restoredPgcryptoVersion = @(
+        & $dockerPath exec $databaseContainer `
+            psql -X -qAt -v ON_ERROR_STOP=1 -U postgres `
+                -d $restoreDatabaseName `
+                -c "select extversion from pg_extension where extname = 'pgcrypto';"
+    )
+    if ($LASTEXITCODE -ne 0 -or
+        $restoredPgcryptoVersion.Count -ne 1 -or
+        $restoredPgcryptoVersion[0] -ne $sourcePgcryptoVersion[0]) {
+        throw "Restored pgcrypto extension version differs from the source."
+    }
 
     $restContainers = @(
         & $dockerPath ps `
@@ -667,6 +693,9 @@ select
             "supabase_migrations"
         )
         excludedArchiveObjectTypes = @("DEFAULT ACL")
+        restoredExtensions = @{
+            pgcrypto = $restoredPgcryptoVersion[0]
+        }
         eventCount = 1
         dumpMilliseconds = $dumpTimer.ElapsedMilliseconds
         restoreMilliseconds = $restoreTimer.ElapsedMilliseconds

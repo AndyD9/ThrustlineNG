@@ -120,6 +120,9 @@ Références :
   exclues sont les `DEFAULT ACL` appartenant aux rôles internes Supabase, que le
   rôle `postgres` durci ne peut pas modifier ; cette cible fermée n'est donc pas
   apte à créer de futurs objets Auth ni à être promue.
+- Les objets appartenant à l'extension `pgcrypto` ne figurent pas dans le dump
+  logique. L'exercice réinstalle l'extension depuis la même image PostgreSQL 17
+  et refuse le replay si sa version diffère de la source.
 - La base restaurée n'est pas servie par l'API Supabase et n'est jamais promue.
 - Le journal post-sauvegarde est extrait de la source puis appliqué sur la cible.
 - L'exercice confirme migrations, RLS, absence de résurrection, préservation du
