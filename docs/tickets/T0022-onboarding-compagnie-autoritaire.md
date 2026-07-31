@@ -225,7 +225,9 @@ d'idempotence et la création atomique de la compagnie avec son ouverture T0020.
   directe refusées, rollback injecté propre, état `1|1|1|0|0` ;
 - `git diff --check` — réussi avant finalisation ;
 - `pnpm ci:backend` — non exécuté localement : le harnais exige explicitement
-  Linux ; la PR doit fournir cette preuve CI.
+  Linux ; le run GitHub `30652926904` fournit cette preuve et valide aussi le
+  job Windows multi-stack ;
+- run GitHub supply-chain `30652926644` — réussi : audits, licences et SBOM.
 
 ### Manual verification result
 

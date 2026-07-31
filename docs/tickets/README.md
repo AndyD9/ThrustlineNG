@@ -90,7 +90,8 @@ fusion de la PR #33. Il retire les mutations directes de compagnie accordées
 aux rôles clients et assemble création solo et ouverture financière dans une
 commande `service_role` transactionnelle et idempotente. Deux resets, 10 fichiers/190
 assertions, les types, la concurrence et la checklist manuelle passent
-localement. Au 31 juillet 2026, les PR
+localement ; les runs GitHub `30652926904` et `30652926644` sont verts. Au
+31 juillet 2026, les PR
 empilées #31–#33 sont fermées mais T0019–T0021 ne sont pas encore propagés dans
 `main`. La PR brouillon #37 cible `feature/T0020-immutable-ledger`; T0022 ne doit
 donc pas être présenté comme une capacité livrée.
