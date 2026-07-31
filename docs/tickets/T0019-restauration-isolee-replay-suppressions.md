@@ -116,6 +116,10 @@ Références :
   (`auth`, `public`, `private`, `extensions`, `supabase_migrations`) ; il exclut
   notamment les secrets Vault et ne prétend pas restaurer tous les services
   Supabase.
+- Les ACL des objets existants sont restaurées. Les seules entrées d'archive
+  exclues sont les `DEFAULT ACL` appartenant aux rôles internes Supabase, que le
+  rôle `postgres` durci ne peut pas modifier ; cette cible fermée n'est donc pas
+  apte à créer de futurs objets Auth ni à être promue.
 - La base restaurée n'est pas servie par l'API Supabase et n'est jamais promue.
 - Le journal post-sauvegarde est extrait de la source puis appliqué sur la cible.
 - L'exercice confirme migrations, RLS, absence de résurrection, préservation du

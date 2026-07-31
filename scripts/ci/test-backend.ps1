@@ -20,6 +20,8 @@ $databaseContainer = $null
 $restoreDatabaseName = "thrustline_t0019_restore"
 $restoreBackupPath = "/tmp/thrustline-t0019-restore.dump"
 $restoreJournalPath = "/tmp/thrustline-t0019-replay.tsv"
+$restoreListPath = "/tmp/thrustline-t0019-restore.list"
+$restoreFilteredListPath = "/tmp/thrustline-t0019-restore-filtered.list"
 
 function Invoke-Supabase {
     param(
@@ -384,6 +386,20 @@ values
         throw "PostgreSQL synthetic backup failed."
     }
     $dumpTimer.Stop()
+    & $dockerPath exec $databaseContainer `
+        sh -c "pg_restore -l '$restoreBackupPath' > '$restoreListPath' && grep -v ' DEFAULT ACL ' '$restoreListPath' > '$restoreFilteredListPath'"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the scoped PostgreSQL restore list."
+    }
+    $defaultAclEntries = @(
+        & $dockerPath exec $databaseContainer `
+            sh -c "grep -c ' DEFAULT ACL ' '$restoreListPath'"
+    )
+    if ($LASTEXITCODE -ne 0 -or
+        $defaultAclEntries.Count -ne 1 -or
+        ($defaultAclEntries[0] -as [int]) -lt 1) {
+        throw "Expected role-owned default ACL entries in the PostgreSQL archive."
+    }
 
     $sourceDeletionSql = @"
 begin;
@@ -480,7 +496,7 @@ commit;
     $restoreTimer = [System.Diagnostics.Stopwatch]::StartNew()
     & $dockerPath exec $databaseContainer `
         pg_restore -U postgres --dbname $restoreDatabaseName --exit-on-error `
-            --no-owner $restoreBackupPath
+            --no-owner --use-list $restoreFilteredListPath $restoreBackupPath
     if ($LASTEXITCODE -ne 0) {
         throw "PostgreSQL isolated restore failed."
     }
@@ -650,6 +666,7 @@ select
             "extensions",
             "supabase_migrations"
         )
+        excludedArchiveObjectTypes = @("DEFAULT ACL")
         eventCount = 1
         dumpMilliseconds = $dumpTimer.ElapsedMilliseconds
         restoreMilliseconds = $restoreTimer.ElapsedMilliseconds
@@ -693,7 +710,11 @@ finally {
         & $dockerPath exec $databaseContainer `
             dropdb -U postgres --if-exists $restoreDatabaseName *> $null
         & $dockerPath exec $databaseContainer `
-            rm -f $restoreBackupPath $restoreJournalPath *> $null
+            rm -f `
+                $restoreBackupPath `
+                $restoreJournalPath `
+                $restoreListPath `
+                $restoreFilteredListPath *> $null
     }
     if ($started) {
         Stop-SupabaseQuietly

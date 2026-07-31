@@ -287,6 +287,8 @@ function Get-BackendIssues {
     if ($ciBackend -match '--no-privileges') {
         $issues.Add("Backend CI restore must preserve database grants.")
     }
+    Require-Text $ciBackend "grep -v ' DEFAULT ACL '" "Backend CI does not narrowly exclude role-owned default ACL entries."
+    Require-Text $ciBackend '--use-list \$restoreFilteredListPath' "Backend CI does not restore from the reviewed archive list."
     Require-Text $ciBackend 'pg_restore' "Backend CI does not restore into an isolated PostgreSQL database."
     Require-Text $ciBackend 'drop schema public cascade' "Backend CI does not remove the empty target public schema before restore."
     Require-Text $ciBackend '\\copy' "Backend CI does not export the replay journal through the unprivileged psql client."
