@@ -34,6 +34,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0018 | Exporter puis supprimer un compte sans perte ni double opération | 2 | T0012, T0017, revue phase 1 | Verify |
 | T0019 | Restaurer sans ressusciter un compte supprimé | 2 | T0017–T0018, T0013 | Verify |
 | T0020 | Ouvrir un grand livre financier immuable | 2 | T0012, T0017–T0019 | Verify |
+| T0021 | Isoler Supabase local sur Windows | 1–2 | T0012, T0018–T0020 | Verify |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -41,7 +42,7 @@ restent en vérification tant que leurs contrôles humains ne sont pas clos. T00
 reste aussi en vérification pour son smoke test interactif.
 T0011 possède un replay synthétique automatisé et
 reste en vérification jusqu'au test réel MSFS 2024. T0012 est fusionné dans
-`main` par la PR #14 mais reste `Verify` pour la preuve loopback manquante.
+`main` par la PR #14 mais reste `Verify` pour l'inspection visuelle de Studio.
 T0016 a corrigé `KI-018` sans affaiblir le gate, puis les PR #16 et #15 ont
 intégré T0016 et T0013 dans `main` avec tous les checks verts.
 T0017 fixe la politique de données et son gate, fusionnés dans `main` par la
@@ -52,16 +53,16 @@ T0018 est le premier ticket détaillé de phase 2. Andy a validé le 31 juillet
 2026 un délai récupérable de 7 jours, une session Supabase réauthentifiée depuis
 5 minutes au plus et un export récupérable pendant le délai. PostgreSQL 17 CI
 valide 4 fichiers/70 assertions, la concurrence et les types. Le ticket reste
-`Verify` sur `security/T0018-account-lifecycle` car `KI-017` empêche encore sa
-checklist manuelle Windows.
+`Verify` sur `security/T0018-account-lifecycle` car sa checklist humaine reste
+non exécutée, même si T0021 débloque désormais le runtime Windows.
 
 T0019 est empilé sur `security/T0018-account-lifecycle`. Il borne la preuve à
 une sauvegarde synthétique restaurée dans une base PostgreSQL 17 distincte et au
 replay des suppressions T0018 avant réouverture. Il ne provisionne aucun projet
 distant, ne prouve aucune sauvegarde managée et n'autorise aucune donnée réelle.
 Le run `30621209180` valide 6 fichiers/105 assertions, la concurrence, les types
-et le dump/restore/replay ; le ticket reste `Verify` car `KI-017` bloque sa
-checklist Windows.
+et le dump/restore/replay ; le ticket reste `Verify` car sa checklist humaine
+reste non exécutée.
 
 T0020 est empilé sur `security/T0019-isolated-restore-replay`. Il borne la
 première tranche économique à une ouverture de grand livre réservée au serveur,
@@ -69,7 +70,16 @@ première tranche économique à une ouverture de grand livre réservée au serv
 aucune mutation économique au desktop et n'admet aucune donnée réelle. Le job
 PostgreSQL 17 final `30628851680` valide 8 fichiers/148 assertions, la
 concurrence, la restauration/replay et les types ; T0020 reste `Verify` car
-`KI-017` bloque sa checklist Windows.
+sa checklist humaine reste non exécutée.
+
+T0021 est empilé sur `feature/T0020-immutable-ledger`. Il résout `KI-017` sans
+modifier Docker Desktop globalement : la pile est confinée dans un daemon
+Docker dédié et seuls ses trois ports utiles sont republiés explicitement sur
+`127.0.0.1`. Le diagnostic Windows du 31 juillet 2026 confirme que l'option
+loopback du réseau et l'option daemon sont ignorées par Docker Desktop 29.6.2
+lorsque la CLI Supabase transmet un `HostIp` vide. Docker et les sockets Windows
+confirment les trois liaisons `127.0.0.1`; 8 fichiers/148 assertions et les types
+passent localement. T0021 reste `Verify` jusqu'à l'inspection visuelle de Studio.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

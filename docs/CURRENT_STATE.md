@@ -1,19 +1,20 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 31 juillet 2026 (preuve CI T0020 du grand livre
-immuable).
+Dernière revue documentaire : 31 juillet 2026 (preuve Windows T0021 du runtime
+Supabase isolé).
 Statut : les implémentations T0012 à T0017 sont fusionnées dans `main`. T0005,
 T0006 et T0013 à T0017 sont `Done`. La phase 0 est terminée, la phase 1 a
 franchi conditionnellement son gate de reproductibilité et la phase 2 est
-active sous interdiction de données utilisateur réelles. T0012 reste en
-vérification car Docker Desktop publie les ports Supabase hors loopback sur la
-machine locale.
+active sous interdiction de données utilisateur réelles. T0021 résout `KI-017` :
+la pile locale est isolée et ses trois sockets Windows écoutent uniquement sur
+`127.0.0.1`. T0012 reste `Verify` car Studio n'a pas encore été inspecté
+visuellement.
 
 Les implémentations T0018 et T0019 sont présentes sur deux branches empilées,
-pas dans `main`. Elles restent `Verify` car la checklist Windows est bloquée par
-la même protection loopback. T0020 est présent sur une troisième branche
-empilée et reste aussi `Verify` pour la checklist Windows ; sa preuve PostgreSQL
-17 CI est verte.
+pas dans `main`. Elles restent `Verify` car leurs checklists humaines n'ont pas
+été exécutées. T0020 est présent sur une troisième branche empilée et reste aussi
+`Verify` pour sa checklist humaine ; ses preuves PostgreSQL 17 CI et locale sont
+vertes. T0021 est empilé sur T0020 et reste `Verify` pour l'inspection Studio.
 
 ## Produit
 
@@ -138,9 +139,8 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
 
 - Connexion réelle à MSFS/SimConnect et parcours de vol : MSFS absent. Le replay
   synthétique automatisé T0011 ne remplace pas une trace réelle avec provenance.
-- Démarrage Supabase local persistant : Docker Desktop 29.6.2 publie les ports
-  sur toutes les interfaces malgré le réseau loopback demandé ; le script
-  arrête volontairement la pile.
+- Inspection visuelle de Studio Supabase : le serveur local répond sur loopback,
+  mais le navigateur intégré n'a pas pu initialiser son moteur de contrôle.
 - Déploiement de l'Edge Function et validation cloud : projet/identifiants
   Supabase absents.
 - Build installable signé, installation, mise à jour et rollback : aucun
@@ -159,8 +159,9 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
 ## Dette et risques structurants
 
 - Aucun projet de tests .NET dédié constaté.
-- Le démarrage sûr Supabase reste bloqué par la publication wildcard observée
-  avec Docker Desktop 29.6.2 ; reset, pgTAP et types sont néanmoins prouvés.
+- Le runtime Supabase local repose sur un daemon DinD privilégié et conserve un
+  volume de cache d'images ; il ne monte ni socket Docker hôte ni source du
+  dépôt complète.
 - Le build Tauri complet dépend du sidecar généré dans `externalBin`.
 - L'environnement local Node ne satisfait pas le moteur déclaré.
 - Les README divergent (`Node 24.18 LTS` contre `Node 20+`) et utilisent
@@ -289,18 +290,15 @@ types TypeScript et deux fichiers pgTAP. La migration impose un propriétaire
 Auth unique, force la RLS et sépare les politiques CRUD du rôle
 `authenticated`.
 
-Le harnais statique passe avec deux mutations négatives : suppression de la
-politique de lecture et remplacement du reset local par `--linked`. Deux resets
-successifs ont rejoué migration et seed ; les 2 fichiers pgTAP et leurs 21 tests
-passent, et les types ont été régénérés puis contrôlés sans écart.
-
-Les scripts résolvent maintenant une seule CLI Docker, propagent son répertoire
-aux sous-processus Supabase et utilisent explicitement le réseau
-`thrustline-local`. Docker Desktop 29.6.2 a toutefois publié les ports sur
-`0.0.0.0`/`[::]` malgré l'option loopback du réseau. `backend:start` inspecte
-donc les ports effectifs, supprime toute sortie contenant les credentials locaux,
-arrête la pile en cas d'exposition et échoue. Aucune parité cloud n'est
-revendiquée.
+Le harnais statique T0021 passe avec sept mutations négatives. Le runtime copie
+seulement les sources Supabase filtrées dans un volume, exécute la CLI dans un
+conteneur sans socket Docker hôte et place la pile dans un daemon DinD dédié.
+Docker et `Get-NetTCPConnection` confirment le 31 juillet 2026 que 54321–54323
+écoutent uniquement sur `127.0.0.1`. Deux resets successifs, 8 fichiers/148
+assertions pgTAP et le contrôle des types passent localement. Le redémarrage avec
+cache prend 45,5 s ; Studio répond 200 et PostgreSQL contient uniquement les
+deux identités `.invalid`. L'inspection visuelle de Studio reste à faire et
+aucune parité cloud n'est revendiquée.
 
 ## Politique de données
 
@@ -330,9 +328,10 @@ la suppression de la compagnie, de l'identité Auth et des liens temporaires.
 Deux resets, 4 fichiers pgTAP et 70 assertions passent sur PostgreSQL 17 dans le
 run GitHub `30616958479`. Deux transactions réellement concurrentes avec des
 clés différentes convergent vers une demande et deux enregistrements
-d'idempotence ; les types générés restent stables. La vérification manuelle
-Windows reste impossible car `KI-017` déclenche correctement l'arrêt fail-safe.
-T0018 reste donc `Verify` et aucune donnée réelle n'est admise.
+d'idempotence ; les types générés restent stables. T0021 permet désormais la
+validation locale Windows et ses 70 assertions sont incluses dans le run local
+de 148 assertions. La checklist humaine T0018 reste non exécutée ; le ticket
+reste `Verify` et aucune donnée réelle n'est admise.
 
 ## Restauration isolée et replay des suppressions
 
@@ -354,8 +353,9 @@ runner ; ces durées ne sont pas des objectifs RPO/RTO.
 La preuve est bornée aux schémas `auth`, `public`, `private`, `extensions` et
 `supabase_migrations`. Elle exclut Vault, Storage et les `DEFAULT ACL` des rôles
 internes ; elle ne prouve ni sauvegarde managée/chiffrée, ni purge, ni
-restauration ou promotion de production. T0019 reste `Verify` car la checklist
-Windows est bloquée par `KI-017`.
+restauration ou promotion de production. Les assertions T0019 passent aussi
+localement via T0021 ; le ticket reste `Verify` car sa checklist humaine n'a pas
+été exécutée.
 
 ## Grand livre financier immuable
 
@@ -368,8 +368,9 @@ lien personnel sans modifier les écritures.
 Les gates statiques backend et politique passent avec respectivement 5 et 6
 mutations négatives. Le run `30628851680` valide deux resets, 8 fichiers pgTAP,
 148 assertions, la concurrence, la restauration/replay et les types stables sur
-PostgreSQL 17. Le démarrage local Windows reste bloqué de façon sûre par
-`KI-017`; T0020 reste `Verify` et n'est pas présent dans `main`.
+PostgreSQL 17. T0021 reproduit localement les 8 fichiers/148 assertions et les
+types stables ; T0020 reste `Verify` pour sa checklist humaine et n'est pas
+présent dans `main`.
 
 ## CI multi-stack
 
@@ -448,10 +449,8 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Terminer la preuve PostgreSQL 17 et la revue de T0020 avant de détailler la
-prochaine commande économique. T0012 exige toujours un runtime Docker respectant
-la liaison loopback,
-Studio et le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify`
+Faire inspecter Studio puis exécuter les checklists humaines T0018–T0020 sur le
+runtime T0021 avant de détailler la prochaine commande économique. T0011 reste `Verify`
 jusqu'aux essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier

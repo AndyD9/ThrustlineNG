@@ -285,3 +285,10 @@ pas requalifiés en vérification manuelle. Le ticket reste `Verify`.
 - PR : #32, brouillon, base `security/T0019-isolated-restore-replay` ;
 - checks publiés : PostgreSQL 17 et Windows multi-stack verts sur
   `30628851680`, supply-chain verte sur `30628851756`.
+
+### Mise à jour T0021 — 31 juillet 2026
+
+`KI-017` est résolu. Deux resets, les 8 fichiers/148 assertions incluant T0020
+et le contrôle des types passent dans le runtime Windows isolé. Cette preuve
+automatisée locale ne remplace pas la checklist humaine du grand livre ; T0020
+reste `Verify`.

@@ -38,7 +38,8 @@ ce fixture et ajouter ou préserver un scénario d'échec associé.
 Le contrôle statique fonctionne sans Docker et couvre la version de CLI, la
 configuration PostgreSQL 17, l'ordre migration/seed, les contraintes, les
 politiques, les scénarios A/B/anonyme et l'absence de commande distante. Il
-exécute aussi deux mutations négatives :
+exécute aussi sept mutations négatives, dont une publication wildcard et un
+montage du socket Docker hôte :
 
 ```powershell
 pnpm backend:check
@@ -56,9 +57,9 @@ pnpm backend:stop
 ```
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les six fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. Les 105 assertions couvrent le cycle de compte
-T0018 et le replay T0019. Le job CI lance ensuite deux sessions PostgreSQL
+les huit fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 148 assertions couvrent le cycle de compte
+T0018, le replay T0019 et le grand livre T0020. Le job CI lance ensuite deux sessions PostgreSQL
 concurrentes et exige une demande unique, deux enregistrements d'idempotence et
 un identifiant de demande commun. Il restaure aussi un dump synthétique pris
 avant suppression dans une base distincte, vérifie les ACL/RLS et `pgcrypto`,
@@ -66,11 +67,12 @@ rejoue le journal, refuse les événements altéré/inconnu et détruit les fich
 et la cible. `backend:types:check` régénère les types en mémoire et échoue si le
 fichier versionné diffère.
 
-Preuve T0012 du 29 juillet 2026 sous Docker Desktop 29.6.2 : deux resets
-successifs réussis, 2 fichiers pgTAP/21 tests avec résultat PASS, génération et
-contrôle des types réussis. Le démarrage persistant reste en vérification :
-Docker a publié les ports sur toutes les interfaces malgré le réseau loopback,
-et le fail-safe de `backend:start` a arrêté la pile.
+Preuve T0021 du 31 juillet 2026 sous Docker Desktop 29.6.2 : le daemon Supabase
+isolé publie les trois ports externes uniquement sur `127.0.0.1`, confirmé par
+Docker et les sockets Windows. Deux resets réussissent, 8 fichiers/148
+assertions pgTAP concluent par `Result: PASS` et les types restent stables. Un
+arrêt/redémarrage avec cache réussit en 45,5 s. Studio répond sur loopback ; son
+inspection visuelle reste une vérification humaine distincte.
 
 ## Desktop et bridge
 

@@ -169,10 +169,11 @@ N-1 et rollback appartiennent à la phase de distribution sûre.
 
 ## Backend Supabase local
 
-T0012 épingle Supabase CLI 2.109.1 comme dépendance du workspace. Installer et
-démarrer Docker Desktop, Rancher Desktop ou un runtime compatible avec l'API
-Docker avant la pile locale. Le runtime doit rester lié à la machine locale :
-les services de développement n'ont ni TLS, ni durcissement de production.
+T0012 épingle Supabase CLI 2.109.1 comme dépendance du workspace. T0021 exige un
+runtime Docker Linux capable de lancer un conteneur privilégié ; la preuve
+Windows utilise Docker Desktop 29.6.2. Le runtime doit rester lié à la machine
+locale : les services de développement n'ont ni TLS, ni durcissement de
+production.
 
 Depuis la racine :
 
@@ -190,19 +191,24 @@ Ports locaux réservés par `supabase/config.toml` :
 
 - API : `127.0.0.1:54321` ;
 - PostgreSQL : `127.0.0.1:54322` ;
-- Studio : `127.0.0.1:54323` ;
-- base shadow : `127.0.0.1:54320`.
+- Studio : `127.0.0.1:54323`.
 
-`backend:start` exclut les services hors périmètre T0012.
-Il crée ou réutilise le réseau Docker `thrustline-local`, configuré pour publier
-les ports sur `127.0.0.1` uniquement. Le script retrouve `docker.exe` dans le
-`PATH` ou dans les emplacements utilisateur/système de Docker Desktop, puis
-inspecte les ports réellement publiés. Si Docker utilise `0.0.0.0` ou `[::]`,
-la pile est immédiatement arrêtée et la commande échoue : ne contournez pas ce
-contrôle. Ce comportement a été observé avec Docker Desktop 29.6.2 ; utilisez un
-runtime/configuration qui respecte la liaison loopback avant la vérification
-Studio. La sortie de démarrage est masquée pour ne pas recopier les credentials
-locaux dans les journaux.
+`backend:start` exclut les services hors périmètre T0012. Il construit une image
+CLI depuis le binaire Linux 2.109.1 dont le SHA-512 correspond au lockfile, puis
+lance la pile dans un daemon Docker-in-Docker épinglé par digest. La CLI ne
+monte ni le dépôt complet ni le socket Docker hôte : une copie de `supabase/`,
+sans `.temp`, `.env`, clé ou certificat, est placée dans un volume dédié.
+
+Les publications wildcard de Supabase restent à l'intérieur du daemon isolé.
+Seuls API, PostgreSQL et Studio sont republiés vers Windows avec un `HostIp`
+explicite `127.0.0.1`; le script inspecte cette configuration et arrête/nettoie
+la pile en cas d'écart. La sortie de démarrage est masquée pour ne pas recopier
+les credentials locaux dans les journaux ; `DO_NOT_TRACK` et la désactivation
+Supabase explicite empêchent aussi la télémétrie CLI. Le premier démarrage télécharge les
+images. `backend:stop` retire toute ressource active et le volume de sources,
+mais conserve le volume `thrustline-local-engine-cache`, qui ne contient que le
+cache interne Docker afin d'accélérer les redémarrages.
+
 `backend:reset` détruit uniquement la base locale puis rejoue migrations et
 seed. Aucun script du dépôt ne lie ou ne pousse un projet distant. Le seed
 contient deux utilisateurs sans mot de passe et deux compagnies entièrement
