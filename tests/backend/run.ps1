@@ -282,6 +282,7 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'Account lifecycle concurrency passed' "Backend CI does not report the concurrency proof."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
     Require-Text $ciBackend 'pg_restore' "Backend CI does not restore into an isolated PostgreSQL database."
+    Require-Text $ciBackend '\\copy' "Backend CI does not export the replay journal through the unprivileged psql client."
     Require-Text $ciBackend 'replay_account_deletion_event' "Backend CI does not replay deletion events."
     Require-Text $ciBackend 'Isolated restore replay passed' "Backend CI does not report the restore replay proof."
     Require-Text $ciBackend 'dropdb.+--if-exists' "Backend CI does not guarantee restored database cleanup."

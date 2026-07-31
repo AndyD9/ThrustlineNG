@@ -416,20 +416,13 @@ commit;
         throw "Failed to finalize the post-backup synthetic deletion."
     }
 
-    $journalSql = @"
-copy (
-    select
-        subject_token,
-        request_token_hash,
-        marker_id,
-        completed_at,
-        export_schema_version,
-        event_schema_version
-    from private.account_deletion_replay_events
-    where completed_at > '$($backupPoint[0])'::timestamptz
-    order by completed_at, subject_token
-) to '$restoreJournalPath' with (format csv, delimiter E'\t');
-"@
+    $journalSql = "\copy (" +
+        "select subject_token, request_token_hash, marker_id, completed_at, " +
+        "export_schema_version, event_schema_version " +
+        "from private.account_deletion_replay_events " +
+        "where completed_at > '$($backupPoint[0])'::timestamptz " +
+        "order by completed_at, subject_token" +
+        ") to '$restoreJournalPath' with (format csv, delimiter E'\t')"
     & $dockerPath exec $databaseContainer `
         psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres `
             -c $journalSql
