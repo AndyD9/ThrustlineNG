@@ -207,6 +207,10 @@ reste `In progress` jusqu'à la preuve PostgreSQL 17 CI.
 - `git diff --check` — réussi ;
 - `pnpm backend:start` — arrêt fail-safe attendu : Docker Desktop publie les
   ports hors loopback (`KI-017`), donc aucun pgTAP local n'est revendiqué.
+- premier run CI `30628297597` — les deux resets et migrations réussissent,
+  puis le test T0020 échoue car une assertion interne conserve volontairement le
+  rôle `service_role`, correctement privé d'accès direct à `private`; correction
+  du contexte de rôle en cours, sans élargir aucun grant.
 
 La vérification manuelle Windows n'est pas exécutée. Aucune donnée réelle,
 staging ou production n'est utilisée et aucune mutation économique n'est

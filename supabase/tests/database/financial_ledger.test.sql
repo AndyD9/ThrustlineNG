@@ -63,11 +63,15 @@ select is(
     'an identical command replays idempotently'
 );
 
+reset role;
+
 select results_eq(
     $$select count(*)::bigint from private.financial_ledger_entries$$,
     array[1::bigint],
     'idempotent replay creates one entry'
 );
+
+set local role service_role;
 
 select throws_ok(
     $$select public.post_company_opening_balance(
