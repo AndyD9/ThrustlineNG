@@ -92,7 +92,8 @@ commande `service_role` transactionnelle et idempotente. Deux resets, 10 fichier
 assertions, les types, la concurrence et la checklist manuelle passent
 localement. Au 31 juillet 2026, les PR
 empilées #31–#33 sont fermées mais T0019–T0021 ne sont pas encore propagés dans
-`main`; T0022 ne doit donc pas être présenté comme une capacité livrée.
+`main`. La PR brouillon #37 cible `feature/T0020-immutable-ledger`; T0022 ne doit
+donc pas être présenté comme une capacité livrée.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

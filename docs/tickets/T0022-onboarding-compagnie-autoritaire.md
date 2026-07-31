@@ -258,3 +258,13 @@ suppression sont aussi couverts par pgTAP.
 - `docs/QUALITY.md` donne les compteurs et gates actifs ;
 - `docs/CURRENT_STATE.md` distingue preuve locale, pile de PR et `main` ;
 - `docs/tickets/README.md` synchronise le statut `Review`.
+
+### Git status
+
+- branche : `feature/T0022-authoritative-company-onboarding` ;
+- commit d'implémentation : `31335c2` ;
+- PR : #37, brouillon, base `feature/T0020-immutable-ledger`, head
+  `feature/T0022-authoritative-company-onboarding` ;
+- dépendances : PR brouillon #34 (T0019), #35 (T0020) puis #36 (T0021) avant
+  propagation vers `main` ;
+- fusion : exclusivement réservée à Andy.

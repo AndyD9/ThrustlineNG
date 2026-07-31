@@ -387,8 +387,9 @@ Localement sous Windows/Docker Desktop 29.6.2, deux resets, 10 fichiers pgTAP et
 concurrentes convergent vers une compagnie, une commande et une écriture. La
 checklist manuelle confirme rejeu, collision, refus d'une mutation directe et
 rollback injecté avec l'état final `1|1|1|0|0`. T0022 reste empilé et n'est pas
-présent dans `main`; aucun appelant desktop/bridge, donnée réelle ou environnement
-distant n'est ajouté.
+présent dans `main`. La PR brouillon #37 cible
+`feature/T0020-immutable-ledger`; aucun appelant desktop/bridge, donnée réelle ou
+environnement distant n'est ajouté.
 
 ## CI multi-stack
 
