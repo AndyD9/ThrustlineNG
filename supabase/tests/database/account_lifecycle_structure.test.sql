@@ -138,8 +138,8 @@ select results_eq(
         and cmd in ('INSERT', 'UPDATE', 'DELETE')
         and coalesce(qual, '') || coalesce(with_check, '')
             like '%account_is_active%'$$,
-    array[3::bigint],
-    'every direct company mutation requires an active account'
+    array[0::bigint],
+    'direct company mutation policies are removed'
 );
 
 select * from finish();

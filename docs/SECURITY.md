@@ -49,6 +49,22 @@ appeler cette lecture. Lors d'une suppression ou d'un replay, le lien privé est
 détaché et daté dans la transaction tandis que l'écriture non directement
 personnelle reste intacte.
 
+## Onboarding autoritaire T0022
+
+`authenticated` ne possède plus que `select` sur `public.companies`; les
+privilèges et politiques d'insertion, mise à jour et suppression sont retirés.
+`anon` conserve zéro privilège. La création et l'ouverture passent par une
+fonction `security definer` à `search_path` vide, exécutable uniquement par
+`service_role`.
+
+La commande verrouille une identité Auth existante et non anonyme, refuse un
+cycle de suppression actif, valide nom, montant et devise, puis crée compagnie,
+sujets privés et écriture dans une transaction. Le registre privé compare une
+empreinte SHA-256 du payload complet avant tout rejeu et disparaît avec
+l'identité ou la compagnie. Deux sessions concurrentes convergent vers une seule
+compagnie et une seule ouverture ; une panne injectée ne laisse aucun état
+partiel.
+
 ## Frontière installateur Windows T0014
 
 Le package T0014 est une preuve interne non signée, jamais une release. Il
@@ -80,8 +96,9 @@ non fiables. La table `companies` impose côté PostgreSQL :
 - une contrainte unique empêchant deux compagnies pour un propriétaire ;
 - la RLS activée et forcée ;
 - aucun privilège pour `anon` ;
-- des privilèges CRUD bornés pour `authenticated`, toujours filtrés et validés
-  par quatre politiques fondées sur `(select auth.uid()) = owner_id`.
+- uniquement `select` pour `authenticated`, filtré par la politique fondée sur
+  `(select auth.uid()) = owner_id` ; les mutations passent par des commandes
+  serveur explicites.
 
 Le seed utilise uniquement deux UUID, adresses `.invalid` et compagnies
 synthétiques, sans mot de passe utilisable. Les scripts racine ciblent

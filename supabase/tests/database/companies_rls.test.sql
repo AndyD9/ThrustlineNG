@@ -43,33 +43,29 @@ select results_eq(
     'A can read only company A'
 );
 
-select lives_ok(
+select throws_ok(
     $$update public.companies
       set name = 'RLS Alpha Updated'
       where owner_id = '31000000-0000-4000-8000-000000000001'$$,
-    'A can update company A'
+    '42501',
+    'permission denied for table companies',
+    'A cannot update company A directly'
 );
 
-select results_eq(
-    $$with changed as (
-          update public.companies
-          set name = 'Forbidden update'
-          where owner_id = '32000000-0000-4000-8000-000000000002'
-          returning 1
-      )
-      select count(*)::bigint from changed$$,
-    array[0::bigint],
+select throws_ok(
+    $$update public.companies
+      set name = 'Forbidden update'
+      where owner_id = '32000000-0000-4000-8000-000000000002'$$,
+    '42501',
+    'permission denied for table companies',
     'A cannot update company B'
 );
 
-select results_eq(
-    $$with removed as (
-          delete from public.companies
-          where owner_id = '32000000-0000-4000-8000-000000000002'
-          returning 1
-      )
-      select count(*)::bigint from removed$$,
-    array[0::bigint],
+select throws_ok(
+    $$delete from public.companies
+      where owner_id = '32000000-0000-4000-8000-000000000002'$$,
+    '42501',
+    'permission denied for table companies',
     'A cannot delete company B'
 );
 
@@ -80,7 +76,7 @@ select throws_ok(
           'Forged ownership'
       )$$,
     '42501',
-    'new row violates row-level security policy for table "companies"',
+    'permission denied for table companies',
     'A cannot create a company owned by B'
 );
 
@@ -90,8 +86,8 @@ select throws_ok(
           '31000000-0000-4000-8000-000000000001',
           'Second Alpha'
       )$$,
-    '23505',
-    'duplicate key value violates unique constraint "companies_one_per_owner"',
+    '42501',
+    'permission denied for table companies',
     'A cannot own two companies'
 );
 
@@ -111,15 +107,12 @@ select results_eq(
     'B can read only company B'
 );
 
-select results_eq(
-    $$with changed as (
-          update public.companies
-          set name = 'Forbidden update'
-          where owner_id = '31000000-0000-4000-8000-000000000001'
-          returning 1
-      )
-      select count(*)::bigint from changed$$,
-    array[0::bigint],
+select throws_ok(
+    $$update public.companies
+      set name = 'Forbidden update'
+      where owner_id = '31000000-0000-4000-8000-000000000001'$$,
+    '42501',
+    'permission denied for table companies',
     'B cannot update company A'
 );
 

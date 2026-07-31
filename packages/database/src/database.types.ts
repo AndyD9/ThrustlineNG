@@ -42,6 +42,16 @@ export type Database = {
         Args: { idempotency_key: string; request_id: string }
         Returns: Json
       }
+      create_company_with_opening_balance: {
+        Args: {
+          company_name: string
+          currency_code: string
+          idempotency_key: string
+          opening_amount_minor: number
+          owner_id: string
+        }
+        Returns: Json
+      }
       finalize_account_deletion: { Args: { request_id: string }; Returns: Json }
       get_account_export: { Args: { request_id: string }; Returns: Json }
       get_company_ledger: {

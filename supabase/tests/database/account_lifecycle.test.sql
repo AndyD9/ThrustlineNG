@@ -105,16 +105,13 @@ select is(
     'a concurrent-equivalent second key converges on the pending request'
 );
 
-select results_eq(
-    $$with changed as (
-          update public.companies
-          set name = 'Forbidden while pending'
-          where owner_id = '41000000-0000-4000-8000-000000000001'
-          returning 1
-      )
-      select count(*)::bigint from changed$$,
-    array[0::bigint],
-    'direct company mutations are blocked while deletion is pending'
+select throws_ok(
+    $$update public.companies
+      set name = 'Forbidden while pending'
+      where owner_id = '41000000-0000-4000-8000-000000000001'$$,
+    '42501',
+    'permission denied for table companies',
+    'direct company mutations are always blocked'
 );
 
 reset role;
@@ -353,16 +350,13 @@ select is(
     'a cancelled request replay cannot recover a deleted export'
 );
 
-select results_eq(
-    $$with changed as (
-          update public.companies
-          set name = 'Lifecycle Alpha Restored'
-          where owner_id = '41000000-0000-4000-8000-000000000001'
-          returning 1
-      )
-      select count(*)::bigint from changed$$,
-    array[1::bigint],
-    'one company mutation resumes after cancellation'
+select throws_ok(
+    $$update public.companies
+      set name = 'Lifecycle Alpha Restored'
+      where owner_id = '41000000-0000-4000-8000-000000000001'$$,
+    '42501',
+    'permission denied for table companies',
+    'direct company mutation remains blocked after cancellation'
 );
 
 select is(

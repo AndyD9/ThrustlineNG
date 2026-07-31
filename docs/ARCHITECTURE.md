@@ -27,7 +27,8 @@ annulent pendant une fenêtre de 7 jours ; elles exigent une nouvelle session
 Supabase de 5 minutes au plus. Une quatrième commande, exécutable seulement par
 `service_role`, finalise la suppression dans une transaction. Les tables de
 cycle de vie sont dans `private`, sans privilège API et avec RLS activée/forcée.
-Les mutations directes de `companies` sont bloquées pendant l'attente.
+T0022 retire ensuite toute mutation directe de `companies` aux rôles clients ;
+le cycle T0018 reste l'unique voie de suppression.
 
 T0019 crée pour chaque compagnie un sujet de restauration opaque dans
 `private`. La finalisation écrit atomiquement un événement pseudonyme versionné
@@ -50,6 +51,14 @@ du lien compagnie–sujet. Les écritures restent immuables et ne conservent que
 sujet opaque nécessaire à l'intégrité. Cette première tranche n'est pas une
 comptabilité en partie double et ne définit encore ni revenus, ni coûts, ni
 clôture de vol.
+
+T0022 ajoute `create_company_with_opening_balance`, réservée à `service_role`.
+La commande verrouille l'identité Auth non anonyme, lie la clé d'idempotence à
+l'intégralité du payload, crée la compagnie et appelle l'ouverture T0020 dans la
+même transaction. Les triggers créent aussi les sujets privés de restauration
+et de grand livre. Un rejeu identique rend les mêmes identifiants ; une collision,
+une deuxième compagnie ou une panne annule tout le statement. Cette frontière
+n'ajoute encore aucun appelant applicatif.
 
 ## Packaging Windows T0014
 
@@ -90,14 +99,11 @@ auth.users.id → companies.owner_id unique → une compagnie au plus par utilis
 ```
 
 La clé étrangère impose un propriétaire Auth existant. La RLS est activée et
-forcée. Quatre politiques séparées limitent select/insert/update/delete à
-`auth.uid() = owner_id` et au rôle `authenticated`. Les types versionnés sous
-`packages/database` sont destinés à être régénérés depuis la pile locale ; aucun
-client applicatif ne les consomme encore.
-
-Cette table ne constitue pas l'onboarding transactionnel complet. Les futures
-mutations multi-écritures et économiques resteront des commandes serveur
-transactionnelles et idempotentes.
+forcée. Après T0022, `authenticated` conserve uniquement `select` avec la
+politique `auth.uid() = owner_id`; `insert`, `update` et `delete` directs sont
+révoqués et leurs politiques supprimées. Les types versionnés sous
+`packages/database` sont régénérés depuis la pile locale ; aucun client
+applicatif ne les consomme encore.
 
 ## Télémétrie SimConnect T0011
 
