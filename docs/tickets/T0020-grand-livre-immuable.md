@@ -211,6 +211,10 @@ reste `In progress` jusqu'à la preuve PostgreSQL 17 CI.
   puis le test T0020 échoue car une assertion interne conserve volontairement le
   rôle `service_role`, correctement privé d'accès direct à `private`; correction
   du contexte de rôle en cours, sans élargir aucun grant.
+- second run CI `30628549511` — 8 fichiers/148 assertions `PASS`, concurrence
+  T0018 et T0020 réussie, restauration/replay réussi ; seul le contrôle des
+  types signale l'ordre canonique des fonctions et `Args: never`, désormais
+  alignés sur la sortie exacte du générateur.
 
 La vérification manuelle Windows n'est pas exécutée. Aucune donnée réelle,
 staging ou production n'est utilisée et aucune mutation économique n'est

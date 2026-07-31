@@ -43,8 +43,9 @@ export type Database = {
         Returns: Json
       }
       finalize_account_deletion: { Args: { request_id: string }; Returns: Json }
+      get_account_export: { Args: { request_id: string }; Returns: Json }
       get_company_ledger: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           amount_minor: number
           currency_code: string
@@ -55,7 +56,6 @@ export type Database = {
           sequence_number: number
         }[]
       }
-      get_account_export: { Args: { request_id: string }; Returns: Json }
       post_company_opening_balance: {
         Args: {
           amount_minor: number
