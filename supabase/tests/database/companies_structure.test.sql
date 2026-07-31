@@ -62,12 +62,9 @@ select policies_are(
     'public',
     'companies',
     array[
-        'companies_delete_own',
-        'companies_insert_own',
-        'companies_select_own',
-        'companies_update_own'
+        'companies_select_own'
     ],
-    'only the four ownership policies exist'
+    'only the ownership read policy remains'
 );
 
 select results_eq(
@@ -76,8 +73,8 @@ select results_eq(
       where schemaname = 'public'
         and tablename = 'companies'
         and roles = array['authenticated']::name[]$$,
-    array[4::bigint],
-    'every policy is restricted to authenticated'
+    array[1::bigint],
+    'the read policy is restricted to authenticated'
 );
 
 select * from finish();

@@ -10,7 +10,7 @@ pnpm data-policy:check
 
 Le harnais T0017–T0019 valide la source JSON, quatre environnements, huit
 catégories, les maxima de rétention, les seeds synthétiques et l'intégration CI.
-Il détecte cinq mutations : catégorie absente, donnée de production autorisée en
+Il détecte six mutations : catégorie absente, donnée de production autorisée en
 staging, délai de journaux supérieur à 90 jours, dérive de la suppression de
 compte et dérive du replay après restauration.
 
@@ -38,8 +38,9 @@ ce fixture et ajouter ou préserver un scénario d'échec associé.
 Le contrôle statique fonctionne sans Docker et couvre la version de CLI, la
 configuration PostgreSQL 17, l'ordre migration/seed, les contraintes, les
 politiques, les scénarios A/B/anonyme et l'absence de commande distante. Il
-exécute aussi sept mutations négatives, dont une publication wildcard et un
-montage du socket Docker hôte :
+exécute aussi huit mutations négatives, dont une publication wildcard, un
+montage du socket Docker hôte et une commande d'onboarding rendue exécutable par
+un rôle client :
 
 ```powershell
 pnpm backend:check
@@ -57,11 +58,12 @@ pnpm backend:stop
 ```
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les huit fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. Les 148 assertions couvrent le cycle de compte
-T0018, le replay T0019 et le grand livre T0020. Le job CI lance ensuite deux sessions PostgreSQL
-concurrentes et exige une demande unique, deux enregistrements d'idempotence et
-un identifiant de demande commun. Il restaure aussi un dump synthétique pris
+les dix fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 190 assertions couvrent le cycle de compte
+T0018, le replay T0019, le grand livre T0020 et l'onboarding T0022. Le job CI
+lance deux sessions PostgreSQL concurrentes pour les cycles sensibles et exige
+notamment une compagnie, une commande et une ouverture uniques pour deux appels
+T0022 identiques. Il restaure aussi un dump synthétique pris
 avant suppression dans une base distincte, vérifie les ACL/RLS et `pgcrypto`,
 rejoue le journal, refuse les événements altéré/inconnu et détruit les fichiers
 et la cible. `backend:types:check` régénère les types en mémoire et échoue si le

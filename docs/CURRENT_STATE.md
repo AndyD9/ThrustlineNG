@@ -1,8 +1,8 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 31 juillet 2026 (preuve Windows T0021 du runtime
-Supabase isolé).
-Statut : les implémentations T0012 à T0017 sont fusionnées dans `main`. T0005,
+Dernière revue documentaire : 31 juillet 2026 (preuve locale T0022 de
+l'onboarding autoritaire).
+Statut : les implémentations T0012 à T0018 sont fusionnées dans `main`. T0005,
 T0006 et T0013 à T0017 sont `Done`. La phase 0 est terminée, la phase 1 a
 franchi conditionnellement son gate de reproductibilité et la phase 2 est
 active sous interdiction de données utilisateur réelles. T0021 résout `KI-017` :
@@ -11,12 +11,12 @@ la pile locale est isolée et ses trois sockets Windows écoutent uniquement sur
 T0012 reste `Verify` tant que la correction T0021 n'est pas fusionnée dans
 `main`.
 
-Les implémentations T0018 et T0019 sont présentes sur deux branches empilées,
-pas dans `main`. Elles restent `Verify` car leurs checklists humaines n'ont pas
-été exécutées. T0020 est présent sur une troisième branche empilée et reste aussi
-`Verify` pour sa checklist humaine ; ses preuves PostgreSQL 17 CI et locale sont
-vertes. T0021 est empilé sur T0020 et passe à `Review` après la confirmation
-visuelle de Studio.
+T0018 est présent dans `main` mais reste `Verify` car sa checklist humaine n'a
+pas été exécutée. T0019–T0021 ne sont pas dans `main` : les PR #31–#33 ont été
+fusionnées dans leurs branches parentes après la propagation de T0018. Les PR
+brouillon #34–#36 restaurent cette chaîne sans revendiquer de livraison. T0020
+reste `Verify`, T0021 reste `Review`, et T0022 est implémenté sur une nouvelle
+branche empilée avec preuves PostgreSQL 17 locales.
 
 ## Produit
 
@@ -366,12 +366,31 @@ privées append-only et une commande d'ouverture réservée à `service_role`.
 fonction qui dérive l'identité du JWT. La suppression et le replay détachent le
 lien personnel sans modifier les écritures.
 
-Les gates statiques backend et politique passent avec respectivement 5 et 6
+Les gates statiques backend et politique T0020 passent avec respectivement 5 et 6
 mutations négatives. Le run `30628851680` valide deux resets, 8 fichiers pgTAP,
 148 assertions, la concurrence, la restauration/replay et les types stables sur
 PostgreSQL 17. T0021 reproduit localement les 8 fichiers/148 assertions et les
 types stables ; T0020 reste `Verify` pour sa checklist humaine et n'est pas
 présent dans `main`.
+
+## Onboarding de compagnie autoritaire
+
+T0022 retire à `authenticated` les mutations directes de `public.companies` et
+ajoute une commande `service_role` qui verrouille l'identité Auth, crée la
+compagnie et son ouverture financière dans une transaction. Le registre privé
+lie propriétaire, clé d'idempotence et empreinte du payload ; le rejeu identique
+rend la même réponse, tandis qu'une collision, une identité anonyme, un compte en
+suppression ou une deuxième compagnie échouent sans état partiel.
+
+Localement sous Windows/Docker Desktop 29.6.2, deux resets, 10 fichiers pgTAP et
+190 assertions passent avec `Result: PASS`; les types sont stables. Deux sessions
+concurrentes convergent vers une compagnie, une commande et une écriture. La
+checklist manuelle confirme rejeu, collision, refus d'une mutation directe et
+rollback injecté avec l'état final `1|1|1|0|0`. T0022 reste empilé et n'est pas
+présent dans `main`. La PR brouillon #37 cible
+`feature/T0020-immutable-ledger`; aucun appelant desktop/bridge, donnée réelle ou
+environnement distant n'est ajouté. Les runs GitHub `30652926904` et
+`30652926644` valident PostgreSQL 17, Windows multi-stack et la supply chain.
 
 ## CI multi-stack
 
@@ -450,9 +469,10 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Faire inspecter Studio puis exécuter les checklists humaines T0018–T0020 sur le
-runtime T0021 avant de détailler la prochaine commande économique. T0011 reste `Verify`
-jusqu'aux essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
+Faire revoir T0022, propager dans l'ordre les PR empilées #34–#36, puis exécuter
+les checklists humaines T0018–T0020 sur le runtime T0021. Ne pas détailler une
+deuxième variation économique avant ces clôtures. T0011 reste `Verify` jusqu'aux
+essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier
 

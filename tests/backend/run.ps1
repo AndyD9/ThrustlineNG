@@ -30,6 +30,7 @@ function Get-BackendIssues {
     $lifecycleMigrationPath = Join-Path $Root "supabase\migrations\20260731000100_account_lifecycle.sql"
     $restoreMigrationPath = Join-Path $Root "supabase\migrations\20260731000200_account_deletion_restore_replay.sql"
     $ledgerMigrationPath = Join-Path $Root "supabase\migrations\20260731000300_immutable_financial_ledger.sql"
+    $onboardingMigrationPath = Join-Path $Root "supabase\migrations\20260731000400_authoritative_company_onboarding.sql"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $structureTestPath = Join-Path $Root "supabase\tests\database\companies_structure.test.sql"
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
@@ -39,6 +40,8 @@ function Get-BackendIssues {
     $restoreTestPath = Join-Path $Root "supabase\tests\database\account_restore_replay.test.sql"
     $ledgerStructureTestPath = Join-Path $Root "supabase\tests\database\financial_ledger_structure.test.sql"
     $ledgerTestPath = Join-Path $Root "supabase\tests\database\financial_ledger.test.sql"
+    $onboardingStructureTestPath = Join-Path $Root "supabase\tests\database\company_onboarding_structure.test.sql"
+    $onboardingTestPath = Join-Path $Root "supabase\tests\database\company_onboarding.test.sql"
     $typesPath = Join-Path $Root "packages\database\src\database.types.ts"
     $startScriptPath = Join-Path $Root "scripts\start-supabase-local.ps1"
     $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
@@ -55,6 +58,7 @@ function Get-BackendIssues {
         $lifecycleMigrationPath,
         $restoreMigrationPath,
         $ledgerMigrationPath,
+        $onboardingMigrationPath,
         $seedPath,
         $structureTestPath,
         $rlsTestPath,
@@ -64,6 +68,8 @@ function Get-BackendIssues {
         $restoreTestPath,
         $ledgerStructureTestPath,
         $ledgerTestPath,
+        $onboardingStructureTestPath,
+        $onboardingTestPath,
         $typesPath,
         $startScriptPath,
         $invokeScriptPath,
@@ -270,6 +276,34 @@ function Get-BackendIssues {
         $issues.Add("Financial posting must remain service-role-only.")
     }
 
+    $onboardingMigration = Get-Content -Raw -Encoding UTF8 $onboardingMigrationPath
+    $onboardingRequirements = @{
+        "private onboarding registry" = 'create table private\.company_onboarding_commands'
+        "forced onboarding RLS" = 'alter table private\.company_onboarding_commands force row level security'
+        "owner-scoped idempotency" = 'primary key \(owner_id, idempotency_key\)'
+        "payload fingerprint" = "extensions\.digest\("
+        "authoritative onboarding command" = 'create function public\.create_company_with_opening_balance\('
+        "service-only onboarding" = 'grant execute on function public\.create_company_with_opening_balance\(uuid, uuid, text, bigint, text\) to service_role'
+        "client company mutation revoked" = 'revoke insert, update, delete on table public\.companies from authenticated'
+        "client insert policy removed" = 'drop policy companies_insert_own on public\.companies'
+        "client update policy removed" = 'drop policy companies_update_own on public\.companies'
+        "client delete policy removed" = 'drop policy companies_delete_own on public\.companies'
+        "Auth owner lock" = 'from auth\.users as users[\s\S]+for update'
+        "anonymous owner rejection" = 'not coalesce\(users\.is_anonymous, false\)'
+        "account lifecycle gate" = 'private\.account_is_active\(locked_owner_id\)'
+        "atomic opening call" = 'public\.post_company_opening_balance\('
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $onboardingRequirements.GetEnumerator()) {
+        Require-Text $onboardingMigration $entry.Value "Company onboarding invariant missing: $($entry.Key)."
+    }
+    if ($onboardingMigration -match '(?i)grant\s+execute\s+on\s+function\s+public\.create_company_with_opening_balance\([^;]+\)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Company onboarding must remain service-role-only.")
+    }
+    if ($onboardingMigration -match '(?i)grant\s+(insert|update|delete)[^;]*on\s+(table\s+)?public\.companies\s+to\s+(anon|authenticated)') {
+        $issues.Add("Client roles must not regain direct company mutation privileges.")
+    }
+
     $seed = Get-Content -Raw -Encoding UTF8 $seedPath
     Require-Text $seed 'pilot-a@thrustline\.invalid' "Synthetic user A is missing."
     Require-Text $seed 'pilot-b@thrustline\.invalid' "Synthetic user B is missing."
@@ -293,7 +327,11 @@ function Get-BackendIssues {
         "`n" +
         (Get-Content -Raw -Encoding UTF8 $ledgerStructureTestPath) +
         "`n" +
-        (Get-Content -Raw -Encoding UTF8 $ledgerTestPath)
+        (Get-Content -Raw -Encoding UTF8 $ledgerTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $onboardingStructureTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $onboardingTestPath)
     )
     foreach ($marker in @(
         "set local role authenticated",
@@ -324,6 +362,12 @@ function Get-BackendIssues {
         "deletion pending blocks financial mutation",
         "deletion replay detaches and dates the personal ledger link",
         "ledger entries cannot be updated",
+        "authenticated cannot insert a company directly",
+        "an identical onboarding command replays idempotently",
+        "onboarding idempotency payload collision is rejected",
+        "A can read only company A after onboarding",
+        "B can read only company B after onboarding",
+        "an injected opening failure rolls back onboarding",
         "rollback;"
     )) {
         if (-not $allTests.Contains($marker)) {
@@ -341,6 +385,7 @@ function Get-BackendIssues {
     Require-Text $types 'replay_account_deletion_event:' "Generated types do not expose deletion replay."
     Require-Text $types 'post_company_opening_balance:' "Generated types do not expose the server ledger command."
     Require-Text $types 'get_company_ledger:' "Generated types do not expose owner ledger reads."
+    Require-Text $types 'create_company_with_opening_balance:' "Generated types do not expose authoritative onboarding."
 
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $typeScript 'Invoke-IsolatedSupabaseCli' "Type generation does not use the isolated local runtime."
@@ -353,6 +398,8 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'Account lifecycle concurrency passed' "Backend CI does not report the concurrency proof."
     Require-Text $ciBackend 'Financial ledger concurrency passed' "Backend CI does not report ledger concurrency."
     Require-Text $ciBackend 'Concurrent financial ledger commands did not converge' "Backend CI does not verify identical ledger command convergence."
+    Require-Text $ciBackend 'Company onboarding concurrency passed' "Backend CI does not report onboarding concurrency."
+    Require-Text $ciBackend 'Concurrent company onboarding commands did not converge' "Backend CI does not verify identical onboarding convergence."
     Require-Text $ciBackend '"1\|1"' "Backend CI does not verify one immutable concurrent ledger entry."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
     foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
@@ -394,6 +441,7 @@ try {
         "supabase\migrations\20260731000100_account_lifecycle.sql",
         "supabase\migrations\20260731000200_account_deletion_restore_replay.sql",
         "supabase\migrations\20260731000300_immutable_financial_ledger.sql",
+        "supabase\migrations\20260731000400_authoritative_company_onboarding.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
@@ -403,6 +451,8 @@ try {
         "supabase\tests\database\account_restore_replay.test.sql",
         "supabase\tests\database\financial_ledger_structure.test.sql",
         "supabase\tests\database\financial_ledger.test.sql",
+        "supabase\tests\database\company_onboarding_structure.test.sql",
+        "supabase\tests\database\company_onboarding.test.sql",
         "packages\database\src\database.types.ts",
         "scripts\start-supabase-local.ps1",
         "scripts\invoke-supabase-local.ps1",
@@ -512,6 +562,21 @@ try {
         Write-Error "Harness self-test failed to detect a client-executable ledger command."
         exit 1
     }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260731000300_immutable_financial_ledger.sql") -Destination $ledgerMigrationCopy
+    $onboardingMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260731000400_authoritative_company_onboarding.sql"
+    $onboardingText = Get-Content -Raw -Encoding UTF8 $onboardingMigrationCopy
+    $onboardingText = $onboardingText.Replace(
+        "grant execute on function public.create_company_with_opening_balance(uuid, uuid, text, bigint, text) to service_role;",
+        "grant execute on function public.create_company_with_opening_balance(uuid, uuid, text, bigint, text) to authenticated;"
+    )
+    [System.IO.File]::WriteAllText($onboardingMigrationCopy, $onboardingText)
+    $unsafeOnboardingIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unsafeOnboardingIssues -match "service-role-only") -or
+        -not ($unsafeOnboardingIssues -match "service-only onboarding")) {
+        Write-Error "Harness self-test failed to detect client-executable onboarding."
+        exit 1
+    }
 }
 finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
@@ -519,4 +584,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0021 repository plus 7 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0022 repository plus 8 mutation scenarios)."
