@@ -43,6 +43,8 @@ function Get-BackendIssues {
     $startScriptPath = Join-Path $Root "scripts\start-supabase-local.ps1"
     $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
     $dockerToolsPath = Join-Path $Root "scripts\docker-tools.ps1"
+    $runtimeScriptPath = Join-Path $Root "scripts\supabase-local-runtime.ps1"
+    $cliContainerfilePath = Join-Path $Root "scripts\supabase-local-cli.Containerfile"
     $typeScriptPath = Join-Path $Root "scripts\generate-database-types.ps1"
     $ciBackendPath = Join-Path $Root "scripts\ci\test-backend.ps1"
 
@@ -66,6 +68,8 @@ function Get-BackendIssues {
         $startScriptPath,
         $invokeScriptPath,
         $dockerToolsPath,
+        $runtimeScriptPath,
+        $cliContainerfilePath,
         $typeScriptPath,
         $ciBackendPath
     )
@@ -113,28 +117,48 @@ function Get-BackendIssues {
         $invokeScript -notmatch '@\("db", "reset", "--local"\)') {
         $issues.Add("backend:reset must target the local database explicitly.")
     }
-    Require-Text $invokeScript '@\("test", "db", "--network-id", "thrustline-local"\)' "pgTAP does not use the local Docker network."
+    Require-Text $invokeScript '@\("test", "db"\)' "pgTAP does not let Supabase select its generated inner network."
     if ([string]$package.scripts.'backend:start' -notmatch "start-supabase-local\.ps1") {
         $issues.Add("backend:start must use the loopback-safe start script.")
     }
 
     $startScript = Get-Content -Raw -Encoding UTF8 $startScriptPath
     $dockerTools = Get-Content -Raw -Encoding UTF8 $dockerToolsPath
+    $runtimeScript = Get-Content -Raw -Encoding UTF8 $runtimeScriptPath
+    $cliContainerfile = Get-Content -Raw -Encoding UTF8 $cliContainerfilePath
+    $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $dockerTools 'Get-Command docker\.exe -CommandType Application -All' "Docker must resolve to an application."
     Require-Text $dockerTools 'Select-Object -First 1' "Docker resolution must select exactly one executable."
     Require-Text $dockerTools 'Enable-DockerCliForProcess' "Docker CLI directory is not injected into child PATH."
     Require-Text $startScript 'docker-tools\.ps1' "Supabase start must use the shared Docker resolver."
+    Require-Text $startScript 'supabase-local-runtime\.ps1' "Supabase start must use the isolated runtime helper."
     Require-Text $startScript '\$dockerPath info --format' "Docker daemon availability is not checked."
-    Require-Text $startScript 'host_binding_ipv4=127\.0\.0\.1' "Docker ports are not restricted to loopback."
-    Require-Text $startScript '--network-id \$networkName' "Supabase does not use the restricted Docker network."
-    Require-Text $startScript '\$dockerPath network ls --format' "Docker networks must be listed before inspection."
-    Require-Text $startScript '\$networkName -notin \$networkNames' "Missing Docker networks are not handled safely."
-    Require-Text $startScript '\$networkInspection \| ConvertFrom-Json' "Docker network inspection must parse JSON."
-    Require-Text $startScript '\$networkBinding -ne "127\.0\.0\.1"' "An unsafe existing Docker network is not rejected."
-    Require-Text $startScript '\*> \$null' "Supabase start output may expose local credentials."
-    Require-Text $startScript "0\\\.0\\\.0\\\.0:|\\\\\[::\\\\\]:" "Published wildcard ports are not detected."
-    Require-Text $startScript 'Stop-LocalStackQuietly' "Fail-safe shutdown does not isolate CLI stderr."
-    Require-Text $startScript 'the local stack was stopped' "Unsafe bindings do not stop the local stack."
+    Require-Text $startScript '--privileged' "The dedicated Docker-in-Docker engine is not started explicitly."
+    foreach ($port in @(54321, 54322, 54323)) {
+        Require-Text $startScript ('--publish "127\.0\.0\.1:{0}:{0}"' -f $port) "Supabase port $port is not restricted to IPv4 loopback."
+    }
+    Require-Text $startScript 'Copy-SupabaseProjectToEngine' "Supabase sources are not copied through the bounded staging helper."
+    Require-Text $startScript 'Assert-SupabaseOuterBindings' "Supabase outer bindings are not verified after startup."
+    Require-Text $startScript 'Remove-SupabaseLocalRuntime' "Failed startup does not remove the isolated runtime."
+    Require-Text $runtimeScript 'docker:29\.6\.2-dind@sha256:[0-9a-f]{64}' "Docker-in-Docker is not pinned by version and digest."
+    Require-Text $runtimeScript 'DOCKER_HOST=tcp://\$\(\$script:SupabaseEngineContainer\):2375' "The CLI does not target the isolated Docker API."
+    Require-Text $runtimeScript 'DO_NOT_TRACK=1' "The isolated CLI does not disable generic telemetry."
+    Require-Text $runtimeScript 'SUPABASE_TELEMETRY_DISABLED=1' "The isolated CLI does not disable Supabase telemetry."
+    Require-Text $runtimeScript ([regex]::Escape('${script:SupabaseProjectVolume}:/workspace')) "The CLI does not use the dedicated project volume."
+    Require-Text $startScript ([regex]::Escape('${script:SupabaseEngineCacheVolume}:/var/lib/docker')) "The inner image cache is not isolated in its dedicated volume."
+    Require-Text $invokeScript 'Remove-SupabaseLocalRuntime -DockerPath \$dockerPath -PreserveImageCache' "Normal shutdown does not preserve only the source-free image cache."
+    Require-Text $runtimeScript 'HostIp -ne "127\.0\.0\.1"' "The runtime does not reject non-loopback host bindings."
+    Require-Text $runtimeScript '0\\\.0\\\.0\\\.0:|\\\\\[::\\\\\]:' "Published wildcard ports are not detected."
+    Require-Text $runtimeScript 'Refusing to copy secret-capable files' "Secret-capable Supabase files are not rejected."
+    Require-Text $runtimeScript 'Select-Object -Last 20' "Failed CLI output is not bounded before reporting."
+    Require-Text $cliContainerfile 'node:24\.18\.0-bookworm-slim@sha256:[0-9a-f]{64}' "The CLI base image is not pinned by version and digest."
+    Require-Text $cliContainerfile ([regex]::Escape('svFmamF/vIq4/oinwY50jDi869itC9/GWrPaGtsHFkK4NUBcQtl1T37WWIivGsXwbBKNC4FjZD3dGqjL7bfW1g==')) "The Linux CLI archive is not checked against the lockfile integrity."
+    if (($startScript + $runtimeScript + $cliContainerfile) -match 'docker\.sock|\\\\\.\\pipe\\docker_engine') {
+        $issues.Add("The isolated runtime must never mount the host Docker socket.")
+    }
+    if (($startScript + $invokeScript + $typeScript) -match '--network-id') {
+        $issues.Add("The outer isolation must not force a stale inner Supabase network.")
+    }
 
     $config = Get-Content -Raw -Encoding UTF8 $configPath
     Require-Text $config '(?m)^project_id = "thrustline-ng"$' "Unexpected Supabase project ID."
@@ -319,7 +343,8 @@ function Get-BackendIssues {
     Require-Text $types 'get_company_ledger:' "Generated types do not expose owner ledger reads."
 
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
-    Require-Text $typeScript '--network-id thrustline-local' "Type generation does not use the local Docker network."
+    Require-Text $typeScript 'Invoke-IsolatedSupabaseCli' "Type generation does not use the isolated local runtime."
+    Require-Text $typeScript '"--local"' "Type generation does not target the local database explicitly."
 
     $ciBackend = Get-Content -Raw -Encoding UTF8 $ciBackendPath
     Require-Text $ciBackend 'Start-Job -ScriptBlock' "Backend CI does not create concurrent database sessions."
@@ -382,6 +407,8 @@ try {
         "scripts\start-supabase-local.ps1",
         "scripts\invoke-supabase-local.ps1",
         "scripts\docker-tools.ps1",
+        "scripts\supabase-local-runtime.ps1",
+        "scripts\supabase-local-cli.Containerfile",
         "scripts\generate-database-types.ps1",
         "scripts\ci\test-backend.ps1"
     )) {
@@ -413,6 +440,35 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "scripts\invoke-supabase-local.ps1") -Destination $invokeCopy
+    $startCopy = Join-Path $temporaryRoot "scripts\start-supabase-local.ps1"
+    $startText = Get-Content -Raw -Encoding UTF8 $startCopy
+    $startText = $startText.Replace(
+        '--publish "127.0.0.1:54321:54321"',
+        '--publish "0.0.0.0:54321:54321"'
+    )
+    [System.IO.File]::WriteAllText($startCopy, $startText)
+    $wildcardBindingIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($wildcardBindingIssues -match "port 54321 is not restricted")) {
+        Write-Error "Harness self-test failed to detect a wildcard outer binding."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "scripts\start-supabase-local.ps1") -Destination $startCopy
+    $runtimeCopy = Join-Path $temporaryRoot "scripts\supabase-local-runtime.ps1"
+    $runtimeText = Get-Content -Raw -Encoding UTF8 $runtimeCopy
+    $runtimeText = $runtimeText.Replace(
+        '"${script:SupabaseProjectVolume}:/workspace"',
+        '"/var/run/docker.sock:/var/run/docker.sock"'
+    )
+    [System.IO.File]::WriteAllText($runtimeCopy, $runtimeText)
+    $hostSocketIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($hostSocketIssues -match "must never mount the host Docker socket")) {
+        Write-Error "Harness self-test failed to detect a host Docker socket mount."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "scripts\supabase-local-runtime.ps1") -Destination $runtimeCopy
+
     $lifecycleMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260731000100_account_lifecycle.sql"
     $lifecycleText = Get-Content -Raw -Encoding UTF8 $lifecycleMigrationCopy
     $lifecycleText = $lifecycleText.Replace(
@@ -463,4 +519,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012/T0018/T0019/T0020 repository plus 5 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0021 repository plus 7 mutation scenarios)."
