@@ -1,19 +1,20 @@
 # Sécurité du desktop
 
-## Politique de données T0017–T0018
+## Politique de données T0017–T0019
 
 La collecte est refusée par défaut et les données utilisateur réelles restent
-bloquées tant que purge, sauvegarde, restauration et replay des suppressions ne
-sont pas implémentés et testés. T0018 prouve export et suppression seulement sur
-des données synthétiques locales/CI. Staging accepte des données synthétiques ou
-irréversiblement anonymisées, jamais un clone de production.
+bloquées tant que purge, sauvegarde managée et contrôles de restauration de
+production ne sont pas implémentés et testés. T0018 prouve export et suppression
+sur des données synthétiques locales/CI ; T0019 prouve restauration et replay
+uniquement sur PostgreSQL 17 CI synthétique. Staging accepte des données
+synthétiques ou irréversiblement anonymisées, jamais un clone de production.
 
 `eng/data-policy.json` borne la télémétrie brute à 7 jours, les diagnostics
 facultatifs et sauvegardes à 30 jours, et les journaux sécurité à 90 jours. Les
 diagnostics exigent un consentement explicite. Une restauration doit rester
 isolée, vérifier l'intégrité et rejouer les suppressions avant réouverture.
 
-Le gate `data-policy:check` contrôle ces invariants et quatre mutations négatives
+Le gate `data-policy:check` contrôle ces invariants et cinq mutations négatives
 sans service, réseau ou secret. T0018 exige une session Supabase créée depuis
 5 minutes au plus, vérifie `session_id` contre `auth.sessions` et refuse un
 simple `token_refresh`. L'export de A exclut B ; l'anonyme ne peut appeler aucune
@@ -21,8 +22,17 @@ commande ; la finalisation est réservée à `service_role`. Une panne injectée
 avant la suppression Auth restaure toute la transaction. Le marqueur final ne
 contient aucun identifiant Auth, email, nom de compagnie ou export.
 
-Cette frontière ne prouve pas la configuration d'une sauvegarde, un exercice de
-restauration ou le replay des suppressions après restauration.
+T0019 ajoute un jeton de restauration opaque, privé et généré côté serveur. Le
+journal de suppression ne contient aucun identifiant direct, mais reste une
+donnée personnelle pseudonymisée tant qu'une sauvegarde permet la
+correspondance. Seul `service_role` peut le rejouer ; le même événement est
+idempotent, un événement altéré ou inconnu échoue fermé et toute panne restaure
+la transaction.
+
+La cible CI est une base distincte non servie par PostgREST. Son dump exclut
+Vault et Storage, réinstalle `pgcrypto` à version identique et ne rejoue pas les
+`DEFAULT ACL` des rôles internes. Cette frontière ne prouve ni sauvegarde
+managée/chiffrée, ni purge du journal, ni RPO/RTO ou promotion de production.
 
 ## Frontière installateur Windows T0014
 

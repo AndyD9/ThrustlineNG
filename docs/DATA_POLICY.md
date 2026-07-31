@@ -14,7 +14,7 @@ revue explicite ; elle ne doit pas être contournée dans le code.
 
 ## Statut d'application
 
-| Contrôle | Statut prouvé au 30 juillet 2026 |
+| Contrôle | Statut prouvé au 31 juillet 2026 |
 | --- | --- |
 | Source JSON versionnée et gate à mutations | Enforced par T0017 |
 | Seeds locaux synthétiques uniquement | Enforced par T0012 et T0017 |
@@ -24,8 +24,9 @@ revue explicite ; elle ne doit pas être contournée dans le code.
 | Suppression de compte | Enforced local/CI par T0018 |
 | Purges de rétention | Not implemented |
 | Anonymisation du futur grand livre | Not implemented |
-| Sauvegardes managées et restauration testée | Not implemented |
-| Replay des suppressions après restauration | Not implemented |
+| Sauvegardes managées | Not implemented |
+| Restauration isolée synthétique | Enforced local/CI par T0019 |
+| Replay des suppressions après restauration | Enforced local/CI par T0019 |
 
 `Enforced` signifie qu'un contrôle reproductible existe dans le dépôt.
 `Forbidden` est une règle contrôlée ou revue. `Blocked` signifie que le produit
@@ -144,6 +145,20 @@ Une campagne de restauration doit :
 Les sauvegardes PostgreSQL n'incluent pas nécessairement les objets Supabase
 Storage. Toute adoption future de Storage exige donc une stratégie et une preuve
 de restauration propres aux objets.
+
+T0019 exécute cette mécanique uniquement sur PostgreSQL 17 CI avec des identités
+synthétiques. Un dump logique pris avant une demande de suppression est restauré
+dans une base distincte, non servie par PostgREST. Un journal pseudonyme
+postérieur au point de sauvegarde supprime A sans affecter B ; son rejeu est
+idempotent et les événements altéré ou inconnu sont refusés.
+
+La preuve couvre `auth`, `public`, `private`, `extensions` et
+`supabase_migrations`. Elle réinstalle `pgcrypto` 1.3 depuis la même image et
+restaure les ACL d'objets, mais exclut les `DEFAULT ACL` appartenant aux rôles
+internes Supabase. Elle ne couvre ni Vault, Storage, une sauvegarde managée,
+le chiffrement fournisseur, la rétention/purge du journal pseudonyme, un RPO/RTO
+de production ou la promotion de la cible. L'admission de données réelles reste
+donc bloquée.
 
 ## Évolution et revue
 

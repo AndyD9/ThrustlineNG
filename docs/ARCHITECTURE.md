@@ -1,6 +1,6 @@
 # Architecture du desktop
 
-## Cycle de vie des données T0017–T0018
+## Cycle de vie des données T0017–T0019
 
 `eng/data-policy.json` est la source canonique des catégories, environnements,
 durées maximales et capacités de cycle de vie. `docs/DATA_POLICY.md` en donne la
@@ -16,8 +16,10 @@ collecte minimale
 ```
 
 Une restauration reste fermée aux utilisateurs jusqu'au contrôle d'intégrité et
-au replay des suppressions postérieures au point restauré. Purge, sauvegarde
-distante, restauration et replay restent non implémentés.
+au replay des suppressions postérieures au point restauré. T0019 prouve ce
+chemin uniquement sur une base PostgreSQL 17 CI synthétique, distincte et non
+servie par PostgREST. Purge, sauvegarde managée et promotion d'une cible
+restaurée restent non implémentées.
 
 T0018 ajoute une migration append-only sans modifier la FK T0012. Trois
 commandes authentifiées demandent la suppression, récupèrent l'export et
@@ -26,6 +28,14 @@ Supabase de 5 minutes au plus. Une quatrième commande, exécutable seulement pa
 `service_role`, finalise la suppression dans une transaction. Les tables de
 cycle de vie sont dans `private`, sans privilège API et avec RLS activée/forcée.
 Les mutations directes de `companies` sont bloquées pendant l'attente.
+
+T0019 crée pour chaque compagnie un sujet de restauration opaque dans
+`private`. La finalisation écrit atomiquement un événement pseudonyme versionné
+avant de supprimer la correspondance active. Après restauration, une commande
+`service_role` applique cet événement, compare tout rejeu à l'enregistrement
+exact et échoue fermée sur un sujet absent ou un contenu différent. Le jeton
+reste traité comme personnel tant qu'une sauvegarde permet de le relier au
+compte.
 
 Le futur grand livre est append-only, mais son lien personnel doit rester
 anonymisable. T0018 couvre seulement l'identité Auth et la compagnie présentes ;
