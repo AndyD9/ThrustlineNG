@@ -55,9 +55,12 @@ pnpm backend:stop
 ```
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les deux fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. `backend:types:check` régénère les types en
-mémoire et échoue si le fichier versionné diffère.
+les quatre fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 70 assertions couvrent aussi le cycle de
+compte T0018. Le job CI lance ensuite deux sessions PostgreSQL concurrentes et
+exige une demande unique, deux enregistrements d'idempotence et un identifiant
+de demande commun. `backend:types:check` régénère les types en mémoire et échoue
+si le fichier versionné diffère.
 
 Preuve T0012 du 29 juillet 2026 sous Docker Desktop 29.6.2 : deux resets
 successifs réussis, 2 fichiers pgTAP/21 tests avec résultat PASS, génération et

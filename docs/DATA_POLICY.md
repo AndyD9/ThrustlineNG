@@ -1,6 +1,6 @@
 # Politique d'ingénierie des données
 
-Dernière mise à jour : 30 juillet 2026
+Dernière mise à jour : 31 juillet 2026
 
 Source machine : `eng/data-policy.json`
 
@@ -20,8 +20,8 @@ revue explicite ; elle ne doit pas être contournée dans le code.
 | Seeds locaux synthétiques uniquement | Enforced par T0012 et T0017 |
 | Données réelles en local, CI ou staging | Forbidden |
 | Admission de données utilisateur réelles | Blocked |
-| Export de compte | Not implemented |
-| Suppression de compte | Not implemented |
+| Export de compte | Enforced local/CI par T0018 |
+| Suppression de compte | Enforced local/CI par T0018 |
 | Purges de rétention | Not implemented |
 | Anonymisation du futur grand livre | Not implemented |
 | Sauvegardes managées et restauration testée | Not implemented |
@@ -102,11 +102,27 @@ directe conservée indéfiniment : après suppression, seules les écritures
 nécessaires à l'intégrité peuvent rester, sans permettre de réidentifier la
 personne.
 
-Le schéma actuel n'implémente pas ce workflow.
-`companies.owner_id references auth.users(id) on delete restrict` empêche la
-suppression directe de l'utilisateur Auth tant que sa compagnie existe. Cette
-limite est suivie par `KI-021` et doit être résolue par une migration append-only
-testée, jamais par la modification de la migration T0012.
+Avant T0018,
+`companies.owner_id references auth.users(id) on delete restrict` empêchait la
+suppression directe de l'utilisateur Auth tant que sa compagnie existait. La
+migration T0012 reste inchangée et cette limite est suivie par `KI-021` jusqu'à
+la preuve de sauvegarde, restauration et replay.
+
+T0018 ajoute cette migration append-only et implémente la tranche locale/CI du
+workflow pour l'identité Auth et la compagnie actuelles. Une session créée depuis
+5 minutes au plus et une méthode `amr` de connexion récente sont exigées côté
+serveur. La demande prépare un export JSON versionné avec SHA-256, bloque les
+mutations de compagnie pendant 7 jours, reste récupérable et annulable durant ce
+délai, puis une commande réservée au rôle serveur supprime transactionnellement
+la compagnie, l'identité et les liens temporaires. Le marqueur final ne conserve
+qu'un UUID aléatoire, un hash de jeton de requête aléatoire, une date et la
+version d'export.
+
+Les 4 fichiers pgTAP et leurs 70 assertions passent sur PostgreSQL 17 en CI.
+Deux transactions réellement concurrentes convergent vers une demande et deux
+enregistrements d'idempotence. Cette preuve n'ajoute ni interface utilisateur,
+ni projet distant, ni sauvegarde, ni restauration, ni replay post-restauration.
+L'admission de données utilisateur réelles reste donc bloquée.
 
 ## Sauvegarde et restauration
 

@@ -1,6 +1,6 @@
 # T0018 — Exporter puis supprimer un compte sans perte ni double opération
 
-Status: In progress
+Status: Verify
 Owner: Andy
 Branch: `security/T0018-account-lifecycle`
 Phase: 2
@@ -154,23 +154,23 @@ Références :
 
 ## Acceptance criteria
 
-- [ ] Les trois décisions ouvertes sont approuvées et consignées dans ce ticket.
-- [ ] Une migration append-only résout le blocage `on delete restrict` sans
+- [x] Les trois décisions ouvertes sont approuvées et consignées dans ce ticket.
+- [x] Une migration append-only résout le blocage `on delete restrict` sans
       modifier la migration T0012 ni permettre une compagnie orpheline.
-- [ ] L'export versionné de A exclut B et toute donnée Auth sensible.
-- [ ] La demande vérifiée bloque les mutations sensibles pendant le délai
+- [x] L'export versionné de A exclut B et toute donnée Auth sensible.
+- [x] La demande vérifiée bloque les mutations sensibles pendant le délai
       approuvé et reste récupérable après perte de réponse.
-- [ ] Le rejeu et deux appels concurrents n'entraînent ni double export logique,
+- [x] Le rejeu et deux appels concurrents n'entraînent ni double export logique,
       ni double suppression, ni état partiel.
-- [ ] B et l'anonyme ne peuvent ni lire l'export de A, ni demander, annuler ou
+- [x] B et l'anonyme ne peuvent ni lire l'export de A, ni demander, annuler ou
       exécuter sa suppression.
-- [ ] Une panne injectée avant commit conserve intégralement l'état actif.
-- [ ] Après expiration simulée, l'identité Auth et les liens personnels sont
+- [x] Une panne injectée avant commit conserve intégralement l'état actif.
+- [x] Après expiration simulée, l'identité Auth et les liens personnels sont
       absents et le marqueur restant ne permet pas de réidentifier le
       propriétaire.
-- [ ] Les pgTAP sont découverts explicitement et passent sur PostgreSQL 17 en
+- [x] Les pgTAP sont découverts explicitement et passent sur PostgreSQL 17 en
       CI ; deux resets et le contrôle des types sont stables.
-- [ ] Les documents et `KI-021` décrivent uniquement les capacités réellement
+- [x] Les documents et `KI-021` décrivent uniquement les capacités réellement
       prouvées ; l'admission de données réelles reste bloquée tant que sauvegarde,
       restauration et replay ne sont pas implémentés.
 
@@ -235,18 +235,74 @@ contenant des données réelles.
 
 ## Completion Report
 
-À remplir après implémentation.
-
 ### Summary
+
+Implémentation terminée et validations automatisées prêtes à revoir. La
+migration append-only ajoute un cycle récupérable de 7 jours, un export JSON
+versionné avec SHA-256, une réauthentification serveur de 5 minutes, une
+annulation et une finalisation service-only. Le ticket passe en `Verify` le
+31 juillet 2026 : la checklist manuelle Windows reste bloquée par `KI-017`.
 
 ### Files changed
 
+- `supabase/migrations/20260731000100_account_lifecycle.sql` ;
+- `supabase/tests/database/account_lifecycle.test.sql` ;
+- `supabase/tests/database/account_lifecycle_structure.test.sql` ;
+- `packages/database/src/database.types.ts` ;
+- `scripts/ci/test-backend.ps1` ;
+- `tests/backend/run.ps1` ;
+- `eng/data-policy.json` et `tests/data-policy/run.ps1` ;
+- documents de politique, architecture, sécurité, qualité, état et suivi.
+
 ### Commands and results
+
+- `pnpm backend:check` — réussi ; dépôt T0012/T0018 et 3 mutations négatives,
+  dont une finalisation rendue exécutable par `authenticated`.
+- `pnpm data-policy:check` — réussi après synchronisation ; dépôt T0017/T0018 et
+  4 mutations négatives, dont une dérive du statut `accountDeletion`.
+- analyse syntaxique PowerShell 7.6 de `scripts/ci/test-backend.ps1` — réussie.
+- `pnpm backend:start` avant démarrage Docker — échoué, moteur Linux absent.
+- Docker Desktop 29.6.2 démarré, puis `pnpm backend:start` — fail-safe réussi :
+  publication hors loopback détectée, pile arrêtée et 0 conteneur Supabase actif.
+- GitHub `30616958479`, job `Supabase PostgreSQL 17` — réussi : 2 resets,
+  migrations rejouées, 4 fichiers pgTAP, 70 assertions, `Result: PASS`, deux
+  sessions concurrentes → 1 demande/2 enregistrements d'idempotence, types
+  stables et arrêt garanti.
+- GitHub `30616958489`, job `Audits, licences and SBOM` — réussi.
+- `git diff --check` et `git diff --cached --check` — réussis aux publications
+  intermédiaires.
 
 ### Manual verification result
 
+Non exécutée sur Windows. Docker Desktop 29.6.2 reproduit `KI-017` et le
+fail-safe interdit correctement de conserver la pile exposée. Les cinq scénarios
+de la checklist sont automatisés sur PostgreSQL 17 CI, mais cette preuve ne doit
+pas être requalifiée en vérification manuelle. Le ticket reste `Verify`.
+
 ### Risks and limitations
+
+- aucun appelant applicatif ou écran desktop n'est livré ;
+- staging/production ne sont pas provisionnés et aucune donnée réelle n'est
+  admise ;
+- sauvegarde managée, restauration isolée et replay des suppressions restent
+  absents ;
+- le marqueur final permet l'idempotence du finaliseur à partir d'un jeton de
+  requête aléatoire, mais T0018 ne prétend pas restaurer une base antérieure ;
+- le contrôle manuel dépend d'un runtime Docker Windows respectant le loopback.
 
 ### Follow-ups
 
+- T0019 : restauration PostgreSQL 17 isolée et replay des suppressions T0018 ;
+- KI-017/T0012 : runtime Windows loopback, Studio et redémarrage sûr ;
+- futur ticket frontend : UX d'export, confirmation et annulation, après
+  stabilisation de la frontière backend.
+
 ### Documentation updated
+
+- `docs/DATA_POLICY.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md` et
+  `docs/QUALITY.md` décrivent la frontière prouvée et ses limites ;
+- `docs/CURRENT_STATE.md` distingue local/CI, PR, vérification manuelle et
+  admission de données ;
+- `docs/KNOWN_ISSUES.md` conserve `KI-021` ouvert uniquement pour
+  sauvegarde/restauration/replay ;
+- `docs/tickets/README.md` synchronisé avec le statut `Verify`.

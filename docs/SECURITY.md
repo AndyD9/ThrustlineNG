@@ -1,22 +1,28 @@
 # Sécurité du desktop
 
-## Politique de données T0017
+## Politique de données T0017–T0018
 
 La collecte est refusée par défaut et les données utilisateur réelles restent
-bloquées tant que suppression, export, purge et restauration ne sont pas
-implémentés et testés. Local et CI acceptent uniquement les seeds synthétiques ;
-staging accepte des données synthétiques ou irréversiblement anonymisées, jamais
-un clone de production.
+bloquées tant que purge, sauvegarde, restauration et replay des suppressions ne
+sont pas implémentés et testés. T0018 prouve export et suppression seulement sur
+des données synthétiques locales/CI. Staging accepte des données synthétiques ou
+irréversiblement anonymisées, jamais un clone de production.
 
 `eng/data-policy.json` borne la télémétrie brute à 7 jours, les diagnostics
 facultatifs et sauvegardes à 30 jours, et les journaux sécurité à 90 jours. Les
 diagnostics exigent un consentement explicite. Une restauration doit rester
 isolée, vérifier l'intégrité et rejouer les suppressions avant réouverture.
 
-Le gate `data-policy:check` contrôle ces invariants et trois mutations négatives
-sans service, réseau ou secret. Il ne prouve pas les futures commandes de
-suppression/export, la configuration d'une sauvegarde ni un exercice de
-restauration.
+Le gate `data-policy:check` contrôle ces invariants et quatre mutations négatives
+sans service, réseau ou secret. T0018 exige une session Supabase créée depuis
+5 minutes au plus, vérifie `session_id` contre `auth.sessions` et refuse un
+simple `token_refresh`. L'export de A exclut B ; l'anonyme ne peut appeler aucune
+commande ; la finalisation est réservée à `service_role`. Une panne injectée
+avant la suppression Auth restaure toute la transaction. Le marqueur final ne
+contient aucun identifiant Auth, email, nom de compagnie ou export.
+
+Cette frontière ne prouve pas la configuration d'une sauvegarde, un exercice de
+restauration ou le replay des suppressions après restauration.
 
 ## Frontière installateur Windows T0014
 

@@ -32,6 +32,9 @@ function Get-DataPolicyIssues {
     $knownIssuesPath = Join-Path $Root "docs\KNOWN_ISSUES.md"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $migrationPath = Join-Path $Root "supabase\migrations\20260728000100_create_companies.sql"
+    $lifecycleMigrationPath = Join-Path $Root "supabase\migrations\20260731000100_account_lifecycle.sql"
+    $lifecycleTestPath = Join-Path $Root "supabase\tests\database\account_lifecycle.test.sql"
+    $backendCiPath = Join-Path $Root "scripts\ci\test-backend.ps1"
     $packagePath = Join-Path $Root "package.json"
     $ciPath = Join-Path $Root ".github\workflows\ci.yml"
     $ciHarnessPath = Join-Path $Root "tests\ci\run.ps1"
@@ -42,6 +45,9 @@ function Get-DataPolicyIssues {
         $knownIssuesPath,
         $seedPath,
         $migrationPath,
+        $lifecycleMigrationPath,
+        $lifecycleTestPath,
+        $backendCiPath,
         $packagePath,
         $ciPath,
         $ciHarnessPath
@@ -172,17 +178,20 @@ function Get-DataPolicyIssues {
         -not [bool]$policy.restore.scheduledDrillRequired) {
         $issues.Add("Restore policy must require deletion replay, integrity verification, and drills.")
     }
-    foreach ($name in @(
-        "accountExport",
-        "accountDeletion",
-        "retentionPurge",
-        "ledgerAnonymization",
-        "managedBackups",
-        "restoreDrill",
-        "deletionReplayAfterRestore"
-    )) {
-        if ([string]$policy.capabilities.$name -ne "not-implemented") {
-            $issues.Add("Capability must remain explicitly not implemented: $name.")
+    $expectedCapabilities = @{
+        accountExport = "enforced-local-ci"
+        accountDeletion = "enforced-local-ci"
+        retentionPurge = "not-implemented"
+        ledgerAnonymization = "not-implemented"
+        managedBackups = "not-implemented"
+        restoreDrill = "not-implemented"
+        deletionReplayAfterRestore = "not-implemented"
+    }
+    foreach ($entry in $expectedCapabilities.GetEnumerator()) {
+        if ([string]$policy.capabilities.($entry.Key) -ne $entry.Value) {
+            $issues.Add(
+                "Unexpected capability status for $($entry.Key): expected $($entry.Value)."
+            )
         }
     }
 
@@ -205,6 +214,17 @@ function Get-DataPolicyIssues {
     $knownIssues = Get-Content -Raw -Encoding UTF8 $knownIssuesPath
     if ($migration -match "on delete restrict" -and $knownIssues -notmatch "KI-021") {
         $issues.Add("The current account-deletion blocker must be tracked as KI-021.")
+    }
+
+    $lifecycleMigration = Get-Content -Raw -Encoding UTF8 $lifecycleMigrationPath
+    $lifecycleTest = Get-Content -Raw -Encoding UTF8 $lifecycleTestPath
+    $backendCi = Get-Content -Raw -Encoding UTF8 $backendCiPath
+    if ($lifecycleMigration -notmatch "public\.request_account_deletion" -or
+        $lifecycleMigration -notmatch "public\.finalize_account_deletion" -or
+        $lifecycleTest -notmatch "B cannot recover A export" -or
+        $lifecycleTest -notmatch "an injected finalization failure rolls back" -or
+        $backendCi -notmatch "Account lifecycle concurrency passed") {
+        $issues.Add("Local-CI account export/deletion evidence is incomplete.")
     }
 
     $documentation = Get-Content -Raw -Encoding UTF8 $documentationPath
@@ -256,6 +276,9 @@ try {
         "docs\KNOWN_ISSUES.md",
         "supabase\seed.sql",
         "supabase\migrations\20260728000100_create_companies.sql",
+        "supabase\migrations\20260731000100_account_lifecycle.sql",
+        "supabase\tests\database\account_lifecycle.test.sql",
+        "scripts\ci\test-backend.ps1",
         "package.json",
         ".github\workflows\ci.yml",
         "tests\ci\run.ps1"
@@ -303,6 +326,19 @@ try {
     if (-not ($retentionIssues -match "Security log retention must be between 1 and 90 days")) {
         throw "Harness self-test failed to detect an excessive retention period."
     }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "eng\data-policy.json") -Destination $policyCopy
+    $mutation = Get-Content -Raw -Encoding UTF8 $policyCopy | ConvertFrom-Json
+    $mutation.capabilities.accountDeletion = "not-implemented"
+    [System.IO.File]::WriteAllText(
+        $policyCopy,
+        ($mutation | ConvertTo-Json -Depth 12),
+        [System.Text.UTF8Encoding]::new($false)
+    )
+    $capabilityIssues = @(Get-DataPolicyIssues -Root $temporaryRoot)
+    if (-not ($capabilityIssues -match "Unexpected capability status for accountDeletion")) {
+        throw "Harness self-test failed to detect account-deletion status drift."
+    }
 }
 finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
@@ -310,4 +346,4 @@ finally {
     }
 }
 
-Write-Output "T0017 data policy checks passed (repository plus 3 mutation scenarios)."
+Write-Output "Data policy checks passed (T0017/T0018 repository plus 4 mutation scenarios)."
