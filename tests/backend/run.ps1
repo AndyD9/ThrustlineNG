@@ -29,6 +29,7 @@ function Get-BackendIssues {
     $migrationPath = Join-Path $Root "supabase\migrations\20260728000100_create_companies.sql"
     $lifecycleMigrationPath = Join-Path $Root "supabase\migrations\20260731000100_account_lifecycle.sql"
     $restoreMigrationPath = Join-Path $Root "supabase\migrations\20260731000200_account_deletion_restore_replay.sql"
+    $ledgerMigrationPath = Join-Path $Root "supabase\migrations\20260731000300_immutable_financial_ledger.sql"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $structureTestPath = Join-Path $Root "supabase\tests\database\companies_structure.test.sql"
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
@@ -36,6 +37,8 @@ function Get-BackendIssues {
     $lifecycleTestPath = Join-Path $Root "supabase\tests\database\account_lifecycle.test.sql"
     $restoreStructureTestPath = Join-Path $Root "supabase\tests\database\account_restore_replay_structure.test.sql"
     $restoreTestPath = Join-Path $Root "supabase\tests\database\account_restore_replay.test.sql"
+    $ledgerStructureTestPath = Join-Path $Root "supabase\tests\database\financial_ledger_structure.test.sql"
+    $ledgerTestPath = Join-Path $Root "supabase\tests\database\financial_ledger.test.sql"
     $typesPath = Join-Path $Root "packages\database\src\database.types.ts"
     $startScriptPath = Join-Path $Root "scripts\start-supabase-local.ps1"
     $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
@@ -49,6 +52,7 @@ function Get-BackendIssues {
         $migrationPath,
         $lifecycleMigrationPath,
         $restoreMigrationPath,
+        $ledgerMigrationPath,
         $seedPath,
         $structureTestPath,
         $rlsTestPath,
@@ -56,6 +60,8 @@ function Get-BackendIssues {
         $lifecycleTestPath,
         $restoreStructureTestPath,
         $restoreTestPath,
+        $ledgerStructureTestPath,
+        $ledgerTestPath,
         $typesPath,
         $startScriptPath,
         $invokeScriptPath,
@@ -215,6 +221,31 @@ function Get-BackendIssues {
         $issues.Add("Deletion replay must remain service-role-only.")
     }
 
+    $ledgerMigration = Get-Content -Raw -Encoding UTF8 $ledgerMigrationPath
+    $ledgerRequirements = @{
+        "private ledger subjects" = 'create table private\.financial_ledger_subjects'
+        "private ledger entries" = 'create table private\.financial_ledger_entries'
+        "forced subject RLS" = 'alter table private\.financial_ledger_subjects force row level security'
+        "forced entry RLS" = 'alter table private\.financial_ledger_entries force row level security'
+        "opaque entry identity" = 'subject_id uuid not null references private\.financial_ledger_subjects'
+        "no direct client grants" = 'revoke all on table private\.financial_ledger_entries from authenticated'
+        "append-only update delete trigger" = 'before update or delete on private\.financial_ledger_entries'
+        "append-only truncate trigger" = 'before truncate on private\.financial_ledger_entries'
+        "company anonymization trigger" = 'create trigger companies_anonymize_financial_ledger_subject'
+        "server posting command" = 'create function public\.post_company_opening_balance\('
+        "service-only posting" = 'grant execute on function public\.post_company_opening_balance\(uuid, uuid, bigint, text\) to service_role'
+        "owner read command" = 'create function public\.get_company_ledger\(\)'
+        "anonymous read revoked" = 'revoke all on function public\.get_company_ledger\(\) from anon'
+        "deletion pending gate" = 'private\.account_is_active\(company\.owner_id\)'
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $ledgerRequirements.GetEnumerator()) {
+        Require-Text $ledgerMigration $entry.Value "Financial ledger invariant missing: $($entry.Key)."
+    }
+    if ($ledgerMigration -match '(?i)grant\s+execute\s+on\s+function\s+public\.post_company_opening_balance\([^;]+\)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Financial posting must remain service-role-only.")
+    }
+
     $seed = Get-Content -Raw -Encoding UTF8 $seedPath
     Require-Text $seed 'pilot-a@thrustline\.invalid' "Synthetic user A is missing."
     Require-Text $seed 'pilot-b@thrustline\.invalid' "Synthetic user B is missing."
@@ -234,7 +265,11 @@ function Get-BackendIssues {
         "`n" +
         (Get-Content -Raw -Encoding UTF8 $restoreStructureTestPath) +
         "`n" +
-        (Get-Content -Raw -Encoding UTF8 $restoreTestPath)
+        (Get-Content -Raw -Encoding UTF8 $restoreTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $ledgerStructureTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $ledgerTestPath)
     )
     foreach ($marker in @(
         "set local role authenticated",
@@ -256,6 +291,15 @@ function Get-BackendIssues {
         "an altered replay event is rejected",
         "an unknown replay subject fails closed",
         "an injected replay failure rolls back the transaction",
+        "authenticated cannot post an opening balance",
+        "an identical command replays idempotently",
+        "idempotency payload collision is rejected",
+        "A can read only company A ledger",
+        "B can read only company B ledger",
+        "anonymous cannot read a company ledger",
+        "deletion pending blocks financial mutation",
+        "deletion replay detaches and dates the personal ledger link",
+        "ledger entries cannot be updated",
         "rollback;"
     )) {
         if (-not $allTests.Contains($marker)) {
@@ -271,6 +315,8 @@ function Get-BackendIssues {
     Require-Text $types 'cancel_account_deletion:' "Generated types do not expose deletion cancellation."
     Require-Text $types 'finalize_account_deletion:' "Generated types do not expose server finalization."
     Require-Text $types 'replay_account_deletion_event:' "Generated types do not expose deletion replay."
+    Require-Text $types 'post_company_opening_balance:' "Generated types do not expose the server ledger command."
+    Require-Text $types 'get_company_ledger:' "Generated types do not expose owner ledger reads."
 
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $typeScript '--network-id thrustline-local' "Type generation does not use the local Docker network."
@@ -280,6 +326,9 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'select pg_sleep\(4\)' "Backend CI does not hold the first transaction for concurrency."
     Require-Text $ciBackend '"1\|2\|1"' "Backend CI does not verify one request and two idempotency records."
     Require-Text $ciBackend 'Account lifecycle concurrency passed' "Backend CI does not report the concurrency proof."
+    Require-Text $ciBackend 'Financial ledger concurrency passed' "Backend CI does not report ledger concurrency."
+    Require-Text $ciBackend 'Concurrent financial ledger commands did not converge' "Backend CI does not verify identical ledger command convergence."
+    Require-Text $ciBackend '"1\|1"' "Backend CI does not verify one immutable concurrent ledger entry."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
     foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
         Require-Text $ciBackend "--schema $schema" "Backend CI backup scope is missing schema: $schema."
@@ -319,6 +368,7 @@ try {
         "supabase\migrations\20260728000100_create_companies.sql",
         "supabase\migrations\20260731000100_account_lifecycle.sql",
         "supabase\migrations\20260731000200_account_deletion_restore_replay.sql",
+        "supabase\migrations\20260731000300_immutable_financial_ledger.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
@@ -326,6 +376,8 @@ try {
         "supabase\tests\database\account_lifecycle.test.sql",
         "supabase\tests\database\account_restore_replay_structure.test.sql",
         "supabase\tests\database\account_restore_replay.test.sql",
+        "supabase\tests\database\financial_ledger_structure.test.sql",
+        "supabase\tests\database\financial_ledger.test.sql",
         "packages\database\src\database.types.ts",
         "scripts\start-supabase-local.ps1",
         "scripts\invoke-supabase-local.ps1",
@@ -389,6 +441,21 @@ try {
         Write-Error "Harness self-test failed to detect a client-executable restore replay."
         exit 1
     }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260731000200_account_deletion_restore_replay.sql") -Destination $restoreMigrationCopy
+    $ledgerMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260731000300_immutable_financial_ledger.sql"
+    $ledgerText = Get-Content -Raw -Encoding UTF8 $ledgerMigrationCopy
+    $ledgerText = $ledgerText.Replace(
+        "grant execute on function public.post_company_opening_balance(uuid, uuid, bigint, text) to service_role;",
+        "grant execute on function public.post_company_opening_balance(uuid, uuid, bigint, text) to authenticated;"
+    )
+    [System.IO.File]::WriteAllText($ledgerMigrationCopy, $ledgerText)
+    $unsafeLedgerIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unsafeLedgerIssues -match "service-role-only") -or
+        -not ($unsafeLedgerIssues -match "service-only posting")) {
+        Write-Error "Harness self-test failed to detect a client-executable ledger command."
+        exit 1
+    }
 }
 finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
@@ -396,4 +463,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012/T0018/T0019 repository plus 4 mutation scenarios)."
+Write-Output "Backend checks passed (T0012/T0018/T0019/T0020 repository plus 5 mutation scenarios)."

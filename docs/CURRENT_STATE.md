@@ -1,7 +1,7 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 31 juillet 2026 (preuve CI T0019 de restauration
-isolée et replay des suppressions).
+Dernière revue documentaire : 31 juillet 2026 (preuve CI T0020 du grand livre
+immuable).
 Statut : les implémentations T0012 à T0017 sont fusionnées dans `main`. T0005,
 T0006 et T0013 à T0017 sont `Done`. La phase 0 est terminée, la phase 1 a
 franchi conditionnellement son gate de reproductibilité et la phase 2 est
@@ -11,7 +11,9 @@ machine locale.
 
 Les implémentations T0018 et T0019 sont présentes sur deux branches empilées,
 pas dans `main`. Elles restent `Verify` car la checklist Windows est bloquée par
-la même protection loopback.
+la même protection loopback. T0020 est présent sur une troisième branche
+empilée et reste aussi `Verify` pour la checklist Windows ; sa preuve PostgreSQL
+17 CI est verte.
 
 ## Produit
 
@@ -311,9 +313,10 @@ sauvegardes, et 90 jours pour les journaux sécurité.
 L'admission de données utilisateur réelles reste bloquée. T0018 implémente
 l'export et la suppression transactionnelle du compte actuel en local/CI. T0019
 prouve une restauration PostgreSQL 17 isolée et le replay post-sauvegarde sur
-données synthétiques. Purge, anonymisation du futur grand livre, sauvegarde
-managée, purge du journal pseudonyme et restauration de production restent
-`Not implemented`. `KI-021` suit ces contrôles restants. Andy a validé T0017 le
+données synthétiques. Purge, sauvegarde managée, purge du journal pseudonyme et
+restauration de production restent `Not implemented`. L'anonymisation du grand
+livre T0020 est prouvée uniquement en local/CI synthétique. `KI-021` suit les
+contrôles restants. Andy a validé T0017 le
 30 juillet 2026 ; le ticket est `Done`.
 
 ## Export et suppression de compte
@@ -353,6 +356,20 @@ La preuve est bornée aux schémas `auth`, `public`, `private`, `extensions` et
 internes ; elle ne prouve ni sauvegarde managée/chiffrée, ni purge, ni
 restauration ou promotion de production. T0019 reste `Verify` car la checklist
 Windows est bloquée par `KI-017`.
+
+## Grand livre financier immuable
+
+T0020 ajoute sur sa branche un sujet financier opaque par compagnie, des écritures
+privées append-only et une commande d'ouverture réservée à `service_role`.
+`authenticated` ne peut que lire les écritures de sa propre compagnie par une
+fonction qui dérive l'identité du JWT. La suppression et le replay détachent le
+lien personnel sans modifier les écritures.
+
+Les gates statiques backend et politique passent avec respectivement 5 et 6
+mutations négatives. Le run `30628851680` valide deux resets, 8 fichiers pgTAP,
+148 assertions, la concurrence, la restauration/replay et les types stables sur
+PostgreSQL 17. Le démarrage local Windows reste bloqué de façon sûre par
+`KI-017`; T0020 reste `Verify` et n'est pas présent dans `main`.
 
 ## CI multi-stack
 
@@ -431,9 +448,9 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Créer T0020, premier ticket borné du grand livre immuable et des commandes
-économiques transactionnelles/idempotentes, sans exposer de mutation sensible au
-client. T0012 exige toujours un runtime Docker respectant la liaison loopback,
+Terminer la preuve PostgreSQL 17 et la revue de T0020 avant de détailler la
+prochaine commande économique. T0012 exige toujours un runtime Docker respectant
+la liaison loopback,
 Studio et le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify`
 jusqu'aux essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
 

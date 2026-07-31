@@ -34,6 +34,21 @@ Vault et Storage, réinstalle `pgcrypto` à version identique et ne rejoue pas l
 `DEFAULT ACL` des rôles internes. Cette frontière ne prouve ni sauvegarde
 managée/chiffrée, ni purge du journal, ni RPO/RTO ou promotion de production.
 
+## Grand livre financier T0020
+
+Les correspondances entre compagnies et sujets financiers opaques restent dans
+`private`, avec RLS activée et forcée et sans privilège de table pour les rôles
+API. Les écritures ne contiennent aucune identité Auth ou compagnie directe et
+des triggers refusent `update`, `delete` et `truncate`.
+
+Seul `service_role` peut appeler la commande d'ouverture. Elle valide les
+bornes, la devise ISO 4217, l'état actif T0018, verrouille la compagnie et rend
+un rejeu uniquement si le payload correspond exactement. Le propriétaire
+authentifié peut seulement lire son propre grand livre ; `anon` ne peut pas
+appeler cette lecture. Lors d'une suppression ou d'un replay, le lien privé est
+détaché et daté dans la transaction tandis que l'écriture non directement
+personnelle reste intacte.
+
 ## Frontière installateur Windows T0014
 
 Le package T0014 est une preuve interne non signée, jamais une release. Il
