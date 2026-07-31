@@ -163,6 +163,9 @@ try {
     $typesPath = Join-Path $repositoryRoot "packages/database/src/database.types.ts"
     $current = [System.IO.File]::ReadAllText($typesPath).Replace("`r`n", "`n")
     if ($generated -ne $current) {
+        Write-Output "Generated database types begin (schema metadata only):"
+        Write-Output $generated
+        Write-Output "Generated database types end."
         throw "Generated database types are stale."
     }
 
