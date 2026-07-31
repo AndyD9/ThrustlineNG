@@ -12,6 +12,7 @@ Codex. Il est inspiré d'un workflow « planifier → ticket → implémenter �
 | Comprendre la cible technique | `ARCHITECTURE.md` |
 | Connaître l'état réel | `CURRENT_STATE.md` |
 | Choisir le prochain travail | `ROADMAP.md` puis `tickets/` |
+| Lire les décisions de fin de phase | `reviews/` |
 | Exécuter un ticket | `WORKFLOW.md` |
 | Vérifier une modification | `QUALITY.md` |
 | Appliquer les règles de sécurité | `SECURITY.md` |

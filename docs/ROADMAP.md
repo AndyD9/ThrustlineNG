@@ -39,8 +39,11 @@ ADR-0002 et le protocole plateforme dans ADR-0003.
 Objectif : créer dans le nouveau dépôt un socle reconstruisible et testable à
 tout moment.
 
-Statut : active depuis le 30 juillet 2026. Ce statut autorise la poursuite des
-tickets de phase 1 ; il ne signifie pas que son gate de sortie est franchi.
+Statut : terminée conditionnellement le 30 juillet 2026. Le gate de
+reproductibilité est franchi par la combinaison du clone propre Windows T0006
+et de la CI backend Linux T0013. Les vérifications environnementales encore
+ouvertes restent suivies sans être requalifiées en succès ; voir
+`docs/reviews/PHASE-1.md`.
 
 - Nouveau dépôt, historique neuf, règles de branches courtes et CI obligatoire.
 - Versions/outils supportés selon `docs/STACK.md` et bootstrap automatisé.
@@ -52,9 +55,20 @@ tickets de phase 1 ; il ne signifie pas que son gate de sortie est franchi.
 
 Gate : clone propre → setup → tests/build sans étape secrète non documentée.
 
+Preuve de clôture : T0006, T0010 et T0013 à T0017 sont `Done`; le clone propre
+Windows réussit setup, tests et builds sans diff, et la CI rejoue le backend
+PostgreSQL 17, la RLS, les types et la supply chain sans secret applicatif.
+T0007–T0009, T0011 et T0012 conservent leurs vérifications explicitement
+différées.
+
 ## Phase 2 — Noyau métier autoritaire
 
 Objectif : empêcher corruption, doubles opérations et calculs client autoritaires.
+
+Statut : active conditionnellement depuis le 30 juillet 2026. Aucune donnée
+utilisateur réelle n'est admise ; T0012 reste `Verify` et les migrations de
+phase 2 doivent être prouvées sur PostgreSQL 17 en CI avec isolation,
+transaction et idempotence.
 
 - Modèle de domaine et grand livre immuable.
 - Commandes transactionnelles/idempotentes.
