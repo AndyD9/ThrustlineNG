@@ -239,8 +239,14 @@ begin
 
     if existing_response is not null then
         if existing_response ->> 'state' = 'deletion_pending'
-            and (existing_response ->> 'deleteAfter')::timestamptz
-                <= clock_timestamp()
+            and exists (
+                select 1
+                from private.account_deletion_requests as requests
+                where requests.id = (existing_response ->> 'requestId')::uuid
+                  and requests.owner_id = actor_id
+                  and requests.cancelled_at is null
+                  and requests.delete_after <= clock_timestamp()
+            )
         then
             raise object_not_in_prerequisite_state using
                 message = 'Account deletion is awaiting server finalization.';
@@ -555,7 +561,7 @@ begin
     where owner_id = request.owner_id;
 
     delete from private.account_deletion_requests
-    where id = request.id;
+    where owner_id = request.owner_id;
 
     delete from public.companies
     where id = request.company_id
