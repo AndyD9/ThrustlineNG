@@ -11,7 +11,9 @@ machine locale.
 
 Les implémentations T0018 et T0019 sont présentes sur deux branches empilées,
 pas dans `main`. Elles restent `Verify` car la checklist Windows est bloquée par
-la même protection loopback.
+la même protection loopback. T0020 est en cours sur une troisième branche
+empilée ; son implémentation et ses contrôles statiques sont locaux, sans preuve
+PostgreSQL 17 CI à ce stade.
 
 ## Produit
 
@@ -354,6 +356,18 @@ internes ; elle ne prouve ni sauvegarde managée/chiffrée, ni purge, ni
 restauration ou promotion de production. T0019 reste `Verify` car la checklist
 Windows est bloquée par `KI-017`.
 
+## Grand livre financier immuable
+
+T0020 ajoute localement un sujet financier opaque par compagnie, des écritures
+privées append-only et une commande d'ouverture réservée à `service_role`.
+`authenticated` ne peut que lire les écritures de sa propre compagnie par une
+fonction qui dérive l'identité du JWT. La suppression et le replay détachent le
+lien personnel sans modifier les écritures.
+
+Les gates statiques backend et politique passent avec respectivement 5 et 6
+mutations négatives. Le démarrage local Windows reste bloqué de façon sûre par
+`KI-017`; les pgTAP, la concurrence et les types PostgreSQL 17 attendent la CI.
+
 ## CI multi-stack
 
 T0013 ajoute un workflow de validation sur `windows-2025` et `ubuntu-24.04`,
@@ -431,9 +445,9 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Créer T0020, premier ticket borné du grand livre immuable et des commandes
-économiques transactionnelles/idempotentes, sans exposer de mutation sensible au
-client. T0012 exige toujours un runtime Docker respectant la liaison loopback,
+Terminer la preuve PostgreSQL 17 et la revue de T0020 avant de détailler la
+prochaine commande économique. T0012 exige toujours un runtime Docker respectant
+la liaison loopback,
 Studio et le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify`
 jusqu'aux essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
 
