@@ -144,8 +144,10 @@ try {
     $testText = $testOutput -join "`n"
     if ($testText -notmatch "companies_structure\.test\.sql" -or
         $testText -notmatch "companies_rls\.test\.sql" -or
+        $testText -notmatch "account_lifecycle_structure\.test\.sql" -or
+        $testText -notmatch "account_lifecycle\.test\.sql" -or
         $testText -notmatch "Result:\s+PASS") {
-        throw "Supabase pgTAP did not prove both files with Result: PASS."
+        throw "Supabase pgTAP did not prove all four files with Result: PASS."
     }
 
     $generatedLines = @(
@@ -164,7 +166,7 @@ try {
         throw "Generated database types are stale."
     }
 
-    Write-Output "T0013 backend CI passed: 2 resets, 2 pgTAP files, PASS, stable types, loopback ports."
+    Write-Output "Backend CI passed: 2 resets, 4 pgTAP files, PASS, stable types, loopback ports."
 }
 finally {
     if ($started) {

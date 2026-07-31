@@ -31,6 +31,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Done |
 | T0016 | Corriger l’avis de sécurité React Router | 1 | T0013 | Done |
 | T0017 | Définir et contrôler la politique de données | 0 | T0002–T0003, T0012 | Done |
+| T0018 | Exporter puis supprimer un compte sans perte ni double opération | 2 | T0012, T0017, revue phase 1 | In progress |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -44,6 +45,11 @@ intégré T0016 et T0013 dans `main` avec tous les checks verts.
 T0017 fixe la politique de données et son gate, fusionnés dans `main` par la
 PR #24. Andy a validé sa clôture le 30 juillet 2026 ; aucune donnée réelle ni
 capacité de suppression/restauration n'est revendiquée.
+
+T0018 est le premier ticket détaillé de phase 2. Andy a validé le 31 juillet
+2026 un délai récupérable de 7 jours, une session Supabase réauthentifiée depuis
+5 minutes au plus et un export récupérable pendant le délai. Le ticket est
+`In progress` sur `security/T0018-account-lifecycle`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

@@ -38,7 +38,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cancel_account_deletion: {
+        Args: { idempotency_key: string; request_id: string }
+        Returns: Json
+      }
+      finalize_account_deletion: {
+        Args: { request_id: string }
+        Returns: Json
+      }
+      get_account_export: {
+        Args: { request_id: string }
+        Returns: Json
+      }
+      request_account_deletion: {
+        Args: { idempotency_key: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
