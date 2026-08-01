@@ -33,7 +33,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0017 | Définir et contrôler la politique de données | 0 | T0002–T0003, T0012 | Done |
 | T0018 | Exporter puis supprimer un compte sans perte ni double opération | 2 | T0012, T0017, revue phase 1 | Done |
 | T0019 | Restaurer sans ressusciter un compte supprimé | 2 | T0017–T0018, T0013 | Done |
-| T0020 | Ouvrir un grand livre financier immuable | 2 | T0012, T0017–T0019 | Verify |
+| T0020 | Ouvrir un grand livre financier immuable | 2 | T0012, T0017–T0019 | Done |
 | T0021 | Isoler Supabase local sur Windows | 1–2 | T0012, T0018–T0020 | Done |
 | T0022 | Créer une compagnie et ouvrir son grand livre atomiquement | 2 | T0018, T0020–T0021 | Done |
 | T0023 | Exposer l’onboarding derrière une frontière serveur authentifiée | 2 | T0022 | Done |
@@ -70,13 +70,15 @@ et le dump/restore/replay. Le 1er août, la checklist Windows confirme dump,
 restauration hors API, replay idempotent, refus altéré/inconnu, absence de
 résurrection et nettoyage ; T0019 est `Done`.
 
-T0020 est empilé sur `security/T0019-isolated-restore-replay`. Il borne la
-première tranche économique à une ouverture de grand livre réservée au serveur,
-à des écritures append-only et à une lecture propriétaire isolée. Il n'expose
-aucune mutation économique au desktop et n'admet aucune donnée réelle. Le job
-PostgreSQL 17 final `30628851680` valide 8 fichiers/148 assertions, la
-concurrence, la restauration/replay et les types ; T0020 reste `Verify` car
-sa checklist humaine reste non exécutée.
+T0020 a d'abord été empilé sur T0019, puis livré dans `main` par la PR #41. Il
+borne la première tranche économique à une ouverture de grand livre réservée au
+serveur, à des écritures append-only et à une lecture propriétaire isolée. Il
+n'expose aucune mutation économique au desktop et n'admet aucune donnée réelle.
+Le job PostgreSQL 17 final `30628851680` valide 8 fichiers/148 assertions, la
+concurrence, la restauration/replay et les types. Le 1er août, la checklist
+Windows confirme ouverture/rejeu, refus collision/deuxième ouverture, isolation,
+append-only, blocage pendant suppression et anonymisation sans réécriture ;
+T0020 est `Done`.
 
 T0021 résout `KI-017` sans
 modifier Docker Desktop globalement : la pile est confinée dans un daemon
