@@ -38,6 +38,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0022 | Créer une compagnie et ouvrir son grand livre atomiquement | 2 | T0018, T0020–T0021 | Done |
 | T0023 | Exposer l’onboarding derrière une frontière serveur authentifiée | 2 | T0022 | Done |
 | T0024 | Inventorier les mutations sensibles du golden path | 2 | T0018–T0020, T0022–T0023 | Done |
+| T0025 | Synchroniser la roadmap avec l'état prouvé | 1–2 | T0012, T0021, T0024 | Done |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -114,12 +115,16 @@ trois surfaces clientes actives. Quatre domaines implémentés restent
 partiellement autoritaires côté serveur, Supabase Auth est externe et huit
 domaines sont explicitement absents. Le gate passe avec cinq mutations
 négatives et ne trouve aucune mutation métier dans React, Tauri ou le bridge ;
-`KI-001` est résolu sur `security/T0024-inventory-sensitive-mutations`, en
-attente de livraison dans `main`, sans présenter les capacités futures comme
-livrées.
+`KI-001` est résolu et la PR #46 livre T0024 dans `main`, sans présenter les
+capacités futures comme livrées.
+
+T0025 synchronise la roadmap après les PR #41 et #46 : T0012 et T0024 y sont
+désormais correctement livrés et `Done`, tandis que T0007–T0009 et T0011 restent
+ouverts. Les Completion Reports et la revue de phase datée restent inchangés ;
+`KI-006` est résolu sans modifier une priorité produit ou un gate.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
 cycles manuels et ses preuves CI sont validés ; T0014 est `Done` depuis le
 30 juillet 2026. Les vérifications encore ouvertes de T0007–T0009, les essais
-MSFS de T0011 et le runtime Supabase de T0012 restent suivis séparément.
+MSFS de T0011 restent suivis séparément.

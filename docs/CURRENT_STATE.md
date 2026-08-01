@@ -1,15 +1,18 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 1er août 2026 (clôture T0020 fusionnée dans
-`main` par la PR #45 ; T0024 terminé sur
-`security/T0024-inventory-sensitive-mutations`, pas encore fusionné).
-Statut : T0012–T0023 sont `Done` : leurs implémentations sont fusionnées dans
+Dernière revue documentaire : 1er août 2026 (T0024 fusionné dans `main` par la
+PR #46).
+Statut : T0012–T0024 sont `Done` : leurs implémentations sont fusionnées dans
 `main`, leurs critères automatisés passent et leurs vérifications humaines sont
 terminées. La phase 2 reste toutefois sous interdiction de données utilisateur
 réelles.
 
 La fusion #41 (`06cece5`) est couverte par le run CI `30706049048`, réussi sur
 PostgreSQL 17 et Windows multi-stack, et par le run supply-chain `30706049088`,
+réussi sur les audits, licences et SBOM.
+
+La fusion T0024 #46 (`ffdc136`) est couverte par le run CI `30715814782`, réussi
+sur Windows multi-stack et PostgreSQL 17, et le run supply-chain `30715814774`,
 réussi sur les audits, licences et SBOM.
 
 La phase 0 est terminée, la phase 1 a franchi conditionnellement son gate de
@@ -430,9 +433,9 @@ Supabase/SQL directe, accès Data API non classé, credential ou commande
 une extension cliente apparaît sans classification. Cinq mutations négatives
 prouvent le harnais. L'inspection du 1er août ne trouve aucune mutation métier
 dans les composants clients ; `KI-001` est résolu pour le code actuel, sans
-revendiquer les capacités encore absentes. Le workflow CI de la branche exécute
-le gate avant les validations applicatives ; cette exécution publiée reste à
-prouver par la Pull Request.
+revendiquer les capacités encore absentes. Le workflow CI publié
+`30715814782` exécute le gate sous PowerShell 7 avant les validations
+applicatives et réussit.
 
 ## CI multi-stack
 

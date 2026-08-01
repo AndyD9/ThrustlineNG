@@ -58,17 +58,18 @@ Gate : clone propre → setup → tests/build sans étape secrète non document�
 Preuve de clôture : T0006, T0010 et T0013 à T0017 sont `Done`; le clone propre
 Windows réussit setup, tests et builds sans diff, et la CI rejoue le backend
 PostgreSQL 17, la RLS, les types et la supply chain sans secret applicatif.
-T0007–T0009, T0011 et T0012 conservent leurs vérifications explicitement
-différées.
+T0007–T0009 et T0011 conservent leurs vérifications explicitement différées.
+T0012 est `Done` depuis que T0021 a livré le runtime Windows loopback et sa
+vérification humaine dans `main` par la PR #41.
 
 ## Phase 2 — Noyau métier autoritaire
 
 Objectif : empêcher corruption, doubles opérations et calculs client autoritaires.
 
 Statut : active conditionnellement depuis le 30 juillet 2026. Aucune donnée
-utilisateur réelle n'est admise ; T0012 reste `Verify` et les migrations de
-phase 2 doivent être prouvées sur PostgreSQL 17 en CI avec isolation,
-transaction et idempotence.
+utilisateur réelle n'est admise. T0012 et T0018–T0024 sont `Done`; les nouvelles
+migrations de phase 2 doivent rester prouvées sur PostgreSQL 17 en CI avec
+isolation, transaction et idempotence.
 
 - Modèle de domaine et grand livre immuable.
 - Commandes transactionnelles/idempotentes.
@@ -77,6 +78,12 @@ transaction et idempotence.
 - Nouveau schéma créé depuis zéro avec seeds synthétiques et restauration testée.
 
 Gate : aucune mutation sensible directe depuis un composant client.
+
+Preuve actuelle : T0020 fournit le grand livre append-only, T0022–T0023
+l'onboarding transactionnel derrière une frontière serveur et T0024 un
+inventaire de 13 domaines couvrant les dix étapes du golden path. Son gate CI
+refuse les mutations directes et conserve huit domaines futurs à
+`not-implemented`; la phase n'est donc pas déclarée terminée.
 
 ## Phase 3 — Bridge et moteur de vol stables
 
