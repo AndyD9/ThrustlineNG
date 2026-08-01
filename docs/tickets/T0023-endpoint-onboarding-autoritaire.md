@@ -24,8 +24,9 @@ auprès de Supabase Auth, prend la politique économique dans son environnement 
 appelle T0022 avec l’identité Auth vérifiée.
 
 La branche est empilée sur T0022. Au 1er août 2026, `origin/main` contient T0019
-mais pas T0020–T0022 ; les PR #35–#37 sont fusionnées dans leurs bases empilées,
-pas propagées jusqu’à `main`.
+mais pas T0020–T0023 ; les PR #35–#38 sont fusionnées dans leurs bases empilées,
+pas propagées jusqu’à `main`. La correction de revue `aa4d0a2` reste portée par
+la PR brouillon #39 vers T0022.
 
 Références :
 
@@ -275,7 +276,9 @@ sont toutes deux absentes.
 - base : `feature/T0022-authoritative-company-onboarding` ;
 - commit d'implémentation : `fd2b3fc` ;
 - correction du reset CI : `771c44b` ;
-- PR : #38, brouillon, base `feature/T0022-authoritative-company-onboarding`,
-  head `feature/T0023-authoritative-onboarding-endpoint` ;
+- correction de minimisation de réponse : `aa4d0a2` ;
+- PR #38 : fusionnée dans `feature/T0022-authoritative-company-onboarding` ;
+- PR #39 : brouillon, base `feature/T0022-authoritative-company-onboarding`, head
+  `feature/T0023-authoritative-onboarding-endpoint`, checks GitHub attendus ;
 - dépendance : T0020–T0022 doivent encore être propagés jusqu'à `main` ;
 - fusion : exclusivement réservée à Andy.
