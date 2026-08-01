@@ -36,6 +36,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0020 | Ouvrir un grand livre financier immuable | 2 | T0012, T0017–T0019 | Verify |
 | T0021 | Isoler Supabase local sur Windows | 1–2 | T0012, T0018–T0020 | Review |
 | T0022 | Créer une compagnie et ouvrir son grand livre atomiquement | 2 | T0018, T0020–T0021 | Review |
+| T0023 | Exposer l’onboarding derrière une frontière serveur authentifiée | 2 | T0022 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -81,20 +82,30 @@ loopback du réseau et l'option daemon sont ignorées par Docker Desktop 29.6.2
 lorsque la CLI Supabase transmet un `HostIp` vide. Docker et les sockets Windows
 confirment les trois liaisons `127.0.0.1`; 8 fichiers/148 assertions et les types
 passent localement. Andy confirme l'inspection visuelle de Studio le 31 juillet
-2026 ; T0021 passe à `Review`. Les PR #31–#33 ont été fusionnées dans leurs
-branches parentes sans propager T0019–T0021 jusqu'à `main`. Les PR brouillon
-#34–#36 restaurent cette chaîne dans l'ordre T0019, T0020 puis T0021.
+2026 ; T0021 passe à `Review`. Les PR #31–#36 ont été fusionnées dans leurs
+bases successives. `origin/main` contient T0019 au 1er août 2026, mais T0020 et
+T0021 restent uniquement dans la pile de branches.
 
 T0022 est en `Review`, empilé sur la branche T0020 qui contient T0021 après la
 fusion de la PR #33. Il retire les mutations directes de compagnie accordées
 aux rôles clients et assemble création solo et ouverture financière dans une
 commande `service_role` transactionnelle et idempotente. Deux resets, 10 fichiers/190
 assertions, les types, la concurrence et la checklist manuelle passent
-localement ; les runs GitHub `30652926904` et `30652926644` sont verts. Au
-31 juillet 2026, les PR
-empilées #31–#33 sont fermées mais T0019–T0021 ne sont pas encore propagés dans
-`main`. La PR brouillon #37 cible `feature/T0020-immutable-ledger`; T0022 ne doit
-donc pas être présenté comme une capacité livrée.
+localement ; les runs GitHub `30652926904` et `30652926644` sont verts. La PR
+#37 a été fusionnée dans `feature/T0020-immutable-ledger`, pas dans `main` ;
+T0022 ne doit donc pas être présenté comme une capacité livrée.
+
+T0023 est en `Review`, empilé sur T0022. L'Edge Function vérifie la session
+auprès de Supabase Auth, dérive le propriétaire du JWT, refuse tout montant,
+devise ou propriétaire client et lit la politique d'ouverture dans son
+environnement serveur. Quatorze tests Node, le gate backend avec 11 mutations, deux
+resets, 10 fichiers/190 assertions, les types et une intégration Auth → Edge →
+RPC passent localement. Le rejeu conserve les mêmes identifiants et l'état SQL
+est `1|1|1`; un appel sans JWT rend HTTP 401. La PR #38 a été fusionnée dans
+`feature/T0022-authoritative-company-onboarding`, pas dans `main`. La revue
+adversariale a ensuite corrigé la minimisation de la réponse privilégiée ; la PR
+brouillon #39 cible la même branche parente et attend ses checks. Rien de
+T0020–T0023 n'est présent dans `main`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

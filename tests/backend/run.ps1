@@ -42,6 +42,10 @@ function Get-BackendIssues {
     $ledgerTestPath = Join-Path $Root "supabase\tests\database\financial_ledger.test.sql"
     $onboardingStructureTestPath = Join-Path $Root "supabase\tests\database\company_onboarding_structure.test.sql"
     $onboardingTestPath = Join-Path $Root "supabase\tests\database\company_onboarding.test.sql"
+    $onboardingFunctionPath = Join-Path $Root "supabase\functions\company-onboarding\handler.ts"
+    $onboardingFunctionEntryPath = Join-Path $Root "supabase\functions\company-onboarding\index.ts"
+    $onboardingFunctionTestPath = Join-Path $Root "supabase\functions\company-onboarding\handler.test.ts"
+    $onboardingFunctionPackagePath = Join-Path $Root "supabase\functions\company-onboarding\package.json"
     $typesPath = Join-Path $Root "packages\database\src\database.types.ts"
     $startScriptPath = Join-Path $Root "scripts\start-supabase-local.ps1"
     $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
@@ -70,6 +74,10 @@ function Get-BackendIssues {
         $ledgerTestPath,
         $onboardingStructureTestPath,
         $onboardingTestPath,
+        $onboardingFunctionPath,
+        $onboardingFunctionEntryPath,
+        $onboardingFunctionTestPath,
+        $onboardingFunctionPackagePath,
         $typesPath,
         $startScriptPath,
         $invokeScriptPath,
@@ -101,6 +109,7 @@ function Get-BackendIssues {
         "backend:stop",
         "backend:reset",
         "backend:test",
+        "backend:functions:test",
         "backend:types",
         "backend:types:check"
     )
@@ -124,6 +133,7 @@ function Get-BackendIssues {
         $issues.Add("backend:reset must target the local database explicitly.")
     }
     Require-Text $invokeScript '@\("test", "db"\)' "pgTAP does not let Supabase select its generated inner network."
+    Require-Text $invokeScript '@\("stop", "--project-id", \$script:SupabaseProjectId, "--no-backup"\)' "Local shutdown must not preserve database state in the image cache."
     if ([string]$package.scripts.'backend:start' -notmatch "start-supabase-local\.ps1") {
         $issues.Add("backend:start must use the loopback-safe start script.")
     }
@@ -144,12 +154,17 @@ function Get-BackendIssues {
         Require-Text $startScript ('--publish "127\.0\.0\.1:{0}:{0}"' -f $port) "Supabase port $port is not restricted to IPv4 loopback."
     }
     Require-Text $startScript 'Copy-SupabaseProjectToEngine' "Supabase sources are not copied through the bounded staging helper."
+    if ($startScript -match '--exclude[^\r\n]+edge-runtime') {
+        $issues.Add("The local start command must load the company onboarding Edge Function.")
+    }
     Require-Text $startScript 'Assert-SupabaseOuterBindings' "Supabase outer bindings are not verified after startup."
     Require-Text $startScript 'Remove-SupabaseLocalRuntime' "Failed startup does not remove the isolated runtime."
     Require-Text $runtimeScript 'docker:29\.6\.2-dind@sha256:[0-9a-f]{64}' "Docker-in-Docker is not pinned by version and digest."
     Require-Text $runtimeScript 'DOCKER_HOST=tcp://\$\(\$script:SupabaseEngineContainer\):2375' "The CLI does not target the isolated Docker API."
     Require-Text $runtimeScript 'DO_NOT_TRACK=1' "The isolated CLI does not disable generic telemetry."
     Require-Text $runtimeScript 'SUPABASE_TELEMETRY_DISABLED=1' "The isolated CLI does not disable Supabase telemetry."
+    Require-Text $runtimeScript 'COMPANY_OPENING_BALANCE_MINOR=43000000' "Local onboarding amount fixture is not injected server-side."
+    Require-Text $runtimeScript 'COMPANY_OPENING_CURRENCY=EUR' "Local onboarding currency fixture is not injected server-side."
     Require-Text $runtimeScript ([regex]::Escape('${script:SupabaseProjectVolume}:/workspace')) "The CLI does not use the dedicated project volume."
     Require-Text $startScript ([regex]::Escape('${script:SupabaseEngineCacheVolume}:/var/lib/docker')) "The inner image cache is not isolated in its dedicated volume."
     Require-Text $invokeScript 'Remove-SupabaseLocalRuntime -DockerPath \$dockerPath -PreserveImageCache' "Normal shutdown does not preserve only the source-free image cache."
@@ -173,7 +188,12 @@ function Get-BackendIssues {
     Require-Text $config '(?s)\[db\.seed\].*?enabled = true.*?sql_paths = \["\./seed\.sql"\]' "Seed ordering is not explicit."
     Require-Text $config '(?s)\[realtime\].*?enabled = false' "Realtime must remain disabled in T0012."
     Require-Text $config '(?s)\[storage\].*?enabled = false' "Storage must remain disabled in T0012."
-    Require-Text $config '(?s)\[edge_runtime\].*?enabled = false' "Edge Runtime must remain disabled in T0012."
+    Require-Text $config '(?s)\[edge_runtime\].*?enabled = true' "Edge Runtime must be enabled for the T0023 server boundary."
+    Require-Text $config '(?s)\[edge_runtime\.secrets\].*?COMPANY_OPENING_BALANCE_MINOR = "env\(COMPANY_OPENING_BALANCE_MINOR\)"' "Opening amount must come from Edge Runtime server configuration."
+    Require-Text $config '(?s)\[edge_runtime\.secrets\].*?COMPANY_OPENING_CURRENCY = "env\(COMPANY_OPENING_CURRENCY\)"' "Opening currency must come from Edge Runtime server configuration."
+    Require-Text $config '(?s)\[functions\.company-onboarding\].*?enabled = true' "Company onboarding function must be enabled explicitly."
+    Require-Text $config '(?s)\[functions\.company-onboarding\].*?verify_jwt = true' "Company onboarding must retain the platform JWT gate."
+    Require-Text $config '(?s)\[functions\.company-onboarding\].*?entrypoint = "\./functions/company-onboarding/index\.ts"' "Company onboarding entrypoint is not explicit."
 
     $migration = Get-Content -Raw -Encoding UTF8 $migrationPath
     $migrationRequirements = @{
@@ -304,6 +324,41 @@ function Get-BackendIssues {
         $issues.Add("Client roles must not regain direct company mutation privileges.")
     }
 
+    $onboardingFunction = Get-Content -Raw -Encoding UTF8 $onboardingFunctionPath
+    $onboardingFunctionEntry = Get-Content -Raw -Encoding UTF8 $onboardingFunctionEntryPath
+    $onboardingFunctionTests = Get-Content -Raw -Encoding UTF8 $onboardingFunctionTestPath
+    $onboardingFunctionRequirements = @{
+        "bounded request body" = 'MAX_BODY_BYTES = 4_096'
+        "bounded upstream calls" = 'UPSTREAM_TIMEOUT_MILLISECONDS = 5_000'
+        "strict client payload" = 'keys\.length !== 2'
+        "Auth session verification" = '/auth/v1/user'
+        "anonymous session rejection" = 'user\.is_anonymous !== false'
+        "server opening amount" = 'COMPANY_OPENING_BALANCE_MINOR'
+        "server currency" = 'COMPANY_OPENING_CURRENCY'
+        "service-role RPC" = '/rest/v1/rpc/create_company_with_opening_balance'
+        "owner derived from Auth" = 'owner_id: user\.id'
+        "service credential header" = 'apikey: configuration\.serviceRoleKey'
+        "redacted database failure" = 'onboarding_rejected'
+        "non-cacheable response" = 'headers\.set\("cache-control", "no-store"\)'
+    }
+    foreach ($entry in $onboardingFunctionRequirements.GetEnumerator()) {
+        Require-Text $onboardingFunction $entry.Value "Company onboarding endpoint invariant missing: $($entry.Key)."
+    }
+    Require-Text $onboardingFunctionEntry 'Deno\.serve\(createCompanyOnboardingHandler\(Deno\.env\.toObject\(\)\)\)' "Company onboarding handler is not registered with the Edge runtime."
+    foreach ($marker in @(
+        "rejects owner, amount, currency, and other client-controlled fields",
+        "rejects an invalid or anonymous Auth session",
+        "fails closed when Auth is unavailable",
+        "derives the owner from Auth and keeps economic inputs server-side",
+        "does not disclose database rejection details",
+        "fails closed when the privileged RPC is unavailable",
+        "fails closed on a malformed privileged response"
+    )) {
+        if (-not $onboardingFunctionTests.Contains($marker)) {
+            $issues.Add("Missing company onboarding endpoint test scenario: $marker")
+        }
+    }
+
     $seed = Get-Content -Raw -Encoding UTF8 $seedPath
     Require-Text $seed 'pilot-a@thrustline\.invalid' "Synthetic user A is missing."
     Require-Text $seed 'pilot-b@thrustline\.invalid' "Synthetic user B is missing."
@@ -400,6 +455,8 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'Concurrent financial ledger commands did not converge' "Backend CI does not verify identical ledger command convergence."
     Require-Text $ciBackend 'Company onboarding concurrency passed' "Backend CI does not report onboarding concurrency."
     Require-Text $ciBackend 'Concurrent company onboarding commands did not converge' "Backend CI does not verify identical onboarding convergence."
+    Require-Text $ciBackend 'node --test \./supabase/functions/company-onboarding/handler\.test\.ts' "Backend CI does not execute the Edge handler tests on Linux."
+    Require-Text $ciBackend 'realtime,storage-api,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor' "Backend CI must isolate PostgreSQL resets from the Edge Runtime port lifecycle."
     Require-Text $ciBackend '"1\|1"' "Backend CI does not verify one immutable concurrent ledger entry."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
     foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
@@ -453,6 +510,10 @@ try {
         "supabase\tests\database\financial_ledger.test.sql",
         "supabase\tests\database\company_onboarding_structure.test.sql",
         "supabase\tests\database\company_onboarding.test.sql",
+        "supabase\functions\company-onboarding\handler.ts",
+        "supabase\functions\company-onboarding\index.ts",
+        "supabase\functions\company-onboarding\handler.test.ts",
+        "supabase\functions\company-onboarding\package.json",
         "packages\database\src\database.types.ts",
         "scripts\start-supabase-local.ps1",
         "scripts\invoke-supabase-local.ps1",
@@ -486,6 +547,16 @@ try {
     if (-not ($remoteCommandIssues -match "remote-capable") -or
         -not ($remoteCommandIssues -match "local database explicitly")) {
         Write-Error "Harness self-test failed to detect a remote reset command."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "scripts\invoke-supabase-local.ps1") -Destination $invokeCopy
+    $invokeText = Get-Content -Raw -Encoding UTF8 $invokeCopy
+    $invokeText = $invokeText.Replace(', "--no-backup"', '')
+    [System.IO.File]::WriteAllText($invokeCopy, $invokeText)
+    $persistentDatabaseIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($persistentDatabaseIssues -match "must not preserve database state")) {
+        Write-Error "Harness self-test failed to detect a shutdown that preserves local database state."
         exit 1
     }
 
@@ -577,6 +648,33 @@ try {
         Write-Error "Harness self-test failed to detect client-executable onboarding."
         exit 1
     }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260731000400_authoritative_company_onboarding.sql") -Destination $onboardingMigrationCopy
+    $onboardingFunctionCopy = Join-Path $temporaryRoot "supabase\functions\company-onboarding\handler.ts"
+    $onboardingFunctionText = Get-Content -Raw -Encoding UTF8 $onboardingFunctionCopy
+    $onboardingFunctionText = $onboardingFunctionText.Replace(
+        "owner_id: user.id,",
+        "owner_id: request.ownerId,"
+    )
+    [System.IO.File]::WriteAllText($onboardingFunctionCopy, $onboardingFunctionText)
+    $clientOwnerIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientOwnerIssues -match "owner derived from Auth")) {
+        Write-Error "Harness self-test failed to detect a client-controlled company owner."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\company-onboarding\handler.ts") -Destination $onboardingFunctionCopy
+    $onboardingFunctionText = Get-Content -Raw -Encoding UTF8 $onboardingFunctionCopy
+    $onboardingFunctionText = $onboardingFunctionText.Replace(
+        "apikey: configuration.serviceRoleKey,",
+        "apikey: configuration.anonKey,"
+    )
+    [System.IO.File]::WriteAllText($onboardingFunctionCopy, $onboardingFunctionText)
+    $unprivilegedRpcIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unprivilegedRpcIssues -match "service credential header")) {
+        Write-Error "Harness self-test failed to detect an unprivileged onboarding RPC call."
+        exit 1
+    }
 }
 finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
@@ -584,4 +682,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0022 repository plus 8 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023 repository plus 11 mutation scenarios)."

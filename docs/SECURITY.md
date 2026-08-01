@@ -65,6 +65,21 @@ l'identité ou la compagnie. Deux sessions concurrentes convergent vers une seul
 compagnie et une seule ouverture ; une panne injectée ne laisse aucun état
 partiel.
 
+## Frontière d'onboarding T0023
+
+L'Edge Function conserve le gate JWT de la plateforme puis vérifie explicitement
+le bearer token auprès de Supabase Auth. Elle exige un UUID non anonyme et
+dérive de cette réponse l'unique `owner_id` transmis à T0022. Le corps client
+est limité à 4 Kio et contient exactement `companyName` et `idempotencyKey` ; un
+propriétaire, montant, devise ou champ inconnu fourni par le client est refusé.
+
+Le montant et la devise proviennent de variables Edge Runtime obligatoires et
+bornées comme T0020. `SUPABASE_SERVICE_ROLE_KEY` n'est utilisé que dans l'appel
+RPC interne. Les réponses sont `no-store`, ne journalisent rien et remplacent
+les erreurs Auth, SQL ou transport par des codes publics bornés. Le runtime local
+injecte uniquement des fixtures synthétiques ; aucune valeur de production,
+clé distante ou donnée réelle n'est admise.
+
 ## Frontière installateur Windows T0014
 
 Le package T0014 est une preuve interne non signée, jamais une release. Il

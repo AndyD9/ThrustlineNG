@@ -60,7 +60,7 @@ try {
         -DockerPath $dockerPath `
         -Arguments @(
             "start",
-            "--exclude", "realtime,storage-api,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor"
+            "--exclude", "realtime,storage-api,imgproxy,mailpit,logflare,vector,supavisor"
         ) `
         -SuppressOutput
 
