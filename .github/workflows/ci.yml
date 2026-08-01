@@ -55,6 +55,10 @@ jobs:
         shell: pwsh
         run: pnpm data-policy:check
 
+      - name: Validate mutation authority
+        shell: pwsh
+        run: pnpm authority:check
+
       - name: Validate frontend
         shell: pwsh
         run: |

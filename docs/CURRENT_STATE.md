@@ -1,7 +1,8 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 1er août 2026 (fusion de la pile T0020–T0023 dans
-`main` par la PR #41).
+Dernière revue documentaire : 1er août 2026 (clôture T0020 fusionnée dans
+`main` par la PR #45 ; T0024 terminé sur
+`security/T0024-inventory-sensitive-mutations`, pas encore fusionné).
 Statut : T0012–T0023 sont `Done` : leurs implémentations sont fusionnées dans
 `main`, leurs critères automatisés passent et leurs vérifications humaines sont
 terminées. La phase 2 reste toutefois sous interdiction de données utilisateur
@@ -61,6 +62,8 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` et
   `COMPANY_OPENING_BALANCE_MINOR`, `COMPANY_OPENING_CURRENCY` ; les deux
   dernières valeurs locales sont des fixtures synthétiques.
+- Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
+  clientes dans `eng/authority-inventory.json`.
 
 ## Procédure vérifiée depuis un clone propre
 
@@ -154,8 +157,8 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
   layout `externalBin` ; les gates de packaging contrôlent ce couplage.
 - Les futures pages fonctionnelles doivent éviter le mélange historique
   UI/orchestration/données suivi par `KI-005`.
-- T0022 ferme la mutation directe de `companies`, mais l'inventaire des autres
-  mutations sensibles du golden path reste à caractériser pour fermer `KI-001`.
+- T0024 inventorie toutes les mutations du golden path et ferme `KI-001` pour le
+  code présent ; huit domaines restent explicitement non implémentés.
 - Sauvegarde managée/chiffrée, purge du journal pseudonyme, restauration de
   production et promotion restent absentes ; `KI-021` interdit les données
   réelles jusque-là.
@@ -413,6 +416,23 @@ survivent pas dans le volume conservé pour les images. La revue adversariale a
 corrigé la minimisation de la réponse privilégiée dans `aa4d0a2`. Les PR
 #38–#40 ont propagé T0023 dans T0020, puis la PR #41 a fusionné la pile dans
 `main`.
+
+## Autorité des mutations du golden path
+
+T0024 ajoute une source JSON versionnée couvrant exactement les dix étapes
+produit. Treize domaines sont classés : compagnie, cycle de compte, finance et
+continuité sont des tranches serveur partielles ; Supabase Auth est une autorité
+externe ; huit domaines restent `not-implemented`.
+
+`pnpm authority:check` scanne React, Tauri et le bridge, refuse toute mutation
+Supabase/SQL directe, accès Data API non classé, credential ou commande
+`service_role`, et échoue si
+une extension cliente apparaît sans classification. Cinq mutations négatives
+prouvent le harnais. L'inspection du 1er août ne trouve aucune mutation métier
+dans les composants clients ; `KI-001` est résolu pour le code actuel, sans
+revendiquer les capacités encore absentes. Le workflow CI de la branche exécute
+le gate avant les validations applicatives ; cette exécution publiée reste à
+prouver par la Pull Request.
 
 ## CI multi-stack
 

@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "clientTrust": "untrusted",
+    "mutationRule": "server-command-only",
+    "serviceOnlyCommands": [
+      "create_company_with_opening_balance",
+      "finalize_account_deletion",
+      "post_company_opening_balance",
+      "replay_account_deletion_event"
+    ]
+  },
+  "clientSurfaces": [
+    {
+      "id": "desktop-webview",
+      "path": "apps/desktop/src",
+      "sourceExtensions": [".ts", ".tsx"],
+      "nonExecutableExtensions": [".css"],
+      "excludedDirectories": []
+    },
+    {
+      "id": "desktop-tauri",
+      "path": "apps/desktop/src-tauri/src",
+      "sourceExtensions": [".rs"],
+      "nonExecutableExtensions": [],
+      "excludedDirectories": []
+    },
+    {
+      "id": "local-bridge",
+      "path": "apps/bridge",
+      "sourceExtensions": [".cs"],
+      "nonExecutableExtensions": [".csproj", ".json"],
+      "excludedDirectories": ["bin", "obj"]
+    }
+  ],
+  "domains": [
+    {
+      "id": "identity",
+      "status": "external-authority",
+      "coverage": "managed",
+      "serverBoundaries": ["Supabase Auth"],
+      "evidencePaths": ["supabase/config.toml"],
+      "evidenceMarkers": ["[auth]", "enabled = true"],
+      "limitations": ["No desktop authentication caller is implemented."]
+    },
+    {
+      "id": "company",
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": [
+        "supabase/functions/company-onboarding/handler.ts",
+        "public.create_company_with_opening_balance"
+      ],
+      "evidencePaths": [
+        "supabase/functions/company-onboarding/handler.ts",
+        "supabase/migrations/20260731000400_authoritative_company_onboarding.sql",
+        "supabase/tests/database/company_onboarding.test.sql"
+      ],
+      "evidenceMarkers": ["createCompanyOnboardingHandler", "create_company_with_opening_balance"],
+      "limitations": ["Creation and deletion are covered; later company profile mutations are not designed."]
+    },
+    {
+      "id": "account-lifecycle",
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": [
+        "public.request_account_deletion",
+        "public.cancel_account_deletion",
+        "public.finalize_account_deletion"
+      ],
+      "evidencePaths": [
+        "supabase/migrations/20260731000100_account_lifecycle.sql",
+        "supabase/tests/database/account_lifecycle.test.sql"
+      ],
+      "evidenceMarkers": ["request_account_deletion", "cancel_account_deletion", "finalize_account_deletion"],
+      "limitations": ["Only synthetic local and CI data are admitted."]
+    },
+    {
+      "id": "fleet",
+      "status": "not-implemented",
+      "coverage": "none",
+      "serverBoundaries": [],
+      "evidencePaths": ["docs/CURRENT_STATE.md"],
+      "limitations": ["Purchase, lease, ownership and fleet mutations have no new-product implementation."]
+    },
+    {
+      "id": "dispatch",
+      "status": "not-implemented",
+      "coverage": "none",
+      "serverBoundaries": [],
+      "evidencePaths": ["docs/CURRENT_STATE.md"],
+      "limitations": ["Dispatch creation and SimBrief persistence are not implemented."]
+    },
+    {
+      "id": "flight-runtime",
+      "status": "not-implemented",
+      "coverage": "none",
+      "serverBoundaries": [],
+      "evidencePaths": ["docs/CURRENT_STATE.md"],
+      "limitations": ["The replay adapter emits samples but no flight state is persisted or mutated."]
+    },
+    {
+      "id": "flight-finalization",
+      "status": "not-implemented",
+      "coverage": "none",
+      "serverBoundaries": [],
+      "evidencePaths": ["docs/CURRENT_STATE.md"],
+      "limitations": ["No versioned flight report or idempotent finalization command exists."]
+    },
+    {
+      "id": "finance",
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": ["public.post_company_opening_balance"],
+      "evidencePaths": [
+        "supabase/migrations/20260731000300_immutable_financial_ledger.sql",
+        "supabase/tests/database/financial_ledger.test.sql"
+      ],
+      "evidenceMarkers": ["post_company_opening_balance"],
+      "limitations": ["Only opening_balance exists; no production economy or second financial command is defined."]
+    },
+    {
+      "id": "reputation-progression",
+      "status": "not-implemented",
+      "coverage": "none",
+      "serverBoundaries": [],
+      "evidencePaths": ["docs/CURRENT_STATE.md"],
+      "limitations": ["Reputation and progression mutations are not implemented."]
+    },
+    {
+      "id": "maintenance",
+      "status": "not-implemented",
+      "coverage": "none",
+      "serverBoundaries": [],
+      "evidencePaths": ["docs/CURRENT_STATE.md"],
+      "limitations": ["Maintenance state and costs are not implemented."]
+    },
+    {
+      "id": "passive-operations",
+      "status": "not-implemented",
+      "coverage": "none",
+      "serverBoundaries": [],
+      "evidencePaths": ["docs/CURRENT_STATE.md"],
+      "limitations": ["Schedules, rotations and temporal jobs are not implemented."]
+    },
+    {
+      "id": "data-continuity",
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": [
+        "public.replay_account_deletion_event"
+      ],
+      "evidencePaths": [
+        "supabase/migrations/20260731000200_account_deletion_restore_replay.sql",
+        "supabase/tests/database/account_restore_replay.test.sql"
+      ],
+      "evidenceMarkers": ["replay_account_deletion_event"],
+      "limitations": ["Managed encrypted backup, Vault/Storage restore, production promotion and signed updater rollback are absent."]
+    },
+    {
+      "id": "distribution",
+      "status": "not-implemented",
+      "coverage": "none",
+      "serverBoundaries": [],
+      "evidencePaths": ["docs/CURRENT_STATE.md"],
+      "limitations": ["Signed update, rollback and uninstall data-preservation proof are not implemented."]
+    }
+  ],
+  "goldenPath": [
+    { "step": 1, "id": "account-and-company", "domains": ["identity", "company", "account-lifecycle"] },
+    { "step": 2, "id": "create-company", "domains": ["company"] },
+    { "step": 3, "id": "acquire-aircraft", "domains": ["fleet", "finance"] },
+    { "step": 4, "id": "prepare-dispatch", "domains": ["dispatch"] },
+    { "step": 5, "id": "track-flight", "domains": ["flight-runtime"] },
+    { "step": 6, "id": "resume-flight", "domains": ["flight-runtime", "data-continuity"] },
+    { "step": 7, "id": "finalize-flight-once", "domains": ["flight-finalization", "finance"] },
+    { "step": 8, "id": "apply-flight-impacts", "domains": ["finance", "reputation-progression", "maintenance"] },
+    { "step": 9, "id": "plan-passive-operations", "domains": ["passive-operations"] },
+    { "step": 10, "id": "update-or-uninstall-safely", "domains": ["data-continuity", "distribution"] }
+  ]
+}

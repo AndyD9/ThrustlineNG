@@ -33,6 +33,22 @@ Le harnais utilise un dépôt synthétique qui doit contenir tous les manifests 
 par `check-toolchain.ps1`. Toute extension du contrôle de pins doit mettre à jour
 ce fixture et ajouter ou préserver un scénario d'échec associé.
 
+## Autorité des mutations
+
+La source `eng/authority-inventory.json` et son gate couvrent les dix étapes du
+golden path, les domaines non implémentés et les trois surfaces clientes :
+
+```powershell
+pnpm authority:check
+```
+
+Le résultat attendu mentionne 10 étapes, 13 domaines, 3 surfaces et 5 scénarios
+de mutation. Le harnais retire une étape, introduit une autorité client, casse
+un marqueur de preuve, injecte une mutation Supabase directe puis ajoute une extension de
+code inconnue. Un code 0 sans ces scénarios n'est pas la preuve T0024. Le job
+Windows exécute ce gate avant toute validation applicative ; `ci:check` refuse
+sa disparition du workflow.
+
 ## Backend Supabase
 
 Le contrôle statique fonctionne sans Docker et couvre la version de CLI, la
