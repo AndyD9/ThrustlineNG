@@ -1,22 +1,22 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 1er août 2026 (preuve locale T0023 de la
-frontière Edge d'onboarding).
-Statut : les implémentations T0012 à T0019 sont fusionnées dans `main`. T0005,
-T0006 et T0013 à T0017 sont `Done`. La phase 0 est terminée, la phase 1 a
-franchi conditionnellement son gate de reproductibilité et la phase 2 est
-active sous interdiction de données utilisateur réelles. T0021 résout `KI-017` :
-la pile locale est isolée et ses trois sockets Windows écoutent uniquement sur
-`127.0.0.1`. Andy confirme l'inspection visuelle de Studio le 31 juillet 2026.
-T0012 reste `Verify` tant que la correction T0021 n'est pas fusionnée dans
-`main`.
+Dernière revue documentaire : 1er août 2026 (fusion de la pile T0020–T0023 dans
+`main` par la PR #41).
+Statut : les implémentations T0012 à T0023 sont fusionnées dans `main`. T0012,
+T0021, T0022 et T0023 sont `Done` : leurs critères automatisés et vérifications
+humaines sont terminés, et la pile complète est livrée dans la branche distante
+par défaut. T0018, T0019 et T0020 restent `Verify` car leurs checklists humaines
+propres n'ont pas encore été exécutées.
 
-T0018 et T0019 sont présents dans `main` mais restent `Verify` car leurs
-checklists humaines n'ont pas été exécutées. T0020–T0022 ne sont pas dans
-`main` : les PR #35–#37 ont été fusionnées dans leurs branches parentes, sans
-propager ensuite la pile jusqu'à `main`. T0020 reste `Verify`, T0021 et T0022
-restent `Review`. T0023 ajoute sur une nouvelle branche empilée un appelant Edge
-authentifié avec preuves Node et PostgreSQL 17 locales.
+La fusion #41 (`06cece5`) est couverte par le run CI `30706049048`, réussi sur
+PostgreSQL 17 et Windows multi-stack, et par le run supply-chain `30706049088`,
+réussi sur les audits, licences et SBOM.
+
+La phase 0 est terminée, la phase 1 a franchi conditionnellement son gate de
+reproductibilité et la phase 2 reste active sous interdiction de données
+utilisateur réelles. T0021 résout `KI-017` : la pile locale est isolée et ses
+trois sockets Windows écoutent uniquement sur `127.0.0.1`. Cette preuve locale
+ne démontre ni parité Supabase managée, ni staging, ni production.
 
 ## Produit
 
@@ -36,67 +36,57 @@ version publique stable.
 
 ## Stack active et versions observées
 
-Baseline exécutée sous Windows le 24 juillet 2026 :
+La source canonique `eng/versions.json` épingle :
 
-- Node.js `24.14.1` et npm `11.11.0` ;
-- SDK .NET `10.0.201`, projet bridge ciblant `net8.0` ;
-- `rustc 1.94.1` et `cargo 1.94.1` ;
-- Supabase CLI absente lors de la baseline, puis épinglée à 2.109.1 par T0012 ;
-- Docker Desktop 29.6.2 utilisé pour la vérification locale T0012 ;
-- Tauri v2 / Rust, React 18 / TypeScript / Vite / Tailwind ;
-- ASP.NET Core et SimConnect.NET pour le bridge ;
-- REST et SignalR sur loopback entre UI et bridge ;
-- Supabase Auth/PostgreSQL/RLS/Realtime/Edge Functions.
+- Node.js `24.18.0` et pnpm `11.17.0` ;
+- Rust `1.97.1`, Tauri `2.11.5` et Tauri CLI `2.11.4` ;
+- SDK .NET `10.0.201`, runtime/TFM .NET 10 ;
+- PowerShell `7.6.0` minimum ;
+- React `19.2.8`, TypeScript `6.0.3` et Vite `8.1.5` ;
+- Supabase CLI `2.109.1` et PostgreSQL 17.
 
-Le moteur Node déclaré par `app/package.json` est `>=24.18.0 <25`. La machine de
-baseline est donc en dessous de la version minimale, même si les tests et le
-build frontend réussissent. Les workflows CI utilisent Node `24.18.0`, .NET 8.x
-et Rust stable.
+Docker Desktop 29.6.2 sert aux preuves locales. Le desktop utilise
+Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
+`win-x64`, et REST/SignalR restent liés au loopback avec jeton d'instance.
 
 ## Inventaire reproductible
 
-- Lockfiles : `app/package-lock.json` et `app/src-tauri/Cargo.lock`.
-- Scripts npm : `dev`, `build`, `test`, `test:watch`, `test:coverage`, `preview`,
-  `tauri`, `tauri:dev`, `tauri:build`, `sidecar:build`.
-- Scripts dépôt : `scripts/build-sidecar.ps1` et
-  `scripts/security-check.ps1`.
-- Workflows du nouveau socle dans `main` :
+- Lockfiles : `pnpm-lock.yaml`, `apps/desktop/src-tauri/Cargo.lock` et les
+  `packages.lock.json` du bridge et de ses tests.
+- Scripts racine : gates frontend, desktop, bridge, backend, données,
+  performance, packaging Windows, CI et supply chain.
+- Workflows dans `main` :
   `.github/workflows/ci.yml` et `.github/workflows/security.yml`.
-- Migrations Supabase append-only constatées : 25.
-- Dépendances directes : 11 npm runtime, 12 npm développement, 2 NuGet,
-  6 Cargo runtime et 1 Cargo build.
+- Migrations Supabase append-only constatées : 5.
 - Variables/configurations relevées par nom seulement :
-  `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SIM_BRIDGE_URL`,
   `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` et
-  `THRUSTLINE_BRIDGE_TOKEN`.
+  `COMPANY_OPENING_BALANCE_MINOR`, `COMPANY_OPENING_CURRENCY` ; les deux
+  dernières valeurs locales sont des fixtures synthétiques.
 
 ## Procédure vérifiée depuis un clone propre
 
-Installer Windows, Node `24.18.x`, npm, le SDK .NET 8, Rust stable et les
-prérequis Tauri v2, puis exécuter depuis la racine :
+Installer les versions exactes de `eng/versions.json`, Docker Desktop pour le
+backend, et les prérequis Tauri v2, puis exécuter depuis la racine :
 
 ```powershell
-Set-Location app
-npm ci
-npm test
-npm run build
-
-Set-Location ..\sim-bridge
-dotnet restore
-dotnet build --configuration Release
-dotnet test --configuration Release
-
-Set-Location ..\app\src-tauri
-cargo check --locked
-
-Set-Location ..\..
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\security-check.ps1
+pwsh -NoProfile -File .\scripts\check-toolchain.ps1
+pwsh -NoProfile -File .\scripts\bootstrap.ps1
+pnpm frontend:typecheck
+pnpm frontend:test
+pnpm frontend:build
+pnpm desktop:check
+pnpm desktop:test
+pnpm bridge:build
+pnpm bridge:test
+pnpm backend:check
+pnpm backend:functions:test
+pnpm data-policy:check
 ```
 
-Configurer uniquement après restauration les variables nécessaires dans un
-fichier local non versionné. L'exécution de l'application et les validations
-cloud nécessitent une instance Supabase configurée. Le suivi réel nécessite
-MSFS/SimConnect. Le packaging signé nécessite un certificat approprié.
+Les contrôles PostgreSQL réels ajoutent `backend:start`, deux `backend:reset`,
+`backend:test`, `backend:types:check` puis `backend:stop`. Aucun projet Supabase
+distant, donnée réelle ou certificat de signature n'est requis ou autorisé par
+ce socle.
 
 ## Validation exécutée le 24 juillet 2026
 
@@ -158,28 +148,22 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
 
 ## Dette et risques structurants
 
-- Aucun projet de tests .NET dédié constaté.
 - Le runtime Supabase local repose sur un daemon DinD privilégié et conserve un
-  volume de cache d'images ; il ne monte ni socket Docker hôte ni source du
-  dépôt complète.
-- Le build Tauri complet dépend du sidecar généré dans `externalBin`.
-- L'environnement local Node ne satisfait pas le moteur déclaré.
-- Les README divergent (`Node 24.18 LTS` contre `Node 20+`) et utilisent
-  `npm install` au lieu de la restauration déterministe `npm ci`.
-- Deux vulnérabilités npm modérées sont signalées ; aucune mise à jour n'a été
-  faite dans T0001.
-- Pages React volumineuses et mélange UI/orchestration/données.
-- Mutations métier directes depuis le client et séquences multi-écritures non
-  atomiques.
-- Pas de pipeline complet de release signée/updater.
-- Versions répétées dans plusieurs manifestes.
-- T0016 remplace `react-router` 7.18.1 par 8.3.0 pour
-  `GHSA-qwww-vcr4-c8h2` ; l'audit local et le workflow supply-chain GitHub sont
-  verts, et `KI-018` est résolu dans `main`.
+  volume de cache d'images ; il ne monte ni socket Docker hôte, ni dépôt complet,
+  ni donnée réelle.
+- Le build Tauri complet dépend de la publication préalable du sidecar dans le
+  layout `externalBin` ; les gates de packaging contrôlent ce couplage.
+- Les futures pages fonctionnelles doivent éviter le mélange historique
+  UI/orchestration/données suivi par `KI-005`.
+- T0022 ferme la mutation directe de `companies`, mais l'inventaire des autres
+  mutations sensibles du golden path reste à caractériser pour fermer `KI-001`.
+- Sauvegarde managée/chiffrée, purge du journal pseudonyme, restauration de
+  production et promotion restent absentes ; `KI-021` interdit les données
+  réelles jusque-là.
+- Aucun pipeline complet de release signée ou d'updater avec rollback n'existe.
 - Cargo ne signale aucune vulnérabilité, mais plusieurs crates GTK3 non
-  maintenues et `glib` 0.18.5 unsound restent dans le lockfile multi-plateforme.
-- Politique de suppression/récupération du propriétaire et durée de rétention à
-  définir avant toute suppression irréversible.
+  maintenues et `glib` 0.18.5 unsound restent dans le lockfile multi-plateforme
+  (`KI-019`).
 
 ## Travail local à préserver
 
@@ -298,8 +282,8 @@ Docker et `Get-NetTCPConnection` confirment le 31 juillet 2026 que 54321–54323
 assertions pgTAP et le contrôle des types passent localement. Le redémarrage avec
 cache prend 45,5 s ; Studio répond 200 et PostgreSQL contient uniquement les
 deux identités `.invalid`. Andy confirme leur inspection visuelle dans Studio le
-31 juillet 2026. Aucune parité cloud n'est revendiquée et la capacité n'est pas
-présente dans `main` avant fusion de la pile de PR.
+31 juillet 2026. T0012 et T0021 sont présents dans `main` depuis la PR #41 et
+sont `Done`. Aucune parité cloud n'est revendiquée.
 
 ## Politique de données
 
@@ -360,7 +344,7 @@ localement via T0021 ; le ticket reste `Verify` car sa checklist humaine n'a pas
 
 ## Grand livre financier immuable
 
-T0020 ajoute sur sa branche un sujet financier opaque par compagnie, des écritures
+T0020 ajoute un sujet financier opaque par compagnie, des écritures
 privées append-only et une commande d'ouverture réservée à `service_role`.
 `authenticated` ne peut que lire les écritures de sa propre compagnie par une
 fonction qui dérive l'identité du JWT. La suppression et le replay détachent le
@@ -370,8 +354,8 @@ Les gates statiques backend et politique T0020 passent avec respectivement 5 et 
 mutations négatives. Le run `30628851680` valide deux resets, 8 fichiers pgTAP,
 148 assertions, la concurrence, la restauration/replay et les types stables sur
 PostgreSQL 17. T0021 reproduit localement les 8 fichiers/148 assertions et les
-types stables ; T0020 reste `Verify` pour sa checklist humaine et n'est pas
-présent dans `main`.
+types stables. T0020 est présent dans `main` depuis la PR #41 mais reste
+`Verify` pour sa checklist humaine.
 
 ## Onboarding de compagnie autoritaire
 
@@ -386,10 +370,9 @@ Localement sous Windows/Docker Desktop 29.6.2, deux resets, 10 fichiers pgTAP et
 190 assertions passent avec `Result: PASS`; les types sont stables. Deux sessions
 concurrentes convergent vers une compagnie, une commande et une écriture. La
 checklist manuelle confirme rejeu, collision, refus d'une mutation directe et
-rollback injecté avec l'état final `1|1|1|0|0`. T0022 reste empilé et n'est pas
-présent dans `main`. La PR #37 a été fusionnée dans
-`feature/T0020-immutable-ledger`, pas dans `main`; aucun appelant desktop/bridge,
-donnée réelle ou environnement distant n'est ajouté. Les runs GitHub `30652926904` et
+rollback injecté avec l'état final `1|1|1|0|0`. T0022 est présent dans `main`
+depuis la PR #41 et passe à `Done`. Aucun appelant desktop/bridge, donnée réelle
+ou environnement distant n'est ajouté. Les runs GitHub `30652926904` et
 `30652926644` valident PostgreSQL 17, Windows multi-stack et la supply chain.
 
 ## Frontière Edge d'onboarding
@@ -405,17 +388,14 @@ Les 14 tests Node, le gate backend T0012–T0023 avec 11 mutations, deux resets,
 10 fichiers/190 assertions pgTAP et les types passent localement. L'intégration
 Auth → Edge → RPC rend une réponse v1 active, rejoue les mêmes identifiants et
 laisse exactement `1|1|1`; un appel sans JWT rend HTTP 401. L'Edge Runtime reste
-derrière l'API loopback et n'ajoute aucun port externe. T0023 est en `Review`
-sur `feature/T0023-authoritative-onboarding-endpoint`, empilée sur T0022 ; rien
-de T0020–T0023 n'est livré dans `main` et aucune valeur économique de production
+derrière l'API loopback et n'ajoute aucun port externe. T0023 est présent dans
+`main` depuis la PR #41 et passe à `Done`; aucune valeur économique de production
 n'est décidée. L'arrêt local utilise désormais `--no-backup`; un
 arrêt/redémarrage prouve que l'identité et la compagnie synthétiques T0023 ne
-survivent pas dans le volume conservé pour les images. La PR #38 a été fusionnée
-dans la branche T0022, pas dans `main`. La revue adversariale a ensuite corrigé
-la minimisation de la réponse privilégiée dans `aa4d0a2`; la PR brouillon #39
-cible également T0022. Les runs GitHub `30696692468` et `30696692529` valident
-PostgreSQL 17, Windows multi-stack et la supply chain avant cette correction ;
-ses checks GitHub restent à obtenir.
+survivent pas dans le volume conservé pour les images. La revue adversariale a
+corrigé la minimisation de la réponse privilégiée dans `aa4d0a2`. Les PR
+#38–#40 ont propagé T0023 dans T0020, puis la PR #41 a fusionné la pile dans
+`main`.
 
 ## CI multi-stack
 
@@ -494,11 +474,11 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Faire revoir T0023, propager T0020–T0023 jusqu'à `main`, puis exécuter les
-checklists humaines T0018–T0020 sur le runtime T0021. Décider la politique
-économique de production avant tout déploiement ou appel desktop et ne pas
-détailler une deuxième variation économique avant ces clôtures. T0011 reste
-`Verify` jusqu'aux essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
+Exécuter les checklists humaines T0018–T0020 sur le runtime T0021, une par
+ticket, puis décider la politique économique de production avant tout
+déploiement ou appel desktop. Ne pas détailler une deuxième variation économique
+avant ces clôtures. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS
+2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier
 
