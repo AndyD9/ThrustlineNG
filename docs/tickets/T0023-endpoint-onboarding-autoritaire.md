@@ -262,6 +262,7 @@ sont toutes deux absentes.
 - branche : `feature/T0023-authoritative-onboarding-endpoint` ;
 - base : `feature/T0022-authoritative-company-onboarding` ;
 - commit d'implémentation : `fd2b3fc` ;
+- correction du reset CI : `771c44b` ;
 - PR : #38, brouillon, base `feature/T0022-authoritative-company-onboarding`,
   head `feature/T0023-authoritative-onboarding-endpoint` ;
 - dépendance : T0020–T0022 doivent encore être propagés jusqu'à `main` ;
