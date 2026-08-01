@@ -223,7 +223,11 @@ sur une branche empilée ; rien de T0020–T0023 n’est revendiqué dans `main`
 - premier run GitHub `30696440104` — handler statique réussi puis job PostgreSQL
   échoué au reset : Edge Runtime conservait temporairement le binding 54322 sous
   Supabase CLI 2.109.1/Ubuntu ; preuves séparées en tests Node Linux puis harnais
-  SQL avec Edge Runtime exclu, rejeu CI attendu.
+  SQL avec Edge Runtime exclu ;
+- run GitHub CI corrigé `30696692468` — réussi : Supabase PostgreSQL 17 en
+  2 min 43 s et Windows multi-stack en 14 min 53 s ;
+- run GitHub supply-chain `30696692529` — réussi en 3 min 49 s : audits,
+  licences et SBOM.
 
 ### Manual verification result
 

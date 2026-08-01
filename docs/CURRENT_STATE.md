@@ -411,7 +411,9 @@ de T0020–T0023 n'est livré dans `main` et aucune valeur économique de produc
 n'est décidée. L'arrêt local utilise désormais `--no-backup`; un
 arrêt/redémarrage prouve que l'identité et la compagnie synthétiques T0023 ne
 survivent pas dans le volume conservé pour les images. La PR brouillon #38 cible
-la branche T0022, pas `main`.
+la branche T0022, pas `main`. Les runs GitHub `30696692468` et `30696692529`
+valident PostgreSQL 17, Windows multi-stack et la supply chain après séparation
+des preuves Edge/SQL sous Linux.
 
 ## CI multi-stack
 
