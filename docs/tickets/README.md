@@ -101,8 +101,9 @@ devise ou propriétaire client et lit la politique d'ouverture dans son
 environnement serveur. Treize tests Node, le gate backend avec 11 mutations, deux
 resets, 10 fichiers/190 assertions, les types et une intégration Auth → Edge →
 RPC passent localement. Le rejeu conserve les mêmes identifiants et l'état SQL
-est `1|1|1`; un appel sans JWT rend HTTP 401. Aucune PR n'est encore ouverte et
-rien de T0020–T0023 n'est présent dans `main`.
+est `1|1|1`; un appel sans JWT rend HTTP 401. La PR brouillon #38 cible
+`feature/T0022-authoritative-company-onboarding`; rien de T0020–T0023 n'est
+présent dans `main`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

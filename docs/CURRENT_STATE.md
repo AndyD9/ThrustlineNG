@@ -410,7 +410,8 @@ sur `feature/T0023-authoritative-onboarding-endpoint`, empilée sur T0022 ; rien
 de T0020–T0023 n'est livré dans `main` et aucune valeur économique de production
 n'est décidée. L'arrêt local utilise désormais `--no-backup`; un
 arrêt/redémarrage prouve que l'identité et la compagnie synthétiques T0023 ne
-survivent pas dans le volume conservé pour les images.
+survivent pas dans le volume conservé pour les images. La PR brouillon #38 cible
+la branche T0022, pas `main`.
 
 ## CI multi-stack
 
