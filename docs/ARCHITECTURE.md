@@ -58,7 +58,15 @@ l'intégralité du payload, crée la compagnie et appelle l'ouverture T0020 dans
 même transaction. Les triggers créent aussi les sujets privés de restauration
 et de grand livre. Un rejeu identique rend les mêmes identifiants ; une collision,
 une deuxième compagnie ou une panne annule tout le statement. Cette frontière
-n'ajoute encore aucun appelant applicatif.
+n'ajoute encore aucun appelant applicatif direct.
+
+T0023 place cette RPC derrière l'Edge Function `company-onboarding`. Le client
+envoie uniquement un nom normalisé et une clé d'idempotence. La fonction vérifie
+le bearer token auprès de Supabase Auth, dérive `owner_id` de l'utilisateur non
+anonyme et lit montant/devise depuis son environnement serveur avant d'appeler
+T0022 avec `service_role`. La fonction ne fractionne donc pas la transaction SQL
+et ne livre jamais le credential privilégié au desktop. Aucun appelant desktop,
+CORS applicatif ou déploiement distant n'est encore fourni.
 
 ## Packaging Windows T0014
 
@@ -88,9 +96,10 @@ upgrade et rollback de version restent hors du socle.
 ## Backend Supabase local T0012
 
 Le backend initial est recréé depuis `supabase/config.toml`, les migrations
-append-only puis `supabase/seed.sql`. PostgreSQL 17, Auth et PostgREST suffisent
-à cette tranche ; Realtime, Storage, Edge Runtime et Analytics restent
-désactivés.
+append-only puis `supabase/seed.sql`. PostgreSQL 17, Auth, PostgREST et l'Edge
+Runtime T0023 sont actifs localement ; Realtime, Storage et Analytics restent
+désactivés. L'Edge Runtime reste derrière le port API 54321 : le daemon isolé
+T0021 ne publie toujours que 54321–54323 sur `127.0.0.1`.
 
 `public.companies` porte la première frontière de propriété du MVP solo :
 

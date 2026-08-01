@@ -91,11 +91,13 @@ try {
         }
     }
 
+    $env:COMPANY_OPENING_BALANCE_MINOR = "43000000"
+    $env:COMPANY_OPENING_CURRENCY = "EUR"
     Invoke-Supabase -SuppressOutput -Arguments @(
         "start",
         "--network-id", $networkName,
         "--exclude",
-        "realtime,storage-api,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor"
+        "realtime,storage-api,imgproxy,mailpit,logflare,vector,supavisor"
     )
     $started = $true
 

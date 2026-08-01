@@ -155,6 +155,8 @@ function Invoke-IsolatedSupabaseCli {
         "--env", "DOCKER_HOST=tcp://$($script:SupabaseEngineContainer):2375",
         "--env", "DO_NOT_TRACK=1",
         "--env", "SUPABASE_TELEMETRY_DISABLED=1",
+        "--env", "COMPANY_OPENING_BALANCE_MINOR=43000000",
+        "--env", "COMPANY_OPENING_CURRENCY=EUR",
         "--volume", "${script:SupabaseProjectVolume}:/workspace",
         "--workdir", "/workspace",
         $script:SupabaseCliImage
