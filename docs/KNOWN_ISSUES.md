@@ -20,7 +20,7 @@ Statut : `Open`, `Accepted`, `Scheduled`, `Resolved`, `Invalid`.
 | KI-003 | High | Release | Pas de pipeline complet d'artefacts/updater signés. | Audit initial | Phase 6 | Open |
 | KI-004 | Medium | Bridge | Pas de projet de tests .NET/replay SimConnect constaté. | T0011 ajoute un harnais .NET et un replay synthétique versionné | T0011 | Resolved |
 | KI-005 | Medium | Frontend | Plusieurs pages mélangent UI, règles et accès aux données. | Audit initial | Phase 4 | Open |
-| KI-006 | Medium | Docs | Documentation historique partiellement désynchronisée. | Audit initial ; `ROADMAP.md` mentionne encore T0012 en `Verify` après sa clôture et sa livraison par la PR #41, constat du 1er août 2026 pendant T0018 | Maintenance documentaire dédiée | Open |
+| KI-006 | Medium | Docs | La roadmap courante annonçait encore T0012 en `Verify` après sa clôture. | T0025 aligne T0012 sur T0021/#41 et T0024 sur #46, tout en conservant les instantanés historiques datés | T0025 | Resolved |
 | KI-007 | Medium | Product | Mode solo ou VA collaborative non tranché. | ADR-0001 : MVP solo préparé pour collaboration ultérieure | T0002 | Resolved |
 | KI-008 | High | Rebuild | Une réécriture totale peut omettre des comportements actuels non caractérisés. | ADR-0002 : couverture automatisée faible face au périmètre existant | Caractérisation du golden path | Open |
 | KI-009 | High | Bridge | Aucun corpus de traces SimConnect rejouables n'est fourni pour prouver la parité du moteur de vol. | T0001 et ADR-0002 | Premier vertical slice SimConnect | Open |
