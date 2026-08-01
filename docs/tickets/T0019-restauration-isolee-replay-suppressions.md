@@ -1,8 +1,8 @@
 # T0019 — Restaurer sans ressusciter un compte supprimé
 
-Status: Verify
+Status: Done
 Owner: Andy
-Branch: `security/T0019-isolated-restore-replay`
+Branch: `security/T0019-isolated-restore-replay-verify`
 Phase: 2
 Risk: High
 Security-sensitive: Yes
@@ -29,9 +29,9 @@ des sauvegardes. La finalisation T0018 produit un événement pseudonyme exporta
 hors de la sauvegarde. Une commande privilégiée applique cet événement sur la
 cible restaurée et échoue fermée s'il est inconnu ou altéré.
 
-La branche est empilée sur `security/T0018-account-lifecycle`, non fusionnée au
-début du ticket. La PR T0019 doit donc cibler cette branche jusqu'à intégration de
-T0018, puis être rebasée ou changer de base sans force-push.
+L'implémentation a d'abord été empilée sur T0018, puis la pile T0018–T0023 a été
+livrée dans `main` par la PR #41. La vérification T0019 repart de `main` après la
+clôture T0018 par la PR #43.
 
 Références :
 
@@ -44,8 +44,7 @@ Références :
 
 ## Dependencies
 
-- T0018 — export et suppression de compte (`Verify`, implémentation présente sur
-  la branche parente) ;
+- T0018 — export et suppression de compte (`Done`, fusionné dans `main`) ;
 - T0017 — politique de données (`Done`) ;
 - PostgreSQL 17 réel et pile Supabase jetable de la CI T0013.
 
@@ -195,8 +194,8 @@ pnpm ci:backend
 
 La preuve finale doit donner le nombre exact de fichiers et d'assertions pgTAP,
 le résultat `PASS`, puis le résultat explicite de l'exercice
-dump/restore/replay. Le démarrage Windows peut rester bloqué par `KI-017` ; la
-preuve PostgreSQL 17 CI reste obligatoire avant `Review`.
+dump/restore/replay. T0021 fournit désormais le runtime Windows loopback ; le
+harnais `ci:backend` reste volontairement réservé au runner Linux.
 
 ## Manual verification
 
@@ -312,3 +311,52 @@ sont pas requalifiés en vérification manuelle. Le ticket reste `Verify`.
 aussi dans le runtime Windows isolé, avec types stables. Cette exécution pgTAP
 ne remplace pas la checklist humaine de restauration/replay ; T0019 reste
 `Verify`.
+
+### Clôture — 1er août 2026
+
+La checklist humaine est exécutée sur Windows 11 avec Docker Desktop 29.6.2 et
+le runtime T0021 exclusivement lié à `127.0.0.1`. Le parcours utilise les deux
+seeds et deux identités `.invalid` supplémentaires, toutes synthétiques.
+
+Validations de référence :
+
+- `pnpm.cmd backend:check` — réussi, T0012–T0023 et 11 mutations négatives ;
+- `pnpm.cmd data-policy:check` — réussi, T0017–T0020 et 6 mutations négatives ;
+- `pnpm.cmd backend:start` — réussi sur IPv4 loopback ;
+- deux `pnpm.cmd backend:reset` — réussis, cinq migrations append-only rejouées ;
+- `pnpm.cmd backend:test` — réussi, 10 fichiers, 190 assertions,
+  `Result: PASS` ;
+- `pnpm.cmd backend:types:check` — réussi, types identiques au schéma local ;
+- `pnpm.cmd backend:stop` — réussi sans sauvegarde ; seul le cache d'images sans
+  sources est conservé ;
+- `pnpm.cmd ci:backend` — non exécuté localement car le script impose le runner
+  Linux ; ses étapes T0019 ont été reproduites manuellement dans PostgreSQL 17.
+
+Résultat manuel :
+
+- point de sauvegarde pris avant la suppression ; dump logique des schémas
+  `auth`, `public`, `private`, `extensions` et `supabase_migrations` en 246 ms ;
+- 12 entrées `DEFAULT ACL` internes exclues, conformément au ticket ;
+- source après finalisation : A `0|0`, B `1|1`, un événement pseudonyme ;
+- journal : une ligne, six champs valides, versions `1|1`, aucune identité Auth
+  directe ni donnée `.invalid` ;
+- restauration dans `thrustline_t0019_manual_restore` en 688 ms, `pgcrypto`
+  1.3 identique ; avant replay, état `1|1|1|1|2` et RLS forcée sur les deux
+  tables privées ;
+- PostgREST reste lié à la base source, la cible restaurée n'est donc pas servie
+  par l'API ;
+- replay en 166 ms : premier appel et rejeu identique rendent `deleted`, les
+  événements altéré et inconnu sont refusés, état final `0|0|1|1|1` ;
+- cible jetable détruite (`1` avant nettoyage, `0` après), quatre fichiers
+  temporaires absents, puis runtime arrêté.
+
+Le premier contrôle des fichiers après nettoyage a échoué sur le quoting d'une
+variable de boucle entre PowerShell et `sh`. La suppression à quatre chemins
+explicites et celle de la base avaient réussi ; un contrôle sans variable a
+ensuite confirmé `temporary_files_after_cleanup=0`. Aucun contrôle métier n'a
+été contourné et aucun privilège n'a été élargi.
+
+Tous les critères T0019 sont satisfaits ; le ticket passe à `Done`. La preuve
+reste bornée à une base distincte du même moteur et à des données synthétiques.
+Sauvegarde managée/chiffrée, Vault, Storage, purge, RPO/RTO et production restent
+hors périmètre et maintiennent l'interdiction de données réelles.

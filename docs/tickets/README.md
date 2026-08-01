@@ -32,7 +32,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0016 | Corriger l’avis de sécurité React Router | 1 | T0013 | Done |
 | T0017 | Définir et contrôler la politique de données | 0 | T0002–T0003, T0012 | Done |
 | T0018 | Exporter puis supprimer un compte sans perte ni double opération | 2 | T0012, T0017, revue phase 1 | Done |
-| T0019 | Restaurer sans ressusciter un compte supprimé | 2 | T0017–T0018, T0013 | Verify |
+| T0019 | Restaurer sans ressusciter un compte supprimé | 2 | T0017–T0018, T0013 | Done |
 | T0020 | Ouvrir un grand livre financier immuable | 2 | T0012, T0017–T0019 | Verify |
 | T0021 | Isoler Supabase local sur Windows | 1–2 | T0012, T0018–T0020 | Done |
 | T0022 | Créer une compagnie et ouvrir son grand livre atomiquement | 2 | T0018, T0020–T0021 | Done |
@@ -60,13 +60,15 @@ checklist Windows loopback confirme demande, rejeu après réponse perdue,
 isolation B/anonyme, annulation, expiration, rollback injecté et finalisation ;
 T0018 est `Done`. Aucune donnée réelle n'a été admise.
 
-T0019 est empilé sur `security/T0018-account-lifecycle`. Il borne la preuve à
-une sauvegarde synthétique restaurée dans une base PostgreSQL 17 distincte et au
-replay des suppressions T0018 avant réouverture. Il ne provisionne aucun projet
-distant, ne prouve aucune sauvegarde managée et n'autorise aucune donnée réelle.
+T0019 a d'abord été empilé sur `security/T0018-account-lifecycle`, puis livré
+dans `main` par la PR #41. Il borne la preuve à une sauvegarde synthétique
+restaurée dans une base PostgreSQL 17 distincte et au replay des suppressions
+T0018 avant réouverture. Il ne provisionne aucun projet distant, ne prouve aucune
+sauvegarde managée et n'autorise aucune donnée réelle.
 Le run `30621209180` valide 6 fichiers/105 assertions, la concurrence, les types
-et le dump/restore/replay ; le ticket reste `Verify` car sa checklist humaine
-reste non exécutée.
+et le dump/restore/replay. Le 1er août, la checklist Windows confirme dump,
+restauration hors API, replay idempotent, refus altéré/inconnu, absence de
+résurrection et nettoyage ; T0019 est `Done`.
 
 T0020 est empilé sur `security/T0019-isolated-restore-replay`. Il borne la
 première tranche économique à une ouverture de grand livre réservée au serveur,
