@@ -53,6 +53,14 @@ Pourquoi ce ticket existe, état actuel et liens utiles.
 - atomicité/idempotence :
 - logs/vie privée :
 
+## Maintenance review
+
+- dettes et problèmes connus applicables :
+- dette créée ou aggravée :
+- règle de sécurité ajoutée, modifiée ou à revalider :
+- contrôle manuel à automatiser :
+- risque résiduel ou exception approuvée :
+
 ## Automated validation
 
 ```powershell

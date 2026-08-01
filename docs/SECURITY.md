@@ -1,5 +1,23 @@
 # Sécurité du desktop
 
+## Cycle des règles de sécurité
+
+`SECURITY.md` est la source canonique des invariants de sécurité acceptés. Leur
+détection, qualification, ticketisation, application et revalidation suivent
+`MAINTENANCE.md`.
+
+Une règle nouvelle ou modifiée doit préciser l'actif protégé, la frontière de
+confiance, l'abus refusé, le contrôle attendu et, si elle dépend d'un outil ou
+d'une version, sa condition de revalidation. Une décision qui change l'autorité
+métier, les données, le support ou l'architecture exige un ticket et, lorsqu'elle
+est structurante, une ADR acceptée.
+
+L'agent ne crée pas seul d'exception. Toute exception est approuvée par Andy,
+bornée à un ticket et une surface, assortie d'un risque résiduel ainsi que d'une
+échéance ou condition d'expiration. Un contrôle déterministe doit être automatisé
+dès que le ticket l'autorise ; un contrôle manuel conserve son responsable, son
+environnement, sa fréquence et sa preuve attendue.
+
 ## Politique de données T0017–T0019
 
 La collecte est refusée par défaut et les données utilisateur réelles restent
