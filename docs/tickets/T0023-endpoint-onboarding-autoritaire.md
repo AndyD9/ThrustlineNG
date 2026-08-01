@@ -24,8 +24,9 @@ auprès de Supabase Auth, prend la politique économique dans son environnement 
 appelle T0022 avec l’identité Auth vérifiée.
 
 La branche est empilée sur T0022. Au 1er août 2026, `origin/main` contient T0019
-mais pas T0020–T0022 ; les PR #35–#37 sont fusionnées dans leurs bases empilées,
-pas propagées jusqu’à `main`.
+mais pas T0020–T0023 ; les PR #35–#38 sont fusionnées dans leurs bases empilées,
+pas propagées jusqu’à `main`. La correction de revue `aa4d0a2` reste portée par
+la PR brouillon #39 vers T0022.
 
 Références :
 
@@ -121,7 +122,7 @@ Références :
       économique et `service_role` restent côté serveur.
 - [x] Succès et rejeu rendent la même réponse T0022 ; un refus backend ou une
       réponse privilégiée invalide échoue sans détail interne.
-- [x] Treize tests de handler et onze mutations statiques backend passent.
+- [x] Quatorze tests de handler et onze mutations statiques backend passent.
 - [x] Deux resets, 10 fichiers/190 assertions et les types passent avec l’Edge
       Runtime chargé sur PostgreSQL 17 local.
 - [x] Une intégration réelle Auth → Edge → RPC crée `1|1|1`, rejoue les mêmes
@@ -188,7 +189,7 @@ sur une branche empilée ; rien de T0020–T0023 n’est revendiqué dans `main`
 
 ### Files changed
 
-- handler Edge, point d’entrée Deno, package ESM local et 13 tests ;
+- handler Edge, point d’entrée Deno, package ESM local et 14 tests ;
 - configuration Edge Runtime et fixtures synthétiques locales ;
 - scripts de runtime/CI, tests Node Linux et gate backend étendu à T0023/11
   mutations ;
@@ -200,7 +201,7 @@ sur une branche empilée ; rien de T0020–T0023 n’est revendiqué dans `main`
   supportée par le mode strip-only Node ; corrigée sans dépendance ;
 - second test — 10/11, fixture UUID uniquement numérique ne testant pas la casse ;
   fixture corrigée ;
-- `pnpm.cmd backend:functions:test` — réussi, 13/13 ;
+- `pnpm.cmd backend:functions:test` — réussi initialement, 13/13 ;
 - `pnpm.cmd backend:check` — réussi, T0012–T0023 et 11 mutations ;
 - `pnpm.cmd data-policy:check` — réussi, 6 mutations ;
 - premier `backend:start` — bloqué : Docker Desktop installé mais arrêté ;
@@ -228,6 +229,14 @@ sur une branche empilée ; rien de T0020–T0023 n’est revendiqué dans `main`
   2 min 43 s et Windows multi-stack en 14 min 53 s ;
 - run GitHub supply-chain `30696692529` — réussi en 3 min 49 s : audits,
   licences et SBOM.
+- revue adversariale du 1er août 2026 — défaut de minimisation détecté : une
+  réponse RPC valide portant un champ supplémentaire aurait renvoyé ce champ au
+  client ; le handler reconstruit désormais explicitement les quatre champs
+  publics ;
+- `pnpm.cmd backend:functions:test` après correction — réussi, 14/14, incluant
+  la preuve qu’un champ privilégié supplémentaire ne franchit pas la frontière ;
+- `pnpm.cmd backend:check` — réussi après correction, T0012–T0023 et 11
+  mutations ; `pnpm.cmd data-policy:check` — réussi, T0017–T0020 et 6 mutations.
 
 ### Manual verification result
 
@@ -267,7 +276,9 @@ sont toutes deux absentes.
 - base : `feature/T0022-authoritative-company-onboarding` ;
 - commit d'implémentation : `fd2b3fc` ;
 - correction du reset CI : `771c44b` ;
-- PR : #38, brouillon, base `feature/T0022-authoritative-company-onboarding`,
-  head `feature/T0023-authoritative-onboarding-endpoint` ;
+- correction de minimisation de réponse : `aa4d0a2` ;
+- PR #38 : fusionnée dans `feature/T0022-authoritative-company-onboarding` ;
+- PR #39 : brouillon, base `feature/T0022-authoritative-company-onboarding`, head
+  `feature/T0023-authoritative-onboarding-endpoint`, checks GitHub attendus ;
 - dépendance : T0020–T0022 doivent encore être propagés jusqu'à `main` ;
 - fusion : exclusivement réservée à Andy.

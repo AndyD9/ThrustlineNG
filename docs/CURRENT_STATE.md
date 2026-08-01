@@ -401,7 +401,7 @@ montant/devise dans la configuration serveur avant d'appeler la RPC T0022 avec
 `service_role`. Le corps est borné à 4 Kio et les réponses sont JSON `no-store`
 sans détail SQL.
 
-Les 13 tests Node, le gate backend T0012–T0023 avec 11 mutations, deux resets,
+Les 14 tests Node, le gate backend T0012–T0023 avec 11 mutations, deux resets,
 10 fichiers/190 assertions pgTAP et les types passent localement. L'intégration
 Auth → Edge → RPC rend une réponse v1 active, rejoue les mêmes identifiants et
 laisse exactement `1|1|1`; un appel sans JWT rend HTTP 401. L'Edge Runtime reste
@@ -410,10 +410,12 @@ sur `feature/T0023-authoritative-onboarding-endpoint`, empilée sur T0022 ; rien
 de T0020–T0023 n'est livré dans `main` et aucune valeur économique de production
 n'est décidée. L'arrêt local utilise désormais `--no-backup`; un
 arrêt/redémarrage prouve que l'identité et la compagnie synthétiques T0023 ne
-survivent pas dans le volume conservé pour les images. La PR brouillon #38 cible
-la branche T0022, pas `main`. Les runs GitHub `30696692468` et `30696692529`
-valident PostgreSQL 17, Windows multi-stack et la supply chain après séparation
-des preuves Edge/SQL sous Linux.
+survivent pas dans le volume conservé pour les images. La PR #38 a été fusionnée
+dans la branche T0022, pas dans `main`. La revue adversariale a ensuite corrigé
+la minimisation de la réponse privilégiée dans `aa4d0a2`; la PR brouillon #39
+cible également T0022. Les runs GitHub `30696692468` et `30696692529` valident
+PostgreSQL 17, Windows multi-stack et la supply chain avant cette correction ;
+ses checks GitHub restent à obtenir.
 
 ## CI multi-stack
 

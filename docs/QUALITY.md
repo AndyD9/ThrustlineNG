@@ -59,7 +59,7 @@ pnpm backend:types:check
 pnpm backend:stop
 ```
 
-`backend:functions:test` exécute 13 tests Node sans dépendance tierce : méthode,
+`backend:functions:test` exécute 14 tests Node sans dépendance tierce : méthode,
 corps 4 Kio, payload exact, normalisation, UUID, configuration, Auth anonyme ou
 invalide, indisponibilité Auth/RPC, dérivation du propriétaire, credential
 privilégié, redaction et réponse versionnée `no-store`.
