@@ -39,6 +39,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0023 | Exposer l’onboarding derrière une frontière serveur authentifiée | 2 | T0022 | Done |
 | T0024 | Inventorier les mutations sensibles du golden path | 2 | T0018–T0020, T0022–T0023 | Done |
 | T0025 | Synchroniser la roadmap avec l'état prouvé | 1–2 | T0012, T0021, T0024 | Done |
+| T0026 | Réconcilier la livraison de T0010 | 1 | T0010 | Done |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -122,6 +123,11 @@ T0025 synchronise la roadmap après les PR #41 et #46 : T0012 et T0024 y sont
 désormais correctement livrés et `Done`, tandis que T0007–T0009 et T0011 restent
 ouverts. Les Completion Reports et la revue de phase datée restent inchangés ;
 `KI-006` est résolu sans modifier une priorité produit ou un gate.
+
+T0026 réconcilie l'écart de livraison T0010 sans réécrire son rapport historique.
+La PR #7 avait ciblé une branche déjà intégrée ; la PR #10 a ensuite fusionné
+les commits T0010 `22f97d4` et `41cc940` dans `main` via `26cbcbf`. Les tests
+d'ascendance et les validations bridge/desktop repassent ; `KI-016` est résolu.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
