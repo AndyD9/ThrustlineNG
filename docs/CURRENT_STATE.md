@@ -246,6 +246,12 @@ versionné et une surface SignalR vide. Chaque requête exige un jeton éphémè
 jeton à la WebView. Les données métier et la reconnexion après crash restent
 absentes ; la source SimConnect T0011 n'est pas exposée sur ce contrat.
 
+La PR #7 avait fusionné T0010 dans une branche déjà intégrée, sans le livrer à
+`main`. La PR #10 a ensuite propagé ses commits `22f97d4` et `41cc940` dans
+`main` via `26cbcbf`. T0026 confirme leur ascendance et rejoue avec succès le
+build bridge, 13 tests bridge, 8 tests frontend, 3 tests Rust et les invariants
+du shell ; `KI-016` est résolu sans changement du contrat.
+
 ## Adaptateur SimConnect et replay
 
 T0011 ajoute `ISimConnectAdapter`, un échantillon de vol validé, un adaptateur
