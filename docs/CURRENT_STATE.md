@@ -3,10 +3,10 @@
 Dernière revue documentaire : 1er août 2026 (fusion de la pile T0020–T0023 dans
 `main` par la PR #41).
 Statut : les implémentations T0012 à T0023 sont fusionnées dans `main`. T0012,
-T0018 et T0021–T0023 sont `Done` : leurs critères automatisés et vérifications
+T0018, T0019 et T0021–T0023 sont `Done` : leurs critères automatisés et vérifications
 humaines sont terminés, et la pile complète est livrée dans la branche distante
-par défaut. T0019 et T0020 restent `Verify` car leurs checklists humaines propres
-n'ont pas encore été exécutées.
+par défaut. T0020 reste `Verify` car sa checklist humaine propre n'a pas encore
+été exécutée.
 
 La fusion #41 (`06cece5`) est couverte par le run CI `30706049048`, réussi sur
 PostgreSQL 17 et Windows multi-stack, et par le run supply-chain `30706049088`,
@@ -345,8 +345,14 @@ La preuve est bornée aux schémas `auth`, `public`, `private`, `extensions` et
 `supabase_migrations`. Elle exclut Vault, Storage et les `DEFAULT ACL` des rôles
 internes ; elle ne prouve ni sauvegarde managée/chiffrée, ni purge, ni
 restauration ou promotion de production. Les assertions T0019 passent aussi
-localement via T0021 ; le ticket reste `Verify` car sa checklist humaine n'a pas
-été exécutée.
+localement via T0021.
+
+La checklist Windows du 1er août 2026 prend le dump avant suppression en 246 ms,
+restaure une base distincte non servie par l'API en 688 ms et rejoue l'unique
+événement en 166 ms. A passe de présent dans le dump à absent après replay, B
+reste intact, le rejeu identique est stable et les événements altéré/inconnu
+sont refusés. La cible et les quatre fichiers temporaires sont détruits ; T0019
+est `Done` sans élargir la preuve aux sauvegardes managées ou à la production.
 
 ## Grand livre financier immuable
 
@@ -480,8 +486,8 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Exécuter les checklists humaines T0019 puis T0020 sur le runtime T0021, une par
-ticket, puis décider la politique économique de production avant tout
+Exécuter la checklist humaine T0020 sur le runtime T0021, puis décider la
+politique économique de production avant tout
 déploiement ou appel desktop. Ne pas détailler une deuxième variation économique
 avant ces clôtures. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS
 2024 exigés par ADR-0003.
