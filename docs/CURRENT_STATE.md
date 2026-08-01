@@ -3,10 +3,10 @@
 Dernière revue documentaire : 1er août 2026 (fusion de la pile T0020–T0023 dans
 `main` par la PR #41).
 Statut : les implémentations T0012 à T0023 sont fusionnées dans `main`. T0012,
-T0021, T0022 et T0023 sont `Done` : leurs critères automatisés et vérifications
+T0018 et T0021–T0023 sont `Done` : leurs critères automatisés et vérifications
 humaines sont terminés, et la pile complète est livrée dans la branche distante
-par défaut. T0018, T0019 et T0020 restent `Verify` car leurs checklists humaines
-propres n'ont pas encore été exécutées.
+par défaut. T0019 et T0020 restent `Verify` car leurs checklists humaines propres
+n'ont pas encore été exécutées.
 
 La fusion #41 (`06cece5`) est couverte par le run CI `30706049048`, réussi sur
 PostgreSQL 17 et Windows multi-stack, et par le run supply-chain `30706049088`,
@@ -315,8 +315,14 @@ run GitHub `30616958479`. Deux transactions réellement concurrentes avec des
 clés différentes convergent vers une demande et deux enregistrements
 d'idempotence ; les types générés restent stables. T0021 permet désormais la
 validation locale Windows et ses 70 assertions sont incluses dans le run local
-de 148 assertions. La checklist humaine T0018 reste non exécutée ; le ticket
-reste `Verify` et aucune donnée réelle n'est admise.
+de 148 assertions.
+
+La checklist Windows du 1er août 2026 confirme la demande, le rejeu après perte
+de réponse, l'isolation B/anonyme, l'annulation, une nouvelle demande expirée,
+le rollback injecté `1|1|1|0|0` puis la finalisation : A finit à `0|0|0|0`, B
+reste à `1|1`, avec un marqueur et un événement pseudonymes. Les 10 fichiers/190
+assertions et les types passent avant le parcours ; la pile est arrêtée sans
+sauvegarde. T0018 est `Done` et aucune donnée réelle n'est admise.
 
 ## Restauration isolée et replay des suppressions
 
@@ -474,7 +480,7 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Exécuter les checklists humaines T0018–T0020 sur le runtime T0021, une par
+Exécuter les checklists humaines T0019 puis T0020 sur le runtime T0021, une par
 ticket, puis décider la politique économique de production avant tout
 déploiement ou appel desktop. Ne pas détailler une deuxième variation économique
 avant ces clôtures. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS
