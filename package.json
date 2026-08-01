@@ -36,7 +36,8 @@
     "backend:functions:test": "node --test ./supabase/functions/company-onboarding/handler.test.ts",
     "backend:types": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1",
     "backend:types:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1 -Check",
-    "data-policy:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/data-policy/run.ps1"
+    "data-policy:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/data-policy/run.ps1",
+    "authority:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/authority/run.ps1"
   },
   "engines": {
     "node": "24.18.0",

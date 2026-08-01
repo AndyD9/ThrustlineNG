@@ -80,6 +80,20 @@ les erreurs Auth, SQL ou transport par des codes publics bornés. Le runtime loc
 injecte uniquement des fixtures synthétiques ; aucune valeur de production,
 clé distante ou donnée réelle n'est admise.
 
+## Autorité globale du golden path T0024
+
+L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de
+`PRODUCT.md`. Il ne transforme jamais l'absence de code en contrôle de sécurité :
+les domaines flotte, dispatch, suivi et clôture de vol, réputation, maintenance,
+opérations passives et distribution restent `not-implemented`.
+
+Les tranches compagnie, cycle de compte, finance et continuité déjà présentes
+sont `server-authoritative` avec une couverture partielle et des limites
+explicites. Supabase Auth reste la seule `external-authority`. Le gate statique
+scanne les sources WebView, Tauri et bridge et échoue fermé sur credential
+`service_role`, commande réservée au serveur, accès Data API non classé, mutation
+par client Supabase, SQL direct ou nouveau langage client non inventorié.
+
 ## Frontière installateur Windows T0014
 
 Le package T0014 est une preuve interne non signée, jamais une release. Il

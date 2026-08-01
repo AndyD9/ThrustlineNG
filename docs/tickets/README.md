@@ -37,6 +37,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0021 | Isoler Supabase local sur Windows | 1–2 | T0012, T0018–T0020 | Done |
 | T0022 | Créer une compagnie et ouvrir son grand livre atomiquement | 2 | T0018, T0020–T0021 | Done |
 | T0023 | Exposer l’onboarding derrière une frontière serveur authentifiée | 2 | T0022 | Done |
+| T0024 | Inventorier les mutations sensibles du golden path | 2 | T0018–T0020, T0022–T0023 | Done |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -107,6 +108,15 @@ est `1|1|1`; un appel sans JWT rend HTTP 401. La revue adversariale corrige la
 minimisation de la réponse privilégiée dans `aa4d0a2`. Les PR #38–#40 propagent
 la correction dans T0020, puis la PR #41 livre T0023 dans `main`; le ticket est
 `Done`.
+
+T0024 inventorie les dix étapes du golden path dans 13 domaines et scanne les
+trois surfaces clientes actives. Quatre domaines implémentés restent
+partiellement autoritaires côté serveur, Supabase Auth est externe et huit
+domaines sont explicitement absents. Le gate passe avec cinq mutations
+négatives et ne trouve aucune mutation métier dans React, Tauri ou le bridge ;
+`KI-001` est résolu sur `security/T0024-inventory-sensitive-mutations`, en
+attente de livraison dans `main`, sans présenter les capacités futures comme
+livrées.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

@@ -68,6 +68,26 @@ T0022 avec `service_role`. La fonction ne fractionne donc pas la transaction SQL
 et ne livre jamais le credential privilégié au desktop. Aucun appelant desktop,
 CORS applicatif ou déploiement distant n'est encore fourni.
 
+## Inventaire d'autorité T0024
+
+`eng/authority-inventory.json` relie les dix étapes du golden path aux domaines
+qui peuvent modifier propriété, compte, argent, vol ou progression. Une capacité
+présente est `server-authoritative` ou `external-authority`; une capacité absente
+reste `not-implemented` et ne franchit aucun gate fonctionnel par défaut.
+
+Les trois composants distribués sont inventoriés comme surfaces non fiables :
+
+```text
+WebView React ─┐
+Tauri/Rust ────┼─ demande validée → frontière serveur → transaction autoritaire
+bridge .NET ───┘
+```
+
+Le gate `authority:check` refuse dans leurs sources le credential privilégié,
+les commandes `service_role`, tout accès Data API non classé, le DML Supabase ou
+SQL direct et toute nouvelle extension de code non classée. Cette preuve décrit
+le nouveau dépôt uniquement ; elle n'implémente pas les domaines encore absents.
+
 ## Packaging Windows T0014
 
 Le package Windows est un installateur NSIS x64 en mode utilisateur courant.
