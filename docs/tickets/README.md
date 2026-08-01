@@ -31,7 +31,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Done |
 | T0016 | Corriger l’avis de sécurité React Router | 1 | T0013 | Done |
 | T0017 | Définir et contrôler la politique de données | 0 | T0002–T0003, T0012 | Done |
-| T0018 | Exporter puis supprimer un compte sans perte ni double opération | 2 | T0012, T0017, revue phase 1 | Verify |
+| T0018 | Exporter puis supprimer un compte sans perte ni double opération | 2 | T0012, T0017, revue phase 1 | Done |
 | T0019 | Restaurer sans ressusciter un compte supprimé | 2 | T0017–T0018, T0013 | Verify |
 | T0020 | Ouvrir un grand livre financier immuable | 2 | T0012, T0017–T0019 | Verify |
 | T0021 | Isoler Supabase local sur Windows | 1–2 | T0012, T0018–T0020 | Done |
@@ -55,9 +55,10 @@ capacité de suppression/restauration n'est revendiquée.
 T0018 est le premier ticket détaillé de phase 2. Andy a validé le 31 juillet
 2026 un délai récupérable de 7 jours, une session Supabase réauthentifiée depuis
 5 minutes au plus et un export récupérable pendant le délai. PostgreSQL 17 CI
-valide 4 fichiers/70 assertions, la concurrence et les types. Le ticket reste
-`Verify` sur `security/T0018-account-lifecycle` car sa checklist humaine reste
-non exécutée, même si T0021 débloque désormais le runtime Windows.
+valide 4 fichiers/70 assertions, la concurrence et les types. Le 1er août, la
+checklist Windows loopback confirme demande, rejeu après réponse perdue,
+isolation B/anonyme, annulation, expiration, rollback injecté et finalisation ;
+T0018 est `Done`. Aucune donnée réelle n'a été admise.
 
 T0019 est empilé sur `security/T0018-account-lifecycle`. Il borne la preuve à
 une sauvegarde synthétique restaurée dans une base PostgreSQL 17 distincte et au

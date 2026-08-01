@@ -1,8 +1,8 @@
 # T0018 — Exporter puis supprimer un compte sans perte ni double opération
 
-Status: Verify
+Status: Done
 Owner: Andy
-Branch: `security/T0018-account-lifecycle`
+Branch: `security/T0018-account-lifecycle-verify`
 Phase: 2
 Risk: High
 Security-sensitive: Yes
@@ -46,8 +46,7 @@ Références :
 
 ## Dependencies
 
-- T0012 — schéma Supabase local et preuves RLS (`Verify`, implémentation
-  fusionnée dans `main`) ;
+- T0012 — schéma Supabase local et preuves RLS (`Done`, fusionné dans `main`) ;
 - T0017 — politique de données (`Done`) ;
 - revue de phase 1 — passage conditionnel fusionné par la PR #29 ;
 - validation des paramètres de cycle de vie par Andy le 31 juillet 2026.
@@ -313,3 +312,47 @@ pas être requalifiée en vérification manuelle. Le ticket reste `Verify`.
 le run local Windows de 8 fichiers/148 assertions, avec deux resets et types
 stables. La checklist humaine export/suppression/annulation n'a pas été exécutée
 et T0018 reste `Verify`.
+
+### Clôture — 1er août 2026
+
+La checklist humaine est exécutée sur Windows 11 avec Docker Desktop 29.6.2 et
+le runtime T0021 lié exclusivement à `127.0.0.1`. Le parcours manuel a utilisé
+les deux seeds et deux identités `.invalid` supplémentaires, toutes synthétiques.
+
+Validations de référence :
+
+- `pnpm.cmd backend:check` — réussi, T0012–T0023 et 11 mutations négatives ;
+- `pnpm.cmd data-policy:check` — réussi, T0017–T0020 et 6 mutations négatives ;
+- `pnpm.cmd backend:start` — réussi, pile isolée sur IPv4 loopback ;
+- deux `pnpm.cmd backend:reset` — réussis, cinq migrations append-only rejouées ;
+- `pnpm.cmd backend:test` — réussi, 10 fichiers, 190 assertions,
+  `Result: PASS` ;
+- `pnpm.cmd backend:types:check` — réussi, types identiques au schéma local ;
+- `pnpm.cmd backend:stop` — réussi sans sauvegarde ; seul le cache d'images sans
+  sources est conservé.
+
+Résultat manuel :
+
+- demande A : état `deletion_pending`, format/version/hash valides, fenêtre de
+  7 jours, données B absentes et mutations sensibles bloquées ;
+- perte de réponse : même identifiant de demande et même empreinte d'export ;
+- isolation : export refusé à B et à l'anonyme, A invisible à B par RLS tandis
+  que B conserve sa propre compagnie ;
+- annulation : état `active`, compagnie conservée, rejeu stable, puis nouvelle
+  demande acceptée et expirée artificiellement ;
+- panne injectée : erreur observée et compteurs après rollback `1|1|1|0|0`
+  pour identité, compagnie, demande, marqueur et événement ;
+- finalisation : état `deleted`, compteurs finaux A `0|0|0|0`, B `1|1`, un
+  marqueur, un événement de replay et marqueur sans identifiant Auth ni donnée
+  `.invalid`.
+
+Le premier essai du scénario de panne a été arrêté par le refus attendu de
+`service_role` de lire directement `private` dans une sous-requête du contrôle.
+L'identifiant synthétique a ensuite été résolu sous `postgres` avant le
+changement de rôle ; l'appel métier, la panne injectée et le rollback ont alors
+été vérifiés sans élargir les privilèges.
+
+Tous les critères T0018 sont satisfaits ; le ticket passe à `Done`. T0019 couvre
+déjà la restauration/replay synthétique mais conserve sa propre checklist
+humaine. Sauvegarde managée, production, données réelles et UX desktop restent
+hors périmètre.
