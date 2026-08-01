@@ -27,7 +27,7 @@ if ($Action -eq "Stop") {
     try {
         Invoke-IsolatedSupabaseCli `
             -DockerPath $dockerPath `
-            -Arguments @("stop", "--project-id", $script:SupabaseProjectId) `
+            -Arguments @("stop", "--project-id", $script:SupabaseProjectId, "--no-backup") `
             -SuppressOutput
     }
     finally {

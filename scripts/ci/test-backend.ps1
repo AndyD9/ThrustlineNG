@@ -91,6 +91,11 @@ try {
         }
     }
 
+    & node --test ./supabase/functions/company-onboarding/handler.test.ts
+    if ($LASTEXITCODE -ne 0) {
+        throw "Company onboarding Edge handler tests failed."
+    }
+
     Invoke-Supabase -SuppressOutput -Arguments @(
         "start",
         "--network-id", $networkName,

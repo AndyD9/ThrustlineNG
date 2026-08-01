@@ -38,12 +38,14 @@ ce fixture et ajouter ou préserver un scénario d'échec associé.
 Le contrôle statique fonctionne sans Docker et couvre la version de CLI, la
 configuration PostgreSQL 17, l'ordre migration/seed, les contraintes, les
 politiques, les scénarios A/B/anonyme et l'absence de commande distante. Il
-exécute aussi huit mutations négatives, dont une publication wildcard, un
+exécute aussi onze mutations négatives, dont une publication wildcard, un
 montage du socket Docker hôte et une commande d'onboarding rendue exécutable par
-un rôle client :
+un rôle client. T0023 ajoute la détection d'un propriétaire repris du payload ou
+d'un appel RPC effectué sans le credential serveur :
 
 ```powershell
 pnpm backend:check
+pnpm backend:functions:test
 ```
 
 La preuve SQL réelle exige Docker Desktop ou un runtime Docker compatible
@@ -57,6 +59,15 @@ pnpm backend:types:check
 pnpm backend:stop
 ```
 
+`backend:functions:test` exécute 13 tests Node sans dépendance tierce : méthode,
+corps 4 Kio, payload exact, normalisation, UUID, configuration, Auth anonyme ou
+invalide, indisponibilité Auth/RPC, dérivation du propriétaire, credential
+privilégié, redaction et réponse versionnée `no-store`.
+Le harnais Linux `ci:backend` rejoue ces tests avant de démarrer PostgreSQL. Il
+exclut ensuite Edge Runtime de la pile SQL : avec Supabase CLI 2.109.1 sur
+Ubuntu, le cycle de reset tente sinon de recréer PostgreSQL alors que son port
+est encore occupé. Le chargement Deno réel reste une preuve Windows séparée.
+
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
 les dix fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
 découvert n'est pas une réussite. Les 190 assertions couvrent le cycle de compte
@@ -68,6 +79,14 @@ avant suppression dans une base distincte, vérifie les ACL/RLS et `pgcrypto`,
 rejoue le journal, refuse les événements altéré/inconnu et détruit les fichiers
 et la cible. `backend:types:check` régénère les types en mémoire et échoue si le
 fichier versionné diffère.
+
+Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
+hôte. Une identité/session/JWT synthétiques traverse Auth puis
+`company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme
+`1|1|1`. Un appel sans JWT rend HTTP 401. Les valeurs locales
+`43000000`/`EUR` sont uniquement des fixtures serveur, pas une politique produit.
+L'arrêt utilise `--no-backup` afin que le volume conservé ne contienne pas la
+base synthétique ; une mutation statique refuse le retour au backup implicite.
 
 Preuve T0021 du 31 juillet 2026 sous Docker Desktop 29.6.2 : le daemon Supabase
 isolé publie les trois ports externes uniquement sur `127.0.0.1`, confirmé par

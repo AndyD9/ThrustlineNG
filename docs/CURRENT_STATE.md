@@ -1,8 +1,8 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 31 juillet 2026 (preuve locale T0022 de
-l'onboarding autoritaire).
-Statut : les implémentations T0012 à T0018 sont fusionnées dans `main`. T0005,
+Dernière revue documentaire : 1er août 2026 (preuve locale T0023 de la
+frontière Edge d'onboarding).
+Statut : les implémentations T0012 à T0019 sont fusionnées dans `main`. T0005,
 T0006 et T0013 à T0017 sont `Done`. La phase 0 est terminée, la phase 1 a
 franchi conditionnellement son gate de reproductibilité et la phase 2 est
 active sous interdiction de données utilisateur réelles. T0021 résout `KI-017` :
@@ -11,12 +11,12 @@ la pile locale est isolée et ses trois sockets Windows écoutent uniquement sur
 T0012 reste `Verify` tant que la correction T0021 n'est pas fusionnée dans
 `main`.
 
-T0018 est présent dans `main` mais reste `Verify` car sa checklist humaine n'a
-pas été exécutée. T0019–T0021 ne sont pas dans `main` : les PR #31–#33 ont été
-fusionnées dans leurs branches parentes après la propagation de T0018. Les PR
-brouillon #34–#36 restaurent cette chaîne sans revendiquer de livraison. T0020
-reste `Verify`, T0021 reste `Review`, et T0022 est implémenté sur une nouvelle
-branche empilée avec preuves PostgreSQL 17 locales.
+T0018 et T0019 sont présents dans `main` mais restent `Verify` car leurs
+checklists humaines n'ont pas été exécutées. T0020–T0022 ne sont pas dans
+`main` : les PR #35–#37 ont été fusionnées dans leurs branches parentes, sans
+propager ensuite la pile jusqu'à `main`. T0020 reste `Verify`, T0021 et T0022
+restent `Review`. T0023 ajoute sur une nouvelle branche empilée un appelant Edge
+authentifié avec preuves Node et PostgreSQL 17 locales.
 
 ## Produit
 
@@ -387,10 +387,33 @@ Localement sous Windows/Docker Desktop 29.6.2, deux resets, 10 fichiers pgTAP et
 concurrentes convergent vers une compagnie, une commande et une écriture. La
 checklist manuelle confirme rejeu, collision, refus d'une mutation directe et
 rollback injecté avec l'état final `1|1|1|0|0`. T0022 reste empilé et n'est pas
-présent dans `main`. La PR brouillon #37 cible
-`feature/T0020-immutable-ledger`; aucun appelant desktop/bridge, donnée réelle ou
-environnement distant n'est ajouté. Les runs GitHub `30652926904` et
+présent dans `main`. La PR #37 a été fusionnée dans
+`feature/T0020-immutable-ledger`, pas dans `main`; aucun appelant desktop/bridge,
+donnée réelle ou environnement distant n'est ajouté. Les runs GitHub `30652926904` et
 `30652926644` valident PostgreSQL 17, Windows multi-stack et la supply chain.
+
+## Frontière Edge d'onboarding
+
+T0023 ajoute `company-onboarding`, une Edge Function `POST` qui accepte
+uniquement le nom et la clé d'idempotence. Elle vérifie le bearer token auprès
+de Supabase Auth, refuse l'anonyme, dérive le propriétaire de la session et lit
+montant/devise dans la configuration serveur avant d'appeler la RPC T0022 avec
+`service_role`. Le corps est borné à 4 Kio et les réponses sont JSON `no-store`
+sans détail SQL.
+
+Les 13 tests Node, le gate backend T0012–T0023 avec 11 mutations, deux resets,
+10 fichiers/190 assertions pgTAP et les types passent localement. L'intégration
+Auth → Edge → RPC rend une réponse v1 active, rejoue les mêmes identifiants et
+laisse exactement `1|1|1`; un appel sans JWT rend HTTP 401. L'Edge Runtime reste
+derrière l'API loopback et n'ajoute aucun port externe. T0023 est en `Review`
+sur `feature/T0023-authoritative-onboarding-endpoint`, empilée sur T0022 ; rien
+de T0020–T0023 n'est livré dans `main` et aucune valeur économique de production
+n'est décidée. L'arrêt local utilise désormais `--no-backup`; un
+arrêt/redémarrage prouve que l'identité et la compagnie synthétiques T0023 ne
+survivent pas dans le volume conservé pour les images. La PR brouillon #38 cible
+la branche T0022, pas `main`. Les runs GitHub `30696692468` et `30696692529`
+valident PostgreSQL 17, Windows multi-stack et la supply chain après séparation
+des preuves Edge/SQL sous Linux.
 
 ## CI multi-stack
 
@@ -469,10 +492,11 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Faire revoir T0022, propager dans l'ordre les PR empilées #34–#36, puis exécuter
-les checklists humaines T0018–T0020 sur le runtime T0021. Ne pas détailler une
-deuxième variation économique avant ces clôtures. T0011 reste `Verify` jusqu'aux
-essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
+Faire revoir T0023, propager T0020–T0023 jusqu'à `main`, puis exécuter les
+checklists humaines T0018–T0020 sur le runtime T0021. Décider la politique
+économique de production avant tout déploiement ou appel desktop et ne pas
+détailler une deuxième variation économique avant ces clôtures. T0011 reste
+`Verify` jusqu'aux essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier
 

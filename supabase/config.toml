@@ -372,7 +372,7 @@ authorization_url_path = "/oauth/consent"
 allow_dynamic_registration = false
 
 [edge_runtime]
-enabled = false
+enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
 # `per_worker` (default) — enables hot reload during local development.
 # `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
@@ -382,8 +382,14 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
-# [edge_runtime.secrets]
-# secret_key = "env(SECRET_VALUE)"
+[edge_runtime.secrets]
+COMPANY_OPENING_BALANCE_MINOR = "env(COMPANY_OPENING_BALANCE_MINOR)"
+COMPANY_OPENING_CURRENCY = "env(COMPANY_OPENING_CURRENCY)"
+
+[functions.company-onboarding]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/company-onboarding/index.ts"
 
 [analytics]
 enabled = false

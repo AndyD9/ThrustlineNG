@@ -180,6 +180,7 @@ Depuis la racine :
 ```powershell
 pnpm install --frozen-lockfile
 pnpm backend:check
+pnpm backend:functions:test
 pnpm backend:start
 pnpm backend:reset
 pnpm backend:test
@@ -193,8 +194,12 @@ Ports locaux réservés par `supabase/config.toml` :
 - PostgreSQL : `127.0.0.1:54322` ;
 - Studio : `127.0.0.1:54323`.
 
-`backend:start` exclut les services hors périmètre T0012. Il construit une image
-CLI depuis le binaire Linux 2.109.1 dont le SHA-512 correspond au lockfile, puis
+`backend:start` exclut les services hors périmètre T0012/T0023 mais charge l'Edge
+Runtime pour `company-onboarding` derrière le port API existant. Les valeurs
+locales d'ouverture `43000000`/`EUR` sont des fixtures synthétiques injectées
+côté serveur ; elles ne fixent aucune politique de production. Le script
+construit ensuite une image CLI depuis le binaire Linux 2.109.1 dont le SHA-512
+correspond au lockfile, puis
 lance la pile dans un daemon Docker-in-Docker épinglé par digest. La CLI ne
 monte ni le dépôt complet ni le socket Docker hôte : une copie de `supabase/`,
 sans `.temp`, `.env`, clé ou certificat, est placée dans un volume dédié.
@@ -205,7 +210,8 @@ explicite `127.0.0.1`; le script inspecte cette configuration et arrête/nettoie
 la pile en cas d'écart. La sortie de démarrage est masquée pour ne pas recopier
 les credentials locaux dans les journaux ; `DO_NOT_TRACK` et la désactivation
 Supabase explicite empêchent aussi la télémétrie CLI. Le premier démarrage télécharge les
-images. `backend:stop` retire toute ressource active et le volume de sources,
+images. `backend:stop` utilise `supabase stop --no-backup`, retire toute
+ressource active et le volume de sources,
 mais conserve le volume `thrustline-local-engine-cache`, qui ne contient que le
 cache interne Docker afin d'accélérer les redémarrages.
 
