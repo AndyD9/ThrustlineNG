@@ -54,7 +54,8 @@ frontière ou absence de preuve = retour en Draft.
 6. Exécuter d'abord les tests ciblés, puis les gates applicables.
 7. Ne pas corriger les découvertes hors scope ; les consigner.
 
-Types de branche : `foundation`, `feature`, `fix`, `security`, `refactor`, `docs`.
+Types de branche : `foundation`, `feature`, `fix`, `security`, `refactor`,
+`docs`, `chore`.
 
 ## 4. Revoir
 
@@ -119,6 +120,22 @@ une occurrence reproductible peut alors être promue après revue explicite.
 Un candidat n'est pas un problème connu par défaut. Il rejoint
 `KNOWN_ISSUES.md` seulement s'il décrit un défaut réel hors périmètre nécessitant
 un suivi produit ou technique.
+
+## Boucle d'entretien technique et sécurité
+
+Le workflow détaillé est défini dans `MAINTENANCE.md`. Il s'exécute à deux
+moments de chaque ticket :
+
+1. au démarrage, pour relever les dettes et règles de sécurité applicables aux
+   zones autorisées et détecter un éventuel blocage `Critical` ou `High` ;
+2. après l'implémentation, pour qualifier la dette créée ou aggravée, les
+   invariants contournés ou périmés et les contrôles manuels automatisables.
+
+Les découvertes hors périmètre sont prouvées et enregistrées, jamais corrigées
+au passage. Leur remédiation utilise un ticket séparé dont l'acceptation inclut
+un test négatif pertinent et un risque résiduel explicite. Une règle de sécurité
+acceptée appartient à `SECURITY.md`; un défaut réel appartient à
+`KNOWN_ISSUES.md`; une méthode d'outil appartient à `LEARNINGS.md`.
 
 ## Handoff Git de fin de ticket
 
@@ -212,6 +229,8 @@ Completion Report avec preuves, risques et follow-ups.
 - quels contrôles manquaient ?
 - quels documents ont dérivé ?
 - quelle automatisation répétée mérite un script ou une skill ?
+- quelles dettes `Open`, exceptions de sécurité et règles à revalider doivent
+  entrer dans les 3–8 prochains tickets ?
 
 Enregistrer une première observation sans attendre sa répétition. Modifier le
 workflow uniquement après avoir satisfait les seuils de promotion de

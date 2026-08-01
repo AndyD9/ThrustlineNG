@@ -36,6 +36,7 @@ Références permanentes :
 - `docs/SECURITY.md` — menaces, autorités et contrôles ;
 - `docs/QUALITY.md` — commandes de validation actives ;
 - `docs/WORKFLOW.md` — cycle d'un ticket ;
+- `docs/MAINTENANCE.md` — traitement des dettes et cycle des règles de sécurité ;
 - `docs/LEARNINGS.md` — apprentissages opérationnels prouvés et candidats ;
 - `docs/STACK.md` — versions et politique d'adoption ;
 - `docs/SUPPORT.md` — plateformes supportées et preuves requises ;
@@ -148,6 +149,26 @@ observation isolée ne devient pas une règle globale.
   support ou un budget sur la seule base d'un apprentissage opérationnel.
 - Revalider les règles dépendantes d'un outil ou de l'environnement et retirer
   ou remplacer explicitement celles devenues obsolètes.
+
+## Entretien technique et sécurité
+
+À l'ouverture d'un ticket, relire les problèmes connus et les invariants de
+sécurité qui touchent ses zones autorisées. À sa clôture, inspecter le diff pour
+identifier toute dette créée ou aggravée, tout invariant contourné ou devenu
+inexact et tout contrôle répétable encore manuel.
+
+Appliquer le workflow de `docs/MAINTENANCE.md` : qualifier avec preuve,
+prioriser par risque, consigner hors périmètre, puis traiter uniquement dans un
+ticket borné. Une découverte `Critical` arrête le travail concerné ; une
+découverte `High` doit être ticketisée avant de poursuivre un changement qui
+dépend de la zone affectée. Ne jamais corriger opportunément une dette ni créer,
+renouveler ou élargir seul une exception de sécurité.
+
+Lorsqu'une règle de sécurité est ajoutée ou modifiée, synchroniser sa source
+canonique dans `docs/SECURITY.md` et son contrôle automatisé dans le même ticket
+si le périmètre l'autorise. Sinon, conserver le constat et créer un follow-up.
+Toute exception exige l'approbation explicite d'Andy, une portée, une échéance ou
+condition d'expiration et un risque résiduel consignés.
 
 ## Frontières techniques
 
