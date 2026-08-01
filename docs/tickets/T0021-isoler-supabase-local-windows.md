@@ -1,6 +1,6 @@
 # T0021 — Isoler Supabase local sur Windows
 
-Status: Review
+Status: Done
 Owner: Codex
 Branch: `fix/T0021-windows-supabase-loopback`
 Phase: 1–2
@@ -32,7 +32,7 @@ reçoit ni socket Docker hôte ni montage du dépôt complet : seuls les fichier
 
 ## Dependencies
 
-- T0012 — pile locale, commandes et contrôle fail-safe (`Verify`) ;
+- T0012 — pile locale, commandes et contrôle fail-safe (`Done`) ;
 - T0018–T0020 — scénarios backend empilés à revalider localement (`Verify`) ;
 - Docker Desktop 29.6.2 actif sur Windows 11.
 
@@ -195,14 +195,12 @@ la branche fusionnée dans `main`.
   l'espace disque, sans contenir le volume de sources du projet ;
 - aucune parité Supabase managée, donnée réelle, staging ou production n'est
   prouvée ;
-- la branche reste empilée sur T0020/T0019/T0018 et aucune capacité n'est
-  présente dans `main` avant fusion.
+- la capacité est présente dans `main` depuis la PR #41 ; les limites DinD et
+  parité managée restent applicables.
 
 ### Follow-ups
 
 - exécuter séparément les checklists humaines T0018, T0019 et T0020 ;
-- après fusion des branches parentes, rebaser ou changer la base de la PR sans
-  force-push.
 
 ### Documentation updated
 
@@ -213,7 +211,12 @@ la branche fusionnée dans `main`.
 
 - branche : `fix/T0021-windows-supabase-loopback` ;
 - commit d'implémentation : `14f9a45` ;
-- PR : #33, brouillon, base `feature/T0020-immutable-ledger`, head
-  `fix/T0021-windows-supabase-loopback` ;
-- dépendance : PR #32 et ses propres branches parentes ; aucun merge n'est
-  revendiqué.
+- PR #33 : fusionnée dans `feature/T0020-immutable-ledger` ;
+- PR #41 : pile fusionnée dans `main` au commit `06cece5` par Andy.
+
+### Clôture — 1er août 2026
+
+La PR #41 fusionne T0021 dans `main` avec T0020–T0023. Tous les critères, la
+preuve réseau Windows et l'inspection visuelle de Studio sont terminés ; T0021
+passe à `Done`. Le risque résiduel DinD et l'absence de parité managée restent
+documentés sans autoriser de donnée réelle.

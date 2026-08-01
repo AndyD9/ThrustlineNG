@@ -1,6 +1,6 @@
 # T0023 — Exposer l’onboarding derrière une frontière serveur authentifiée
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0023-authoritative-onboarding-endpoint`
 Phase: 2
@@ -23,10 +23,9 @@ uniquement un nom normalisé et une clé d’idempotence ; la fonction vérifie 
 auprès de Supabase Auth, prend la politique économique dans son environnement et
 appelle T0022 avec l’identité Auth vérifiée.
 
-La branche est empilée sur T0022. Au 1er août 2026, `origin/main` contient T0019
-mais pas T0020–T0023 ; les PR #35–#38 sont fusionnées dans leurs bases empilées,
-pas propagées jusqu’à `main`. La correction de revue `aa4d0a2` reste portée par
-la PR brouillon #39 vers T0022.
+La branche a été empilée sur T0022. Les PR #38–#40 ont propagé l'endpoint et la
+correction de revue `aa4d0a2` dans T0020, puis la PR #41 a livré la pile dans
+`main` le 1er août 2026.
 
 Références :
 
@@ -184,8 +183,8 @@ la mutation directe de `companies` ni modifier les migrations append-only.
 
 Implémentation terminée le 1er août 2026. L’Edge Function authentifie la session,
 borne strictement le payload et appelle T0022 avec un propriétaire dérivé d’Auth
-et une politique économique exclusivement serveur. Le ticket passe en `Review`
-sur une branche empilée ; rien de T0020–T0023 n’est revendiqué dans `main`.
+et une politique économique exclusivement serveur. L'implémentation est passée
+par `Review`, puis la PR #41 l'a livrée dans `main`.
 
 ### Files changed
 
@@ -249,7 +248,8 @@ sont toutes deux absentes.
 
 ### Risks and limitations
 
-- branche empilée sur T0022 ; `origin/main` ne contient pas T0020–T0023 ;
+- la pile T0020–T0023 est fusionnée dans `main`, mais T0018–T0020 conservent
+  leurs propres vérifications humaines ;
 - fixtures locales `43000000`/`EUR` sans valeur normative pour la production ;
 - aucun CORS/appel desktop, déploiement distant ou parcours Auth utilisateur ;
 - le runtime fourni par Supabase CLI 2.109.1 utilise Deno 2.1.4/Edge Runtime
@@ -258,7 +258,6 @@ sont toutes deux absentes.
 
 ### Follow-ups
 
-- propager T0020–T0022 jusqu’à `main`, puis T0023 après revue ;
 - exécuter séparément les checklists humaines T0018–T0020 ;
 - décider la politique économique de production avant tout déploiement ;
 - créer un ticket desktop/auth séparé avant de consommer l’endpoint.
@@ -267,8 +266,9 @@ sont toutes deux absentes.
 
 - `ARCHITECTURE.md`, `SECURITY.md`, `QUALITY.md` et `SETUP.md` décrivent la
   frontière, le runtime et ses preuves ;
-- `CURRENT_STATE.md` distingue branche empilée, runtime local et `main` ;
-- `docs/tickets/README.md` synchronise T0023 en `Review`.
+- `CURRENT_STATE.md` distingue historique de propagation, runtime local et
+  capacité livrée dans `main` ;
+- `docs/tickets/README.md` synchronise T0023 en `Done`.
 
 ### Git status
 
@@ -278,7 +278,18 @@ sont toutes deux absentes.
 - correction du reset CI : `771c44b` ;
 - correction de minimisation de réponse : `aa4d0a2` ;
 - PR #38 : fusionnée dans `feature/T0022-authoritative-company-onboarding` ;
-- PR #39 : brouillon, base `feature/T0022-authoritative-company-onboarding`, head
-  `feature/T0023-authoritative-onboarding-endpoint`, checks GitHub attendus ;
-- dépendance : T0020–T0022 doivent encore être propagés jusqu'à `main` ;
-- fusion : exclusivement réservée à Andy.
+- PR #39 : fusionnée dans `feature/T0022-authoritative-company-onboarding` ;
+- PR #40 : fusionnée dans `feature/T0020-immutable-ledger` ;
+- PR #41 : fusionnée dans `main` au commit `06cece5` ; CI `30706049048` et
+  supply-chain `30706049088` réussis ;
+- fusion réalisée par Andy.
+
+### Clôture — 1er août 2026
+
+Les PR #38–#40 propagent l'endpoint et sa correction de minimisation dans T0020,
+puis la PR #41 fusionne la pile dans `main`. Les 14 tests Node, l'intégration
+Auth → Edge → RPC, la checklist locale, PostgreSQL 17 et la supply chain sont
+terminés. Les runs de fusion `30706049048` et `30706049088` confirment
+respectivement PostgreSQL 17/Windows multi-stack et les contrôles supply-chain ;
+T0023 passe à `Done`. Aucun déploiement distant, appel desktop ou choix
+économique de production n'est revendiqué.

@@ -1,6 +1,6 @@
 # T0012 — Créer Supabase local et les tests RLS
 
-Status: Verify
+Status: Done
 Owner: Andy
 Branch: `foundation/t0012-supabase-local-rls`
 Phase: 1
@@ -305,3 +305,11 @@ l'arrêt/redémarrage réussit. PostgreSQL contient uniquement les deux identit�
 `.invalid`. Andy confirme l'inspection visuelle de Studio le 31 juillet 2026.
 T0012 reste `Verify` jusqu'à la fusion de la correction T0021 dans `main` ; la
 preuve ne doit pas être présentée comme une capacité livrée avant cette fusion.
+
+### Clôture — 1er août 2026
+
+La PR #41 fusionne T0021 et toute la pile T0020–T0023 dans `main`. Le démarrage
+loopback, les deux resets, les pgTAP, les types, l'arrêt/redémarrage et
+l'inspection visuelle de Studio par Andy sont tous terminés. T0012 passe à
+`Done`. La parité avec Supabase managé reste hors périmètre et suivie par
+`KI-014`; aucune donnée réelle n'est autorisée.

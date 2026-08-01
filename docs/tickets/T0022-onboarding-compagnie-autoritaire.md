@@ -1,6 +1,6 @@
 # T0022 — Créer une compagnie et ouvrir son grand livre atomiquement
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0022-authoritative-company-onboarding`
 Phase: 2
@@ -48,8 +48,7 @@ Références :
 - T0018 — cycle de suppression autoritaire (`Verify`, implémentation fusionnée
   dans `main`) ;
 - T0020 — grand livre immuable (`Verify`, implémentation dans l'ascendance) ;
-- T0021 — runtime PostgreSQL 17 Windows loopback (`Review`, implémentation dans
-  la branche parente) ;
+- T0021 — runtime PostgreSQL 17 Windows loopback (`Done`, dans `main`) ;
 - phase 2 active sans donnée utilisateur réelle.
 
 ## Allowed areas
@@ -195,8 +194,8 @@ de rollback n'est autorisée sur des données réelles.
 Implémentation terminée le 31 juillet 2026. La migration append-only ajoute une
 commande d'onboarding réservée à `service_role`, un registre privé
 d'idempotence et la création atomique de la compagnie avec son ouverture T0020.
-`authenticated` conserve uniquement la lecture RLS. Le ticket passe en
-`Review`; la branche reste empilée et aucune capacité T0022 n'est dans `main`.
+`authenticated` conserve uniquement la lecture RLS. L'implémentation est passée
+par `Review`, puis la PR #41 l'a livrée dans `main`.
 
 ### Files changed
 
@@ -239,8 +238,10 @@ suppression sont aussi couverts par pgTAP.
 
 ### Risks and limitations
 
-- branche empilée sur T0021 ; T0019–T0021 ne sont pas encore dans `main` ;
-- aucun appelant Edge Function, desktop ou bridge n'est livré ;
+- la pile est fusionnée dans `main`, mais T0018 et T0020 restent `Verify` tant
+  que leurs checklists humaines propres ne sont pas exécutées ;
+- T0023 fournit l'appelant Edge authentifié ; aucun appelant desktop ou bridge
+  n'est livré ;
 - le montant initial et la devise restent fournis par une future autorité
   serveur et ne sont pas des choix clients ;
 - renommage, deuxième variation financière et solde matérialisé restent hors
@@ -249,24 +250,28 @@ suppression sont aussi couverts par pgTAP.
 
 ### Follow-ups
 
-- faire passer les PR de propagation #34–#36 dans l'ordre ;
 - exécuter les checklists humaines T0018–T0020 ;
-- ajouter un appelant serveur explicite avant toute UX d'onboarding ;
 - créer un ticket séparé avant toute deuxième variation économique.
 
 ### Documentation updated
 
 - `docs/ARCHITECTURE.md` et `docs/SECURITY.md` décrivent la nouvelle frontière ;
 - `docs/QUALITY.md` donne les compteurs et gates actifs ;
-- `docs/CURRENT_STATE.md` distingue preuve locale, pile de PR et `main` ;
-- `docs/tickets/README.md` synchronise le statut `Review`.
+- `docs/CURRENT_STATE.md` distingue preuve locale, historique de propagation et
+  capacité livrée dans `main` ;
+- `docs/tickets/README.md` synchronise le statut `Done`.
 
 ### Git status
 
 - branche : `feature/T0022-authoritative-company-onboarding` ;
 - commit d'implémentation : `31335c2` ;
-- PR : #37, brouillon, base `feature/T0020-immutable-ledger`, head
-  `feature/T0022-authoritative-company-onboarding` ;
-- dépendances : PR brouillon #34 (T0019), #35 (T0020) puis #36 (T0021) avant
-  propagation vers `main` ;
-- fusion : exclusivement réservée à Andy.
+- PR #37 : fusionnée dans `feature/T0020-immutable-ledger` ;
+- PR #41 : pile fusionnée dans `main` au commit `06cece5` ;
+- fusion réalisée par Andy.
+
+### Clôture — 1er août 2026
+
+La PR #41 fusionne T0022 dans `main`. Les 190 assertions PostgreSQL 17, la
+concurrence, les types, la checklist manuelle et les contrôles supply-chain sont
+terminés ; T0022 passe à `Done`. T0018 et T0020 conservent leurs propres statuts
+`Verify`, et aucune valeur économique de production n'est décidée.

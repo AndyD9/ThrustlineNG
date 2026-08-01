@@ -25,7 +25,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0009 | Créer le bridge .NET minimal | 1 | T0006 | Verify |
 | T0010 | Établir le contrat local et le health check | 1 | T0007–T0009 | Done |
 | T0011 | Créer l'adaptateur SimConnect et le replay | 1–3 | T0009–T0010 | Verify |
-| T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Verify |
+| T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Done |
 | T0013 | Consolider la CI multi-stack | 1 | T0006–T0012 | Done |
 | T0014 | Valider le packaging Windows non signé | 1 | T0007–T0010, T0013 | Done |
 | T0015 | Fixer les budgets stabilité et performance | 0–1 | T0007–T0011 | Done |
@@ -34,17 +34,18 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0018 | Exporter puis supprimer un compte sans perte ni double opération | 2 | T0012, T0017, revue phase 1 | Verify |
 | T0019 | Restaurer sans ressusciter un compte supprimé | 2 | T0017–T0018, T0013 | Verify |
 | T0020 | Ouvrir un grand livre financier immuable | 2 | T0012, T0017–T0019 | Verify |
-| T0021 | Isoler Supabase local sur Windows | 1–2 | T0012, T0018–T0020 | Review |
-| T0022 | Créer une compagnie et ouvrir son grand livre atomiquement | 2 | T0018, T0020–T0021 | Review |
-| T0023 | Exposer l’onboarding derrière une frontière serveur authentifiée | 2 | T0022 | Review |
+| T0021 | Isoler Supabase local sur Windows | 1–2 | T0012, T0018–T0020 | Done |
+| T0022 | Créer une compagnie et ouvrir son grand livre atomiquement | 2 | T0018, T0020–T0021 | Done |
+| T0023 | Exposer l’onboarding derrière une frontière serveur authentifiée | 2 | T0022 | Done |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
 restent en vérification tant que leurs contrôles humains ne sont pas clos. T0009
 reste aussi en vérification pour son smoke test interactif.
 T0011 possède un replay synthétique automatisé et
-reste en vérification jusqu'au test réel MSFS 2024. T0012 est fusionné dans
-`main` par la PR #14 mais reste `Verify` pour l'inspection visuelle de Studio.
+reste en vérification jusqu'au test réel MSFS 2024. T0012 est `Done` depuis que
+T0021, sa preuve loopback et l'inspection visuelle de Studio sont fusionnés dans
+`main` par la PR #41.
 T0016 a corrigé `KI-018` sans affaiblir le gate, puis les PR #16 et #15 ont
 intégré T0016 et T0013 dans `main` avec tous les checks verts.
 T0017 fixe la politique de données et son gate, fusionnés dans `main` par la
@@ -74,7 +75,7 @@ PostgreSQL 17 final `30628851680` valide 8 fichiers/148 assertions, la
 concurrence, la restauration/replay et les types ; T0020 reste `Verify` car
 sa checklist humaine reste non exécutée.
 
-T0021 est empilé sur `feature/T0020-immutable-ledger`. Il résout `KI-017` sans
+T0021 résout `KI-017` sans
 modifier Docker Desktop globalement : la pile est confinée dans un daemon
 Docker dédié et seuls ses trois ports utiles sont republiés explicitement sur
 `127.0.0.1`. Le diagnostic Windows du 31 juillet 2026 confirme que l'option
@@ -82,30 +83,25 @@ loopback du réseau et l'option daemon sont ignorées par Docker Desktop 29.6.2
 lorsque la CLI Supabase transmet un `HostIp` vide. Docker et les sockets Windows
 confirment les trois liaisons `127.0.0.1`; 8 fichiers/148 assertions et les types
 passent localement. Andy confirme l'inspection visuelle de Studio le 31 juillet
-2026 ; T0021 passe à `Review`. Les PR #31–#36 ont été fusionnées dans leurs
-bases successives. `origin/main` contient T0019 au 1er août 2026, mais T0020 et
-T0021 restent uniquement dans la pile de branches.
+2026. La PR #41 livre la pile dans `main`; T0021 est `Done`.
 
-T0022 est en `Review`, empilé sur la branche T0020 qui contient T0021 après la
-fusion de la PR #33. Il retire les mutations directes de compagnie accordées
+T0022 retire les mutations directes de compagnie accordées
 aux rôles clients et assemble création solo et ouverture financière dans une
 commande `service_role` transactionnelle et idempotente. Deux resets, 10 fichiers/190
 assertions, les types, la concurrence et la checklist manuelle passent
 localement ; les runs GitHub `30652926904` et `30652926644` sont verts. La PR
-#37 a été fusionnée dans `feature/T0020-immutable-ledger`, pas dans `main` ;
-T0022 ne doit donc pas être présenté comme une capacité livrée.
+#41 livre T0022 dans `main`; le ticket est `Done`.
 
-T0023 est en `Review`, empilé sur T0022. L'Edge Function vérifie la session
+T0023 ajoute une Edge Function qui vérifie la session
 auprès de Supabase Auth, dérive le propriétaire du JWT, refuse tout montant,
 devise ou propriétaire client et lit la politique d'ouverture dans son
 environnement serveur. Quatorze tests Node, le gate backend avec 11 mutations, deux
 resets, 10 fichiers/190 assertions, les types et une intégration Auth → Edge →
 RPC passent localement. Le rejeu conserve les mêmes identifiants et l'état SQL
-est `1|1|1`; un appel sans JWT rend HTTP 401. La PR #38 a été fusionnée dans
-`feature/T0022-authoritative-company-onboarding`, pas dans `main`. La revue
-adversariale a ensuite corrigé la minimisation de la réponse privilégiée ; la PR
-brouillon #39 cible la même branche parente et attend ses checks. Rien de
-T0020–T0023 n'est présent dans `main`.
+est `1|1|1`; un appel sans JWT rend HTTP 401. La revue adversariale corrige la
+minimisation de la réponse privilégiée dans `aa4d0a2`. Les PR #38–#40 propagent
+la correction dans T0020, puis la PR #41 livre T0023 dans `main`; le ticket est
+`Done`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
