@@ -91,6 +91,11 @@ try {
         }
     }
 
+    & node --test ./supabase/functions/company-onboarding/handler.test.ts
+    if ($LASTEXITCODE -ne 0) {
+        throw "Company onboarding Edge handler tests failed."
+    }
+
     Invoke-Supabase -SuppressOutput -Arguments @(
         "start",
         "--network-id", $networkName,
@@ -155,8 +160,12 @@ try {
         $testText -notmatch "account_lifecycle\.test\.sql" -or
         $testText -notmatch "account_restore_replay_structure\.test\.sql" -or
         $testText -notmatch "account_restore_replay\.test\.sql" -or
+        $testText -notmatch "financial_ledger_structure\.test\.sql" -or
+        $testText -notmatch "financial_ledger\.test\.sql" -or
+        $testText -notmatch "company_onboarding_structure\.test\.sql" -or
+        $testText -notmatch "company_onboarding\.test\.sql" -or
         $testText -notmatch "Result:\s+PASS") {
-        throw "Supabase pgTAP did not prove all six files with Result: PASS."
+        throw "Supabase pgTAP did not prove all ten files with Result: PASS."
     }
 
     $concurrencyUserId = "44000000-0000-4000-8000-000000000004"
@@ -304,6 +313,215 @@ where owner_id = '$concurrencyUserId';
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to clean the synthetic concurrency scenario."
         }
+    }
+
+    $ledgerConcurrencyUserId = "54000000-0000-4000-8000-000000000004"
+    $ledgerConcurrencyCompanyId = "f4000000-0000-4000-8000-000000000004"
+    $ledgerConcurrencyKey = "a4000000-0000-4000-8000-000000000004"
+    $ledgerSetupSql = @"
+insert into auth.users (id, email, raw_user_meta_data)
+values (
+    '$ledgerConcurrencyUserId',
+    'ledger-concurrency@thrustline.invalid',
+    '{}'
+);
+insert into public.companies (id, owner_id, name)
+values (
+    '$ledgerConcurrencyCompanyId',
+    '$ledgerConcurrencyUserId',
+    'Ledger Concurrency Air'
+);
+"@
+    $ledgerFirstSql = @"
+begin;
+set local role service_role;
+select public.post_company_opening_balance(
+    '$ledgerConcurrencyCompanyId',
+    '$ledgerConcurrencyKey',
+    42000000,
+    'EUR'
+) ->> 'entryId';
+select pg_sleep(4);
+commit;
+"@
+    $ledgerSecondSql = @"
+begin;
+set local role service_role;
+select public.post_company_opening_balance(
+    '$ledgerConcurrencyCompanyId',
+    '$ledgerConcurrencyKey',
+    42000000,
+    'EUR'
+) ->> 'entryId';
+commit;
+"@
+
+    & $dockerPath exec $databaseContainers[0] `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $ledgerSetupSql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the financial ledger concurrency scenario."
+    }
+
+    $ledgerConcurrencyJobs = @()
+    try {
+        $ledgerConcurrencyJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) {
+                throw "First concurrent ledger session failed."
+            }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $ledgerFirstSql
+
+        Start-Sleep -Milliseconds 750
+
+        $ledgerConcurrencyJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) {
+                throw "Second concurrent ledger session failed."
+            }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $ledgerSecondSql
+
+        $ledgerConcurrencyJobs | Wait-Job | Out-Null
+        $ledgerConcurrencyOutput = @(
+            $ledgerConcurrencyJobs | Receive-Job |
+                ForEach-Object { [string]$_ } |
+                Where-Object { $_ -match '^[0-9a-f-]{36}$' }
+        )
+        if ($ledgerConcurrencyJobs.State -contains "Failed" -or
+            $ledgerConcurrencyOutput.Count -ne 2 -or
+            @($ledgerConcurrencyOutput | Select-Object -Unique).Count -ne 1) {
+            throw "Concurrent financial ledger commands did not converge."
+        }
+
+        $ledgerConvergenceSql = @"
+select
+    count(*),
+    count(distinct idempotency_key)
+from private.financial_ledger_entries as entries
+join private.financial_ledger_subjects as subjects
+  on subjects.subject_id = entries.subject_id
+where subjects.company_id = '$ledgerConcurrencyCompanyId';
+"@
+        $ledgerConvergence = @(
+            & $dockerPath exec $databaseContainers[0] `
+                psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres -c $ledgerConvergenceSql
+        )
+        if ($LASTEXITCODE -ne 0 -or
+            ($ledgerConvergence -join "").Trim() -ne "1|1") {
+            throw "Concurrent financial ledger state is not idempotent."
+        }
+        Write-Output "Financial ledger concurrency passed: 2 sessions, 1 immutable entry."
+    }
+    finally {
+        $ledgerConcurrencyJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    }
+
+    $onboardingConcurrencyUserId = "66000000-0000-4000-8000-000000000006"
+    $onboardingConcurrencyKey = "ba600000-0000-4000-8000-000000000006"
+    $onboardingSetupSql = @"
+insert into auth.users (id, email, raw_user_meta_data, is_anonymous)
+values (
+    '$onboardingConcurrencyUserId',
+    'onboarding-concurrency@thrustline.invalid',
+    '{}',
+    false
+);
+"@
+    $onboardingFirstSql = @"
+begin;
+set local role service_role;
+select public.create_company_with_opening_balance(
+    '$onboardingConcurrencyUserId',
+    '$onboardingConcurrencyKey',
+    'Onboarding Concurrency Air',
+    43000000,
+    'EUR'
+) ->> 'companyId';
+select pg_sleep(4);
+commit;
+"@
+    $onboardingSecondSql = @"
+begin;
+set local role service_role;
+select public.create_company_with_opening_balance(
+    '$onboardingConcurrencyUserId',
+    '$onboardingConcurrencyKey',
+    'Onboarding Concurrency Air',
+    43000000,
+    'EUR'
+) ->> 'companyId';
+commit;
+"@
+
+    & $dockerPath exec $databaseContainers[0] `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $onboardingSetupSql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the company onboarding concurrency scenario."
+    }
+
+    $onboardingConcurrencyJobs = @()
+    try {
+        $onboardingConcurrencyJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) {
+                throw "First concurrent onboarding session failed."
+            }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $onboardingFirstSql
+
+        Start-Sleep -Milliseconds 750
+
+        $onboardingConcurrencyJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) {
+                throw "Second concurrent onboarding session failed."
+            }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $onboardingSecondSql
+
+        $onboardingConcurrencyJobs | Wait-Job | Out-Null
+        $onboardingConcurrencyOutput = @(
+            $onboardingConcurrencyJobs | Receive-Job |
+                ForEach-Object { [string]$_ } |
+                Where-Object { $_ -match '^[0-9a-f-]{36}$' }
+        )
+        if ($onboardingConcurrencyJobs.State -contains "Failed" -or
+            $onboardingConcurrencyOutput.Count -ne 2 -or
+            @($onboardingConcurrencyOutput | Select-Object -Unique).Count -ne 1) {
+            throw "Concurrent company onboarding commands did not converge."
+        }
+
+        $onboardingConvergenceSql = @"
+select
+    (select count(*) from public.companies
+     where owner_id = '$onboardingConcurrencyUserId'),
+    (select count(*) from private.company_onboarding_commands
+     where owner_id = '$onboardingConcurrencyUserId'),
+    (
+        select count(*)
+        from private.financial_ledger_entries as entries
+        join private.financial_ledger_subjects as subjects using (subject_id)
+        join public.companies as companies on companies.id = subjects.company_id
+        where companies.owner_id = '$onboardingConcurrencyUserId'
+    );
+"@
+        $onboardingConvergence = @(
+            & $dockerPath exec $databaseContainers[0] `
+                psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres -c $onboardingConvergenceSql
+        )
+        if ($LASTEXITCODE -ne 0 -or
+            ($onboardingConvergence -join "").Trim() -ne "1|1|1") {
+            throw "Concurrent company onboarding state is not atomic and idempotent."
+        }
+        Write-Output "Company onboarding concurrency passed: 2 sessions, 1 company, 1 opening entry."
+    }
+    finally {
+        $onboardingConcurrencyJobs | Remove-Job -Force -ErrorAction SilentlyContinue
     }
 
     $restoreUserId = "48000000-0000-4000-8000-000000000008"
@@ -732,7 +950,7 @@ select
         throw "Generated database types are stale."
     }
 
-    Write-Output "Backend CI passed: 2 resets, 6 pgTAP files, 105 assertions, concurrent idempotence, isolated restore replay, stable types, loopback ports."
+    Write-Output "Backend CI passed: 2 resets, 10 pgTAP files, 190 assertions, concurrent idempotence, isolated restore replay, authoritative onboarding, stable types, loopback ports."
 }
 finally {
     if ($null -ne $databaseContainer -and $null -ne $dockerPath) {

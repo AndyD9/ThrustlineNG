@@ -306,3 +306,10 @@ pas être requalifiée en vérification manuelle. Le ticket reste `Verify`.
 - `docs/KNOWN_ISSUES.md` conserve `KI-021` ouvert uniquement pour
   sauvegarde/restauration/replay ;
 - `docs/tickets/README.md` synchronisé avec le statut `Verify`.
+
+### Mise à jour T0021 — 31 juillet 2026
+
+`KI-017` est résolu. Les quatre fichiers et 70 assertions T0018 sont inclus dans
+le run local Windows de 8 fichiers/148 assertions, avec deux resets et types
+stables. La checklist humaine export/suppression/annulation n'a pas été exécutée
+et T0018 reste `Verify`.

@@ -140,7 +140,7 @@
     "accountExport": "enforced-local-ci",
     "accountDeletion": "enforced-local-ci",
     "retentionPurge": "not-implemented",
-    "ledgerAnonymization": "not-implemented",
+    "ledgerAnonymization": "enforced-local-ci",
     "managedBackups": "not-implemented",
     "restoreDrill": "enforced-local-ci",
     "deletionReplayAfterRestore": "enforced-local-ci"

@@ -27,7 +27,8 @@ annulent pendant une fenêtre de 7 jours ; elles exigent une nouvelle session
 Supabase de 5 minutes au plus. Une quatrième commande, exécutable seulement par
 `service_role`, finalise la suppression dans une transaction. Les tables de
 cycle de vie sont dans `private`, sans privilège API et avec RLS activée/forcée.
-Les mutations directes de `companies` sont bloquées pendant l'attente.
+T0022 retire ensuite toute mutation directe de `companies` aux rôles clients ;
+le cycle T0018 reste l'unique voie de suppression.
 
 T0019 crée pour chaque compagnie un sujet de restauration opaque dans
 `private`. La finalisation écrit atomiquement un événement pseudonyme versionné
@@ -37,9 +38,35 @@ exact et échoue fermée sur un sujet absent ou un contenu différent. Le jeton
 reste traité comme personnel tant qu'une sauvegarde permet de le relier au
 compte.
 
-Le futur grand livre est append-only, mais son lien personnel doit rester
-anonymisable. T0018 couvre seulement l'identité Auth et la compagnie présentes ;
-il n'anticipe aucune écriture financière.
+T0020 ajoute un sujet financier UUID privé par compagnie et une table d'écritures
+append-only sans identité Auth, identifiant ou nom de compagnie. La première
+commande économique, `post_company_opening_balance`, est réservée à
+`service_role`, verrouille la compagnie et compare exactement clé
+d'idempotence, montant et devise avant tout rejeu. `authenticated` dispose
+uniquement de `get_company_ledger()`, qui dérive la compagnie de `auth.uid()` ;
+aucune mutation financière directe n'est exposée à un client.
+
+La suppression T0018 et son replay T0019 déclenchent le détachement transactionnel
+du lien compagnie–sujet. Les écritures restent immuables et ne conservent que le
+sujet opaque nécessaire à l'intégrité. Cette première tranche n'est pas une
+comptabilité en partie double et ne définit encore ni revenus, ni coûts, ni
+clôture de vol.
+
+T0022 ajoute `create_company_with_opening_balance`, réservée à `service_role`.
+La commande verrouille l'identité Auth non anonyme, lie la clé d'idempotence à
+l'intégralité du payload, crée la compagnie et appelle l'ouverture T0020 dans la
+même transaction. Les triggers créent aussi les sujets privés de restauration
+et de grand livre. Un rejeu identique rend les mêmes identifiants ; une collision,
+une deuxième compagnie ou une panne annule tout le statement. Cette frontière
+n'ajoute encore aucun appelant applicatif direct.
+
+T0023 place cette RPC derrière l'Edge Function `company-onboarding`. Le client
+envoie uniquement un nom normalisé et une clé d'idempotence. La fonction vérifie
+le bearer token auprès de Supabase Auth, dérive `owner_id` de l'utilisateur non
+anonyme et lit montant/devise depuis son environnement serveur avant d'appeler
+T0022 avec `service_role`. La fonction ne fractionne donc pas la transaction SQL
+et ne livre jamais le credential privilégié au desktop. Aucun appelant desktop,
+CORS applicatif ou déploiement distant n'est encore fourni.
 
 ## Packaging Windows T0014
 
@@ -69,9 +96,10 @@ upgrade et rollback de version restent hors du socle.
 ## Backend Supabase local T0012
 
 Le backend initial est recréé depuis `supabase/config.toml`, les migrations
-append-only puis `supabase/seed.sql`. PostgreSQL 17, Auth et PostgREST suffisent
-à cette tranche ; Realtime, Storage, Edge Runtime et Analytics restent
-désactivés.
+append-only puis `supabase/seed.sql`. PostgreSQL 17, Auth, PostgREST et l'Edge
+Runtime T0023 sont actifs localement ; Realtime, Storage et Analytics restent
+désactivés. L'Edge Runtime reste derrière le port API 54321 : le daemon isolé
+T0021 ne publie toujours que 54321–54323 sur `127.0.0.1`.
 
 `public.companies` porte la première frontière de propriété du MVP solo :
 
@@ -80,14 +108,11 @@ auth.users.id → companies.owner_id unique → une compagnie au plus par utilis
 ```
 
 La clé étrangère impose un propriétaire Auth existant. La RLS est activée et
-forcée. Quatre politiques séparées limitent select/insert/update/delete à
-`auth.uid() = owner_id` et au rôle `authenticated`. Les types versionnés sous
-`packages/database` sont destinés à être régénérés depuis la pile locale ; aucun
-client applicatif ne les consomme encore.
-
-Cette table ne constitue pas l'onboarding transactionnel complet. Les futures
-mutations multi-écritures et économiques resteront des commandes serveur
-transactionnelles et idempotentes.
+forcée. Après T0022, `authenticated` conserve uniquement `select` avec la
+politique `auth.uid() = owner_id`; `insert`, `update` et `delete` directs sont
+révoqués et leurs politiques supprimées. Les types versionnés sous
+`packages/database` sont régénérés depuis la pile locale ; aucun client
+applicatif ne les consomme encore.
 
 ## Télémétrie SimConnect T0011
 

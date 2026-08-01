@@ -23,7 +23,7 @@ revue explicite ; elle ne doit pas être contournée dans le code.
 | Export de compte | Enforced local/CI par T0018 |
 | Suppression de compte | Enforced local/CI par T0018 |
 | Purges de rétention | Not implemented |
-| Anonymisation du futur grand livre | Not implemented |
+| Anonymisation du grand livre | Enforced local/CI par T0020 |
 | Sauvegardes managées | Not implemented |
 | Restauration isolée synthétique | Enforced local/CI par T0019 |
 | Replay des suppressions après restauration | Enforced local/CI par T0019 |
@@ -151,6 +151,19 @@ synthétiques. Un dump logique pris avant une demande de suppression est restaur
 dans une base distincte, non servie par PostgREST. Un journal pseudonyme
 postérieur au point de sauvegarde supprime A sans affecter B ; son rejeu est
 idempotent et les événements altéré ou inconnu sont refusés.
+
+## Grand livre financier
+
+T0020 crée une correspondance privée entre la compagnie et un sujet financier
+opaque. Les écritures append-only référencent seulement ce sujet et conservent
+montant, devise, type et dates techniques nécessaires à l'intégrité économique.
+Elles ne contiennent ni identité Auth, ni identifiant ou nom de compagnie.
+
+La suppression T0018 et son replay T0019 détachent et datent la correspondance
+dans la même transaction sans réécrire l'historique. Cette anonymisation est
+bornée aux données synthétiques local/CI. L'export financier version 2, la purge
+des autres catégories, les sauvegardes managées et l'admission de données
+réelles restent absents.
 
 La preuve couvre `auth`, `public`, `private`, `extensions` et
 `supabase_migrations`. Elle réinstalle `pgcrypto` 1.3 depuis la même image et

@@ -34,6 +34,52 @@ Vault et Storage, réinstalle `pgcrypto` à version identique et ne rejoue pas l
 `DEFAULT ACL` des rôles internes. Cette frontière ne prouve ni sauvegarde
 managée/chiffrée, ni purge du journal, ni RPO/RTO ou promotion de production.
 
+## Grand livre financier T0020
+
+Les correspondances entre compagnies et sujets financiers opaques restent dans
+`private`, avec RLS activée et forcée et sans privilège de table pour les rôles
+API. Les écritures ne contiennent aucune identité Auth ou compagnie directe et
+des triggers refusent `update`, `delete` et `truncate`.
+
+Seul `service_role` peut appeler la commande d'ouverture. Elle valide les
+bornes, la devise ISO 4217, l'état actif T0018, verrouille la compagnie et rend
+un rejeu uniquement si le payload correspond exactement. Le propriétaire
+authentifié peut seulement lire son propre grand livre ; `anon` ne peut pas
+appeler cette lecture. Lors d'une suppression ou d'un replay, le lien privé est
+détaché et daté dans la transaction tandis que l'écriture non directement
+personnelle reste intacte.
+
+## Onboarding autoritaire T0022
+
+`authenticated` ne possède plus que `select` sur `public.companies`; les
+privilèges et politiques d'insertion, mise à jour et suppression sont retirés.
+`anon` conserve zéro privilège. La création et l'ouverture passent par une
+fonction `security definer` à `search_path` vide, exécutable uniquement par
+`service_role`.
+
+La commande verrouille une identité Auth existante et non anonyme, refuse un
+cycle de suppression actif, valide nom, montant et devise, puis crée compagnie,
+sujets privés et écriture dans une transaction. Le registre privé compare une
+empreinte SHA-256 du payload complet avant tout rejeu et disparaît avec
+l'identité ou la compagnie. Deux sessions concurrentes convergent vers une seule
+compagnie et une seule ouverture ; une panne injectée ne laisse aucun état
+partiel.
+
+## Frontière d'onboarding T0023
+
+L'Edge Function conserve le gate JWT de la plateforme puis vérifie explicitement
+le bearer token auprès de Supabase Auth. Elle exige un UUID non anonyme et
+dérive de cette réponse l'unique `owner_id` transmis à T0022. Le corps client
+est limité à 4 Kio et contient exactement `companyName` et `idempotencyKey` ; un
+propriétaire, montant, devise ou champ inconnu fourni par le client est refusé.
+
+Le montant et la devise proviennent de variables Edge Runtime obligatoires et
+bornées comme T0020. `SUPABASE_SERVICE_ROLE_KEY` n'est utilisé que dans l'appel
+RPC interne. Les réponses sont `no-store`, ne journalisent rien et remplacent
+les erreurs Auth, SQL ou transport par des codes publics bornés. Le runtime local
+injecte uniquement des fixtures synthétiques ; aucune valeur de production,
+clé distante ou donnée réelle n'est admise.
+
 ## Frontière installateur Windows T0014
 
 Le package T0014 est une preuve interne non signée, jamais une release. Il
@@ -65,19 +111,23 @@ non fiables. La table `companies` impose côté PostgreSQL :
 - une contrainte unique empêchant deux compagnies pour un propriétaire ;
 - la RLS activée et forcée ;
 - aucun privilège pour `anon` ;
-- des privilèges CRUD bornés pour `authenticated`, toujours filtrés et validés
-  par quatre politiques fondées sur `(select auth.uid()) = owner_id`.
+- uniquement `select` pour `authenticated`, filtré par la politique fondée sur
+  `(select auth.uid()) = owner_id` ; les mutations passent par des commandes
+  serveur explicites.
 
 Le seed utilise uniquement deux UUID, adresses `.invalid` et compagnies
 synthétiques, sans mot de passe utilisable. Les scripts racine ciblent
 explicitement la pile locale et n'exposent ni `link`, ni `db push`, ni reset
-`--linked`. Le démarrage crée ou réutilise un réseau Docker demandé en loopback
-et le transmet explicitement à la CLI. Il masque la sortie de démarrage, inspecte
-ensuite les ports réellement publiés et arrête immédiatement la pile si Docker
-expose un port sur `0.0.0.0` ou `[::]`. Cette protection est nécessaire car
-Docker Desktop 29.6.2 a ignoré l'option loopback dans l'environnement vérifié.
-Le harnais statique injecte une politique manquante et un reset distant pour
-prouver que ces deux régressions sont détectées.
+`--linked`. T0021 place Supabase dans un daemon Docker-in-Docker privilégié mais
+sans socket Docker hôte, montage du dépôt ou port d'administration publié. La
+CLI reçoit seulement une copie filtrée de `supabase/`; son paquet Linux est
+vérifié contre l'intégrité SHA-512 du lockfile et les images de base sont
+épinglées par digest. Les publications wildcard restent dans cette frontière et
+les trois ports utiles sont republiés vers Windows avec un `HostIp` explicite
+`127.0.0.1`. Le démarrage désactive la télémétrie CLI, masque les credentials,
+vérifie les liaisons externes et nettoie la pile sur tout écart. Le harnais statique exécute sept mutations,
+notamment politique manquante, reset distant, publication wildcard et montage
+du socket Docker hôte.
 
 La pile locale utilise des credentials de développement, n'a pas de TLS ni les
 contrôles complets de la plateforme managée. Elle doit rester sur la machine de

@@ -295,3 +295,13 @@ valider sur un runtime qui respecte la liaison `127.0.0.1`.
 `ARCHITECTURE.md`, `SECURITY.md`, `QUALITY.md`, `SETUP.md`,
 `CURRENT_STATE.md`, `KNOWN_ISSUES.md` et l'index des tickets décrivent la
 capacité réellement livrée et ses limites.
+
+### Mise à jour T0021 — 31 juillet 2026
+
+`KI-017` est résolu par le runtime DinD isolé de T0021. Docker et les sockets
+Windows confirment API, PostgreSQL et Studio uniquement sur `127.0.0.1` ; deux
+resets, 8 fichiers/148 assertions et les types passent localement, puis
+l'arrêt/redémarrage réussit. PostgreSQL contient uniquement les deux identités
+`.invalid`. Andy confirme l'inspection visuelle de Studio le 31 juillet 2026.
+T0012 reste `Verify` jusqu'à la fusion de la correction T0021 dans `main` ; la
+preuve ne doit pas être présentée comme une capacité livrée avant cette fusion.

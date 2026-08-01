@@ -10,7 +10,7 @@ pnpm data-policy:check
 
 Le harnais T0017–T0019 valide la source JSON, quatre environnements, huit
 catégories, les maxima de rétention, les seeds synthétiques et l'intégration CI.
-Il détecte cinq mutations : catégorie absente, donnée de production autorisée en
+Il détecte six mutations : catégorie absente, donnée de production autorisée en
 staging, délai de journaux supérieur à 90 jours, dérive de la suppression de
 compte et dérive du replay après restauration.
 
@@ -38,10 +38,14 @@ ce fixture et ajouter ou préserver un scénario d'échec associé.
 Le contrôle statique fonctionne sans Docker et couvre la version de CLI, la
 configuration PostgreSQL 17, l'ordre migration/seed, les contraintes, les
 politiques, les scénarios A/B/anonyme et l'absence de commande distante. Il
-exécute aussi deux mutations négatives :
+exécute aussi onze mutations négatives, dont une publication wildcard, un
+montage du socket Docker hôte et une commande d'onboarding rendue exécutable par
+un rôle client. T0023 ajoute la détection d'un propriétaire repris du payload ou
+d'un appel RPC effectué sans le credential serveur :
 
 ```powershell
 pnpm backend:check
+pnpm backend:functions:test
 ```
 
 La preuve SQL réelle exige Docker Desktop ou un runtime Docker compatible
@@ -55,22 +59,41 @@ pnpm backend:types:check
 pnpm backend:stop
 ```
 
+`backend:functions:test` exécute 14 tests Node sans dépendance tierce : méthode,
+corps 4 Kio, payload exact, normalisation, UUID, configuration, Auth anonyme ou
+invalide, indisponibilité Auth/RPC, dérivation du propriétaire, credential
+privilégié, redaction et réponse versionnée `no-store`.
+Le harnais Linux `ci:backend` rejoue ces tests avant de démarrer PostgreSQL. Il
+exclut ensuite Edge Runtime de la pile SQL : avec Supabase CLI 2.109.1 sur
+Ubuntu, le cycle de reset tente sinon de recréer PostgreSQL alors que son port
+est encore occupé. Le chargement Deno réel reste une preuve Windows séparée.
+
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les six fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. Les 105 assertions couvrent le cycle de compte
-T0018 et le replay T0019. Le job CI lance ensuite deux sessions PostgreSQL
-concurrentes et exige une demande unique, deux enregistrements d'idempotence et
-un identifiant de demande commun. Il restaure aussi un dump synthétique pris
+les dix fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 190 assertions couvrent le cycle de compte
+T0018, le replay T0019, le grand livre T0020 et l'onboarding T0022. Le job CI
+lance deux sessions PostgreSQL concurrentes pour les cycles sensibles et exige
+notamment une compagnie, une commande et une ouverture uniques pour deux appels
+T0022 identiques. Il restaure aussi un dump synthétique pris
 avant suppression dans une base distincte, vérifie les ACL/RLS et `pgcrypto`,
 rejoue le journal, refuse les événements altéré/inconnu et détruit les fichiers
 et la cible. `backend:types:check` régénère les types en mémoire et échoue si le
 fichier versionné diffère.
 
-Preuve T0012 du 29 juillet 2026 sous Docker Desktop 29.6.2 : deux resets
-successifs réussis, 2 fichiers pgTAP/21 tests avec résultat PASS, génération et
-contrôle des types réussis. Le démarrage persistant reste en vérification :
-Docker a publié les ports sur toutes les interfaces malgré le réseau loopback,
-et le fail-safe de `backend:start` a arrêté la pile.
+Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
+hôte. Une identité/session/JWT synthétiques traverse Auth puis
+`company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme
+`1|1|1`. Un appel sans JWT rend HTTP 401. Les valeurs locales
+`43000000`/`EUR` sont uniquement des fixtures serveur, pas une politique produit.
+L'arrêt utilise `--no-backup` afin que le volume conservé ne contienne pas la
+base synthétique ; une mutation statique refuse le retour au backup implicite.
+
+Preuve T0021 du 31 juillet 2026 sous Docker Desktop 29.6.2 : le daemon Supabase
+isolé publie les trois ports externes uniquement sur `127.0.0.1`, confirmé par
+Docker et les sockets Windows. Deux resets réussissent, 8 fichiers/148
+assertions pgTAP concluent par `Result: PASS` et les types restent stables. Un
+arrêt/redémarrage avec cache réussit en 45,5 s. Studio répond sur loopback ; son
+inspection visuelle reste une vérification humaine distincte.
 
 ## Desktop et bridge
 
@@ -202,9 +225,15 @@ pnpm supply-chain:report
 ```
 
 Le job backend Linux utilise `pnpm ci:backend`. Il masque la sortie de démarrage,
-inspecte les ports Docker réels, exige les deux fichiers pgTAP et `Result: PASS`,
+inspecte les ports Docker réels, exige tous les fichiers pgTAP attendus et
+`Result: PASS`,
 compare les types en mémoire et arrête la pile dans le script ainsi que dans une
 étape `always()`.
+
+T0020 étend ce gate à 8 fichiers pgTAP et 148 assertions. La CI doit aussi
+prouver deux appels concurrents identiques vers l'ouverture financière qui
+convergent vers une seule écriture immuable, puis conserver la preuve T0019 de
+restauration/replay et la stabilité des types générés.
 
 Le workflow supply-chain laisse chaque scanner produire son rapport, même si un
 scanner échoue, puis un gate final agrège les résultats. T0013 a ainsi détecté

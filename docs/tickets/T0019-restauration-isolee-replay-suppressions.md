@@ -305,3 +305,10 @@ sont pas requalifiés en vérification manuelle. Le ticket reste `Verify`.
   `docs/QUALITY.md` décrivent la frontière prouvée et ses limites ;
 - `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md` et l'index distinguent branche,
   PR, CI, vérification manuelle et admission réelle.
+
+### Mise à jour T0021 — 31 juillet 2026
+
+`KI-017` est résolu et les six fichiers/105 assertions couvrant T0019 passent
+aussi dans le runtime Windows isolé, avec types stables. Cette exécution pgTAP
+ne remplace pas la checklist humaine de restauration/replay ; T0019 reste
+`Verify`.

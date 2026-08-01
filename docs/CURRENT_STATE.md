@@ -1,17 +1,22 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 31 juillet 2026 (preuve CI T0019 de restauration
-isolée et replay des suppressions).
-Statut : les implémentations T0012 à T0017 sont fusionnées dans `main`. T0005,
+Dernière revue documentaire : 1er août 2026 (preuve locale T0023 de la
+frontière Edge d'onboarding).
+Statut : les implémentations T0012 à T0019 sont fusionnées dans `main`. T0005,
 T0006 et T0013 à T0017 sont `Done`. La phase 0 est terminée, la phase 1 a
 franchi conditionnellement son gate de reproductibilité et la phase 2 est
-active sous interdiction de données utilisateur réelles. T0012 reste en
-vérification car Docker Desktop publie les ports Supabase hors loopback sur la
-machine locale.
+active sous interdiction de données utilisateur réelles. T0021 résout `KI-017` :
+la pile locale est isolée et ses trois sockets Windows écoutent uniquement sur
+`127.0.0.1`. Andy confirme l'inspection visuelle de Studio le 31 juillet 2026.
+T0012 reste `Verify` tant que la correction T0021 n'est pas fusionnée dans
+`main`.
 
-Les implémentations T0018 et T0019 sont présentes sur deux branches empilées,
-pas dans `main`. Elles restent `Verify` car la checklist Windows est bloquée par
-la même protection loopback.
+T0018 et T0019 sont présents dans `main` mais restent `Verify` car leurs
+checklists humaines n'ont pas été exécutées. T0020–T0022 ne sont pas dans
+`main` : les PR #35–#37 ont été fusionnées dans leurs branches parentes, sans
+propager ensuite la pile jusqu'à `main`. T0020 reste `Verify`, T0021 et T0022
+restent `Review`. T0023 ajoute sur une nouvelle branche empilée un appelant Edge
+authentifié avec preuves Node et PostgreSQL 17 locales.
 
 ## Produit
 
@@ -136,9 +141,6 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
 
 - Connexion réelle à MSFS/SimConnect et parcours de vol : MSFS absent. Le replay
   synthétique automatisé T0011 ne remplace pas une trace réelle avec provenance.
-- Démarrage Supabase local persistant : Docker Desktop 29.6.2 publie les ports
-  sur toutes les interfaces malgré le réseau loopback demandé ; le script
-  arrête volontairement la pile.
 - Déploiement de l'Edge Function et validation cloud : projet/identifiants
   Supabase absents.
 - Build installable signé, installation, mise à jour et rollback : aucun
@@ -157,8 +159,9 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
 ## Dette et risques structurants
 
 - Aucun projet de tests .NET dédié constaté.
-- Le démarrage sûr Supabase reste bloqué par la publication wildcard observée
-  avec Docker Desktop 29.6.2 ; reset, pgTAP et types sont néanmoins prouvés.
+- Le runtime Supabase local repose sur un daemon DinD privilégié et conserve un
+  volume de cache d'images ; il ne monte ni socket Docker hôte ni source du
+  dépôt complète.
 - Le build Tauri complet dépend du sidecar généré dans `externalBin`.
 - L'environnement local Node ne satisfait pas le moteur déclaré.
 - Les README divergent (`Node 24.18 LTS` contre `Node 20+`) et utilisent
@@ -287,18 +290,16 @@ types TypeScript et deux fichiers pgTAP. La migration impose un propriétaire
 Auth unique, force la RLS et sépare les politiques CRUD du rôle
 `authenticated`.
 
-Le harnais statique passe avec deux mutations négatives : suppression de la
-politique de lecture et remplacement du reset local par `--linked`. Deux resets
-successifs ont rejoué migration et seed ; les 2 fichiers pgTAP et leurs 21 tests
-passent, et les types ont été régénérés puis contrôlés sans écart.
-
-Les scripts résolvent maintenant une seule CLI Docker, propagent son répertoire
-aux sous-processus Supabase et utilisent explicitement le réseau
-`thrustline-local`. Docker Desktop 29.6.2 a toutefois publié les ports sur
-`0.0.0.0`/`[::]` malgré l'option loopback du réseau. `backend:start` inspecte
-donc les ports effectifs, supprime toute sortie contenant les credentials locaux,
-arrête la pile en cas d'exposition et échoue. Aucune parité cloud n'est
-revendiquée.
+Le harnais statique T0021 passe avec sept mutations négatives. Le runtime copie
+seulement les sources Supabase filtrées dans un volume, exécute la CLI dans un
+conteneur sans socket Docker hôte et place la pile dans un daemon DinD dédié.
+Docker et `Get-NetTCPConnection` confirment le 31 juillet 2026 que 54321–54323
+écoutent uniquement sur `127.0.0.1`. Deux resets successifs, 8 fichiers/148
+assertions pgTAP et le contrôle des types passent localement. Le redémarrage avec
+cache prend 45,5 s ; Studio répond 200 et PostgreSQL contient uniquement les
+deux identités `.invalid`. Andy confirme leur inspection visuelle dans Studio le
+31 juillet 2026. Aucune parité cloud n'est revendiquée et la capacité n'est pas
+présente dans `main` avant fusion de la pile de PR.
 
 ## Politique de données
 
@@ -311,9 +312,10 @@ sauvegardes, et 90 jours pour les journaux sécurité.
 L'admission de données utilisateur réelles reste bloquée. T0018 implémente
 l'export et la suppression transactionnelle du compte actuel en local/CI. T0019
 prouve une restauration PostgreSQL 17 isolée et le replay post-sauvegarde sur
-données synthétiques. Purge, anonymisation du futur grand livre, sauvegarde
-managée, purge du journal pseudonyme et restauration de production restent
-`Not implemented`. `KI-021` suit ces contrôles restants. Andy a validé T0017 le
+données synthétiques. Purge, sauvegarde managée, purge du journal pseudonyme et
+restauration de production restent `Not implemented`. L'anonymisation du grand
+livre T0020 est prouvée uniquement en local/CI synthétique. `KI-021` suit les
+contrôles restants. Andy a validé T0017 le
 30 juillet 2026 ; le ticket est `Done`.
 
 ## Export et suppression de compte
@@ -327,9 +329,10 @@ la suppression de la compagnie, de l'identité Auth et des liens temporaires.
 Deux resets, 4 fichiers pgTAP et 70 assertions passent sur PostgreSQL 17 dans le
 run GitHub `30616958479`. Deux transactions réellement concurrentes avec des
 clés différentes convergent vers une demande et deux enregistrements
-d'idempotence ; les types générés restent stables. La vérification manuelle
-Windows reste impossible car `KI-017` déclenche correctement l'arrêt fail-safe.
-T0018 reste donc `Verify` et aucune donnée réelle n'est admise.
+d'idempotence ; les types générés restent stables. T0021 permet désormais la
+validation locale Windows et ses 70 assertions sont incluses dans le run local
+de 148 assertions. La checklist humaine T0018 reste non exécutée ; le ticket
+reste `Verify` et aucune donnée réelle n'est admise.
 
 ## Restauration isolée et replay des suppressions
 
@@ -351,8 +354,68 @@ runner ; ces durées ne sont pas des objectifs RPO/RTO.
 La preuve est bornée aux schémas `auth`, `public`, `private`, `extensions` et
 `supabase_migrations`. Elle exclut Vault, Storage et les `DEFAULT ACL` des rôles
 internes ; elle ne prouve ni sauvegarde managée/chiffrée, ni purge, ni
-restauration ou promotion de production. T0019 reste `Verify` car la checklist
-Windows est bloquée par `KI-017`.
+restauration ou promotion de production. Les assertions T0019 passent aussi
+localement via T0021 ; le ticket reste `Verify` car sa checklist humaine n'a pas
+été exécutée.
+
+## Grand livre financier immuable
+
+T0020 ajoute sur sa branche un sujet financier opaque par compagnie, des écritures
+privées append-only et une commande d'ouverture réservée à `service_role`.
+`authenticated` ne peut que lire les écritures de sa propre compagnie par une
+fonction qui dérive l'identité du JWT. La suppression et le replay détachent le
+lien personnel sans modifier les écritures.
+
+Les gates statiques backend et politique T0020 passent avec respectivement 5 et 6
+mutations négatives. Le run `30628851680` valide deux resets, 8 fichiers pgTAP,
+148 assertions, la concurrence, la restauration/replay et les types stables sur
+PostgreSQL 17. T0021 reproduit localement les 8 fichiers/148 assertions et les
+types stables ; T0020 reste `Verify` pour sa checklist humaine et n'est pas
+présent dans `main`.
+
+## Onboarding de compagnie autoritaire
+
+T0022 retire à `authenticated` les mutations directes de `public.companies` et
+ajoute une commande `service_role` qui verrouille l'identité Auth, crée la
+compagnie et son ouverture financière dans une transaction. Le registre privé
+lie propriétaire, clé d'idempotence et empreinte du payload ; le rejeu identique
+rend la même réponse, tandis qu'une collision, une identité anonyme, un compte en
+suppression ou une deuxième compagnie échouent sans état partiel.
+
+Localement sous Windows/Docker Desktop 29.6.2, deux resets, 10 fichiers pgTAP et
+190 assertions passent avec `Result: PASS`; les types sont stables. Deux sessions
+concurrentes convergent vers une compagnie, une commande et une écriture. La
+checklist manuelle confirme rejeu, collision, refus d'une mutation directe et
+rollback injecté avec l'état final `1|1|1|0|0`. T0022 reste empilé et n'est pas
+présent dans `main`. La PR #37 a été fusionnée dans
+`feature/T0020-immutable-ledger`, pas dans `main`; aucun appelant desktop/bridge,
+donnée réelle ou environnement distant n'est ajouté. Les runs GitHub `30652926904` et
+`30652926644` valident PostgreSQL 17, Windows multi-stack et la supply chain.
+
+## Frontière Edge d'onboarding
+
+T0023 ajoute `company-onboarding`, une Edge Function `POST` qui accepte
+uniquement le nom et la clé d'idempotence. Elle vérifie le bearer token auprès
+de Supabase Auth, refuse l'anonyme, dérive le propriétaire de la session et lit
+montant/devise dans la configuration serveur avant d'appeler la RPC T0022 avec
+`service_role`. Le corps est borné à 4 Kio et les réponses sont JSON `no-store`
+sans détail SQL.
+
+Les 14 tests Node, le gate backend T0012–T0023 avec 11 mutations, deux resets,
+10 fichiers/190 assertions pgTAP et les types passent localement. L'intégration
+Auth → Edge → RPC rend une réponse v1 active, rejoue les mêmes identifiants et
+laisse exactement `1|1|1`; un appel sans JWT rend HTTP 401. L'Edge Runtime reste
+derrière l'API loopback et n'ajoute aucun port externe. T0023 est en `Review`
+sur `feature/T0023-authoritative-onboarding-endpoint`, empilée sur T0022 ; rien
+de T0020–T0023 n'est livré dans `main` et aucune valeur économique de production
+n'est décidée. L'arrêt local utilise désormais `--no-backup`; un
+arrêt/redémarrage prouve que l'identité et la compagnie synthétiques T0023 ne
+survivent pas dans le volume conservé pour les images. La PR #38 a été fusionnée
+dans la branche T0022, pas dans `main`. La revue adversariale a ensuite corrigé
+la minimisation de la réponse privilégiée dans `aa4d0a2`; la PR brouillon #39
+cible également T0022. Les runs GitHub `30696692468` et `30696692529` valident
+PostgreSQL 17, Windows multi-stack et la supply chain avant cette correction ;
+ses checks GitHub restent à obtenir.
 
 ## CI multi-stack
 
@@ -431,11 +494,11 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Créer T0020, premier ticket borné du grand livre immuable et des commandes
-économiques transactionnelles/idempotentes, sans exposer de mutation sensible au
-client. T0012 exige toujours un runtime Docker respectant la liaison loopback,
-Studio et le redémarrage sûr pour quitter `Verify`. T0011 reste `Verify`
-jusqu'aux essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
+Faire revoir T0023, propager T0020–T0023 jusqu'à `main`, puis exécuter les
+checklists humaines T0018–T0020 sur le runtime T0021. Décider la politique
+économique de production avant tout déploiement ou appel desktop et ne pas
+détailler une deuxième variation économique avant ces clôtures. T0011 reste
+`Verify` jusqu'aux essais réels Windows 11/MSFS 2024 exigés par ADR-0003.
 
 ## Mise à jour de ce fichier
 
