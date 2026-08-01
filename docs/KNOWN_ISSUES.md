@@ -15,7 +15,7 @@ Statut : `Open`, `Accepted`, `Scheduled`, `Resolved`, `Invalid`.
 
 | ID | Sévérité | Zone | Résumé | Preuve | Ticket cible | Statut |
 | --- | --- | --- | --- | --- | --- | --- |
-| KI-001 | High | Data | Certaines mutations métier sont encore effectuées directement par le client. | Audit initial | Phase 2 | Open |
+| KI-001 | High | Data | Certaines mutations métier du golden path restent à inventorier avant de prouver qu'aucun client ne fait autorité. | T0020 protège le grand livre et T0022 retire les mutations directes de compagnie ; aucune preuve globale ne couvre encore les autres domaines | Inventaire des mutations sensibles du golden path | Open |
 | KI-002 | High | Quality | L'exécution PostgreSQL de la suite RLS A/B/anonyme T0012 devait être prouvée sur un runtime Docker réel. | `pnpm backend:test` réussi le 29 juillet 2026 : 2 fichiers, 21 tests, résultat PASS | T0012 | Resolved |
 | KI-003 | High | Release | Pas de pipeline complet d'artefacts/updater signés. | Audit initial | Phase 6 | Open |
 | KI-004 | Medium | Bridge | Pas de projet de tests .NET/replay SimConnect constaté. | T0011 ajoute un harnais .NET et un replay synthétique versionné | T0011 | Resolved |

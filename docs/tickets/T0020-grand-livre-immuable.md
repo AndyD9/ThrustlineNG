@@ -1,8 +1,8 @@
 # T0020 — Ouvrir un grand livre financier immuable
 
-Status: Verify
+Status: Done
 Owner: Andy
-Branch: `feature/T0020-immutable-ledger`
+Branch: `feature/T0020-immutable-ledger-verify`
 Phase: 2
 Risk: High
 Security-sensitive: Yes
@@ -19,8 +19,8 @@ peut écrire directement dans le grand livre.
 La phase 2 exige qu'aucune variation financière n'existe sans écriture de grand
 livre et qu'aucune mutation sensible directe ne soit exposée à un client
 distribué. T0012 fournit PostgreSQL 17 et l'isolation RLS. T0018 et T0019
-fournissent le cycle de suppression et son replay sur deux branches encore
-empilées.
+fournissent le cycle de suppression et son replay ; ces trois tickets sont
+désormais `Done` dans `main`.
 
 Cette première tranche ne choisit pas encore toute l'économie du jeu. Elle
 enregistre uniquement une ouverture de compagnie, dans une devise ISO 4217 et
@@ -31,9 +31,9 @@ peuvent pas créer une variation. Le propriétaire peut seulement lire ses
 
 Le lien compagnie–grand livre est privé et pseudonyme. La suppression d'une
 compagnie efface ce lien dans la même transaction sans modifier les écritures,
-qui ne conservent ni identité Auth, ni nom de compagnie. La branche est empilée
-sur `security/T0019-isolated-restore-replay` jusqu'à intégration de T0018 et
-T0019.
+qui ne conservent ni identité Auth, ni nom de compagnie. L'implémentation a été
+historiquement empilée sur T0019 ; la pile complète a été livrée dans `main` par
+la PR #41.
 
 Références :
 
@@ -47,10 +47,9 @@ Références :
 
 ## Dependencies
 
-- T0012 — PostgreSQL 17 et RLS (`Verify`, implémentation dans `main`) ;
+- T0012 — PostgreSQL 17 et RLS (`Done`, dans `main`) ;
 - T0017 — politique de données (`Done`) ;
-- T0018–T0019 — suppression et replay (`Verify`, implémentations présentes dans
-  l'ascendance empilée).
+- T0018–T0019 — suppression et replay (`Done`, dans `main`).
 
 ## Allowed areas
 
@@ -252,8 +251,8 @@ pas requalifiés en vérification manuelle. Le ticket reste `Verify`.
 
 ### Risks and limitations
 
-- branche empilée sur T0019, elle-même empilée sur T0018, aucune capacité dans
-  `main` tant que les PR ne sont pas fusionnées ;
+- la capacité est dans `main`, mais aucune politique économique de production
+  n'est encore décidée ;
 - une seule écriture `opening_balance`, sans partie double, revenus, coûts,
   achat, clôture de vol ou solde matérialisé ;
 - montant et devise viennent d'une autorité serveur future, jamais d'un client
@@ -263,10 +262,6 @@ pas requalifiés en vérification manuelle. Le ticket reste `Verify`.
 
 ### Follow-ups
 
-- Andy : exécuter la checklist manuelle lorsque `KI-017` dispose d'un runtime
-  Docker Windows respectant le loopback ;
-- après fusion T0018/T0019 : rebaser ou changer la base de la PR #32 sans
-  force-push ;
 - créer un ticket séparé avant toute deuxième commande économique ou export
   financier version 2.
 
@@ -282,7 +277,8 @@ pas requalifiés en vérification manuelle. Le ticket reste `Verify`.
 ### Git and PR
 
 - branche : `feature/T0020-immutable-ledger` ;
-- PR : #32, brouillon, base `security/T0019-isolated-restore-replay` ;
+- PR #32 : fusionnée dans sa branche parente ; pile livrée dans `main` par la PR
+  #41 ;
 - checks publiés : PostgreSQL 17 et Windows multi-stack verts sur
   `30628851680`, supply-chain verte sur `30628851756`.
 
@@ -292,3 +288,40 @@ pas requalifiés en vérification manuelle. Le ticket reste `Verify`.
 et le contrôle des types passent dans le runtime Windows isolé. Cette preuve
 automatisée locale ne remplace pas la checklist humaine du grand livre ; T0020
 reste `Verify`.
+
+### Clôture — 1er août 2026
+
+La checklist humaine est exécutée sur Windows 11 avec Docker Desktop 29.6.2 et
+le runtime T0021 exclusivement lié à `127.0.0.1`. Le parcours utilise les deux
+seeds et deux identités `.invalid` supplémentaires, toutes synthétiques.
+
+Validations de référence :
+
+- `pnpm.cmd backend:check` — réussi, T0012–T0023 et 11 mutations négatives ;
+- `pnpm.cmd data-policy:check` — réussi, T0017–T0020 et 6 mutations négatives ;
+- `pnpm.cmd backend:start` — réussi sur IPv4 loopback ;
+- deux `pnpm.cmd backend:reset` — réussis, cinq migrations append-only rejouées ;
+- `pnpm.cmd backend:test` — réussi, 10 fichiers, 190 assertions,
+  `Result: PASS` ;
+- `pnpm.cmd backend:types:check` — réussi, types identiques au schéma local ;
+- `pnpm.cmd backend:stop` — réussi sans sauvegarde ; seul le cache d'images sans
+  sources est conservé.
+
+Résultat manuel :
+
+- deux compagnies reçoivent chacune un sujet financier opaque ;
+- ouverture A `100000|EUR`, rejeu stable sur la séquence `1`, collision de
+  payload et deuxième ouverture refusées ;
+- ouverture B `-5000|USD` ; exactement deux écritures sont créées ;
+- `update`, `delete` et `truncate` sont tous refusés par la règle append-only ;
+- A lit uniquement `100000|EUR`, B uniquement `-5000|USD`, et `anon` ne peut
+  pas appeler la lecture ;
+- après demande de suppression A, une nouvelle mutation financière est refusée ;
+- après finalisation, A vaut `0|0|0|0` pour identité, compagnie, demande et
+  commandes ; son sujet est détaché/daté et son écriture `100000|EUR` reste
+  unique ; B reste `1|1`, les deux écritures subsistent et aucune colonne
+  d'identité directe n'existe dans le grand livre.
+
+Tous les critères T0020 sont satisfaits ; le ticket passe à `Done`. Cette preuve
+n'autorise aucune valeur économique de production, deuxième variation, solde
+matérialisé, export financier v2, donnée réelle ou environnement distant.

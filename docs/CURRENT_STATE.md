@@ -2,11 +2,10 @@
 
 Dernière revue documentaire : 1er août 2026 (fusion de la pile T0020–T0023 dans
 `main` par la PR #41).
-Statut : les implémentations T0012 à T0023 sont fusionnées dans `main`. T0012,
-T0018, T0019 et T0021–T0023 sont `Done` : leurs critères automatisés et vérifications
-humaines sont terminés, et la pile complète est livrée dans la branche distante
-par défaut. T0020 reste `Verify` car sa checklist humaine propre n'a pas encore
-été exécutée.
+Statut : T0012–T0023 sont `Done` : leurs implémentations sont fusionnées dans
+`main`, leurs critères automatisés passent et leurs vérifications humaines sont
+terminées. La phase 2 reste toutefois sous interdiction de données utilisateur
+réelles.
 
 La fusion #41 (`06cece5`) est couverte par le run CI `30706049048`, réussi sur
 PostgreSQL 17 et Windows multi-stack, et par le run supply-chain `30706049088`,
@@ -366,8 +365,14 @@ Les gates statiques backend et politique T0020 passent avec respectivement 5 et 
 mutations négatives. Le run `30628851680` valide deux resets, 8 fichiers pgTAP,
 148 assertions, la concurrence, la restauration/replay et les types stables sur
 PostgreSQL 17. T0021 reproduit localement les 8 fichiers/148 assertions et les
-types stables. T0020 est présent dans `main` depuis la PR #41 mais reste
-`Verify` pour sa checklist humaine.
+types stables.
+
+La checklist Windows du 1er août 2026 confirme deux sujets opaques, ouverture et
+rejeu A, refus collision/deuxième ouverture, isolation A/B/anonyme et refus
+`update`/`delete`/`truncate`. La suppression bloque une nouvelle variation puis
+détache le sujet sans réécrire l'entrée : A finit à `0|0|0|0`, B reste à `1|1`
+et les deux écritures persistent sans colonne d'identité directe. T0020 est
+`Done` ; aucune politique économique de production n'est décidée.
 
 ## Onboarding de compagnie autoritaire
 
@@ -486,11 +491,11 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Exécuter la checklist humaine T0020 sur le runtime T0021, puis décider la
-politique économique de production avant tout
-déploiement ou appel desktop. Ne pas détailler une deuxième variation économique
-avant ces clôtures. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS
-2024 exigés par ADR-0003.
+Créer un ticket séparé pour décider la politique économique de production avant
+tout déploiement ou appel desktop, sans détailler une deuxième variation avant
+cette décision. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS 2024
+exigés par ADR-0003. Les autres dettes ouvertes restent priorisées par sévérité
+dans `KNOWN_ISSUES.md`.
 
 ## Mise à jour de ce fichier
 
