@@ -63,6 +63,10 @@ pnpm backend:stop
 corps 4 Kio, payload exact, normalisation, UUID, configuration, Auth anonyme ou
 invalide, indisponibilité Auth/RPC, dérivation du propriétaire, credential
 privilégié, redaction et réponse versionnée `no-store`.
+Le harnais Linux `ci:backend` rejoue ces tests avant de démarrer PostgreSQL. Il
+exclut ensuite Edge Runtime de la pile SQL : avec Supabase CLI 2.109.1 sur
+Ubuntu, le cycle de reset tente sinon de recréer PostgreSQL alors que son port
+est encore occupé. Le chargement Deno réel reste une preuve Windows séparée.
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
 les dix fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test

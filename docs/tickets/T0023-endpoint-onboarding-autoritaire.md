@@ -189,8 +189,9 @@ sur une branche empilée ; rien de T0020–T0023 n’est revendiqué dans `main`
 ### Files changed
 
 - handler Edge, point d’entrée Deno, package ESM local et 13 tests ;
-- configuration Edge Runtime et fixtures synthétiques locales/CI ;
-- scripts de runtime/CI et gate backend étendu à T0023/11 mutations ;
+- configuration Edge Runtime et fixtures synthétiques locales ;
+- scripts de runtime/CI, tests Node Linux et gate backend étendu à T0023/11
+  mutations ;
 - architecture, sécurité, qualité, état courant, ticket et index.
 
 ### Commands and results
@@ -218,7 +219,11 @@ sur une branche empilée ; rien de T0020–T0023 n’est revendiqué dans `main`
   reste réutilisable ;
 - `git diff --check` — réussi avant finalisation ;
 - `pnpm ci:backend` — non exécuté localement, car le script exige Linux ; preuve
-  GitHub attendue sur la PR.
+  GitHub attendue sur la PR ;
+- premier run GitHub `30696440104` — handler statique réussi puis job PostgreSQL
+  échoué au reset : Edge Runtime conservait temporairement le binding 54322 sous
+  Supabase CLI 2.109.1/Ubuntu ; preuves séparées en tests Node Linux puis harnais
+  SQL avec Edge Runtime exclu, rejeu CI attendu.
 
 ### Manual verification result
 

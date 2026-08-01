@@ -91,13 +91,16 @@ try {
         }
     }
 
-    $env:COMPANY_OPENING_BALANCE_MINOR = "43000000"
-    $env:COMPANY_OPENING_CURRENCY = "EUR"
+    & node --test ./supabase/functions/company-onboarding/handler.test.ts
+    if ($LASTEXITCODE -ne 0) {
+        throw "Company onboarding Edge handler tests failed."
+    }
+
     Invoke-Supabase -SuppressOutput -Arguments @(
         "start",
         "--network-id", $networkName,
         "--exclude",
-        "realtime,storage-api,imgproxy,mailpit,logflare,vector,supavisor"
+        "realtime,storage-api,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor"
     )
     $started = $true
 

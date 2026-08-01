@@ -455,11 +455,8 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'Concurrent financial ledger commands did not converge' "Backend CI does not verify identical ledger command convergence."
     Require-Text $ciBackend 'Company onboarding concurrency passed' "Backend CI does not report onboarding concurrency."
     Require-Text $ciBackend 'Concurrent company onboarding commands did not converge' "Backend CI does not verify identical onboarding convergence."
-    Require-Text $ciBackend '\$env:COMPANY_OPENING_BALANCE_MINOR = "43000000"' "Backend CI does not inject the synthetic server opening amount."
-    Require-Text $ciBackend '\$env:COMPANY_OPENING_CURRENCY = "EUR"' "Backend CI does not inject the synthetic server opening currency."
-    if ($ciBackend -match '--exclude[\s\S]{0,200}edge-runtime') {
-        $issues.Add("Backend CI must load the company onboarding Edge Function.")
-    }
+    Require-Text $ciBackend 'node --test \./supabase/functions/company-onboarding/handler\.test\.ts' "Backend CI does not execute the Edge handler tests on Linux."
+    Require-Text $ciBackend 'realtime,storage-api,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor' "Backend CI must isolate PostgreSQL resets from the Edge Runtime port lifecycle."
     Require-Text $ciBackend '"1\|1"' "Backend CI does not verify one immutable concurrent ledger entry."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
     foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
