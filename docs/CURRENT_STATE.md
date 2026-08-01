@@ -401,7 +401,7 @@ montant/devise dans la configuration serveur avant d'appeler la RPC T0022 avec
 `service_role`. Le corps est borné à 4 Kio et les réponses sont JSON `no-store`
 sans détail SQL.
 
-Les 13 tests Node, le gate backend T0012–T0023 avec 11 mutations, deux resets,
+Les 14 tests Node, le gate backend T0012–T0023 avec 11 mutations, deux resets,
 10 fichiers/190 assertions pgTAP et les types passent localement. L'intégration
 Auth → Edge → RPC rend une réponse v1 active, rejoue les mêmes identifiants et
 laisse exactement `1|1|1`; un appel sans JWT rend HTTP 401. L'Edge Runtime reste

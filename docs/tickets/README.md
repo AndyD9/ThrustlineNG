@@ -98,7 +98,7 @@ T0022 ne doit donc pas être présenté comme une capacité livrée.
 T0023 est en `Review`, empilé sur T0022. L'Edge Function vérifie la session
 auprès de Supabase Auth, dérive le propriétaire du JWT, refuse tout montant,
 devise ou propriétaire client et lit la politique d'ouverture dans son
-environnement serveur. Treize tests Node, le gate backend avec 11 mutations, deux
+environnement serveur. Quatorze tests Node, le gate backend avec 11 mutations, deux
 resets, 10 fichiers/190 assertions, les types et une intégration Auth → Edge →
 RPC passent localement. Le rejeu conserve les mêmes identifiants et l'état SQL
 est `1|1|1`; un appel sans JWT rend HTTP 401. La PR brouillon #38 cible

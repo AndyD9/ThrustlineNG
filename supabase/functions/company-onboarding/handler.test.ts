@@ -182,6 +182,25 @@ test("fails closed on a malformed privileged response", async () => {
   assert.equal((await response.json()).error.code, "invalid_backend_response");
 });
 
+test("returns only the public fields from a privileged response", async () => {
+  let call = 0;
+  const handler = createCompanyOnboardingHandler(environment, async () => {
+    call += 1;
+    return call === 1
+      ? Response.json({ id: userId, is_anonymous: false })
+      : Response.json({
+          companyId,
+          openingEntryId,
+          schemaVersion: 1,
+          state: "active",
+          privilegedDetail: "must-not-cross-the-edge-boundary",
+        });
+  });
+  const response = await handler(request(validBody()));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { companyId, openingEntryId, schemaVersion: 1, state: "active" });
+});
+
 test("returns no-store JSON responses", async () => {
   const calls: Array<{ input: string; init?: RequestInit }> = [];
   const response = await createCompanyOnboardingHandler(environment, successfulFetch(calls))(request(validBody()));

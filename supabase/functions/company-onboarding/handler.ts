@@ -268,7 +268,12 @@ async function createCompany(
   if (!isCompanyOnboardingResponse(value)) {
     throw new HttpError(502, "invalid_backend_response", "Company onboarding returned an invalid response.");
   }
-  return value;
+  return {
+    companyId: value.companyId,
+    openingEntryId: value.openingEntryId,
+    schemaVersion: 1,
+    state: "active",
+  };
 }
 
 export function createCompanyOnboardingHandler(

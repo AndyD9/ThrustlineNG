@@ -121,7 +121,7 @@ Références :
       économique et `service_role` restent côté serveur.
 - [x] Succès et rejeu rendent la même réponse T0022 ; un refus backend ou une
       réponse privilégiée invalide échoue sans détail interne.
-- [x] Treize tests de handler et onze mutations statiques backend passent.
+- [x] Quatorze tests de handler et onze mutations statiques backend passent.
 - [x] Deux resets, 10 fichiers/190 assertions et les types passent avec l’Edge
       Runtime chargé sur PostgreSQL 17 local.
 - [x] Une intégration réelle Auth → Edge → RPC crée `1|1|1`, rejoue les mêmes
@@ -188,7 +188,7 @@ sur une branche empilée ; rien de T0020–T0023 n’est revendiqué dans `main`
 
 ### Files changed
 
-- handler Edge, point d’entrée Deno, package ESM local et 13 tests ;
+- handler Edge, point d’entrée Deno, package ESM local et 14 tests ;
 - configuration Edge Runtime et fixtures synthétiques locales ;
 - scripts de runtime/CI, tests Node Linux et gate backend étendu à T0023/11
   mutations ;
@@ -200,7 +200,7 @@ sur une branche empilée ; rien de T0020–T0023 n’est revendiqué dans `main`
   supportée par le mode strip-only Node ; corrigée sans dépendance ;
 - second test — 10/11, fixture UUID uniquement numérique ne testant pas la casse ;
   fixture corrigée ;
-- `pnpm.cmd backend:functions:test` — réussi, 13/13 ;
+- `pnpm.cmd backend:functions:test` — réussi initialement, 13/13 ;
 - `pnpm.cmd backend:check` — réussi, T0012–T0023 et 11 mutations ;
 - `pnpm.cmd data-policy:check` — réussi, 6 mutations ;
 - premier `backend:start` — bloqué : Docker Desktop installé mais arrêté ;
@@ -228,6 +228,14 @@ sur une branche empilée ; rien de T0020–T0023 n’est revendiqué dans `main`
   2 min 43 s et Windows multi-stack en 14 min 53 s ;
 - run GitHub supply-chain `30696692529` — réussi en 3 min 49 s : audits,
   licences et SBOM.
+- revue adversariale du 1er août 2026 — défaut de minimisation détecté : une
+  réponse RPC valide portant un champ supplémentaire aurait renvoyé ce champ au
+  client ; le handler reconstruit désormais explicitement les quatre champs
+  publics ;
+- `pnpm.cmd backend:functions:test` après correction — réussi, 14/14, incluant
+  la preuve qu’un champ privilégié supplémentaire ne franchit pas la frontière ;
+- `pnpm.cmd backend:check` — réussi après correction, T0012–T0023 et 11
+  mutations ; `pnpm.cmd data-policy:check` — réussi, T0017–T0020 et 6 mutations.
 
 ### Manual verification result
 
