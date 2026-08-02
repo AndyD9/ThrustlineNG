@@ -42,10 +42,24 @@ describe("invariants frontend et Tauri", () => {
     expect(csp).not.toMatch(/https?:|wss?:|'unsafe-eval'/);
   });
 
-  it("n’expose aucune variable d’environnement au bundle", () => {
+  it("borne la CSP de développement à Vite et Supabase loopback", () => {
+    const config = JSON.parse(read("apps/desktop/src-tauri/tauri.conf.json")) as {
+      app: { security: { devCsp: string } };
+    };
+    const devCsp = config.app.security.devCsp;
+
+    expect(devCsp).toContain(
+      "connect-src http://127.0.0.1:1420 ws://127.0.0.1:1420 http://127.0.0.1:54321",
+    );
+    expect(devCsp).not.toMatch(/localhost|\[::1\]|https:|wss:|'unsafe-eval'/);
+  });
+
+  it("n’expose au bundle que les deux paramètres Supabase publics", () => {
     const viteConfig = read("apps/desktop/vite.config.ts");
 
     expect(viteConfig).toContain("envPrefix: []");
-    expect(viteConfig).not.toMatch(/loadEnv|import\.meta\.env\.(?!DEV|PROD|MODE)/);
+    expect(viteConfig.match(/import\.meta\.env\.VITE_THRUSTLINE_SUPABASE_/g)).toHaveLength(2);
+    expect(viteConfig).toContain("VITE_THRUSTLINE_SUPABASE_ANON_KEY");
+    expect(viteConfig).toContain("VITE_THRUSTLINE_SUPABASE_URL");
   });
 });

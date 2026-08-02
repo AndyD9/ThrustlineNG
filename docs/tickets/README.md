@@ -50,7 +50,8 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0034 | Découpler la fixture du gate de maintenance | Gouvernance | T0030, T0033 | Done |
 | T0035 | Exposer l'achat d'avion derrière une frontière serveur authentifiée | 2 | T0023–T0024, T0029, T0034 | Done |
 | T0036 | Valider l'achat d'avion sur le runtime local réel | 2 | T0021, T0023, T0029, T0035 | Done |
-| T0037 | Consommer l'achat d'avion depuis le desktop sans autorité client | 2–4 | T0024, T0029, T0035–T0036 | Review |
+| T0037 | Consommer l'achat d'avion depuis le desktop sans autorité client | 2–4 | T0024, T0029, T0035–T0036 | Done |
+| T0038 | Fonder la configuration et la session authentifiée du desktop | 2–4 | T0021, T0024, T0035–T0037 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -201,7 +202,13 @@ T0037 ajoute la commande et l'état UI desktop bornés pour cette Edge Function.
 Il ne crée ni authentification, ni catalogue, ni cible distante et reçoit la
 session ainsi que l'offre de futurs appelants. Ses 38 tests frontend, sa
 couverture, son build et les gates d'autorité, données et maintenance passent ;
-le ticket est en `Review`.
+la PR #64 est fusionnée dans `main` au commit `47cd50c` avec ses trois checks
+verts et le ticket est `Done`.
+
+T0038 borne la configuration desktop aux deux paramètres publics de Supabase
+local et ajoute un cycle de session en mémoire avec refresh convergent. La CSP
+de développement n'ajoute que l'API loopback ; production, login, persistance,
+staging et appel live restent fermés. Le ticket est en `Review`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

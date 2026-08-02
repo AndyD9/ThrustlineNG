@@ -1,6 +1,6 @@
 # T0037 — Consommer l’achat d’avion depuis le desktop sans autorité client
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0037-desktop-aircraft-purchase`
 Phase: 2–4
@@ -38,6 +38,8 @@ stockage de token, un parcours de connexion ou une offre codée en dur.
 - 2 août 2026 — publication : commit `3220394` poussé sur
   `feature/T0037-desktop-aircraft-purchase`; PR #64 ouverte prête pour revue,
   base `main`, avec les trois checks GitHub en cours.
+- 2 août 2026 — `Done` : PR #64 fusionnée dans `main` au commit `47cd50c` ;
+  Windows multi-stack, PostgreSQL 17 et supply-chain réussis.
 
 ## Dependencies
 
@@ -270,8 +272,7 @@ d'autorité.
 - branche : `feature/T0037-desktop-aircraft-purchase` ;
 - base : `origin/main` au commit `82e79ea` ;
 - commit d'implémentation : `3220394` ;
-- PR #64 : ouverte et prête, base `main`, head
+- PR #64 : fusionnée dans `main` au commit `47cd50c`, base `main`, head
   `feature/T0037-desktop-aircraft-purchase` ;
-- checks GitHub : Windows multi-stack, PostgreSQL 17 et supply-chain en cours
-  au moment de cette mise à jour ;
-- fusion finale réservée à Andy.
+- checks GitHub : Windows multi-stack, PostgreSQL 17 et supply-chain réussis ;
+- fusion finale réalisée par Andy.

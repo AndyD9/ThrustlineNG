@@ -128,6 +128,22 @@ rejets Auth, transport et SQL sont remplacés par des codes publics sans détail
 de solde, d'offre, de JWT ou de credential. Aucun appelant desktop ni
 déploiement distant n'est couvert.
 
+## Configuration et session desktop T0038
+
+Le bundle n'accepte que deux paramètres explicitement publics : URL Supabase et
+clé anonyme. T0038 les borne à `http://127.0.0.1:54321`; aucune origine distante,
+clé `service_role` ou variable générique n'est exposée. La CSP de développement
+ajoute uniquement cette origine loopback à Vite/HMR. La CSP de production reste
+`connect-src 'none'` jusqu'à l'identification et la revue d'une cible distante.
+
+Bearer et refresh token restent en mémoire WebView, sans log, rendu, fichier,
+cookie ni stockage Web. Un bearer proche de l'expiration est renouvelé auprès
+de Supabase Auth avec une requête et une réponse bornées. Les appels concurrents
+partagent un seul refresh ; la rotation remplace les deux tokens seulement après
+validation complète. Un refus Auth efface la session, tandis qu'une panne
+transitoire la conserve pour un retry. Cette fondation n'acquiert pas la session
+initiale et ne prétend pas protéger un bearer contre une WebView compromise.
+
 ## Autorité globale du golden path T0024
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de
