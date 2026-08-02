@@ -7,7 +7,8 @@ est fusionnée dans l'ancienne branche T0040, mais ses commits restent absents d
 `main`; la PR corrective #69 est ouverte prête vers la branche distante par
 défaut.
 T0042 est `Review` sur une branche empilée sur T0041 ; aucune capacité
-d'onboarding desktop n'est revendiquée dans `main`.
+d'onboarding desktop n'est revendiquée dans `main`. Sa PR #70 est un brouillon
+avec base `feature/T0041-bounded-login-route`.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -575,6 +576,7 @@ même nom conserve la clé tandis qu'un changement crée une nouvelle intention.
 Les 104 tests frontend, la couverture, le build et les gates passent localement.
 Cette preuve jsdom/fetch injectée ne valide ni WebView live, CSP de production,
 cible distante ou donnée réelle. La branche reste empilée sur T0041/PR #69.
+La PR brouillon #70 cible explicitement cette branche, pas `main`.
 
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build

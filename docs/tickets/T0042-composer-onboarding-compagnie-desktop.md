@@ -33,6 +33,9 @@ pas être présenté comme livrable indépendamment.
 - 2 août 2026 — `Review` : commande, intention, composition, revue adversariale
   et validations automatisées terminées ; la branche reste empilée sur
   T0041/PR #69 et ne peut pas cibler `main` indépendamment.
+- 2 août 2026 — publication : commit `c2e1c32` poussé ; PR #70 ouverte en
+  brouillon avec base `feature/T0041-bounded-login-route` et head
+  `feature/T0042-desktop-company-onboarding`.
 
 ## Dependencies
 
@@ -240,4 +243,7 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md` et `SECURITY.md`.
 - branche : `feature/T0042-desktop-company-onboarding` ;
 - base : `feature/T0041-bounded-login-route` au commit `4f023df` ;
 - dépendance : T0041/PR #69 doit fusionner avant rebase/changement de base ;
-- commit et Pull Request : à créer après inspection du diff indexé.
+- commit d'implémentation : `c2e1c32` ;
+- PR #70 : brouillon, base `feature/T0041-bounded-login-route`, head
+  `feature/T0042-desktop-company-onboarding` ; les trois checks GitHub sont en
+  cours lors de l'observation initiale.

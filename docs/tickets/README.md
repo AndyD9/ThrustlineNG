@@ -242,7 +242,8 @@ T0042 compose l'Edge Function d'onboarding T0023 depuis l'accueil authentifié,
 avec une intention idempotente, un payload fermé et le bearer obtenu à la
 soumission depuis le gestionnaire T0038. Ses 104 tests frontend, couverture,
 build et gates passent localement. Il est `Review` sur une branche empilée sur
-T0041/PR #69 et exclut persistance, catalogue, achat et backend.
+T0041/PR #69 ; la PR brouillon #70 cible cette branche et exclut persistance,
+catalogue, achat et backend.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
