@@ -189,6 +189,18 @@ L'identité est supprimée, puis l'arrêt sans backup et le redémarrage rendent
 arrêtée. Cette preuve locale est réalisée après la fusion T0039 et ne valide ni route,
 persistance, cible distante ou donnée réelle.
 
+Preuve T0041 du 2 août 2026 : typecheck, couverture et build passent avec
+9 fichiers/80 tests frontend ; 1 fichier/2 scénarios runtime T0040 reste ignoré
+sans environnement explicite. La couverture globale atteint 91,69 % des
+statements, 86,17 % des branches, 91,66 % des fonctions et 92,18 % des lignes.
+Le DOM jsdom couvre `/` sans session, `/login` avec session, installation avant
+navigation, déconnexion et route inconnue. Les espions réseau restent à zéro au
+rendu, pendant les redirections et à la déconnexion ; après succès, le DOM ne
+contient aucun identifiant ou token synthétique. Les gates autorité, données et
+maintenance passent avec 5, 6 et 8 mutations. Cette preuve ne valide aucun login
+WebView live, persistance, onboarding, catalogue, achat ou cible distante et la
+branche reste empilée sur T0040 non fusionné.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme
