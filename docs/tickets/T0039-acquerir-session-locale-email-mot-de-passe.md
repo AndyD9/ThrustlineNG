@@ -31,6 +31,10 @@ réelle ni cible distante.
 - 2 août 2026 — `Review` : commande, panneau injecté, invariants, documentation
   et validations automatisées sont prêts pour revue ; aucun login live ou
   stockage n'est revendiqué.
+- 2 août 2026 — publication : commit `024613c` poussé sur
+  `feature/T0039-desktop-password-sign-in`; PR #66 ouverte prête pour revue,
+  base `main`. Windows multi-stack et supply-chain sont en cours, PostgreSQL 17
+  est en file d'attente lors de cette mise à jour.
 
 ## Dependencies
 
@@ -226,5 +230,9 @@ l'inventaire d'autorité.
 
 - branche : `feature/T0039-desktop-password-sign-in` ;
 - base : `origin/main` au commit `e88bdef` ;
-- commit et PR : à créer après revue du diff indexé ;
+- commit d'implémentation : `024613c` ;
+- PR #66 : ouverte et prête, base `main`, head
+  `feature/T0039-desktop-password-sign-in` ;
+- checks GitHub : Windows multi-stack et supply-chain en cours, PostgreSQL 17 en
+  file d'attente lors de cette mise à jour ;
 - fusion finale réservée à Andy.
