@@ -144,6 +144,23 @@ validation complète. Un refus Auth efface la session, tandis qu'une panne
 transitoire la conserve pour un retry. Cette fondation n'acquiert pas la session
 initiale et ne prétend pas protéger un bearer contre une WebView compromise.
 
+## Acquisition de session locale T0039
+
+La première méthode choisie explicitement est email/mot de passe contre
+Supabase Auth local uniquement. Le desktop envoie exactement ces deux champs à
+`/auth/v1/token?grant_type=password` avec la clé anonyme publique, un timeout de
+cinq secondes et une réponse lue en streaming jusqu'à 16 Kio. Les identifiants
+hors bornes, refus Auth et sessions malformées échouent fermés avec des erreurs
+publiques sans détail amont.
+
+Le gestionnaire T0038 reçoit les deux tokens seulement après validation complète
+de la réponse. Le panneau bloque les soumissions concurrentes, annule au
+démontage et efface le mot de passe de son state dès la soumission. Un invariant
+scanne les sources auth et refuse stockage Web, cookie ou journalisation. Cette
+tranche ne crée ni route, appel live, inscription, récupération de mot de passe,
+OAuth, persistance Windows, cible distante ou donnée réelle. Une WebView
+compromise peut toujours lire les secrets présents en mémoire.
+
 ## Autorité globale du golden path T0024
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de

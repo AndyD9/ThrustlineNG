@@ -41,11 +41,12 @@
       "coverage": "managed",
       "serverBoundaries": ["Supabase Auth"],
       "evidencePaths": [
+        "apps/desktop/src/features/auth/passwordSignIn.ts",
         "apps/desktop/src/features/auth/session.ts",
         "supabase/config.toml"
       ],
-      "evidenceMarkers": ["/auth/v1/token?grant_type=refresh_token", "[auth]", "enabled = true"],
-      "limitations": ["The desktop has an in-memory refresh foundation for the local target, but no sign-in provider, persisted session, routed UI, remote target or live call is implemented."]
+      "evidenceMarkers": ["/auth/v1/token?grant_type=password", "/auth/v1/token?grant_type=refresh_token", "[auth]", "enabled = true"],
+      "limitations": ["The desktop has local-only email/password acquisition and in-memory refresh foundations behind injected components, but no routed composition, persisted session, remote target or live call is implemented."]
     },
     {
       "id": "company",
@@ -94,7 +95,7 @@
         "supabase/tests/database/aircraft_purchase.test.sql"
       ],
       "evidenceMarkers": ["functions/v1/aircraft-purchase", "createAircraftPurchaseHandler", "purchase_aircraft", "company_aircraft"],
-      "limitations": ["The bounded desktop command is implemented behind injected session and offer inputs, but authentication, catalogue, routed UI, live desktop connectivity and deployment are not provided; lease and later fleet mutations are not implemented."]
+      "limitations": ["The bounded purchase command and local sign-in foundation remain separate injected components; catalogue, routed composition, live desktop connectivity and deployment are not provided, and lease or later fleet mutations are not implemented."]
     },
     {
       "id": "dispatch",
@@ -139,7 +140,7 @@
         "supabase/tests/database/aircraft_purchase.test.sql"
       ],
       "evidenceMarkers": ["functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft"],
-      "limitations": ["Opening and authenticated one-off aircraft purchase are covered, including a bounded desktop command with injected inputs; authentication, catalogue, routed UI, live connectivity, recurring lease and other financial commands are not defined."]
+      "limitations": ["Opening and authenticated one-off aircraft purchase are covered, with separate bounded desktop purchase and local sign-in foundations; catalogue, routed composition, live connectivity, recurring lease and other financial commands are not defined."]
     },
     {
       "id": "reputation-progression",

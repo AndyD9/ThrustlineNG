@@ -1,8 +1,8 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 2 août 2026 (T0038 sur une branche issue de
-`origin/main` au commit `47cd50c`).
-Statut : T0012–T0031 et T0033–T0037 sont `Done`; T0038 est `Review`. Les
+Dernière revue documentaire : 2 août 2026 (T0039 sur une branche issue de
+`origin/main` au commit `e88bdef`).
+Statut : T0012–T0031 et T0033–T0038 sont `Done`; T0039 est `Review`. Les
 vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -68,9 +68,10 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
 - Achat T0029 présent dans `main` : offre synthétique, propriété de compagnie et
   débit autoritaire atomique. T0035 ajoute dans `main` une Edge Function
   authentifiée et T0036 prouve son runtime local réel. T0037 ajoute dans `main`
-  une commande et un panneau desktop injectés. T0038 ajoute sur sa branche la
-  configuration locale publique et le refresh de session en mémoire, sans login,
-  persistance, catalogue, connectivité live ni déploiement.
+  une commande et un panneau desktop injectés. T0038 ajoute dans `main` la
+  configuration locale publique et le refresh de session en mémoire. T0039
+  ajoute sur sa branche l'acquisition email/mot de passe locale injectée, sans
+  persistance, route, catalogue, connectivité live ni déploiement.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -516,6 +517,20 @@ les gates autorité/données/maintenance passent. La couverture globale atteint
 utilise un `fetch` injecté : elle ne valide ni acquisition de session,
 stockage Windows, appel live, CORS, staging, production ou donnée réelle.
 
+T0039 ajoute une commande email/mot de passe limitée à Auth local et un panneau
+injecté qui installe atomiquement une session T0038 validée. La requête expire
+après cinq secondes, la réponse est lue jusqu'à 16 Kio, les refus sont redigés et
+le mot de passe quitte le state dès la soumission. Les tests bloquent la
+concurrence, vérifient l'annulation et interdisent stockage Web, cookie et logs.
+Cette tranche simulée ne crée ni route, inscription, récupération de mot de
+passe, OAuth, persistance Windows, appel live, cible distante ou donnée réelle.
+
+Le 2 août 2026, typecheck, build et 9 fichiers/78 tests frontend passent. La
+couverture globale atteint 92 % des statements, 86,13 % des branches, 92,45 %
+des fonctions et 92,56 % des lignes. Les gates autorité, données et maintenance
+passent avec 5, 6 et 8 mutations ; le bundle ne contient aucun credential de
+test, marqueur `service_role` ou accès Data API.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -616,15 +631,15 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0037 est fusionné dans `main` par la PR #64 au commit `47cd50c`. T0038 cadre et
-implémente sur sa branche la configuration locale publique, le refresh de session
-en mémoire et l'ouverture CSP de développement minimale. Il reste en `Review`
-sans login, persistance, cible distante ou appel live.
+T0038 est fusionné dans `main` par la PR #65 au commit `e88bdef`. Andy choisit
+le 2 août 2026 email/mot de passe local avec session en mémoire ; T0039
+implémente cette fondation sur sa branche, sans route ni appel live.
 
-Après T0038, le prochain ticket doit choisir explicitement la méthode
-d'acquisition de session et son stockage Windows, ou identifier une cible
-staging synthétique et son origine CSP. Ces choix touchent sécurité et produit et
-ne doivent pas être inventés dans T0038.
+Après T0039, le prochain ticket recommandé doit valider le login contre le
+runtime Auth local avec une identité exclusivement synthétique, puis nettoyer
+la pile sans backup. La persistance Windows exige un ticket de sécurité séparé
+avant tout stockage ; catalogue, panneau d'achat et navigation ne doivent être
+composés qu'après cette preuve runtime.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et

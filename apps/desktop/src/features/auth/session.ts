@@ -71,7 +71,10 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
-function parseRefreshResponse(value: unknown, nowEpochSeconds: number): UserSessionTokens {
+export function parseAuthSessionResponse(
+  value: unknown,
+  nowEpochSeconds: number,
+): UserSessionTokens {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new SessionError("invalid-response");
   }
@@ -192,7 +195,7 @@ export class DesktopSessionManager {
       throw new SessionError("unavailable");
     }
 
-    const refreshed = parseRefreshResponse(await readJson(response), this.#nowEpochSeconds());
+    const refreshed = parseAuthSessionResponse(await readJson(response), this.#nowEpochSeconds());
     if (this.#revision !== revision) {
       throw new SessionError("authentication-required");
     }

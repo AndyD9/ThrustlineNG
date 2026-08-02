@@ -62,4 +62,17 @@ describe("invariants frontend et Tauri", () => {
     expect(viteConfig).toContain("VITE_THRUSTLINE_SUPABASE_ANON_KEY");
     expect(viteConfig).toContain("VITE_THRUSTLINE_SUPABASE_URL");
   });
+
+  it("ne persiste ni ne journalise les credentials du module auth", () => {
+    const authSources = [
+      read("apps/desktop/src/features/auth/connectionConfig.ts"),
+      read("apps/desktop/src/features/auth/passwordSignIn.ts"),
+      read("apps/desktop/src/features/auth/PasswordSignInPanel.tsx"),
+      read("apps/desktop/src/features/auth/session.ts"),
+    ].join("\n");
+
+    expect(authSources).not.toMatch(
+      /localStorage|sessionStorage|indexedDB|document\.cookie|console\.(?:debug|error|info|log|warn)/,
+    );
+  });
 });
