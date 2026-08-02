@@ -180,13 +180,15 @@ erreurs. La CSP de production reste fermée.
 
 ### Commands and results
 
-- `pnpm.cmd frontend:typecheck` — PASS après correction de types détectée lors
-  de la première passe ;
+- premier `pnpm.cmd frontend:typecheck` — FAIL sur les signatures de mocks et un
+  rétrécissement incomplet de `expires_in`, puis PASS après correction ;
 - `pnpm.cmd frontend:test` — PASS, 7 fichiers/58 tests ;
 - `pnpm.cmd frontend:coverage` — PASS, 89,80 % statements, 84,79 % branches,
   90 % fonctions et 90,68 % lignes ;
 - `pnpm.cmd frontend:build` — PASS, bundle JS 233,02 kB / 74,72 kB gzip ;
-- `pnpm.cmd authority:check` — PASS, 5 mutations ;
+- premier `pnpm.cmd authority:check` — FAIL attendu du scanner sur un marqueur
+  privilégié écrit dans le test d’invariant lui-même ; assertion redondante
+  retirée sans relâcher le gate, puis PASS avec 5 mutations ;
 - `pnpm.cmd data-policy:check` — PASS, 6 mutations ;
 - `pnpm.cmd maintenance:check` — PASS, 8 mutations ;
 - `git diff --check` — PASS, avertissements de normalisation LF/CRLF seulement.
