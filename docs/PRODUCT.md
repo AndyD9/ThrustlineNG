@@ -70,6 +70,18 @@ ADR. Ne pas ajouter partiellement du multi-utilisateur.
 - Sauvegarde cloud, reprise et diagnostics.
 - Installateur et mises à jour signés.
 
+## Politique économique d'ouverture du MVP
+
+Chaque nouvelle compagnie MVP reçoit une unique ouverture de **430 000 EUR**,
+soit `43000000` unités mineures. Cette politique v1 est identique pour tous :
+aucun choix de devise, difficulté, bonus, aléa ou formule client.
+
+`eng/economy-policy.json` est la source normative. Une future modification
+exigera une nouvelle version et une date ou condition d'entrée en vigueur pour
+les seules compagnies créées ensuite ; elle ne réécrira jamais une ouverture
+existante. Cette décision ne définit ni revenus, ni coûts, ni prix, ni conversion
+de devise et ne constitue pas un équilibrage économique complet.
+
 ## Hors MVP
 
 - Réseau social, marketplace communautaire et mods.

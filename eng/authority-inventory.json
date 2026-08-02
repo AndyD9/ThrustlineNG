@@ -113,11 +113,12 @@
       "coverage": "partial",
       "serverBoundaries": ["public.post_company_opening_balance"],
       "evidencePaths": [
+        "eng/economy-policy.json",
         "supabase/migrations/20260731000300_immutable_financial_ledger.sql",
         "supabase/tests/database/financial_ledger.test.sql"
       ],
-      "evidenceMarkers": ["post_company_opening_balance"],
-      "limitations": ["Only opening_balance exists; no production economy or second financial command is defined."]
+      "evidenceMarkers": ["new-company-opening", "post_company_opening_balance"],
+      "limitations": ["Opening policy is fixed at 43000000 EUR; no second financial command is defined."]
     },
     {
       "id": "reputation-progression",

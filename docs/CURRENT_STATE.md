@@ -61,10 +61,11 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
 - Workflows dans `main` :
   `.github/workflows/ci.yml` et `.github/workflows/security.yml`.
 - Migrations Supabase append-only constatées : 5.
-- Variables/configurations relevées par nom seulement :
-  `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` et
-  `COMPANY_OPENING_BALANCE_MINOR`, `COMPANY_OPENING_CURRENCY` ; les deux
-  dernières valeurs locales sont des fixtures synthétiques.
+- Variables/configurations relevées par nom seulement : `SUPABASE_URL`,
+  `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`.
+- Politique économique T0028 présente sur sa branche : source v1
+  `eng/economy-policy.json`, ouverture `43000000` unités mineures en `EUR` ;
+  elle n'est pas encore livrée dans `main`.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
   clientes dans `eng/authority-inventory.json`.
 
@@ -384,7 +385,8 @@ rejeu A, refus collision/deuxième ouverture, isolation A/B/anonyme et refus
 `update`/`delete`/`truncate`. La suppression bloque une nouvelle variation puis
 détache le sujet sans réécrire l'entrée : A finit à `0|0|0|0`, B reste à `1|1`
 et les deux écritures persistent sans colonne d'identité directe. T0020 est
-`Done` ; aucune politique économique de production n'est décidée.
+`Done` ; il n'avait fixé aucune politique économique de production. T0028 prend
+ultérieurement cette décision sans modifier la migration ni les écritures T0020.
 
 ## Onboarding de compagnie autoritaire
 
@@ -408,10 +410,10 @@ ou environnement distant n'est ajouté. Les runs GitHub `30652926904` et
 
 T0023 ajoute `company-onboarding`, une Edge Function `POST` qui accepte
 uniquement le nom et la clé d'idempotence. Elle vérifie le bearer token auprès
-de Supabase Auth, refuse l'anonyme, dérive le propriétaire de la session et lit
-montant/devise dans la configuration serveur avant d'appeler la RPC T0022 avec
-`service_role`. Le corps est borné à 4 Kio et les réponses sont JSON `no-store`
-sans détail SQL.
+de Supabase Auth, refuse l'anonyme, dérive le propriétaire de la session et, dans
+la version livrée par T0023, lit montant/devise dans la configuration serveur
+avant d'appeler la RPC T0022 avec `service_role`. Le corps est borné à 4 Kio et
+les réponses sont JSON `no-store` sans détail SQL.
 
 Les 14 tests Node, le gate backend T0012–T0023 avec 11 mutations, deux resets,
 10 fichiers/190 assertions pgTAP et les types passent localement. L'intégration
@@ -419,12 +421,29 @@ Auth → Edge → RPC rend une réponse v1 active, rejoue les mêmes identifiant
 laisse exactement `1|1|1`; un appel sans JWT rend HTTP 401. L'Edge Runtime reste
 derrière l'API loopback et n'ajoute aucun port externe. T0023 est présent dans
 `main` depuis la PR #41 et passe à `Done`; aucune valeur économique de production
-n'est décidée. L'arrêt local utilise désormais `--no-backup`; un
+n'était décidée par ce ticket. L'arrêt local utilise désormais `--no-backup`; un
 arrêt/redémarrage prouve que l'identité et la compagnie synthétiques T0023 ne
 survivent pas dans le volume conservé pour les images. La revue adversariale a
 corrigé la minimisation de la réponse privilégiée dans `aa4d0a2`. Les PR
 #38–#40 ont propagé T0023 dans T0020, puis la PR #41 a fusionné la pile dans
 `main`.
+
+## Politique économique d'ouverture T0028
+
+Andy confirme le 2 août 2026 une ouverture unique de 430 000 EUR pour toute
+nouvelle compagnie MVP. La branche T0028 encode cette politique v1 dans
+`eng/economy-policy.json` avec `openingAmountMinor = 43000000` et
+`currencyCode = EUR`. La fonction consomme une copie embarquée strictement
+identique ; les anciennes variables `COMPANY_OPENING_BALANCE_MINOR` et
+`COMPANY_OPENING_CURRENCY` sont retirées du handler, du runtime et de la
+configuration Supabase.
+
+Quinze tests Node passent, dont six politiques invalides et une tentative de
+surcharge par environnement. Le gate backend passe avec quatorze mutations et
+le gate de données avec six mutations. L'inventaire d'autorité reflète la
+politique tout en conservant l'absence d'une deuxième commande financière.
+T0028 reste présent uniquement sur sa branche empilée tant que sa PR n'est pas
+fusionnée ; aucun projet distant, appel desktop ou donnée réelle n'est ajouté.
 
 ## Autorité des mutations du golden path
 
@@ -520,9 +539,10 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Créer un ticket séparé pour décider la politique économique de production avant
-tout déploiement ou appel desktop, sans détailler une deuxième variation avant
-cette décision. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS 2024
+Après livraison de T0027 puis T0028 dans `main`, cadrer une première acquisition
+d'avion autoritaire (achat ou location à décider dans le ticket) avec propriété,
+débit financier transactionnel et rejeu idempotent, sans anticiper le reste de
+l'économie. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS 2024
 exigés par ADR-0003. Les autres dettes ouvertes restent priorisées par sévérité
 dans `KNOWN_ISSUES.md`.
 

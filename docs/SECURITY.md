@@ -91,12 +91,18 @@ dérive de cette réponse l'unique `owner_id` transmis à T0022. Le corps client
 est limité à 4 Kio et contient exactement `companyName` et `idempotencyKey` ; un
 propriétaire, montant, devise ou champ inconnu fourni par le client est refusé.
 
-Le montant et la devise proviennent de variables Edge Runtime obligatoires et
-bornées comme T0020. `SUPABASE_SERVICE_ROLE_KEY` n'est utilisé que dans l'appel
-RPC interne. Les réponses sont `no-store`, ne journalisent rien et remplacent
-les erreurs Auth, SQL ou transport par des codes publics bornés. Le runtime local
-injecte uniquement des fixtures synthétiques ; aucune valeur de production,
-clé distante ou donnée réelle n'est admise.
+T0028 fixe le montant et la devise dans `eng/economy-policy.json` : la politique
+v1 accorde `43000000` unités mineures en `EUR`. La fonction consomme une copie
+embarquée dont le gate exige l'identité stricte avec cette source. Le runtime et
+`supabase/config.toml` ne peuvent plus substituer ces valeurs par variables
+d'environnement. `SUPABASE_SERVICE_ROLE_KEY` n'est utilisé que dans l'appel RPC
+interne. Les réponses sont `no-store`, ne journalisent rien et remplacent les
+erreurs Auth, SQL ou transport par des codes publics bornés.
+
+Le client reste limité au nom et à la clé d'idempotence. Toute future politique
+exige une nouvelle version et ne peut réécrire une ouverture immuable existante.
+Cette règle ne déploie aucun projet distant et n'autorise toujours aucune donnée
+réelle.
 
 ## Autorité globale du golden path T0024
 

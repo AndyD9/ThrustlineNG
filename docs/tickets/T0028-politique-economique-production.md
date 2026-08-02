@@ -1,6 +1,6 @@
 # T0028 — Fixer la politique économique d'ouverture de production
 
-Status: Ready
+Status: Review
 Owner: Andy
 Branch: `docs/T0028-production-economy-policy`
 Phase: 2
@@ -38,6 +38,10 @@ antérieurs de la même valeur comme fixture en preuve de production.
 - 2 août 2026 — `Ready` : T0020, T0022 et T0023 sont `Done` et livrés dans
   `main`; Andy a confirmé montant et devise ; le worktree
   `.worktrees/t0028` est propre sur `docs/T0028-production-economy-policy`.
+- 2 août 2026 — `In progress` : implémentation autorisée sur la branche
+  `docs/T0028-production-economy-policy`, dans les seules zones `Allowed areas`.
+- 2 août 2026 — `Review` : implémentation et documentation terminées ; quinze
+  tests Edge, les gates backend/données/autorité et `git diff --check` passent.
 - T0027 reste une dépendance d'ascendance documentaire non fusionnée dans
   `main`; T0028 reste explicitement empilé et ne présume pas sa livraison.
 
@@ -53,6 +57,8 @@ antérieurs de la même valeur comme fixture en preuve de production.
 ## Allowed areas
 
 - `eng/economy-policy.json` ;
+- `eng/authority-inventory.json` ;
+- `supabase/config.toml` ;
 - `supabase/functions/company-onboarding/` ;
 - `scripts/supabase-local-runtime.ps1` ;
 - `tests/backend/run.ps1` ;
@@ -87,9 +93,9 @@ antérieurs de la même valeur comme fixture en preuve de production.
 
 - `eng/economy-policy.json` porte la version, le montant en unités mineures, la
   devise et la portée `new-company-opening` sans secret ni donnée personnelle.
-- L'Edge Function consomme cette source canonique et n'accepte plus que le
-  déploiement choisisse silencieusement une autre valeur par variables
-  d'environnement.
+- L'Edge Function consomme une projection embarquée strictement identique à la
+  source canonique ; le gate refuse toute divergence. Le déploiement ne peut
+  plus choisir silencieusement une autre valeur par variables d'environnement.
 - Le payload client reste exactement limité à `companyName` et
   `idempotencyKey`; le client ne reçoit aucune autorité nouvelle.
 - Les fixtures locales et les attentes de test utilisent la politique canonique
@@ -117,15 +123,15 @@ antérieurs de la même valeur comme fixture en preuve de production.
 
 ## Acceptance criteria
 
-- [ ] Andy a validé le montant et la devise consignés sans assimiler la fixture
+- [x] Andy a validé le montant et la devise consignés sans assimiler la fixture
       existante à une décision implicite.
-- [ ] Une source canonique versionnée fixe la politique d'ouverture des nouvelles
+- [x] Une source canonique versionnée fixe la politique d'ouverture des nouvelles
       compagnies MVP.
-- [ ] L'Edge Function utilise cette source et le déploiement ne peut plus
+- [x] L'Edge Function utilise cette source et le déploiement ne peut plus
       substituer silencieusement montant ou devise.
-- [ ] Le client reste incapable de fournir propriétaire, montant ou devise.
-- [ ] Les tests ciblés, les gates backend et politique de données passent.
-- [ ] La documentation distingue décision, preuve locale et déploiement futur.
+- [x] Le client reste incapable de fournir propriétaire, montant ou devise.
+- [x] Les tests ciblés, les gates backend et politique de données passent.
+- [x] La documentation distingue décision, preuve locale et déploiement futur.
 
 ## Security review
 
@@ -159,6 +165,7 @@ antérieurs de la même valeur comme fixture en preuve de production.
 pnpm backend:functions:test
 pnpm backend:check
 pnpm data-policy:check
+pnpm authority:check
 git diff --check
 ```
 
@@ -181,18 +188,77 @@ Ne jamais réécrire ou supprimer une ouverture déjà inscrite au grand livre.
 
 ## Completion Report
 
-À remplir après validation de la décision puis implémentation.
+Implémentation terminée le 2 août 2026 sur
+`docs/T0028-production-economy-policy`, dans le worktree isolé
+`.worktrees/t0028`. La branche reste empilée sur T0027, absent de `origin/main`
+tant que la PR #51 n'est pas fusionnée.
 
 ### Summary
 
+Andy fixe l'ouverture des nouvelles compagnies MVP à 430 000 EUR. La politique
+v1 est versionnée dans `eng/economy-policy.json`; l'Edge Function embarque une
+copie dont le gate exige l'identité stricte. Les anciennes surcharges de montant
+et devise par environnement sont supprimées sans modifier les migrations ni les
+écritures existantes.
+
 ### Files changed
+
+- politique canonique `eng/economy-policy.json` et inventaire d'autorité ;
+- copie embarquée, handler et tests `company-onboarding` ;
+- configuration/runtime Supabase sans les deux anciennes variables ;
+- gate backend et ses trois nouvelles mutations négatives ;
+- `PRODUCT`, `ARCHITECTURE`, `SECURITY`, `QUALITY` et `CURRENT_STATE` ;
+- ticket T0028 et index des tickets.
 
 ### Commands and results
 
+- `pnpm backend:functions:test` — aucun test exécuté : Windows PowerShell a
+  bloqué le shim `pnpm.ps1` par sa politique d'exécution ; relance avec
+  `pnpm.cmd` ;
+- première relance `pnpm.cmd` dans le bac à sable — restauration du worktree
+  bloquée par des accès registre/cache `EACCES`; aucun test exécuté ;
+- relance autorisée avec `pnpm.cmd` — dépendances exactes restaurées sans
+  modification du lockfile, quinze tests Edge réussis ; premier
+  `backend:check` en échec utile car le harnais de mutation ne copiait pas les
+  deux nouveaux JSON dans sa racine temporaire ;
+- après correction du harnais : `pnpm.cmd backend:functions:test` — réussi,
+  15/15 ; `pnpm.cmd backend:check` — réussi, quatorze mutations ;
+  `pnpm.cmd data-policy:check` — réussi, six mutations ;
+- validation finale après documentation : les trois commandes précédentes
+  réussissent, puis `pnpm.cmd authority:check` réussit avec dix étapes,
+  treize domaines, trois surfaces et cinq mutations ;
+- `git diff --check` — réussi ; seuls des avertissements informatifs de future
+  normalisation LF vers CRLF sont signalés par Git pour quatre fichiers.
+
 ### Manual verification result
+
+Réussie sur données synthétiques : la politique canonique et sa copie
+embarquée portent toutes deux `43000000`/`EUR`; le handler transmet exactement
+ces valeurs à la RPC simulée. Un payload ajoutant montant, devise ou propriétaire
+est refusé avant tout appel réseau. Six copies invalides couvrent objet absent,
+version inconnue, zéro, dépassement, devise minuscule et champ inattendu. Le gate
+injecte aussi une divergence de copie et le retour d'une variable
+d'environnement, puis confirme leur détection.
 
 ### Risks and limitations
 
+- la copie JSON embarquée est nécessaire au paquet Edge ; le gate bloque toute
+  divergence avec la source canonique mais ne remplace pas une revue de diff ;
+- aucun Edge Runtime réel, projet distant ou donnée utilisateur réelle n'a été
+  utilisé dans T0028 ; les preuves portent sur l'import Node, le handler et les
+  gates statiques ;
+- 430 000 EUR est une politique d'ouverture, pas une preuve d'équilibrage
+  complet ; revenus, coûts, prix et deuxième commande restent absents ;
+- la branche reste empilée sur T0027 jusqu'à livraison de la PR #51.
+
 ### Follow-ups
 
+- livrer T0027 dans `main`, puis rebaser ou changer la base de la PR T0028 ;
+- cadrer ensuite une première acquisition d'avion autoritaire sans anticiper le
+  reste de l'économie ;
+- conserver l'interdiction de données réelles suivie par `KI-021`.
+
 ### Documentation updated
+
+Politique produit, frontière d'architecture, invariant de sécurité et son gate,
+commandes de qualité, état courant, inventaire d'autorité et suivi des tickets.

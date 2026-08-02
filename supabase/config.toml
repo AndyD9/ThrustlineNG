@@ -382,10 +382,6 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
-[edge_runtime.secrets]
-COMPANY_OPENING_BALANCE_MINOR = "env(COMPANY_OPENING_BALANCE_MINOR)"
-COMPANY_OPENING_CURRENCY = "env(COMPANY_OPENING_CURRENCY)"
-
 [functions.company-onboarding]
 enabled = true
 verify_jwt = true

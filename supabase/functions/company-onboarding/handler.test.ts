@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createCompanyOnboardingHandler, type CompanyOnboardingEnvironment } from "./handler.ts";
+import {
+  createCompanyOnboardingHandler,
+  readEconomyPolicy,
+  type CompanyOnboardingEnvironment,
+} from "./handler.ts";
 
 const environment: CompanyOnboardingEnvironment = {
   SUPABASE_URL: "http://127.0.0.1:54321",
   SUPABASE_ANON_KEY: "synthetic-anon-key",
   SUPABASE_SERVICE_ROLE_KEY: "synthetic-service-role-key",
-  COMPANY_OPENING_BALANCE_MINOR: "43000000",
-  COMPANY_OPENING_CURRENCY: "EUR",
 };
 
 const userId = "71000000-0000-4000-8000-000000000001";
@@ -88,12 +90,41 @@ test("requires a normalized name and canonical UUID", async () => {
   assert.equal(keyResponse.status, 400);
 });
 
-test("fails closed when server economic configuration is invalid", async () => {
-  const response = await createCompanyOnboardingHandler({ ...environment, COMPANY_OPENING_CURRENCY: "eur" })(
+test("rejects invalid canonical economy policies", () => {
+  const valid = {
+    schemaVersion: 1,
+    scope: "new-company-opening",
+    openingAmountMinor: 43000000,
+    currencyCode: "EUR",
+  };
+  const invalidPolicies = [
+    null,
+    { ...valid, schemaVersion: 2 },
+    { ...valid, openingAmountMinor: 0 },
+    { ...valid, openingAmountMinor: 1_000_000_000_000_001 },
+    { ...valid, currencyCode: "eur" },
+    { ...valid, unexpected: true },
+  ];
+  for (const policy of invalidPolicies) {
+    assert.throws(() => readEconomyPolicy(policy));
+  }
+  assert.deepEqual(readEconomyPolicy(valid), valid);
+});
+
+test("ignores deployment attempts to override the canonical economy policy", async () => {
+  const calls: Array<{ input: string; init?: RequestInit }> = [];
+  const overriddenEnvironment = {
+    ...environment,
+    COMPANY_OPENING_BALANCE_MINOR: "1",
+    COMPANY_OPENING_CURRENCY: "USD",
+  };
+  const response = await createCompanyOnboardingHandler(overriddenEnvironment, successfulFetch(calls))(
     request(validBody()),
   );
-  assert.equal(response.status, 503);
-  assert.equal((await response.json()).error.code, "configuration_unavailable");
+  assert.equal(response.status, 200);
+  const rpcBody = JSON.parse(String(calls[1].init?.body));
+  assert.equal(rpcBody.opening_amount_minor, 43000000);
+  assert.equal(rpcBody.currency_code, "EUR");
 });
 
 test("rejects an invalid or anonymous Auth session", async () => {
