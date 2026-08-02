@@ -131,7 +131,8 @@ applicatif ou persistant n'est modifié.
 
 Implémentation terminée le 2 août 2026 sur
 `docs/T0027-agent-multitasking-governance`, empilée sur
-`docs/T0026-reconcile-t0010-delivery`.
+`docs/T0026-reconcile-t0010-delivery`. La PR brouillon #50 cible cette branche de
+base jusqu'à la fusion de T0026.
 
 ### Summary
 
@@ -160,7 +161,11 @@ l'intégration restent séquentielles.
   sur les quatre chemins attendus ;
 - `Select-String` sur `coordinateur`, `lecture seule`, `worktree` et
   `diff combiné` — les invariants sont présents dans `AGENTS.md` et leur
-  procédure dans `docs/WORKFLOW.md`.
+  procédure dans `docs/WORKFLOW.md` ;
+- `gh pr view 50` — PR `OPEN`, brouillon, base
+  `docs/T0026-reconcile-t0010-delivery`, head
+  `docs/T0027-agent-multitasking-governance` ; CI Windows et PostgreSQL en cours,
+  supply chain en attente au moment du contrôle.
 
 ### Manual verification result
 
