@@ -234,8 +234,9 @@ T0041 compose la configuration et le gestionnaire de session existants avec une
 route `/login`, une garde d'accueil et une déconnexion exclusivement en mémoire.
 Ses 80 tests frontend, sa couverture, son build et les gates autorité, données
 et maintenance passent localement. La branche est empilée sur T0040/PR #67 :
-elle reste `Review`, ne cible pas encore `main` indépendamment et ne revendique
-ni login WebView live, persistance, onboarding, catalogue ou achat composé.
+la PR #68 est ouverte en brouillon avec cette branche comme base. T0041 reste
+`Review`, ne cible pas encore `main` indépendamment et ne revendique ni login
+WebView live, persistance, onboarding, catalogue ou achat composé.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

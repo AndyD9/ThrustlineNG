@@ -32,6 +32,9 @@ branche et ne doit pas être présenté comme livrable indépendamment.
 - 2 août 2026 — `Review` : composition, gardes, déconnexion et preuves
   automatisées terminées ; la branche reste empilée et ne peut pas être rendue
   indépendante avant la fusion de T0040.
+- 2 août 2026 — publication : commit `ccab6ef` poussé ; PR #68 ouverte en
+  brouillon avec base `fix/T0040-enable-local-password-auth` et head
+  `feature/T0041-bounded-login-route`.
 
 ## Dependencies
 
@@ -226,4 +229,7 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md` et `SECURITY.md`.
 - base de développement : `fix/T0040-enable-local-password-auth` au commit
   `fc95f68` ;
 - dépendance : T0040/PR #67 doit fusionner avant rebase/changement de base ;
-- commit et Pull Request : à renseigner après publication.
+- commit d'implémentation : `ccab6ef` ;
+- PR #68 : brouillon, base `fix/T0040-enable-local-password-auth`, head
+  `feature/T0041-bounded-login-route` ; checks GitHub déclenchés, résultat final
+  non encore observé.

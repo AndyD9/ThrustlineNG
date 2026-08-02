@@ -1,10 +1,10 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 2 août 2026 (T0041 implémenté localement au-dessus
-de T0040, encore non fusionné).
+Dernière revue documentaire : 2 août 2026 (T0041 publié au-dessus de T0040 dans
+la PR brouillon #68, encore non fusionné).
 Statut : T0012–T0031 et T0033–T0039 sont `Done`; T0040 est `Review` dans la
-PR #67 ouverte prête, non livrée dans `main`. T0041 est `Review` sur une branche
-empilée locale, sans livraison ni capacité revendiquée dans `main`.
+PR #67 ouverte prête, non livrée dans `main`. T0041 est `Review` dans la PR #68
+empilée en brouillon, sans livraison ni capacité revendiquée dans `main`.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -558,6 +558,8 @@ avant de revenir au formulaire. Les 80 tests frontend, la couverture et le build
 passent ; les espions réseau confirment zéro appel au rendu, pendant les
 redirections et à la déconnexion. Cette preuve jsdom ne constitue pas un login
 WebView live. La branche reste empilée sur T0040 et n'est pas livrée dans `main`.
+La PR #68 est ouverte en brouillon avec base
+`fix/T0040-enable-local-password-auth` jusqu'à la fusion de la PR #67.
 
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
