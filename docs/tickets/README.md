@@ -42,7 +42,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0026 | Réconcilier la livraison de T0010 | 1 | T0010 | Done |
 | T0027 | Encadrer l'orchestration multitâche des agents | Gouvernance | T0026 | Review |
 | T0028 | Fixer la politique économique d'ouverture de production | 2 | T0020, T0022–T0023, décision Andy | Review |
-| T0029 | Acquérir un premier avion sans double débit ni propriété partielle | 2 | T0020, T0022–T0024, T0028, décision Andy | Draft |
+| T0029 | Acquérir un premier avion sans double débit ni propriété partielle | 2 | T0020, T0022–T0024, T0028, décision Andy | Ready |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -144,9 +144,10 @@ utilisée auparavant comme fixture locale ne constitue pas une preuve de
 production rétroactive. La source canonique, le handler et les gates sont
 terminés ; le ticket est `Review` sur sa branche isolée.
 
-T0029 cadre la première acquisition d'avion autoritaire. Il reste `Draft` tant
-qu'Andy n'a pas choisi entre un achat atomique recommandé et une location qui
-exigerait d'abord contrats, paiements temporels et résiliation.
+T0029 cadre la première acquisition d'avion autoritaire. Andy confirme le
+2 août 2026 achat puis location : T0029 traite l'achat atomique ; la location,
+ses contrats, paiements temporels et résiliation restent un ticket distinct.
+T0029 est `Ready`, empilé sur T0028 jusqu'à livraison de #54.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

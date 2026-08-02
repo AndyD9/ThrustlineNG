@@ -1,6 +1,6 @@
 # T0029 — Acquérir un premier avion sans double débit ni propriété partielle
 
-Status: Draft
+Status: Ready
 Owner: Andy
 Branch: `feature/T0029-authoritative-aircraft-acquisition`
 Phase: 2
@@ -23,16 +23,22 @@ acquisition d'avion avec débit transactionnel et rejeu idempotent.
 
 Le parcours produit autorise « acheter ou louer un avion », mais implémenter les
 deux dans une même tranche anticiperait contrats, paiements temporels, résiliation
-et opérations passives. Le ticket reste `Draft` jusqu'au choix explicite d'Andy.
+et opérations passives.
 
-### Décision réservée à Andy
+### Décision d'Andy
 
-- **Achat recommandé** : propriété immédiate et débit unique dans la même
-  transaction. C'est la plus petite tranche qui prouve flotte + finance sans
-  introduire d'autorité temporelle.
-- **Location** : contrat, échéances, défaut/résiliation et source de temps
-  serveur. Ce choix exige de réécrire le ticket et de dépendre d'une politique
-  de paiements périodiques avant de passer `Ready`.
+Andy confirme le 2 août 2026 que le produit doit proposer achat **et** location.
+Ils restent séquencés : T0029 implémente d'abord l'achat, propriété immédiate et
+débit unique ; un ticket séparé traitera ensuite contrat, échéances,
+défaut/résiliation et autorité temporelle de la location.
+
+## Workflow evidence
+
+- 2 août 2026 — `Ready` : option achat bornée confirmée pour T0029 ; T0020 et
+  T0022–T0024 sont dans `main`; T0028 est implémenté et validé sur la PR #54 ;
+  worktree propre sur `feature/T0029-authoritative-aircraft-acquisition`.
+- T0029 reste empilé sur T0028 tant que #54 n'est pas fusionnée et ne présume
+  pas cette capacité dans `main`.
 
 ## Dependencies
 
@@ -40,7 +46,7 @@ et opérations passives. Le ticket reste `Draft` jusqu'au choix explicite d'Andy
 - T0022–T0023 — compagnie et frontière serveur (`Done`, dans `main`) ;
 - T0024 — inventaire d'autorité (`Done`, dans `main`) ;
 - T0028 — politique d'ouverture en `Review`, PR de livraison #54 vers `main` ;
-- choix explicite d'Andy entre achat et location.
+- décision d'Andy : achat T0029, location dans un ticket ultérieur.
 
 ## Allowed areas
 
@@ -68,8 +74,8 @@ Après passage `Ready` pour l'option achat uniquement :
 
 ## Requirements
 
-Les exigences suivantes deviennent exécutables uniquement si Andy confirme
-l'option achat. L'option location exige une nouvelle version du ticket.
+Les exigences suivantes portent exclusivement sur l'achat. La location reste un
+résultat produit confirmé mais sera détaillée et exécutée dans un autre ticket.
 
 ### 1. Catalogue et autorité de prix
 
@@ -119,8 +125,8 @@ l'option achat. L'option location exige une nouvelle version du ticket.
 
 ## Acceptance criteria
 
-- [ ] Andy a choisi achat ou location ; le ticket est réécrit avant `Ready` si
-      la location est retenue.
+- [x] Andy a confirmé achat puis location ; T0029 est borné à l'achat et la
+      location reste un ticket distinct.
 - [ ] Pour l'achat, offre serveur, propriété et débit immuable sont atomiques.
 - [ ] Rejeu, collision, concurrence et solde insuffisant ne créent aucun double
       débit ni état partiel.
