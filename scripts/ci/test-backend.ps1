@@ -164,8 +164,10 @@ try {
         $testText -notmatch "financial_ledger\.test\.sql" -or
         $testText -notmatch "company_onboarding_structure\.test\.sql" -or
         $testText -notmatch "company_onboarding\.test\.sql" -or
+        $testText -notmatch "aircraft_purchase_structure\.test\.sql" -or
+        $testText -notmatch "aircraft_purchase\.test\.sql" -or
         $testText -notmatch "Result:\s+PASS") {
-        throw "Supabase pgTAP did not prove all ten files with Result: PASS."
+        throw "Supabase pgTAP did not prove all twelve files with Result: PASS."
     }
 
     $concurrencyUserId = "44000000-0000-4000-8000-000000000004"
@@ -522,6 +524,226 @@ select
     }
     finally {
         $onboardingConcurrencyJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    }
+
+    $purchaseConcurrencyUserId = "76000000-0000-4000-8000-000000000006"
+    $purchaseConcurrencyKey = "76100000-0000-4000-8000-000000000006"
+    $purchaseConcurrencyOfferId = "76200000-0000-4000-8000-000000000006"
+    $purchaseSetupSql = @"
+insert into auth.users (id, email, raw_user_meta_data, is_anonymous)
+values ('$purchaseConcurrencyUserId', 'purchase-concurrency@thrustline.invalid', '{}', false);
+set local role service_role;
+select public.create_company_with_opening_balance(
+    '$purchaseConcurrencyUserId',
+    '76300000-0000-4000-8000-000000000006',
+    'Purchase Concurrency Air',
+    43000000,
+    'EUR'
+);
+reset role;
+insert into public.aircraft_purchase_offers (
+    id, aircraft_type_code, serial_number, display_name, price_minor, currency_code
+)
+values (
+    '$purchaseConcurrencyOfferId', 'C172', 'CI-C172-2001',
+    'CI Purchase Cessna', 10000000, 'EUR'
+);
+"@
+    $purchaseFirstSql = @"
+begin;
+set local role service_role;
+select public.purchase_aircraft(
+    '$purchaseConcurrencyUserId', '$purchaseConcurrencyKey', '$purchaseConcurrencyOfferId'
+) ->> 'aircraftId';
+select pg_sleep(4);
+commit;
+"@
+    $purchaseSecondSql = @"
+begin;
+set local role service_role;
+select public.purchase_aircraft(
+    '$purchaseConcurrencyUserId', '$purchaseConcurrencyKey', '$purchaseConcurrencyOfferId'
+) ->> 'aircraftId';
+commit;
+"@
+
+    & $dockerPath exec $databaseContainers[0] `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $purchaseSetupSql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the aircraft purchase concurrency scenario."
+    }
+
+    $purchaseConcurrencyJobs = @()
+    try {
+        $purchaseConcurrencyJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) {
+                throw "First concurrent aircraft purchase failed."
+            }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $purchaseFirstSql
+
+        Start-Sleep -Milliseconds 750
+
+        $purchaseConcurrencyJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) {
+                throw "Second concurrent aircraft purchase failed."
+            }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $purchaseSecondSql
+
+        $purchaseConcurrencyJobs | Wait-Job | Out-Null
+        $purchaseConcurrencyOutput = @(
+            $purchaseConcurrencyJobs | Receive-Job |
+                ForEach-Object { [string]$_ } |
+                Where-Object { $_ -match '^[0-9a-f-]{36}$' }
+        )
+        if ($purchaseConcurrencyJobs.State -contains "Failed" -or
+            $purchaseConcurrencyOutput.Count -ne 2 -or
+            @($purchaseConcurrencyOutput | Select-Object -Unique).Count -ne 1) {
+            throw "Concurrent aircraft purchases did not converge."
+        }
+
+        $purchaseConvergenceSql = @"
+select
+    (select count(*) from public.company_aircraft where offer_id = '$purchaseConcurrencyOfferId'),
+    (select count(*) from private.aircraft_purchase_commands where offer_id = '$purchaseConcurrencyOfferId'),
+    (select count(*) from private.financial_ledger_entries where idempotency_key = '$purchaseConcurrencyKey'),
+    (
+        select sum(entries.amount_minor)
+        from private.financial_ledger_entries as entries
+        join private.financial_ledger_subjects as subjects using (subject_id)
+        join public.companies as companies on companies.id = subjects.company_id
+        where companies.owner_id = '$purchaseConcurrencyUserId'
+    );
+"@
+        $purchaseConvergence = @(
+            & $dockerPath exec $databaseContainers[0] `
+                psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres -c $purchaseConvergenceSql
+        )
+        if ($LASTEXITCODE -ne 0 -or
+            ($purchaseConvergence -join "").Trim() -ne "1|1|1|33000000") {
+            throw "Concurrent aircraft purchase state is not atomic and idempotent."
+        }
+        Write-Output "Aircraft purchase concurrency passed: 2 sessions, 1 aircraft, 1 command, 1 debit."
+    }
+    finally {
+        $purchaseConcurrencyJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    }
+
+    $balanceRaceUserId = "77000000-0000-4000-8000-000000000007"
+    $balanceRaceOfferA = "77100000-0000-4000-8000-000000000007"
+    $balanceRaceOfferB = "77200000-0000-4000-8000-000000000007"
+    $balanceRaceSetupSql = @"
+insert into auth.users (id, email, raw_user_meta_data, is_anonymous)
+values ('$balanceRaceUserId', 'purchase-balance-race@thrustline.invalid', '{}', false);
+set local role service_role;
+select public.create_company_with_opening_balance(
+    '$balanceRaceUserId',
+    '77300000-0000-4000-8000-000000000007',
+    'Purchase Balance Race Air',
+    15000000,
+    'EUR'
+);
+reset role;
+insert into public.aircraft_purchase_offers (
+    id, aircraft_type_code, serial_number, display_name, price_minor, currency_code
+)
+values
+    ('$balanceRaceOfferA', 'C172', 'CI-C172-3001', 'CI Balance Cessna A', 10000000, 'EUR'),
+    ('$balanceRaceOfferB', 'C172', 'CI-C172-3002', 'CI Balance Cessna B', 10000000, 'EUR');
+"@
+    $balanceRaceFirstSql = @"
+begin;
+set local role service_role;
+select public.purchase_aircraft(
+    '$balanceRaceUserId', '77400000-0000-4000-8000-000000000007', '$balanceRaceOfferA'
+) ->> 'aircraftId';
+select pg_sleep(4);
+commit;
+"@
+    $balanceRaceSecondSql = @"
+begin;
+set local role service_role;
+select public.purchase_aircraft(
+    '$balanceRaceUserId', '77500000-0000-4000-8000-000000000007', '$balanceRaceOfferB'
+) ->> 'aircraftId';
+commit;
+"@
+
+    & $dockerPath exec $databaseContainers[0] `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $balanceRaceSetupSql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the aircraft balance race scenario."
+    }
+
+    $balanceRaceJobs = @()
+    try {
+        $balanceRaceJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql *> $null
+            $LASTEXITCODE
+        } -ArgumentList $dockerPath, $databaseContainers[0], $balanceRaceFirstSql
+
+        Start-Sleep -Milliseconds 750
+
+        $balanceRaceJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql *> $null
+            $LASTEXITCODE
+        } -ArgumentList $dockerPath, $databaseContainers[0], $balanceRaceSecondSql
+
+        $balanceRaceJobs | Wait-Job | Out-Null
+        $balanceRaceExitCodes = @(
+            $balanceRaceJobs | Receive-Job |
+                ForEach-Object { [int]$_ } |
+                Sort-Object
+        )
+        if ($balanceRaceJobs.State -contains "Failed" -or
+            ($balanceRaceExitCodes -join "|") -ne "0|1") {
+            throw "Concurrent distinct aircraft purchases did not reject exactly one command."
+        }
+
+        $balanceRaceStateSql = @"
+select
+    (select count(*) from public.company_aircraft as aircraft
+     join public.companies as companies on companies.id = aircraft.company_id
+     where companies.owner_id = '$balanceRaceUserId'),
+    (select count(*) from private.aircraft_purchase_commands
+     where owner_id = '$balanceRaceUserId'),
+    (
+        select count(*)
+        from private.financial_ledger_entries as entries
+        join private.financial_ledger_subjects as subjects using (subject_id)
+        join public.companies as companies on companies.id = subjects.company_id
+        where companies.owner_id = '$balanceRaceUserId'
+          and entries.entry_type = 'aircraft_purchase'
+    ),
+    (
+        select sum(entries.amount_minor)
+        from private.financial_ledger_entries as entries
+        join private.financial_ledger_subjects as subjects using (subject_id)
+        join public.companies as companies on companies.id = subjects.company_id
+        where companies.owner_id = '$balanceRaceUserId'
+    );
+"@
+        $balanceRaceState = @(
+            & $dockerPath exec $databaseContainers[0] `
+                psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres -c $balanceRaceStateSql
+        )
+        if ($LASTEXITCODE -ne 0 -or
+            ($balanceRaceState -join "").Trim() -ne "1|1|1|5000000") {
+            throw "Concurrent distinct purchases overspent the company balance."
+        }
+        Write-Output "Aircraft balance concurrency passed: 2 offers, 1 purchase, nonnegative balance."
+    }
+    finally {
+        $balanceRaceJobs | Remove-Job -Force -ErrorAction SilentlyContinue
     }
 
     $restoreUserId = "48000000-0000-4000-8000-000000000008"
@@ -950,7 +1172,7 @@ select
         throw "Generated database types are stale."
     }
 
-    Write-Output "Backend CI passed: 2 resets, 10 pgTAP files, 190 assertions, concurrent idempotence, isolated restore replay, authoritative onboarding, stable types, loopback ports."
+    Write-Output "Backend CI passed: 2 resets, 12 pgTAP files, 234 assertions, concurrent idempotence and purchase, isolated restore replay, authoritative onboarding, stable types, loopback ports."
 }
 finally {
     if ($null -ne $databaseContainer -and $null -ne $dockerPath) {

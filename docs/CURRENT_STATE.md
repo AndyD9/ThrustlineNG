@@ -445,6 +445,26 @@ politique tout en conservant l'absence d'une deuxième commande financière.
 T0028 reste présent uniquement sur sa branche empilée tant que sa PR n'est pas
 fusionnée ; aucun projet distant, appel desktop ou donnée réelle n'est ajouté.
 
+## Achat d'avion autoritaire T0029
+
+La branche `feature/T0029-authoritative-aircraft-acquisition`, empilée sur
+T0028, ajoute une offre synthétique unitaire, une propriété de compagnie et une
+commande `service_role` atomique/idempotente. Le prix et la devise viennent de
+l'offre verrouillée ; le solde est recalculé sous verrou depuis le grand livre,
+puis l'avion et le débit immuable sont créés dans la même transaction. Les
+clients authentifiés restent limités aux lectures RLS de leur flotte et des
+offres actives.
+
+Le 2 août 2026, le gate statique backend passe avec quinze mutations. Après
+redémarrage de Docker Desktop 29.6.2, deux resets PostgreSQL 17 passent, les
+12 fichiers/234 assertions concluent par `Result: PASS` et les types générés
+restent stables. Deux connexions rejouant le même achat convergent vers
+`1|1|1|33000000`; deux offres de 10 000 000 face à 15 000 000 produisent un
+succès, un refus et `1|1|1|5000000`. La capacité reste présente uniquement sur
+cette branche, sans endpoint desktop, déploiement distant ni donnée réelle.
+Andy a confirmé que la location suivra dans un ticket distinct avec contrat,
+échéances et autorité temporelle.
+
 ## Autorité des mutations du golden path
 
 T0024 ajoute une source JSON versionnée couvrant exactement les dix étapes
@@ -539,10 +559,9 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Après livraison de T0027 puis T0028 dans `main`, cadrer une première acquisition
-d'avion autoritaire (achat ou location à décider dans le ticket) avec propriété,
-débit financier transactionnel et rejeu idempotent, sans anticiper le reste de
-l'économie. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS 2024
+Après livraison de T0029, cadrer la location d'avion dans un ticket distinct :
+contrat, échéances, défaut/résiliation et autorité temporelle, sans anticiper le
+reste de l'économie. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS 2024
 exigés par ADR-0003. Les autres dettes ouvertes restent priorisées par sévérité
 dans `KNOWN_ISSUES.md`.
 

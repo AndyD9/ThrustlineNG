@@ -71,6 +71,16 @@ par environnement. La fonction ne fractionne donc pas la transaction SQL et ne
 livre jamais le credential privilégié au desktop. Aucun appelant desktop, CORS
 applicatif ou déploiement distant n'est encore fourni.
 
+T0029 ajoute `purchase_aircraft`, réservée à `service_role`. La commande dérive
+la compagnie du propriétaire fourni par la future frontière serveur, verrouille
+compagnie, sujet financier puis offre unitaire, et calcule le solde depuis les
+écritures immuables. Offre, avion possédé, débit `aircraft_purchase` négatif et
+registre d'idempotence sont modifiés dans un seul statement transactionnel. Le
+client authentifié ne reçoit que les offres actives et ses avions via RLS et
+`get_company_aircraft()` ; il ne peut fournir ni prix, ni devise, ni compagnie
+à la commande. Cette tranche couvre uniquement l'achat synthétique : location,
+appelant applicatif et catalogue de production restent absents.
+
 ## Inventaire d'autorité T0024
 
 `eng/authority-inventory.json` relie les dix étapes du golden path aux domaines

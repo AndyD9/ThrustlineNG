@@ -110,6 +110,8 @@ de devise et ne constitue pas un équilibrage économique complet.
 - Sessions sans crash ≥ objectif défini avant bêta.
 - Zéro double clôture de vol.
 - Zéro variation financière sans écriture de grand livre.
+- Zéro acquisition d'avion sans propriété et débit atomiques ; un rejeu
+  identique ne crée ni second avion ni second débit.
 - Reprise après coupure testée sur chaque parcours essentiel.
 - Temps de démarrage et consommation mémoire budgétés.
 - Mise à jour N-1 → N et rollback validés sur VM propre.
