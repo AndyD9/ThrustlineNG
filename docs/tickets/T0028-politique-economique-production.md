@@ -191,7 +191,8 @@ Ne jamais réécrire ou supprimer une ouverture déjà inscrite au grand livre.
 Implémentation terminée le 2 août 2026 sur
 `docs/T0028-production-economy-policy`, dans le worktree isolé
 `.worktrees/t0028`. La branche reste empilée sur T0027, absent de `origin/main`
-tant que la PR #51 n'est pas fusionnée.
+tant que la PR #51 n'est pas fusionnée. La PR brouillon #52 cible donc
+temporairement `docs/T0027-agent-multitasking-governance`.
 
 ### Summary
 
@@ -228,7 +229,11 @@ et devise par environnement sont supprimées sans modifier les migrations ni les
   réussissent, puis `pnpm.cmd authority:check` réussit avec dix étapes,
   treize domaines, trois surfaces et cinq mutations ;
 - `git diff --check` — réussi ; seuls des avertissements informatifs de future
-  normalisation LF vers CRLF sont signalés par Git pour quatre fichiers.
+  normalisation LF vers CRLF sont signalés par Git pour quatre fichiers ;
+- `gh pr view 51` — PR T0027 ouverte en brouillon vers `main`, avec Windows,
+  PostgreSQL 17 et supply chain réussis ;
+- `gh pr view 52` — PR T0028 ouverte en brouillon, base T0027, head T0028 ; les
+  trois checks GitHub sont en cours au moment du contrôle.
 
 ### Manual verification result
 
@@ -262,3 +267,13 @@ d'environnement, puis confirme leur détection.
 
 Politique produit, frontière d'architecture, invariant de sécurité et son gate,
 commandes de qualité, état courant, inventaire d'autorité et suivi des tickets.
+
+### Git status
+
+- branche : `docs/T0028-production-economy-policy` ;
+- commits : `ef502e7` (décision `Ready`) et `7584bcc` (implémentation) ;
+- PR #52 : brouillon, base `docs/T0027-agent-multitasking-governance`, head
+  `docs/T0028-production-economy-policy` ;
+- dépendance : PR T0027 #51 à fusionner dans `main`, puis rebase ou changement
+  de base de #52 avant fusion ;
+- fusion finale réservée à Andy.
