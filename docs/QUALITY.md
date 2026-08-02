@@ -1,5 +1,22 @@
 # Qualité du dépôt
 
+## Gouvernance de maintenance
+
+Depuis la racine :
+
+```powershell
+pnpm maintenance:check
+```
+
+Le harnais valide `KNOWN_ISSUES.md`, la cohérence des statuts entre fichiers de
+ticket et index et l'absence de marqueur `TODO`/`FIXME`/`HACK`/`XXX` non relié à
+une entrée active. Huit mutations négatives couvrent schéma, sévérité et statut
+invalides, preuve absente, identifiant dupliqué, divergence de statut et
+marqueurs non suivis, y compris après un marqueur valide sur la même ligne.
+
+Ce gate ne transforme pas une capacité future, un risque accepté ou une preuve
+environnementale manquante en dette résolue.
+
 ## Politique de données
 
 Depuis la racine :
