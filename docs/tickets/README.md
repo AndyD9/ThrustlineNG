@@ -43,7 +43,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0027 | Encadrer l'orchestration multitâche des agents | Gouvernance | T0026 | Review |
 | T0028 | Fixer la politique économique d'ouverture de production | 2 | T0020, T0022–T0023, décision Andy | Review |
 | T0029 | Acquérir un premier avion sans double débit ni propriété partielle | 2 | T0020, T0022–T0024, T0028, décision Andy | Review |
-| T0031 | Réconcilier l'index après les fusions T0029–T0030 | Gouvernance | T0029–T0030 | Ready |
+| T0031 | Réconcilier l'index après les fusions T0029–T0030 | Gouvernance | T0029–T0030 | In progress |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008

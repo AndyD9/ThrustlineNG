@@ -1,6 +1,6 @@
 # T0031 — Réconcilier l'index après les fusions T0029–T0030
 
-Status: Ready
+Status: In progress
 Owner: Andy
 Branch: `fix/T0031-reconcile-ticket-index`
 Phase: Gouvernance
@@ -28,6 +28,9 @@ suivi incohérent invalide précisément le contrôle que T0030 introduit.
 - 2 août 2026 — `Ready` : défaut reproduit sur le parent
   `origin/docs/T0028-production-economy-policy` au commit `2324b61` ; aucun
   changement préexistant dans le worktree T0031.
+- 2 août 2026 — `In progress` : ticket et index synchronisés sur la branche
+  isolée `fix/T0031-reconcile-ticket-index` ; correction limitée aux zones
+  autorisées.
 
 ## Dependencies
 
@@ -113,4 +116,3 @@ Aucune donnée persistante ou migration n'est concernée.
 ## Completion Report
 
 À remplir après implémentation.
-
