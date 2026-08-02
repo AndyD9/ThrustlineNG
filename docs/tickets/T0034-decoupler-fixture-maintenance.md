@@ -1,6 +1,6 @@
 # T0034 — Découpler la fixture du gate de maintenance
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `chore/T0034-decouple-maintenance-fixture`
 Phase: Gouvernance
@@ -39,6 +39,9 @@ règles de production du gate.
 - 2 août 2026 — publication : commit d'implémentation `cb911cb` poussé sur
   `chore/T0034-decouple-maintenance-fixture`; PR #61 ouverte prête pour revue,
   base `main`, head T0034.
+- 2 août 2026 — `Done` : la PR #61 est fusionnée dans `main` au commit
+  `3b839bc`; les checks Windows multi-stack, PostgreSQL 17 et supply-chain sont
+  réussis.
 
 ## Dependencies
 
@@ -183,8 +186,7 @@ PowerShell et supprime ses répertoires temporaires.
   hautes et n'entrent jamais dans le worktree ;
 - le gate prouve ses huit familles de contrôles, pas l'absence de toute dette
   architecturale ;
-- T0034 est présent sur sa branche mais pas encore livré dans `main` ; KI-022 est
-  donc résolu par le diff en revue, pas encore par la branche distante par défaut.
+- T0034 et la résolution de KI-022 sont livrés dans `main` par la PR #61.
 
 ### Follow-ups
 
@@ -201,8 +203,7 @@ PowerShell et supprime ses répertoires temporaires.
 
 - branche : `chore/T0034-decouple-maintenance-fixture` ;
 - commit d'implémentation : `cb911cb` ;
-- PR #61 : prête, base `main`, head T0034 ;
+- PR #61 : fusionnée dans `main` au commit `3b839bc`, base `main`, head T0034 ;
 - checks locaux : maintenance PowerShell 5.1/7.6.4, CI ciblée et diff verts ;
-- checks GitHub : déclenchés par la publication, état à relever après le commit
-  documentaire de handoff ;
-- fusion finale réservée à Andy.
+- checks GitHub : Windows multi-stack, PostgreSQL 17 et supply-chain réussis ;
+- fusion finale effectuée sur GitHub ; aucune autre action T0034 attendue.

@@ -91,9 +91,9 @@ try {
         }
     }
 
-    & node --test ./supabase/functions/company-onboarding/handler.test.ts
+    & pnpm backend:functions:test
     if ($LASTEXITCODE -ne 0) {
-        throw "Company onboarding Edge handler tests failed."
+        throw "Edge handler tests failed."
     }
 
     Invoke-Supabase -SuppressOutput -Arguments @(

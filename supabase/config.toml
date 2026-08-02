@@ -387,6 +387,11 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/company-onboarding/index.ts"
 
+[functions.aircraft-purchase]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/aircraft-purchase/index.ts"
+
 [analytics]
 enabled = false
 port = 54327
