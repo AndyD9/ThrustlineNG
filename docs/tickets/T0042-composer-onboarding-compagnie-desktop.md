@@ -18,9 +18,9 @@ actionnables, sans donner d'autorité métier au client.
 T0022 crée atomiquement compagnie, sujets privés et ouverture financière. T0023
 expose cette transaction derrière `company-onboarding`, mais aucun appelant
 desktop ne la consomme. T0038–T0041 fournissent la configuration locale, la
-session en mémoire et la route protégée. T0041 reste en `Review` dans la PR
-corrective #69 : T0042 est temporairement empilé sur cette branche et ne doit
-pas être présenté comme livrable indépendamment.
+session en mémoire et la route protégée. T0041 est livré dans `main` par la PR
+corrective #69. La PR #70 a toutefois fusionné T0042 dans la branche T0041
+après sa fusion vers `main`; une republication corrective reste nécessaire.
 
 ## Workflow evidence
 
@@ -36,6 +36,10 @@ pas être présenté comme livrable indépendamment.
 - 2 août 2026 — publication : commit `c2e1c32` poussé ; PR #70 ouverte en
   brouillon avec base `feature/T0041-bounded-login-route` et head
   `feature/T0042-desktop-company-onboarding`.
+- 2 août 2026 — réconciliation de livraison : PR #69 fusionnée dans `main` au
+  commit `cb179e9`, puis PR #70 fusionnée dans la branche T0041 déjà intégrée ;
+  les commits T0042 restent absents de `main`. `origin/main` est fusionné sans
+  réécriture dans la branche T0042 pour permettre une PR corrective.
 
 ## Dependencies
 
@@ -221,7 +225,8 @@ n'est créée.
 
 ### Risks and limitations
 
-T0042 reste empilé sur T0041/PR #69, non fusionné dans `main`. La CSP de
+T0041 est livré, mais T0042 reste absent de `main` malgré la fusion de #70 dans
+une base déjà intégrée. La CSP de
 production reste `connect-src 'none'` et la preuve utilise jsdom/fetch injecté :
 aucun parcours WebView live, déploiement distant ou donnée réelle n'est
 revendiqué. La présence d'une compagnie existante n'est pas chargée avant rendu,
@@ -230,7 +235,8 @@ compromise peut lire le bearer en mémoire.
 
 ### Follow-ups
 
-- après fusion de T0041, rebaser T0042 sur `main` et changer la base de sa PR ;
+- livrer T0042 par une PR corrective vers `main`, sans présenter #70 comme une
+  livraison sur la branche par défaut ;
 - cadrer une lecture serveur du catalogue avant de composer l'achat T0037 ;
 - traiter la persistance Windows dans un ticket de sécurité séparé.
 
@@ -241,9 +247,10 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md` et `SECURITY.md`.
 ### Git status
 
 - branche : `feature/T0042-desktop-company-onboarding` ;
-- base : `feature/T0041-bounded-login-route` au commit `4f023df` ;
-- dépendance : T0041/PR #69 doit fusionner avant rebase/changement de base ;
+- base initiale : `feature/T0041-bounded-login-route` au commit `4f023df`, puis
+  fusion non destructive de `origin/main` (`cb179e9`) ;
+- dépendance T0041 : livrée par la PR #69 ;
 - commit d'implémentation : `c2e1c32` ;
-- PR #70 : brouillon, base `feature/T0041-bounded-login-route`, head
-  `feature/T0042-desktop-company-onboarding` ; les trois checks GitHub sont en
-  cours lors de l'observation initiale.
+- PR #70 : fusionnée avec trois checks verts dans
+  `feature/T0041-bounded-login-route`, mais cette base avait déjà fusionné dans
+  `main`; une PR corrective vers `main` reste nécessaire.

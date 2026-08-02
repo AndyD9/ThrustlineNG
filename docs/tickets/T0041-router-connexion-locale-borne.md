@@ -1,6 +1,6 @@
 # T0041 — Rendre la connexion locale accessible par une route bornée
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0041-bounded-login-route`
 Phase: 4
@@ -44,6 +44,8 @@ GitHub `MERGED` ne livre donc pas T0041 dans la branche distante par défaut.
 - 2 août 2026 — republication : branche réconciliée poussée au commit `4729236` ;
   PR corrective #69 ouverte prête, base `main`, head
   `feature/T0041-bounded-login-route`.
+- 2 août 2026 — `Done` : PR corrective #69 fusionnée dans `main` au commit
+  `cb179e9`; Windows multi-stack, PostgreSQL 17 et supply-chain réussis.
 
 ## Dependencies
 
@@ -216,8 +218,8 @@ silencieuse n'est créée.
 
 ### Risks and limitations
 
-T0040 est livré, mais T0041 reste absent de `main` malgré la fusion de #68 dans
-une base obsolète. La preuve de navigation utilise une commande injectée et
+T0041 est livré dans `main` par la PR corrective #69. La preuve de navigation
+utilise une commande injectée et
 jsdom : aucun login WebView live,
 onboarding, catalogue, achat, persistance Windows, cible distante ou donnée
 réelle n'est revendiqué. Une WebView compromise peut toujours lire les tokens
@@ -225,8 +227,6 @@ présents en mémoire.
 
 ### Follow-ups
 
-- livrer T0041 par une PR corrective vers `main`, sans présenter #68 comme une
-  livraison sur la branche par défaut ;
 - cadrer séparément la persistance Windows avant tout stockage de refresh token ;
 - composer onboarding puis catalogue/achat dans des tickets distincts.
 
@@ -244,6 +244,5 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md` et `SECURITY.md`.
 - PR #68 : fusionnée avec checks verts dans
   `fix/T0040-enable-local-password-auth`, mais cette base avait déjà fusionné
   dans `main` ;
-- PR #69 : ouverte prête vers `main`, head
-  `feature/T0041-bounded-login-route`; T0041 reste en `Review` jusqu'à sa revue
-  et sa fusion par Andy.
+- PR #69 : fusionnée dans `main` au commit `cb179e9`, avec Windows multi-stack,
+  PostgreSQL 17 et supply-chain réussis.

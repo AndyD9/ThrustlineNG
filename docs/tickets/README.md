@@ -54,7 +54,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0038 | Fonder la configuration et la session authentifiée du desktop | 2–4 | T0021, T0024, T0035–T0037 | Done |
 | T0039 | Acquérir une session locale par email et mot de passe | 4 | T0021, T0024, T0038, décision Andy | Done |
 | T0040 | Activer et valider Auth locale email/mot de passe | 4 | T0021, T0038–T0039 | Done |
-| T0041 | Rendre la connexion locale accessible par une route bornée | 4 | T0038–T0040 | Review |
+| T0041 | Rendre la connexion locale accessible par une route bornée | 4 | T0038–T0040 | Done |
 | T0042 | Composer l'onboarding de compagnie depuis le desktop | 4 | T0022–T0023, T0038–T0041 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
@@ -234,16 +234,18 @@ route `/login`, une garde d'accueil et une déconnexion exclusivement en mémoir
 Ses 80 tests frontend, sa couverture, son build et les gates autorité, données
 et maintenance passent localement. La PR #68 a été fusionnée dans l'ancienne
 branche T0040 après la fusion de #67 vers `main` : son état `MERGED` ne livre
-donc pas les commits T0041 dans la branche par défaut. T0041 reste `Review` en
-attente de la PR corrective #69, ouverte prête vers `main`, et ne revendique ni
+donc pas les commits T0041 dans la branche par défaut. La PR corrective #69 est
+ensuite fusionnée dans `main` au commit `cb179e9` avec ses trois checks verts ;
+T0041 est `Done` et ne revendique ni
 login WebView live, persistance, onboarding, catalogue ou achat composé.
 
 T0042 compose l'Edge Function d'onboarding T0023 depuis l'accueil authentifié,
 avec une intention idempotente, un payload fermé et le bearer obtenu à la
 soumission depuis le gestionnaire T0038. Ses 104 tests frontend, couverture,
 build et gates passent localement. Il est `Review` sur une branche empilée sur
-T0041/PR #69 ; la PR brouillon #70 cible cette branche et exclut persistance,
-catalogue, achat et backend.
+T0041. La PR #70 a été fusionnée avec ses trois checks verts dans cette branche
+après son intégration à `main`; T0042 reste donc `Review` en attente d'une PR
+corrective vers `main` et exclut persistance, catalogue, achat et backend.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
