@@ -1,6 +1,6 @@
 # T0039 — Acquérir une session locale par email et mot de passe
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0039-desktop-password-sign-in`
 Phase: 4
@@ -35,6 +35,8 @@ réelle ni cible distante.
   `feature/T0039-desktop-password-sign-in`; PR #66 ouverte prête pour revue,
   base `main`. Windows multi-stack et supply-chain sont en cours, PostgreSQL 17
   est en file d'attente lors de cette mise à jour.
+- 2 août 2026 — `Done` : Andy fusionne la PR #66 dans `main` au commit
+  `47c8f341`; Windows multi-stack, PostgreSQL 17 et supply-chain sont réussis.
 
 ## Dependencies
 
@@ -229,10 +231,9 @@ l'inventaire d'autorité.
 ### Git status
 
 - branche : `feature/T0039-desktop-password-sign-in` ;
-- base : `origin/main` au commit `e88bdef` ;
+- base de développement : `origin/main` au commit `e88bdef` ;
 - commit d'implémentation : `024613c` ;
-- PR #66 : ouverte et prête, base `main`, head
+- PR #66 : fusionnée par Andy dans `main` au commit `47c8f341`, head
   `feature/T0039-desktop-password-sign-in` ;
-- checks GitHub : Windows multi-stack et supply-chain en cours, PostgreSQL 17 en
-  file d'attente lors de cette mise à jour ;
-- fusion finale réservée à Andy.
+- checks GitHub : Windows multi-stack, PostgreSQL 17 et audits/licences/SBOM
+  réussis dans les runs `30759103827` et `30759103836`.

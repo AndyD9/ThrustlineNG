@@ -161,6 +161,20 @@ tranche ne crée ni route, appel live, inscription, récupération de mot de pas
 OAuth, persistance Windows, cible distante ou donnée réelle. Une WebView
 compromise peut toujours lire les secrets présents en mémoire.
 
+## Provider email local T0040
+
+Le grant password T0039 exige que le provider email local soit actif. La
+configuration T0040 garde néanmoins `auth.enable_signup = false` : aucune
+inscription publique n'est autorisée, et les identités de validation sont
+provisionnées uniquement par l'Admin API de la pile locale jetable. SMTP,
+confirmations, récupération et cible distante restent désactivés.
+
+Le gate backend refuse simultanément l'ouverture de l'inscription globale et la
+désactivation du provider requis. La preuve runtime utilise une adresse
+`.invalid`, conserve mot de passe et tokens en mémoire seulement, puis détruit
+l'identité et la pile sans backup. Elle ne change pas l'hypothèse de WebView non
+fiable et n'autorise aucune donnée réelle.
+
 ## Autorité globale du golden path T0024
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de

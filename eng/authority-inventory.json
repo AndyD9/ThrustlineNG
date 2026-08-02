@@ -46,7 +46,7 @@
         "supabase/config.toml"
       ],
       "evidenceMarkers": ["/auth/v1/token?grant_type=password", "/auth/v1/token?grant_type=refresh_token", "[auth]", "enabled = true"],
-      "limitations": ["The desktop has local-only email/password acquisition and in-memory refresh foundations behind injected components, but no routed composition, persisted session, remote target or live call is implemented."]
+      "limitations": ["The desktop has local-only email/password acquisition and in-memory refresh foundations behind injected components. T0040 enables a provisioned local identity and runtime validation, but no routed composition, persisted session, remote target or production call is implemented."]
     },
     {
       "id": "company",

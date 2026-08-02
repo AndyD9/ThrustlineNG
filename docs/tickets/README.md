@@ -52,7 +52,8 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0036 | Valider l'achat d'avion sur le runtime local réel | 2 | T0021, T0023, T0029, T0035 | Done |
 | T0037 | Consommer l'achat d'avion depuis le desktop sans autorité client | 2–4 | T0024, T0029, T0035–T0036 | Done |
 | T0038 | Fonder la configuration et la session authentifiée du desktop | 2–4 | T0021, T0024, T0035–T0037 | Done |
-| T0039 | Acquérir une session locale par email et mot de passe | 4 | T0021, T0024, T0038, décision Andy | Review |
+| T0039 | Acquérir une session locale par email et mot de passe | 4 | T0021, T0024, T0038, décision Andy | Done |
+| T0040 | Activer et valider Auth locale email/mot de passe | 4 | T0021, T0038–T0039 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -215,8 +216,17 @@ commit `e88bdef` avec ses trois checks verts ; le ticket est `Done`.
 T0039 retient la décision d'Andy du 2 août 2026 : première acquisition de
 session par email et mot de passe sur Supabase local, strictement en mémoire.
 La persistance Windows, OAuth, inscription, récupération de mot de passe, cible
-distante et données réelles restent exclues. Le ticket est `Review` sur
-`feature/T0039-desktop-password-sign-in`.
+distante et données réelles restent exclues. La PR #66 est fusionnée dans
+`main` au commit `47c8f341` avec Windows, PostgreSQL 17 et supply-chain verts ;
+T0039 est `Done`.
+
+T0040 corrige l'écart entre cette commande et la configuration locale qui
+désactivait le provider email. Après fusion de T0039, sa branche est rebasée sur
+`main` : inscription globale fermée, identité `.invalid` provisionnée par
+l'Admin API locale, test runtime et
+destruction sans backup. Sa branche ne doit pas être présentée comme livrée dans
+`main` tant que T0040 n'est pas fusionné. Deux scénarios runtime
+passent et le redémarrage confirme zéro identité T0040 ; le ticket est `Review`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

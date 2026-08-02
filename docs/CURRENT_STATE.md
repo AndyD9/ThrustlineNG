@@ -1,8 +1,9 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 2 août 2026 (T0039 sur une branche issue de
-`origin/main` au commit `e88bdef`).
-Statut : T0012–T0031 et T0033–T0038 sont `Done`; T0039 est `Review`. Les
+Dernière revue documentaire : 2 août 2026 (T0040 rebasé sur `origin/main` au
+commit `47c8f341` après la fusion de T0039).
+Statut : T0012–T0031 et T0033–T0039 sont `Done`; T0040 est `Review` sur une
+branche non livrée.
 vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -70,8 +71,10 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   authentifiée et T0036 prouve son runtime local réel. T0037 ajoute dans `main`
   une commande et un panneau desktop injectés. T0038 ajoute dans `main` la
   configuration locale publique et le refresh de session en mémoire. T0039
-  ajoute sur sa branche l'acquisition email/mot de passe locale injectée, sans
-  persistance, route, catalogue, connectivité live ni déploiement.
+  ajoute dans `main` l'acquisition email/mot de passe locale injectée, sans
+  persistance, route, catalogue, connectivité live ni déploiement. T0040 active
+  sur sa branche le provider email local tout en gardant le signup
+  global fermé et prouve la commande contre le runtime synthétique.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -531,6 +534,20 @@ des fonctions et 92,56 % des lignes. Les gates autorité, données et maintenanc
 passent avec 5, 6 et 8 mutations ; le bundle ne contient aucun credential de
 test, marqueur `service_role` ou accès Data API.
 
+T0040 corrige l'écart runtime qui rendait ce grant inutilisable : le provider
+email local accepte désormais une identité provisionnée par l'Admin API tandis
+que `auth.enable_signup = false` continue de refuser l'inscription publique.
+Un gate exige ces deux valeurs sans ambiguïté, garde SMTP fermé et les couvre
+par deux mutations négatives.
+
+Le test runtime exécute la vraie commande T0039 puis installe la session dans le
+gestionnaire T0038. Deux scénarios passent : succès avec bearer/refresh token,
+puis refus d'un mauvais mot de passe et de `/signup`. Les bindings restent
+54321–54323 sur `127.0.0.1`; après suppression, arrêt sans backup et redémarrage,
+PostgreSQL contient deux identités seed `.invalid` et zéro identité T0040. La
+pile est arrêtée. Cette preuve reste locale, synthétique et non routée ;
+elle ne revendique ni livraison dans `main`, ni persistance ou cible distante.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -631,15 +648,11 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0038 est fusionné dans `main` par la PR #65 au commit `e88bdef`. Andy choisit
-le 2 août 2026 email/mot de passe local avec session en mémoire ; T0039
-implémente cette fondation sur sa branche, sans route ni appel live.
-
-Après T0039, le prochain ticket recommandé doit valider le login contre le
-runtime Auth local avec une identité exclusivement synthétique, puis nettoyer
-la pile sans backup. La persistance Windows exige un ticket de sécurité séparé
-avant tout stockage ; catalogue, panneau d'achat et navigation ne doivent être
-composés qu'après cette preuve runtime.
+T0039 est livré ; T0040 doit encore être revu puis fusionné. Après sa livraison
+dans `main`, le prochain ticket recommandé peut composer
+la connexion et la session en mémoire dans une route desktop bornée, sans encore
+ajouter persistance, inscription, catalogue ou achat live. La persistance
+Windows exige un ticket de sécurité séparé avant tout stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et
