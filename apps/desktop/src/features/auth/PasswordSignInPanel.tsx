@@ -8,11 +8,12 @@ import {
 } from "@/features/auth/passwordSignIn";
 import { type DesktopSessionManager, type UserSessionTokens } from "@/features/auth/session";
 
-type SignInCommand = (input: PasswordSignInInput) => Promise<UserSessionTokens>;
+export type SignInCommand = (input: PasswordSignInInput) => Promise<UserSessionTokens>;
 
 export interface PasswordSignInPanelProps {
-  command?: SignInCommand;
+  command?: SignInCommand | undefined;
   config: DesktopConnectionConfig;
+  onAuthenticated?: () => void;
   sessionManager: DesktopSessionManager;
 }
 
@@ -21,6 +22,7 @@ type PanelState = "authenticated" | "pending" | "ready" | "rejected" | "unavaila
 export function PasswordSignInPanel({
   command = signInWithPassword,
   config,
+  onAuthenticated,
   sessionManager,
 }: PasswordSignInPanelProps) {
   const emailId = useId();
@@ -57,6 +59,7 @@ export function PasswordSignInPanel({
         sessionManager.setSession(session);
         setEmail("");
         setState("authenticated");
+        onAuthenticated?.();
       }
     } catch (error) {
       if (!abortController.signal.aborted) {

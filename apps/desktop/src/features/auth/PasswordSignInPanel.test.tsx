@@ -36,9 +36,15 @@ describe("PasswordSignInPanel", () => {
     const user = userEvent.setup();
     const pending = deferred<UserSessionTokens>();
     const command = vi.fn((_input: PasswordSignInInput) => pending.promise);
+    const onAuthenticated = vi.fn();
     const sessionManager = new DesktopSessionManager(config, vi.fn(), () => 1_000);
     const { container } = render(
-      <PasswordSignInPanel command={command} config={config} sessionManager={sessionManager} />,
+      <PasswordSignInPanel
+        command={command}
+        config={config}
+        onAuthenticated={onAuthenticated}
+        sessionManager={sessionManager}
+      />,
     );
     await fillForm(user);
 
@@ -57,6 +63,7 @@ describe("PasswordSignInPanel", () => {
 
     expect(await screen.findByText("Connexion réussie pour cette session.")).toBeInTheDocument();
     expect(sessionManager.hasSession()).toBe(true);
+    expect(onAuthenticated).toHaveBeenCalledOnce();
     await expect(sessionManager.getAccessToken()).resolves.toBe("private-access-token");
     expect(screen.getByLabelText("Adresse email")).toHaveValue("");
     expect(screen.getByRole("button", { name: "Connecté" })).toBeDisabled();

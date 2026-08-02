@@ -54,6 +54,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0038 | Fonder la configuration et la session authentifiée du desktop | 2–4 | T0021, T0024, T0035–T0037 | Done |
 | T0039 | Acquérir une session locale par email et mot de passe | 4 | T0021, T0024, T0038, décision Andy | Done |
 | T0040 | Activer et valider Auth locale email/mot de passe | 4 | T0021, T0038–T0039 | Review |
+| T0041 | Rendre la connexion locale accessible par une route bornée | 4 | T0038–T0040 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -228,6 +229,14 @@ pas être présentée comme livrée dans
 `main` tant que T0040 n'est pas fusionné. Deux scénarios runtime
 passent et le redémarrage confirme zéro identité T0040. La PR #67 est ouverte
 prête vers `main`; le ticket est `Review`.
+
+T0041 compose la configuration et le gestionnaire de session existants avec une
+route `/login`, une garde d'accueil et une déconnexion exclusivement en mémoire.
+Ses 80 tests frontend, sa couverture, son build et les gates autorité, données
+et maintenance passent localement. La branche est empilée sur T0040/PR #67 :
+la PR #68 est ouverte en brouillon avec cette branche comme base. T0041 reste
+`Review`, ne cible pas encore `main` indépendamment et ne revendique ni login
+WebView live, persistance, onboarding, catalogue ou achat composé.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
