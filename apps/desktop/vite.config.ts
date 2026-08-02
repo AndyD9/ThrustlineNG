@@ -1,25 +1,41 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 
-export default defineConfig({
-  base: "./",
-  envPrefix: [],
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+export default defineConfig(({ mode }) => {
+  const publicConnectionEnvironment = loadEnv(
+    mode,
+    fileURLToPath(new URL(".", import.meta.url)),
+    "VITE_THRUSTLINE_SUPABASE_",
+  );
+
+  return {
+    base: "./",
+    envPrefix: [],
+    define: {
+      "import.meta.env.VITE_THRUSTLINE_SUPABASE_ANON_KEY": JSON.stringify(
+        publicConnectionEnvironment.VITE_THRUSTLINE_SUPABASE_ANON_KEY ?? "",
+      ),
+      "import.meta.env.VITE_THRUSTLINE_SUPABASE_URL": JSON.stringify(
+        publicConnectionEnvironment.VITE_THRUSTLINE_SUPABASE_URL ?? "",
+      ),
     },
-  },
-  server: {
-    host: "127.0.0.1",
-    port: 1420,
-    strictPort: true,
-  },
-  build: {
-    outDir: "dist",
-    emptyOutDir: true,
-    sourcemap: false,
-  },
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        "@": fileURLToPath(new URL("./src", import.meta.url)),
+      },
+    },
+    server: {
+      host: "127.0.0.1",
+      port: 1420,
+      strictPort: true,
+    },
+    build: {
+      outDir: "dist",
+      emptyOutDir: true,
+      sourcemap: false,
+    },
+  };
 });

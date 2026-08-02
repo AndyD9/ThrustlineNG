@@ -40,9 +40,12 @@
       "status": "external-authority",
       "coverage": "managed",
       "serverBoundaries": ["Supabase Auth"],
-      "evidencePaths": ["supabase/config.toml"],
-      "evidenceMarkers": ["[auth]", "enabled = true"],
-      "limitations": ["No desktop authentication caller is implemented."]
+      "evidencePaths": [
+        "apps/desktop/src/features/auth/session.ts",
+        "supabase/config.toml"
+      ],
+      "evidenceMarkers": ["/auth/v1/token?grant_type=refresh_token", "[auth]", "enabled = true"],
+      "limitations": ["The desktop has an in-memory refresh foundation for the local target, but no sign-in provider, persisted session, routed UI, remote target or live call is implemented."]
     },
     {
       "id": "company",

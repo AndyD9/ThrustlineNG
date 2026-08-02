@@ -1,8 +1,8 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 2 août 2026 (T0037 sur une branche issue de
-`origin/main` au commit `82e79ea`).
-Statut : T0012–T0031 et T0033–T0036 sont `Done`; T0037 est `Review`. Les
+Dernière revue documentaire : 2 août 2026 (T0038 sur une branche issue de
+`origin/main` au commit `47cd50c`).
+Statut : T0012–T0031 et T0033–T0037 sont `Done`; T0038 est `Review`. Les
 vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -67,9 +67,10 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   `eng/economy-policy.json`, ouverture `43000000` unités mineures en `EUR` ;
 - Achat T0029 présent dans `main` : offre synthétique, propriété de compagnie et
   débit autoritaire atomique. T0035 ajoute dans `main` une Edge Function
-  authentifiée et T0036 prouve son runtime local réel. T0037 ajoute sur sa
-  branche une commande et un panneau desktop injectés, sans auth, catalogue,
-  connectivité live ni déploiement.
+  authentifiée et T0036 prouve son runtime local réel. T0037 ajoute dans `main`
+  une commande et un panneau desktop injectés. T0038 ajoute sur sa branche la
+  configuration locale publique et le refresh de session en mémoire, sans login,
+  persistance, catalogue, connectivité live ni déploiement.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -501,6 +502,20 @@ l'offre restent injectées et non persistées : la CSP de production demeure
 `connect-src 'none'`, aucun écran routé, auth, catalogue ou appel live n'est
 revendiqué.
 
+T0038 expose au bundle exactement deux paramètres publics et refuse toute cible
+autre que `http://127.0.0.1:54321`. Un gestionnaire conserve la session injectée
+en mémoire, rend le bearer valide ou le renouvelle 30 secondes avant expiration,
+fait converger les appels concurrents vers un seul refresh et remplace les deux
+tokens après validation. Les refus Auth effacent la session ; une panne
+transitoire reste réessayable. La CSP de développement ajoute seulement l'API
+Supabase loopback et la CSP de production demeure `connect-src 'none'`.
+
+Le 2 août 2026, typecheck, couverture, build, 7 fichiers/58 tests frontend et
+les gates autorité/données/maintenance passent. La couverture globale atteint
+89,80 % des statements, 84,79 % des branches et 90,68 % des lignes. Cette preuve
+utilise un `fetch` injecté : elle ne valide ni acquisition de session,
+stockage Windows, appel live, CORS, staging, production ou donnée réelle.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -601,16 +616,15 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0036 est fusionné dans `main` par la PR #63 au commit `82e79ea`. T0037 ajoute
-sur sa branche la commande et l'état UI desktop bornés, sans credential
-privilégié, auth, catalogue, connectivité live ou cible distante ; le ticket est
-en `Review`.
+T0037 est fusionné dans `main` par la PR #64 au commit `47cd50c`. T0038 cadre et
+implémente sur sa branche la configuration locale publique, le refresh de session
+en mémoire et l'ouverture CSP de développement minimale. Il reste en `Review`
+sans login, persistance, cible distante ou appel live.
 
-Après fusion de T0037, le prochain ticket recommandé doit cadrer la configuration
-de connexion et la session authentifiée du desktop avant tout branchement live.
-Il doit décider explicitement la source de configuration, le cycle de vie du
-bearer et l'ouverture minimale de CSP, avec une cible locale/staging identifiée,
-sans embarquer de secret ni confondre clé anonyme et autorité serveur.
+Après T0038, le prochain ticket doit choisir explicitement la méthode
+d'acquisition de session et son stockage Windows, ou identifier une cible
+staging synthétique et son origine CSP. Ces choix touchent sécurité et produit et
+ne doivent pas être inventés dans T0038.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et

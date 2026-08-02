@@ -156,6 +156,17 @@ porte sur une commande et un panneau injectés : la CSP reste `connect-src
 'none'` et aucun auth, catalogue, écran routé, appel live ou cible distante
 n'est validé.
 
+Preuve T0038 du 2 août 2026 : typecheck, couverture et build passent avec
+7 fichiers/58 tests frontend. La couverture globale atteint 89,80 % des
+statements, 84,79 % des branches, 90 % des fonctions et 90,68 % des lignes.
+Les tests couvrent configuration locale exacte, session en mémoire,
+refresh avant expiration, rotation des deux tokens, convergence concurrente,
+refus Auth, panne transitoire, taille et contrat de réponse. L'invariant CSP
+confirme que le développement ajoute seulement `127.0.0.1:54321` et que la
+production reste fermée. Les gates autorité, données et maintenance passent
+avec 5, 6 et 8 mutations négatives. Cette preuve est simulée par `fetch` injecté : aucun
+login, appel live, persistance, staging ou cible distante n'est validé.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme
