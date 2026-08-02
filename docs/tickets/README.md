@@ -254,7 +254,8 @@ T0043 ajoute une lecture Data API locale explicitement allowlistée des offres
 réseau au rendu. Ses 125 tests frontend, couverture, build et gates passent
 localement ; le gate d'autorité couvre désormais huit mutations négatives. Le
 ticket est `Review` sur une branche empilée sur T0042/PR #71 et ne compose ni
-achat, ni flotte, ni cible distante.
+achat, ni flotte, ni cible distante. La PR brouillon #72 cible explicitement la
+branche T0042.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

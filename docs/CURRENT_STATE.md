@@ -9,7 +9,8 @@ déjà intégrée, pas dans `main`. Une PR corrective vers la branche distante p
 défaut #71 est ouverte prête ; aucune capacité d'onboarding desktop n'est
 revendiquée dans `main`.
 T0043 est `Review` sur une branche empilée sur T0042/PR #71 ; sa lecture de
-catalogue n'est pas présente dans `main`.
+catalogue n'est pas présente dans `main`. Sa PR brouillon #72 cible la branche
+T0042.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.

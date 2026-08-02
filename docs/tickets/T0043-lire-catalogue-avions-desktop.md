@@ -29,6 +29,9 @@ locale ; T0042/PR #71 compose l'onboarding mais reste non fusionné dans `main`.
   `db5f557`; dépendance empilée explicite sur la PR corrective #71.
 - 2 août 2026 — `Review` : transport, panneau, allowlist, revue adversariale et
   validations automatisées terminés ; la branche reste empilée sur T0042/#71.
+- 2 août 2026 — publication : commit `c792512` poussé ; PR brouillon #72 ouverte
+  avec base `feature/T0042-desktop-company-onboarding` et les trois checks GitHub
+  en cours lors de l'observation initiale.
 
 ## Dependencies
 
@@ -229,4 +232,7 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md`, `ARCHITECTURE.md` et
 - branche : `feature/T0043-desktop-aircraft-catalog` ;
 - base : T0042 au commit `db5f557`, PR corrective #71 vers `main` ;
 - dépendance : T0042 doit fusionner avant rebase/changement de base ;
-- commit et Pull Request : à créer après inspection du diff.
+- commit d'implémentation : `c792512` ;
+- PR #72 : brouillon, base `feature/T0042-desktop-company-onboarding`, head
+  `feature/T0043-desktop-aircraft-catalog`; les trois checks GitHub sont en cours
+  lors de l'observation initiale.
