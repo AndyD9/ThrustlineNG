@@ -479,7 +479,8 @@ propriétaire puis appelle la commande T0029 avec le credential serveur. Trente
 tests Node passent au total, dont quinze scénarios d'achat ; le gate backend
 passe avec dix-huit mutations. La réponse est allowlistée et `no-store`, les
 rejets sont redigés. Aucun chargement Deno réel, appel desktop, projet distant
-ou donnée réelle n'est encore prouvé.
+ou donnée réelle n'est encore prouvé. La PR #62 est ouverte prête pour revue
+vers `main`; ses checks GitHub sont en cours au moment du handoff.
 
 ## Autorité des mutations du golden path
 

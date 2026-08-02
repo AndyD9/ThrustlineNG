@@ -34,6 +34,9 @@ ni ne modifie ces décisions : il expose uniquement l'achat comptant déjà vali
 - 2 août 2026 — `Review` : handler, 15 scénarios d'achat, trois mutations du
   gate, inventaire et documentation terminés ; toutes les validations locales
   prévues passent.
+- 2 août 2026 — publication : commit `083ccad` poussé sur
+  `feature/T0035-aircraft-purchase-endpoint`; PR #62 ouverte prête pour revue,
+  base `main`, head T0035. Les trois checks GitHub sont démarrés.
 
 ## Dependencies
 
@@ -229,3 +232,14 @@ retourné. Aucun runtime Deno réel ni projet distant n'a été lancé.
 
 `PRODUCT.md`, `ARCHITECTURE.md`, `SECURITY.md`, `QUALITY.md`,
 `CURRENT_STATE.md`, `eng/authority-inventory.json`, T0034, ce ticket et l'index.
+
+### Git status
+
+- branche : `feature/T0035-aircraft-purchase-endpoint` ;
+- commit d'implémentation : `083ccad` ;
+- PR #62 : ouverte et prête, base `main`, head T0035 ;
+- checks locaux : 30 tests Node, backend, autorité, données, maintenance, CI
+  ciblée et diff verts ;
+- checks GitHub : Windows multi-stack, PostgreSQL 17 et supply-chain en cours au
+  moment du handoff ;
+- fusion finale réservée à Andy.
