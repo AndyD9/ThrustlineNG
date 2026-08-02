@@ -43,6 +43,8 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0027 | Encadrer l'orchestration multitâche des agents | Gouvernance | T0026 | Review |
 | T0028 | Fixer la politique économique d'ouverture de production | 2 | T0020, T0022–T0023, décision Andy | Review |
 | T0029 | Acquérir un premier avion sans double débit ni propriété partielle | 2 | T0020, T0022–T0024, T0028, décision Andy | Review |
+| T0030 | Empêcher les dettes techniques silencieuses | Gouvernance | T0027–T0028 | Review |
+| T0031 | Réconcilier l'index après les fusions T0029–T0030 | Gouvernance | T0029–T0030 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -152,6 +154,12 @@ livraison de #54. Deux resets, 12 fichiers/234 assertions, types, gates et deux
 courses PostgreSQL locales passent ; CI `30740977879` et supply-chain
 `30740977888` sont vertes sur le commit d'implémentation. Aucun endpoint
 applicatif ni environnement distant n'est inclus.
+
+T0030 automatise l'intégrité du registre de maintenance, la cohérence entre
+statuts des tickets et index, ainsi que la traçabilité des marqueurs de dette
+dans le code. Il reste empilé sur T0028 jusqu'à réconciliation de sa livraison
+vers `main` et ne corrige aucune dette produit hors de son périmètre de
+gouvernance.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
