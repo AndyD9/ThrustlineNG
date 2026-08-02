@@ -1,6 +1,6 @@
 # T0028 — Fixer la politique économique d'ouverture de production
 
-Status: Draft
+Status: Ready
 Owner: Andy
 Branch: `docs/T0028-production-economy-policy`
 Phase: 2
@@ -26,12 +26,20 @@ produit.
 déploiement ou appel desktop et interdit de détailler une deuxième variation
 financière avant cette décision.
 
-### Décision réservée à Andy
+### Décision d'Andy
 
-Le ticket ne peut passer `Ready` qu'après confirmation du montant positif en
-unités majeures et de la devise ISO 4217. Proposition minimale à valider ou
-remplacer : **430 000 EUR**, valeur aujourd'hui utilisée uniquement comme
-fixture locale.
+Andy confirme le 2 août 2026 une ouverture unique de **430 000 EUR**, soit
+`43000000` unités mineures, pour chaque nouvelle compagnie MVP. Cette décision
+rend la valeur normative pour T0028 sans transformer rétroactivement les usages
+antérieurs de la même valeur comme fixture en preuve de production.
+
+## Workflow evidence
+
+- 2 août 2026 — `Ready` : T0020, T0022 et T0023 sont `Done` et livrés dans
+  `main`; Andy a confirmé montant et devise ; le worktree
+  `.worktrees/t0028` est propre sur `docs/T0028-production-economy-policy`.
+- T0027 reste une dépendance d'ascendance documentaire non fusionnée dans
+  `main`; T0028 reste explicitement empilé et ne présume pas sa livraison.
 
 ## Dependencies
 
