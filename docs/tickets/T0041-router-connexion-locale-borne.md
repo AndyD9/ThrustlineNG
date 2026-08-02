@@ -18,8 +18,9 @@ permettre une déconnexion explicite sans persister ni exposer les credentials.
 T0038 fournit la configuration locale et le gestionnaire de session en mémoire.
 T0039 fournit le panneau de connexion et T0040 prouve le grant password dans le
 runtime local, mais aucun de ces éléments n'est encore relié au routeur. T0040
-est en `Review` dans la PR #67 : T0041 est donc temporairement empilé sur cette
-branche et ne doit pas être présenté comme livrable indépendamment.
+est désormais livré dans `main`. La PR #68 a toutefois été fusionnée dans son
+ancienne branche T0040 après la fusion de cette branche vers `main`; son état
+GitHub `MERGED` ne livre donc pas T0041 dans la branche distante par défaut.
 
 ## Workflow evidence
 
@@ -35,6 +36,11 @@ branche et ne doit pas être présenté comme livrable indépendamment.
 - 2 août 2026 — publication : commit `ccab6ef` poussé ; PR #68 ouverte en
   brouillon avec base `fix/T0040-enable-local-password-auth` et head
   `feature/T0041-bounded-login-route`.
+- 2 août 2026 — réconciliation de livraison : PR #67 fusionnée dans `main` au
+  commit `471c7c1`, puis PR #68 fusionnée dans la branche T0040 déjà intégrée ;
+  les tests d'ascendance confirment que `ccab6ef` et `84ab900` restent absents de
+  `origin/main`. `origin/main` est fusionné sans réécriture dans la branche
+  T0041 afin d'ouvrir une nouvelle PR corrective vers `main`.
 
 ## Dependencies
 
@@ -207,15 +213,17 @@ silencieuse n'est créée.
 
 ### Risks and limitations
 
-T0041 reste empilé sur T0040/PR #67, non fusionné dans `main`. La preuve de
-navigation utilise une commande injectée et jsdom : aucun login WebView live,
+T0040 est livré, mais T0041 reste absent de `main` malgré la fusion de #68 dans
+une base obsolète. La preuve de navigation utilise une commande injectée et
+jsdom : aucun login WebView live,
 onboarding, catalogue, achat, persistance Windows, cible distante ou donnée
 réelle n'est revendiqué. Une WebView compromise peut toujours lire les tokens
 présents en mémoire.
 
 ### Follow-ups
 
-- après fusion de T0040, rebaser T0041 sur `main` et changer la base de sa PR ;
+- livrer T0041 par une PR corrective vers `main`, sans présenter #68 comme une
+  livraison sur la branche par défaut ;
 - cadrer séparément la persistance Windows avant tout stockage de refresh token ;
 - composer onboarding puis catalogue/achat dans des tickets distincts.
 
@@ -226,10 +234,10 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md` et `SECURITY.md`.
 ### Git status
 
 - branche : `feature/T0041-bounded-login-route` ;
-- base de développement : `fix/T0040-enable-local-password-auth` au commit
-  `fc95f68` ;
-- dépendance : T0040/PR #67 doit fusionner avant rebase/changement de base ;
+- base de développement initiale : `fix/T0040-enable-local-password-auth` au
+  commit `fc95f68`, puis fusion non destructive de `origin/main` (`471c7c1`) ;
+- dépendance T0040 : livrée par la PR #67 ;
 - commit d'implémentation : `ccab6ef` ;
-- PR #68 : brouillon, base `fix/T0040-enable-local-password-auth`, head
-  `feature/T0041-bounded-login-route` ; état GitHub `CLEAN`, aucun check reporté
-  lors de l'observation finale du 2 août 2026.
+- PR #68 : fusionnée avec checks verts dans
+  `fix/T0040-enable-local-password-auth`, mais cette base avait déjà fusionné
+  dans `main`; T0041 reste donc en `Review` jusqu'à sa PR corrective.

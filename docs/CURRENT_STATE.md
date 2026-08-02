@@ -1,10 +1,10 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 2 août 2026 (T0041 publié au-dessus de T0040 dans
-la PR brouillon #68, encore non fusionné).
-Statut : T0012–T0031 et T0033–T0039 sont `Done`; T0040 est `Review` dans la
-PR #67 ouverte prête, non livrée dans `main`. T0041 est `Review` dans la PR #68
-empilée en brouillon, sans livraison ni capacité revendiquée dans `main`.
+Dernière revue documentaire : 2 août 2026 (T0040 livré par #67 ; faux succès de
+livraison T0041 détecté après la fusion de #68 dans une base déjà intégrée).
+Statut : T0012–T0031 et T0033–T0040 sont `Done`. T0041 est `Review` : sa PR #68
+est fusionnée dans l'ancienne branche T0040, mais ses commits restent absents de
+`main` et exigent une PR corrective vers la branche distante par défaut.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -74,7 +74,7 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   configuration locale publique et le refresh de session en mémoire. T0039
   ajoute dans `main` l'acquisition email/mot de passe locale injectée, sans
   persistance, route, catalogue, connectivité live ni déploiement. T0040 active
-  sur sa branche le provider email local tout en gardant le signup
+  dans `main` le provider email local tout en gardant le signup
   global fermé et prouve la commande contre le runtime synthétique. T0041
   compose sur une branche empilée la route locale et la déconnexion en mémoire,
   sans livraison dans `main`.
@@ -549,7 +549,8 @@ puis refus d'un mauvais mot de passe et de `/signup`. Les bindings restent
 54321–54323 sur `127.0.0.1`; après suppression, arrêt sans backup et redémarrage,
 PostgreSQL contient deux identités seed `.invalid` et zéro identité T0040. La
 pile est arrêtée. Cette preuve reste locale, synthétique et non routée ;
-elle ne revendique ni livraison dans `main`, ni persistance ou cible distante.
+elle ne revendique ni persistance ni cible distante. T0040 est livré dans
+`main` par la PR #67 au commit `471c7c1` avec ses trois checks verts.
 
 T0041 compose un unique gestionnaire de session avec les routes `/login` et `/`.
 Sans session, l'accueil redirige vers le formulaire ; après installation complète
@@ -557,9 +558,10 @@ par T0039, le login redirige vers l'accueil. La déconnexion efface la session
 avant de revenir au formulaire. Les 80 tests frontend, la couverture et le build
 passent ; les espions réseau confirment zéro appel au rendu, pendant les
 redirections et à la déconnexion. Cette preuve jsdom ne constitue pas un login
-WebView live. La branche reste empilée sur T0040 et n'est pas livrée dans `main`.
-La PR #68 est ouverte en brouillon avec base
-`fix/T0040-enable-local-password-auth` jusqu'à la fusion de la PR #67.
+WebView live. La PR #68 a été fusionnée avec ses checks verts dans
+`fix/T0040-enable-local-password-auth` après que #67 avait déjà intégré cette
+base. Les tests d'ascendance confirment donc que T0041 n'est pas livré dans
+`main`; une PR corrective vers `main` reste requise.
 
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
@@ -661,11 +663,11 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0040 doit encore être revu puis fusionné. T0041 compose déjà la connexion et la
-session en mémoire dans une route desktop bornée, mais reste empilé et doit être
-rebasé sur `main` après cette fusion. Le ticket suivant devra rester séparé :
-soit cadrer la persistance Windows avec une revue de sécurité avant tout stockage
-de refresh token, soit composer l'onboarding sans anticiper catalogue ou achat.
+T0040 est livré. T0041 doit encore être propagé vers `main` par une PR corrective
+car #68 a fusionné dans une base obsolète. Après cette correction, le prochain
+ticket recommandé est de composer l'onboarding depuis la session en mémoire,
+sans anticiper catalogue ou achat ; la persistance Windows reste un ticket de
+sécurité séparé avant tout stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et
