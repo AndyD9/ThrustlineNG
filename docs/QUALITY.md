@@ -54,10 +54,12 @@ sa disparition du workflow.
 Le contrôle statique fonctionne sans Docker et couvre la version de CLI, la
 configuration PostgreSQL 17, l'ordre migration/seed, les contraintes, les
 politiques, les scénarios A/B/anonyme et l'absence de commande distante. Il
-exécute aussi onze mutations négatives, dont une publication wildcard, un
+exécute aussi quatorze mutations négatives, dont une publication wildcard, un
 montage du socket Docker hôte et une commande d'onboarding rendue exécutable par
 un rôle client. T0023 ajoute la détection d'un propriétaire repris du payload ou
-d'un appel RPC effectué sans le credential serveur :
+d'un appel RPC effectué sans le credential serveur. T0028 ajoute une version de
+politique inconnue, une divergence entre source canonique et copie embarquée et
+le retour d'une surcharge par environnement :
 
 ```powershell
 pnpm backend:check
@@ -99,10 +101,17 @@ fichier versionné diffère.
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme
-`1|1|1`. Un appel sans JWT rend HTTP 401. Les valeurs locales
+`1|1|1`. Un appel sans JWT rend HTTP 401. À cette date, les valeurs locales
 `43000000`/`EUR` sont uniquement des fixtures serveur, pas une politique produit.
 L'arrêt utilise `--no-backup` afin que le volume conservé ne contienne pas la
 base synthétique ; une mutation statique refuse le retour au backup implicite.
+
+Preuve T0028 du 2 août 2026 : quinze tests Node couvrent la politique v1
+`43000000`/`EUR`, six politiques invalides, la tentative de surcharge par
+environnement et les garanties T0023. Le gate backend exige
+`eng/economy-policy.json`, sa copie embarquée identique et l'absence des deux
+anciennes variables. Cette preuve valide le code local ; elle ne prouve aucun
+déploiement distant ni admission de données réelles.
 
 Preuve T0021 du 31 juillet 2026 sous Docker Desktop 29.6.2 : le daemon Supabase
 isolé publie les trois ports externes uniquement sur `127.0.0.1`, confirmé par

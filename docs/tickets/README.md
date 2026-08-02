@@ -41,6 +41,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0025 | Synchroniser la roadmap avec l'état prouvé | 1–2 | T0012, T0021, T0024 | Done |
 | T0026 | Réconcilier la livraison de T0010 | 1 | T0010 | Done |
 | T0027 | Encadrer l'orchestration multitâche des agents | Gouvernance | T0026 | Review |
+| T0028 | Fixer la politique économique d'ouverture de production | 2 | T0020, T0022–T0023, décision Andy | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -135,6 +136,12 @@ responsable de chaque ticket, la lecture parallèle est privilégiée, les écri
 dans un worktree partagé exigent des chemins disjoints et plusieurs tickets ne
 peuvent avancer simultanément que dans des worktrees et branches distincts. La
 branche est empilée sur T0026 jusqu'à la livraison de ce dernier dans `main`.
+
+T0028 cadre la politique d'ouverture économique unique des nouvelles compagnies
+MVP. Andy confirme le 2 août 2026 une ouverture de 430 000 EUR ; la même valeur
+utilisée auparavant comme fixture locale ne constitue pas une preuve de
+production rétroactive. La source canonique, le handler et les gates sont
+terminés ; le ticket est `Review` sur sa branche isolée.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
