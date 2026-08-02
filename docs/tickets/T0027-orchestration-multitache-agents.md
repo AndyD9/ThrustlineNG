@@ -27,9 +27,11 @@ Cette maintenance de gouvernance est explicitement demandée par Andy le
 2 août 2026. Elle est strictement documentaire et ne modifie aucune décision
 produit, architecture, sécurité, donnée ou support.
 
-T0027 est empilé sur T0026, dont le commit `7d46afc` n'est pas encore dans
-`origin/main`. Sa Pull Request doit cibler la branche T0026 jusqu'à la fusion de
-celle-ci, puis être rebasée ou re-ciblée vers `main`.
+T0027 a d'abord été empilé sur T0026. La PR #50 a été fusionnée dans cette
+branche de base après que T0026 avait déjà rejoint `main` par la PR #49 ; cette
+fusion ne livrait donc pas T0027 dans la branche par défaut. La branche a ensuite
+été synchronisée sans réécriture avec `origin/main` et la PR #51 cible
+directement `main` pour réconcilier la livraison.
 
 ## Dependencies
 
@@ -130,9 +132,9 @@ applicatif ou persistant n'est modifié.
 ## Completion Report
 
 Implémentation terminée le 2 août 2026 sur
-`docs/T0027-agent-multitasking-governance`, empilée sur
-`docs/T0026-reconcile-t0010-delivery`. La PR brouillon #50 cible cette branche de
-base jusqu'à la fusion de T0026.
+`docs/T0027-agent-multitasking-governance`. La PR #50 a livré le diff dans la
+branche T0026, mais pas dans `main`; la PR brouillon #51 cible désormais `main`
+après synchronisation non destructive de la branche.
 
 ### Summary
 
@@ -165,7 +167,11 @@ l'intégration restent séquentielles.
 - `gh pr view 50` — PR `OPEN`, brouillon, base
   `docs/T0026-reconcile-t0010-delivery`, head
   `docs/T0027-agent-multitasking-governance` ; CI Windows et PostgreSQL en cours,
-  supply chain en attente au moment du contrôle.
+  supply chain en attente au moment du contrôle ;
+- contrôle du 2 août 2026 après synchronisation distante : PR #50 `MERGED`
+  dans la branche T0026, T0027 absent de `origin/main`, puis fusion non
+  destructive de `origin/main` dans la branche et ouverture de la PR brouillon
+  #51 vers `main`.
 
 ### Manual verification result
 
@@ -178,15 +184,14 @@ coordinateur. Le ticket et l'index sont alignés sur `Review`.
 
 - les règles reposent sur leur application par le coordinateur ; aucun gate ne
   détecte automatiquement une collision d'agents ;
-- T0027 est empilé sur T0026, encore absent de `origin/main` au démarrage du
-  ticket ; sa PR ne doit pas être fusionnée avant T0026 sans rebase ou changement
-  de base ;
+- T0027 reste absent de `origin/main` tant que la PR #51 n'est pas fusionnée ;
+  la PR #50 seule ne constitue pas une livraison sur la branche par défaut ;
 - aucune exécution réellement concurrente n'est nécessaire pour valider cette
   maintenance documentaire.
 
 ### Follow-ups
 
-- après fusion de T0026, rebaser T0027 ou changer la base de sa PR vers `main` ;
+- faire relire puis fusionner la PR #51 dans `main` ;
 - réévaluer l'intérêt d'un contrôle automatisé seulement après des collisions
   observées ou une reproduction déterministe.
 
