@@ -92,6 +92,7 @@ function Get-CiIssues {
         "tests/toolchain/run.ps1",
         "pnpm data-policy:check",
         "pnpm authority:check",
+        "pnpm maintenance:check",
         "pnpm frontend:typecheck",
         "pnpm frontend:test",
         "pnpm frontend:coverage",
@@ -190,7 +191,8 @@ function Get-CiIssues {
         "performance:test",
         "performance:check:build",
         "data-policy:check",
-        "authority:check"
+        "authority:check",
+        "maintenance:check"
     )) {
         if ($null -eq $package.scripts.PSObject.Properties[$scriptName]) {
             $issues.Add("Missing package script: $scriptName")
