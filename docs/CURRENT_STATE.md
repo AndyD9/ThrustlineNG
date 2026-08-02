@@ -1,8 +1,8 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 2 août 2026 (T0036 sur une branche issue de
-`origin/main` au commit `76a47c9`).
-Statut : T0012–T0031 et T0033–T0035 sont `Done`; T0036 est `Review`. Les
+Dernière revue documentaire : 2 août 2026 (T0037 sur une branche issue de
+`origin/main` au commit `82e79ea`).
+Statut : T0012–T0031 et T0033–T0036 sont `Done`; T0037 est `Review`. Les
 vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -67,8 +67,9 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   `eng/economy-policy.json`, ouverture `43000000` unités mineures en `EUR` ;
 - Achat T0029 présent dans `main` : offre synthétique, propriété de compagnie et
   débit autoritaire atomique. T0035 ajoute dans `main` une Edge Function
-  authentifiée ; T0036 prouve son runtime local réel, sans appelant desktop ni
-  déploiement.
+  authentifiée et T0036 prouve son runtime local réel. T0037 ajoute sur sa
+  branche une commande et un panneau desktop injectés, sans auth, catalogue,
+  connectivité live ni déploiement.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -490,6 +491,22 @@ et avec prix client rendent HTTP 401 et 400 sans détail interne. L'arrêt sans
 backup puis le redémarrage confirment zéro identité T0036 persistée. Aucun appel
 desktop, projet distant, parité cloud ou donnée réelle n'est prouvé.
 
+T0037 ajoute une commande WebView qui accepte uniquement une URL publique, une
+clé anonyme, un bearer utilisateur, l'offre et l'idempotence, puis appelle
+`/functions/v1/aircraft-purchase`. Les cibles HTTP non loopback, UUID et réponses
+non conformes sont refusés ; la requête expire après cinq secondes. Le panneau
+React bloque les doubles clics, conserve la même clé pour un retry et expose des
+états accessibles prêt, pending, owned, rejected et unavailable. La session et
+l'offre restent injectées et non persistées : la CSP de production demeure
+`connect-src 'none'`, aucun écran routé, auth, catalogue ou appel live n'est
+revendiqué.
+
+Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
+91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
+Vite réussit. Les gates autorité, données et maintenance passent respectivement
+avec 5, 6 et 8 mutations négatives. Le bundle ne contient ni credential de test,
+ni référence privilégiée, ni accès Data API.
+
 ## Autorité des mutations du golden path
 
 T0024 ajoute une source JSON versionnée couvrant exactement les dix étapes
@@ -584,15 +601,16 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0035 est fusionné dans `main` par la PR #62 au commit `76a47c9` avec ses trois
-checks verts. T0036 valide son chargement Edge Runtime, la chaîne Auth → RPC,
-le rejeu, l'état PostgreSQL et le nettoyage sur données synthétiques ; le ticket
-est en `Review`, sans appel desktop ni environnement distant.
+T0036 est fusionné dans `main` par la PR #63 au commit `82e79ea`. T0037 ajoute
+sur sa branche la commande et l'état UI desktop bornés, sans credential
+privilégié, auth, catalogue, connectivité live ou cible distante ; le ticket est
+en `Review`.
 
-Après fusion de T0036, le prochain ticket recommandé est la consommation
-desktop bornée de l'achat, avec états pending/rejected explicites et sans
-credential privilégié côté client. Il ne doit ni englober la location, ni
-présumer une cible Supabase distante prête.
+Après fusion de T0037, le prochain ticket recommandé doit cadrer la configuration
+de connexion et la session authentifiée du desktop avant tout branchement live.
+Il doit décider explicitement la source de configuration, le cycle de vie du
+bearer et l'ouverture minimale de CSP, avec une cible locale/staging identifiée,
+sans embarquer de secret ni confondre clé anonyme et autorité serveur.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et

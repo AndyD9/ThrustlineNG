@@ -1,6 +1,6 @@
 # T0036 — Valider l'achat d'avion sur le runtime local réel
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `chore/T0036-validate-aircraft-purchase-runtime`
 Phase: 2
@@ -41,6 +41,7 @@ distante.
 - 2 août 2026 — publication : commit `41b707c` poussé sur
   `chore/T0036-validate-aircraft-purchase-runtime`; PR #63 ouverte prête pour
   revue, base `main`, head T0036.
+- 2 août 2026 — `Done` : PR #63 fusionnée dans `main` au commit `82e79ea`.
 
 ## Dependencies
 
@@ -257,8 +258,7 @@ T0035, ce ticket, l'index, `QUALITY.md` et `CURRENT_STATE.md`.
 - branche : `chore/T0036-validate-aircraft-purchase-runtime` ;
 - base : `main` / `origin/main` au commit `76a47c9` ;
 - commit de validation : `41b707c` ;
-- PR #63 : ouverte et prête, base `main`, head
+- PR #63 : fusionnée dans `main` au commit `82e79ea`, base `main`, head
   `chore/T0036-validate-aircraft-purchase-runtime` ;
-- checks GitHub : aucun check encore reporté immédiatement après le push final
-  de traçabilité au moment du handoff ;
-- fusion finale réservée à Andy.
+- la fusion et la clôture ont été réconciliées par T0037 sans réécrire les
+  preuves historiques ci-dessus.
