@@ -232,6 +232,10 @@ réelle n'est autorisé.
 - deux sessions, offres distinctes de 10 000 000 sur solde 15 000 000 — un
   succès, un refus insuffisant et état `1|1|1|5000000` ;
 - `git diff --check` — PASS.
+- PR brouillon #56, base `docs/T0028-production-economy-policy`, head
+  `feature/T0029-authoritative-aircraft-acquisition` ; CI `30740977879` :
+  PostgreSQL 17 et Windows PASS ; supply-chain `30740977888` : PASS sur
+  `1ede937`.
 
 ### Manual verification result
 
@@ -248,8 +252,8 @@ assertions ont été rejoués avec succès.
 - Aucun endpoint applicatif, appel desktop, catalogue de production ou donnée
   réelle n'est couvert.
 - La location, les paiements récurrents et l'autorité temporelle restent absents.
-- Le job Linux CI n'est pas encore exécuté pour la future PR ; le harnais local
-  et ses invariants statiques passent.
+- La PR reste en brouillon et dépend de la livraison préalable de T0028/#54 ;
+  Andy conserve seul l'autorité de revue et de merge.
 
 ### Follow-ups
 

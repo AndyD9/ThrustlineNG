@@ -465,6 +465,11 @@ cette branche, sans endpoint desktop, déploiement distant ni donnée réelle.
 Andy a confirmé que la location suivra dans un ticket distinct avec contrat,
 échéances et autorité temporelle.
 
+La PR brouillon #56 cible la branche T0028. Sur le commit d'implémentation
+`1ede937`, l'exécution CI `30740977879` valide PostgreSQL 17 et Windows, et
+l'exécution supply-chain `30740977888` est verte. Cette preuve distante reste
+empilée : elle ne rend pas T0028 ni T0029 présents dans `main`.
+
 ## Autorité des mutations du golden path
 
 T0024 ajoute une source JSON versionnée couvrant exactement les dix étapes
