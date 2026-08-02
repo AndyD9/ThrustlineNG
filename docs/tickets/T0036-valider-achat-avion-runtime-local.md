@@ -38,6 +38,9 @@ distante.
 - 2 août 2026 — `Review` : runtime, Auth, onboarding, achat, rejeu, refus,
   état PostgreSQL et nettoyage validés avec des données exclusivement
   synthétiques ; documentation et gates applicables prêts pour revue.
+- 2 août 2026 — publication : commit `41b707c` poussé sur
+  `chore/T0036-validate-aircraft-purchase-runtime`; PR #63 ouverte prête pour
+  revue, base `main`, head T0036.
 
 ## Dependencies
 
@@ -253,5 +256,8 @@ T0035, ce ticket, l'index, `QUALITY.md` et `CURRENT_STATE.md`.
 
 - branche : `chore/T0036-validate-aircraft-purchase-runtime` ;
 - base : `main` / `origin/main` au commit `76a47c9` ;
-- commit et PR : à renseigner après publication ;
+- commit de validation : `41b707c` ;
+- PR #63 : ouverte et prête, base `main`, head
+  `chore/T0036-validate-aircraft-purchase-runtime` ;
+- checks GitHub : à relever après le push final de traçabilité ;
 - fusion finale réservée à Andy.
