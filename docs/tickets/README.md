@@ -223,10 +223,11 @@ T0039 est `Done`.
 T0040 corrige l'écart entre cette commande et la configuration locale qui
 désactivait le provider email. Après fusion de T0039, sa branche est rebasée sur
 `main` : inscription globale fermée, identité `.invalid` provisionnée par
-l'Admin API locale, test runtime et
-destruction sans backup. Sa branche ne doit pas être présentée comme livrée dans
+l'Admin API locale, test runtime et destruction sans backup. Sa branche ne doit
+pas être présentée comme livrée dans
 `main` tant que T0040 n'est pas fusionné. Deux scénarios runtime
-passent et le redémarrage confirme zéro identité T0040 ; le ticket est `Review`.
+passent et le redémarrage confirme zéro identité T0040. La PR #67 est ouverte
+prête vers `main`; le ticket est `Review`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

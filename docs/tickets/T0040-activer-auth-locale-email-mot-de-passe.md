@@ -34,6 +34,10 @@ doit cibler `main`.
   runtime, refus du signup, nettoyage et documentation prêts pour revue.
 - 2 août 2026 — dépendance livrée : Andy fusionne T0039/PR #66 dans `main` au
   commit `47c8f341` avec les trois checks verts ; T0040 est rebasé sur cette base.
+- 2 août 2026 — publication : commit `61fd54e` poussé sur
+  `fix/T0040-enable-local-password-auth`; PR #67 ouverte prête pour revue, base
+  `main`. Les checks GitHub sont déclenchés mais pas encore attribués comme
+  réussis dans cette preuve.
 
 ## Dependencies
 
@@ -221,3 +225,13 @@ validée ; une WebView compromise peut toujours lire les tokens en mémoire.
 
 `CURRENT_STATE.md`, `QUALITY.md`, `SECURITY.md`, inventaire d'autorité, index,
 T0039 et T0040. T0039 est réconcilié `Done`; T0040 reste non livré dans `main`.
+
+### Git status
+
+- branche : `fix/T0040-enable-local-password-auth` ;
+- base : `origin/main` au commit `47c8f341` ;
+- commit d'implémentation rebasé : `61fd54e` ;
+- PR #67 : ouverte et prête, base `main`, head
+  `fix/T0040-enable-local-password-auth` ;
+- checks GitHub : déclenchés, résultat final non encore observé ;
+- fusion finale réservée à Andy.

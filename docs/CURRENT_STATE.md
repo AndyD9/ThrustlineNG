@@ -2,9 +2,9 @@
 
 Dernière revue documentaire : 2 août 2026 (T0040 rebasé sur `origin/main` au
 commit `47c8f341` après la fusion de T0039).
-Statut : T0012–T0031 et T0033–T0039 sont `Done`; T0040 est `Review` sur une
-branche non livrée.
-vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
+Statut : T0012–T0031 et T0033–T0039 sont `Done`; T0040 est `Review` dans la
+PR #67 ouverte prête, non livrée dans `main`.
+Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
 
