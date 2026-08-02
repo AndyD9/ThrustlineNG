@@ -45,6 +45,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0029 | Acquérir un premier avion sans double débit ni propriété partielle | 2 | T0020, T0022–T0024, T0028, décision Andy | Review |
 | T0030 | Empêcher les dettes techniques silencieuses | Gouvernance | T0027–T0028 | Review |
 | T0031 | Réconcilier l'index après les fusions T0029–T0030 | Gouvernance | T0029–T0030 | Review |
+| T0032 | Louer un avion sans double prélèvement ni usage hors contrat | 2 | T0020, T0022–T0024, T0028–T0029, décisions Andy | Draft |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -160,6 +161,13 @@ statuts des tickets et index, ainsi que la traçabilité des marqueurs de dette
 dans le code. Il reste empilé sur T0028 jusqu'à réconciliation de sa livraison
 vers `main` et ne corrige aucune dette produit hors de son périmètre de
 gouvernance.
+
+T0032 cadre la location d'avion confirmée après l'achat T0029. Il reste `Draft`
+jusqu'à décision explicite d'Andy sur durée, cadence, montants, grâce, défaut,
+résiliation, fin d'usage et autorité temporelle. Aucune migration ni politique
+économique n'est inventée avant ce passage en `Ready`; la branche reste empilée
+sur l'intégration T0028 qui contient T0029–T0031 sans les présenter comme livrés
+dans `main`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
