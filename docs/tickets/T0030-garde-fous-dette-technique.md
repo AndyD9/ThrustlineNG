@@ -50,6 +50,9 @@ avant les dettes `Medium` lorsqu'une zone devient active.
   empilée explicitement sur `docs/T0028-production-economy-policy`.
 - 2 août 2026 — `Review` : gate, huit mutations négatives, branchement CI et
   documentation terminés ; validations ciblées réussies.
+- 2 août 2026 — publication : commit `909f494`, PR brouillon #55, base
+  `docs/T0028-production-economy-policy`, head
+  `chore/T0030-technical-debt-guardrails`.
 
 ## Dependencies
 
@@ -217,3 +220,12 @@ marqueur non suivi sur une ligne déjà conforme reste détecté.
 
 `AGENTS.md`, workflow de maintenance, qualité, registre des problèmes connus et
 suivi des tickets.
+
+### Git status
+
+- branche : `chore/T0030-technical-debt-guardrails` ;
+- commit d'implémentation : `909f494` ;
+- PR #55 : brouillon, base T0028, head T0030 ;
+- dépendance : livraison de la PR #54 puis rebase ou changement de base sans
+  réécriture d'une branche partagée ;
+- fusion finale réservée à Andy.
