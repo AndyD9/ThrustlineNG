@@ -56,7 +56,10 @@ en PR, accepté et fusionné.
 
 ## Démarrage et périmètre
 
-Un ticket fonctionnel à la fois et un ticket par branche ou worktree.
+Un ticket fonctionnel à la fois par worktree et un ticket par branche ou
+worktree. Plusieurs tickets peuvent avancer en parallèle uniquement dans des
+worktrees distincts, après vérification de leurs dépendances et de leurs zones
+de modification.
 
 Avant toute modification :
 
@@ -82,6 +85,37 @@ Ne pas démarrer l'implémentation d'un ticket `Draft`, `Blocked`, `Rejected` ou
 `Superseded`. Un ticket `Verify` ne reçoit que les corrections nécessaires à sa
 vérification. Si le code existe alors que le suivi dit le contraire, réconcilier
 le suivi avant de poursuivre et ne jamais antidater une preuve.
+
+## Orchestration multitâche
+
+Un agent coordinateur reste responsable de chaque ticket, de son périmètre, de
+l'état Git, de l'intégration et du rapport final. Il utilise le minimum de
+sous-agents nécessaire et délègue uniquement des sous-tâches bornées qui peuvent
+progresser indépendamment.
+
+- Les recherches, lectures, diagnostics et revues peuvent être parallélisés en
+  lecture seule.
+- Dans un worktree partagé, les sous-agents restent en lecture seule par défaut.
+  Une écriture parallèle exige une attribution préalable de chemins disjoints ;
+  un seul agent possède un chemin à un instant donné.
+- Deux travaux qui modifient le même fichier, un contrat et son consommateur, une
+  migration et ses types générés, ou des étapes dépendantes restent séquentiels.
+- Un sous-agent ne change jamais de branche, ne crée pas de commit, ne pousse pas
+  et ne gère pas de Pull Request dans un worktree partagé. Ces opérations
+  appartiennent au coordinateur.
+- Chaque sous-agent rend ses constats, fichiers touchés, commandes, résultats et
+  limites. Le coordinateur inspecte le diff combiné et rejoue les validations
+  après intégration ; des validations isolées ne prouvent pas le résultat final.
+- Pour plusieurs tickets en parallèle, chaque ticket possède son worktree, sa
+  branche, son statut et sa future Pull Request. Une branche non fusionnée reste
+  une dépendance explicite et ne doit jamais être présumée présente dans `main`.
+- Toute collision de périmètre, modification inattendue ou dépendance découverte
+  suspend l'écriture concernée jusqu'à réattribution ou séquencement par le
+  coordinateur.
+
+La délégation ne change ni `Allowed areas`, ni `Do not touch`, ni l'autorité
+d'Andy. Elle ne permet pas de fusionner une Pull Request, de résoudre une
+ambiguïté produit ou de créer une exception de sécurité.
 
 ## Suivi du ticket
 
