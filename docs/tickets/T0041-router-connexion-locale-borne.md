@@ -231,5 +231,5 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md` et `SECURITY.md`.
 - dépendance : T0040/PR #67 doit fusionner avant rebase/changement de base ;
 - commit d'implémentation : `ccab6ef` ;
 - PR #68 : brouillon, base `fix/T0040-enable-local-password-auth`, head
-  `feature/T0041-bounded-login-route` ; checks GitHub déclenchés, résultat final
-  non encore observé.
+  `feature/T0041-bounded-login-route` ; état GitHub `CLEAN`, aucun check reporté
+  lors de l'observation finale du 2 août 2026.
