@@ -16,6 +16,10 @@ sécurité. Il complète `WORKFLOW.md` sans autoriser de changement hors ticket.
   structurante, une ADR acceptée.
 - Une consigne manuelle répétable doit devenir un test, un script ou une gate
   dès qu'une détection déterministe est raisonnable.
+- Un marqueur de code `TODO`, `FIXME`, `HACK` ou `XXX` est interdit sans la
+  forme `TODO(KI-NNN): ...` équivalente et une entrée `Open` ou `Scheduled` dans
+  `KNOWN_ISSUES.md`. Un marqueur lié à une entrée close doit être retiré ou
+  traité dans le ticket qui clôt l'entrée.
 
 ## Boucle obligatoire de l'agent
 
@@ -113,6 +117,23 @@ Une remédiation n'est close que si :
 exceptions non expirées et les règles arrivées à revalidation. Il propose les
 changements de statut ; il ne transforme pas silencieusement `Accepted` en
 `Resolved` et ne modifie pas seul une décision de risque d'Andy.
+
+### 7. Contrôle automatique
+
+Depuis la racine, exécuter :
+
+```powershell
+pnpm maintenance:check
+```
+
+Le gate vérifie le format et l'unicité du registre, les preuves et cibles, les
+risques acceptés, les références des entrées résolues, l'identité des statuts
+entre chaque ticket et l'index, ainsi que les marqueurs de dette dans le code.
+Il s'exécute en CI sur chaque Pull Request et push vers `main`.
+
+Ce contrôle prouve la traçabilité et la cohérence du suivi. Il ne prouve ni la
+correction d'une dette, ni une validation MSFS, cloud, matérielle ou de signature
+qui n'a pas réellement été exécutée.
 
 ## Sortie attendue de chaque ticket
 

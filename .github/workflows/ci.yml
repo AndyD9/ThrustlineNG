@@ -59,6 +59,10 @@ jobs:
         shell: pwsh
         run: pnpm authority:check
 
+      - name: Validate maintenance governance
+        shell: pwsh
+        run: pnpm maintenance:check
+
       - name: Validate frontend
         shell: pwsh
         run: |
