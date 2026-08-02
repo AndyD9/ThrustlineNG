@@ -33,6 +33,9 @@ suivi incohérent invalide précisément le contrôle que T0030 introduit.
   autorisées.
 - 2 août 2026 — `Review` : T0030 restauré sans altérer T0029 ; gate de
   maintenance, harnais CI, cohérence des statuts et diff validés.
+- 2 août 2026 — publication : commits `a545496`, `bc2d481` et `581f698`, PR
+  brouillon #57, base `docs/T0028-production-economy-policy`, head
+  `fix/T0031-reconcile-ticket-index`.
 
 ## Dependencies
 
@@ -144,6 +147,8 @@ repasse sur le résultat combiné.
 - recherche ciblée T0029–T0031 et statuts des trois tickets — une entrée par
   ticket, statuts `Review`, `Review`, `Review` ;
 - `git diff --check` — PASS.
+- push de `fix/T0031-reconcile-ticket-index` — PASS ; PR brouillon #57 créée
+  vers la base empilée `docs/T0028-production-economy-policy`.
 
 ### Manual verification result
 
