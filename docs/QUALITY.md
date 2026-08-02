@@ -178,6 +178,17 @@ gates autorité, données et maintenance passent avec 5, 6 et 8 mutations. Cette
 preuve utilise un `fetch` injecté et un DOM jsdom : aucun login live, route,
 persistance Windows, cible distante ou donnée réelle n'est validé.
 
+Preuve T0040 du 2 août 2026 : le gate backend passe avec 20 mutations, dont
+l'ouverture du signup global et la désactivation du provider email local. Sur
+Docker Desktop 29.6.2, la pile isolée publie uniquement 54321–54323 sur
+`127.0.0.1`. Une identité `.invalid` provisionnée par l'Admin API traverse la
+vraie commande `signInWithPassword` et le gestionnaire de session ; 1 fichier/2
+tests runtime confirme aussi le refus d'un mauvais mot de passe et de `/signup`.
+L'identité est supprimée, puis l'arrêt sans backup et le redémarrage rendent
+`2|2|0` : deux identités seed `.invalid`, zéro identité T0040. La pile est
+arrêtée. Cette preuve locale est réalisée après la fusion T0039 et ne valide ni route,
+persistance, cible distante ou donnée réelle.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme

@@ -227,6 +227,30 @@ function Get-BackendIssues {
     Require-Text $config '(?s)\[db\.seed\].*?enabled = true.*?sql_paths = \["\./seed\.sql"\]' "Seed ordering is not explicit."
     Require-Text $config '(?s)\[realtime\].*?enabled = false' "Realtime must remain disabled in T0012."
     Require-Text $config '(?s)\[storage\].*?enabled = false' "Storage must remain disabled in T0012."
+    $authSection = [regex]::Match($config, '(?ms)^\[auth\]\s*$(.*?)(?=^\[)')
+    $authSignupValues = @(if ($authSection.Success) {
+        [regex]::Matches($authSection.Groups[1].Value, '(?m)^enable_signup = (true|false)$') |
+            ForEach-Object { $_.Groups[1].Value }
+    })
+    if ($authSignupValues.Count -ne 1 -or $authSignupValues[0] -ne "false") {
+        $issues.Add("Public Auth signup must remain disabled by one unambiguous setting.")
+    }
+    $emailSection = [regex]::Match($config, '(?ms)^\[auth\.email\]\s*$(.*?)(?=^\[)')
+    $emailSignupValues = @(if ($emailSection.Success) {
+        [regex]::Matches($emailSection.Groups[1].Value, '(?m)^enable_signup = (true|false)$') |
+            ForEach-Object { $_.Groups[1].Value }
+    })
+    if ($emailSignupValues.Count -ne 1 -or $emailSignupValues[0] -ne "true") {
+        $issues.Add("Local email/password Auth must remain available for provisioned identities.")
+    }
+    $smtpSection = [regex]::Match($config, '(?ms)^\[local_smtp\]\s*$(.*?)(?=^\[)')
+    $smtpEnabledValues = @(if ($smtpSection.Success) {
+        [regex]::Matches($smtpSection.Groups[1].Value, '(?m)^enabled = (true|false)$') |
+            ForEach-Object { $_.Groups[1].Value }
+    })
+    if ($smtpEnabledValues.Count -ne 1 -or $smtpEnabledValues[0] -ne "false") {
+        $issues.Add("Local password Auth must not enable an SMTP surface.")
+    }
     Require-Text $config '(?s)\[edge_runtime\].*?enabled = true' "Edge Runtime must be enabled for the T0023 server boundary."
     Require-Text $config '(?s)\[functions\.company-onboarding\].*?enabled = true' "Company onboarding function must be enabled explicitly."
     Require-Text $config '(?s)\[functions\.company-onboarding\].*?verify_jwt = true' "Company onboarding must retain the platform JWT gate."
@@ -684,6 +708,39 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260728000100_create_companies.sql") -Destination $migrationCopy
+    $configCopy = Join-Path $temporaryRoot "supabase\config.toml"
+    $configText = Get-Content -Raw -Encoding UTF8 $configCopy
+    $configText = $configText.Replace(
+        "[auth]`r`nenabled = true",
+        "[auth]`r`nenabled = true`r`nenable_signup = true"
+    ).Replace(
+        "[auth]`nenabled = true",
+        "[auth]`nenabled = true`nenable_signup = true"
+    )
+    [System.IO.File]::WriteAllText($configCopy, $configText)
+    $publicSignupIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($publicSignupIssues -match "Public Auth signup must remain disabled")) {
+        Write-Error "Harness self-test failed to detect public Auth signup."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\config.toml") -Destination $configCopy
+    $configText = Get-Content -Raw -Encoding UTF8 $configCopy
+    $configText = $configText.Replace(
+        "[auth.email]`r`n# Allow/disallow new user signups via email to your project.`r`n# Keep the email/password provider available for identities provisioned through`r`n# the local Admin API. Global auth.enable_signup remains false, so public`r`n# registration is still rejected.`r`nenable_signup = true",
+        "[auth.email]`r`n# Allow/disallow new user signups via email to your project.`r`nenable_signup = false"
+    ).Replace(
+        "[auth.email]`n# Allow/disallow new user signups via email to your project.`n# Keep the email/password provider available for identities provisioned through`n# the local Admin API. Global auth.enable_signup remains false, so public`n# registration is still rejected.`nenable_signup = true",
+        "[auth.email]`n# Allow/disallow new user signups via email to your project.`nenable_signup = false"
+    )
+    [System.IO.File]::WriteAllText($configCopy, $configText)
+    $disabledEmailIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($disabledEmailIssues -match "Local email/password Auth must remain available")) {
+        Write-Error "Harness self-test failed to detect disabled local password Auth."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\config.toml") -Destination $configCopy
     $invokeCopy = Join-Path $temporaryRoot "scripts\invoke-supabase-local.ps1"
     $invokeText = Get-Content -Raw -Encoding UTF8 $invokeCopy
     $invokeText = $invokeText.Replace('@("db", "reset", "--local")', '@("db", "reset", "--linked")')
@@ -918,4 +975,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0029 and T0035 repository plus 18 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035 and T0040 repository plus 20 mutation scenarios)."
