@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      aircraft_purchase_offers: {
+        Row: {
+          aircraft_type_code: string
+          created_at: string
+          currency_code: string
+          display_name: string
+          id: string
+          price_minor: number
+          schema_version: number
+          seller_kind: string
+          serial_number: string
+          sold_at: string | null
+          status: string
+        }
+        Insert: {
+          aircraft_type_code: string
+          created_at?: string
+          currency_code: string
+          display_name: string
+          id: string
+          price_minor: number
+          schema_version?: number
+          seller_kind?: string
+          serial_number: string
+          sold_at?: string | null
+          status?: string
+        }
+        Update: {
+          aircraft_type_code?: string
+          created_at?: string
+          currency_code?: string
+          display_name?: string
+          id?: string
+          price_minor?: number
+          schema_version?: number
+          seller_kind?: string
+          serial_number?: string
+          sold_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           created_at: string
@@ -33,6 +75,57 @@ export type Database = {
         }
         Relationships: []
       }
+      company_aircraft: {
+        Row: {
+          acquired_at: string
+          acquisition_kind: string
+          aircraft_type_code: string
+          company_id: string
+          display_name: string
+          id: string
+          offer_id: string
+          schema_version: number
+          serial_number: string
+        }
+        Insert: {
+          acquired_at?: string
+          acquisition_kind?: string
+          aircraft_type_code: string
+          company_id: string
+          display_name: string
+          id?: string
+          offer_id: string
+          schema_version?: number
+          serial_number: string
+        }
+        Update: {
+          acquired_at?: string
+          acquisition_kind?: string
+          aircraft_type_code?: string
+          company_id?: string
+          display_name?: string
+          id?: string
+          offer_id?: string
+          schema_version?: number
+          serial_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_aircraft_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_aircraft_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: true
+            referencedRelation: "aircraft_purchase_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -54,6 +147,19 @@ export type Database = {
       }
       finalize_account_deletion: { Args: { request_id: string }; Returns: Json }
       get_account_export: { Args: { request_id: string }; Returns: Json }
+      get_company_aircraft: {
+        Args: never
+        Returns: {
+          acquired_at: string
+          acquisition_kind: string
+          aircraft_id: string
+          aircraft_type_code: string
+          display_name: string
+          offer_id: string
+          schema_version: number
+          serial_number: string
+        }[]
+      }
       get_company_ledger: {
         Args: never
         Returns: {
@@ -73,6 +179,10 @@ export type Database = {
           currency_code: string
           idempotency_key: string
         }
+        Returns: Json
+      }
+      purchase_aircraft: {
+        Args: { idempotency_key: string; offer_id: string; owner_id: string }
         Returns: Json
       }
       replay_account_deletion_event: {

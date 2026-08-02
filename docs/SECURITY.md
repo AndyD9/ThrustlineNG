@@ -104,14 +104,29 @@ exige une nouvelle version et ne peut réécrire une ouverture immuable existant
 Cette règle ne déploie aucun projet distant et n'autorise toujours aucune donnée
 réelle.
 
+## Acquisition d'avion autoritaire T0029
+
+Les offres d'achat sont des unités serveur en EUR dont le prix n'est jamais lu
+dans un payload client. `purchase_aircraft` est une fonction `security definer`
+à `search_path` vide exécutable uniquement par `service_role`. Elle verrouille
+la compagnie et son sujet financier avant l'offre, refuse un compte en
+suppression, une offre consommée, une devise incohérente ou un solde insuffisant,
+puis crée avion, débit et commande d'idempotence atomiquement.
+
+Les tables d'offres et d'avions forcent RLS et n'accordent que `select` à
+`authenticated`; les mutations directes sont révoquées. Le registre de commande
+reste dans `private` sans privilège API. Une même clé et un même payload rendent
+les identifiants enregistrés ; toute collision échoue. La location reste hors
+périmètre car ses échéances exigent une autorité temporelle distincte.
+
 ## Autorité globale du golden path T0024
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de
 `PRODUCT.md`. Il ne transforme jamais l'absence de code en contrôle de sécurité :
-les domaines flotte, dispatch, suivi et clôture de vol, réputation, maintenance,
+les domaines dispatch, suivi et clôture de vol, réputation, maintenance,
 opérations passives et distribution restent `not-implemented`.
 
-Les tranches compagnie, cycle de compte, finance et continuité déjà présentes
+Les tranches compagnie, cycle de compte, flotte, finance et continuité déjà présentes
 sont `server-authoritative` avec une couverture partielle et des limites
 explicites. Supabase Auth reste la seule `external-authority`. Le gate statique
 scanne les sources WebView, Tauri et bridge et échoue fermé sur credential
