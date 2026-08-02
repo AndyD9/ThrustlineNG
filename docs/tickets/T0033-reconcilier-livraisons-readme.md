@@ -1,6 +1,6 @@
 # T0033 — Réconcilier les livraisons récentes et le README
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `docs/T0033-reconcile-delivery-readme`
 Phase: Gouvernance
@@ -36,6 +36,9 @@ sont satisfaits.
 - 2 août 2026 — revue de maintenance : la tentative de résoudre KI-022 fait
   échouer l'auto-test qui l'utilise comme fixture active ; l'entrée reste
   `Scheduled` vers T0034 et T0033 ne modifie pas le script hors périmètre.
+- 2 août 2026 — livraison : la PR #60 est fusionnée dans `main` au commit
+  `167e763`; les jobs Windows multi-stack, PostgreSQL 17 et supply-chain sont
+  réussis. T0034 réconcilie le statut sans réécrire les preuves T0033.
 
 ## Dependencies
 

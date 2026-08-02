@@ -236,6 +236,92 @@ function Copy-MaintenanceFixture {
     New-Item -ItemType Directory -Force -Path (Join-Path $DestinationRoot 'apps/fixture') | Out-Null
 }
 
+function Get-AvailableFixtureId {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Text,
+
+        [Parameter(Mandatory)]
+        [string]$Prefix,
+
+        [Parameter(Mandatory)]
+        [int]$Maximum,
+
+        [Parameter(Mandatory)]
+        [string]$Format
+    )
+
+    for ($candidate = $Maximum; $candidate -ge 1; $candidate--) {
+        $identifier = $Prefix + $candidate.ToString($Format)
+        if ($Text -notmatch "(?m)^\| $([regex]::Escape($identifier)) \|") {
+            return $identifier
+        }
+    }
+
+    throw "No synthetic $Prefix identifier is available for the maintenance self-test."
+}
+
+function Reset-KnownIssuesFixture {
+    param(
+        [Parameter(Mandatory)]
+        [string]$SourceRoot,
+
+        [Parameter(Mandatory)]
+        [string]$DestinationPath,
+
+        [Parameter(Mandatory)]
+        [string]$FixtureIssueId
+    )
+
+    Copy-Item -Force -LiteralPath (Join-Path $SourceRoot 'docs/KNOWN_ISSUES.md') -Destination $DestinationPath
+    $knownText = Get-Content -Raw -Encoding UTF8 -LiteralPath $DestinationPath
+    $fixtureRow = "| $FixtureIssueId | Medium | Harness | Synthetic maintenance self-test issue. | Generated only inside the temporary fixture. | Harness self-test | Scheduled |"
+    $knownText += "`r`n$fixtureRow`r`n"
+    [System.IO.File]::WriteAllText($DestinationPath, $knownText)
+}
+
+function Add-TicketFixture {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Root,
+
+        [Parameter(Mandatory)]
+        [string]$FixtureTicketId
+    )
+
+    $ticketIndexPath = Join-Path $Root 'docs/tickets/README.md'
+    $ticketIndexText = Get-Content -Raw -Encoding UTF8 -LiteralPath $ticketIndexPath
+    $ticketIndexText += "`r`n| $FixtureTicketId | Maintenance self-test fixture | Harness | none | Ready |`r`n"
+    [System.IO.File]::WriteAllText($ticketIndexPath, $ticketIndexText)
+
+    $ticketPath = Join-Path $Root "docs/tickets/$FixtureTicketId-maintenance-self-test.md"
+    [System.IO.File]::WriteAllText($ticketPath, "# $FixtureTicketId - Maintenance self-test fixture`r`n`r`nStatus: Ready`r`n")
+}
+
+function Assert-MaintenanceIssue {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Root,
+
+        [Parameter(Mandatory)]
+        [string]$Pattern,
+
+        [Parameter(Mandatory)]
+        [string]$FailureMessage
+    )
+
+    $actualIssues = @(Get-MaintenanceIssues -Root $Root)
+    if (-not ($actualIssues -match $Pattern)) {
+        $details = if ($actualIssues.Count -eq 0) {
+            'no maintenance issue was reported'
+        }
+        else {
+            $actualIssues -join '; '
+        }
+        throw "$FailureMessage Actual result: $details."
+    }
+}
+
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $repositoryIssues = @(Get-MaintenanceIssues -Root $repositoryRoot)
 if ($repositoryIssues.Count -gt 0) {
@@ -250,14 +336,19 @@ try {
     Copy-MaintenanceFixture -SourceRoot $repositoryRoot -DestinationRoot $temporaryRoot
 
     $knownIssuesCopy = Join-Path $temporaryRoot 'docs/KNOWN_ISSUES.md'
-    $knownText = Get-Content -Raw -Encoding UTF8 -LiteralPath $knownIssuesCopy
-    $knownText = $knownText.Replace('| KI-022 | Medium |', '| KI-022 | Urgent |')
-    [System.IO.File]::WriteAllText($knownIssuesCopy, $knownText)
-    if (@(Get-MaintenanceIssues -Root $temporaryRoot) -notmatch 'Invalid severity for KI-022') {
-        throw 'Harness self-test failed to detect an invalid severity.'
-    }
+    $repositoryKnownText = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $repositoryRoot 'docs/KNOWN_ISSUES.md')
+    $fixtureIssueId = Get-AvailableFixtureId -Text $repositoryKnownText -Prefix 'KI-' -Maximum 999 -Format '000'
+    $repositoryTicketIndexText = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $repositoryRoot 'docs/tickets/README.md')
+    $fixtureTicketId = Get-AvailableFixtureId -Text $repositoryTicketIndexText -Prefix 'T' -Maximum 9999 -Format '0000'
+    Reset-KnownIssuesFixture -SourceRoot $repositoryRoot -DestinationPath $knownIssuesCopy -FixtureIssueId $fixtureIssueId
+    Add-TicketFixture -Root $temporaryRoot -FixtureTicketId $fixtureTicketId
 
-    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot 'docs/KNOWN_ISSUES.md') -Destination $knownIssuesCopy
+    $knownText = Get-Content -Raw -Encoding UTF8 -LiteralPath $knownIssuesCopy
+    $knownText = $knownText.Replace("| $fixtureIssueId | Medium |", "| $fixtureIssueId | Urgent |")
+    [System.IO.File]::WriteAllText($knownIssuesCopy, $knownText)
+    Assert-MaintenanceIssue -Root $temporaryRoot -Pattern "Invalid severity for $fixtureIssueId" -FailureMessage 'Harness self-test failed to detect an invalid severity.'
+
+    Reset-KnownIssuesFixture -SourceRoot $repositoryRoot -DestinationPath $knownIssuesCopy -FixtureIssueId $fixtureIssueId
     $knownText = Get-Content -Raw -Encoding UTF8 -LiteralPath $knownIssuesCopy
     $knownText = [regex]::Replace(
         $knownText,
@@ -265,59 +356,47 @@ try {
         '| ID | invalid-schema |'
     )
     [System.IO.File]::WriteAllText($knownIssuesCopy, $knownText)
-    if (@(Get-MaintenanceIssues -Root $temporaryRoot) -notmatch 'invalid table schema') {
-        throw 'Harness self-test failed to detect an invalid registry schema.'
-    }
+    Assert-MaintenanceIssue -Root $temporaryRoot -Pattern 'invalid table schema' -FailureMessage 'Harness self-test failed to detect an invalid registry schema.'
 
-    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot 'docs/KNOWN_ISSUES.md') -Destination $knownIssuesCopy
+    Reset-KnownIssuesFixture -SourceRoot $repositoryRoot -DestinationPath $knownIssuesCopy -FixtureIssueId $fixtureIssueId
     $knownText = Get-Content -Raw -Encoding UTF8 -LiteralPath $knownIssuesCopy
-    $knownText = $knownText.Replace('| T0030 | Scheduled |', '| T0030 | Waiting |')
+    $fixtureIssueRow = ([regex]::Match($knownText, "(?m)^\| $([regex]::Escape($fixtureIssueId)) .+$")).Value
+    $invalidStatusRow = $fixtureIssueRow.Replace('| Scheduled |', '| Waiting |')
+    $knownText = $knownText.Replace($fixtureIssueRow, $invalidStatusRow)
     [System.IO.File]::WriteAllText($knownIssuesCopy, $knownText)
-    if (@(Get-MaintenanceIssues -Root $temporaryRoot) -notmatch 'Invalid status for KI-022') {
-        throw 'Harness self-test failed to detect an invalid issue status.'
-    }
+    Assert-MaintenanceIssue -Root $temporaryRoot -Pattern "Invalid status for $fixtureIssueId" -FailureMessage 'Harness self-test failed to detect an invalid issue status.'
 
-    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot 'docs/KNOWN_ISSUES.md') -Destination $knownIssuesCopy
+    Reset-KnownIssuesFixture -SourceRoot $repositoryRoot -DestinationPath $knownIssuesCopy -FixtureIssueId $fixtureIssueId
     $knownText = Get-Content -Raw -Encoding UTF8 -LiteralPath $knownIssuesCopy
-    $ki022 = ([regex]::Match($knownText, '(?m)^\| KI-022 .+$')).Value
-    $missingEvidence = [regex]::Replace($ki022, '^(\| KI-022 \|[^|]+\|[^|]+\|[^|]+\|)[^|]+(\|)', '$1  $2')
-    $knownText = $knownText.Replace($ki022, $missingEvidence)
+    $fixtureIssueRow = ([regex]::Match($knownText, "(?m)^\| $([regex]::Escape($fixtureIssueId)) .+$")).Value
+    $missingEvidence = [regex]::Replace($fixtureIssueRow, "^(\| $([regex]::Escape($fixtureIssueId)) \|[^|]+\|[^|]+\|[^|]+\|)[^|]+(\|)", '$1  $2')
+    $knownText = $knownText.Replace($fixtureIssueRow, $missingEvidence)
     [System.IO.File]::WriteAllText($knownIssuesCopy, $knownText)
-    if (@(Get-MaintenanceIssues -Root $temporaryRoot) -notmatch 'KI-022 has no evidence') {
-        throw 'Harness self-test failed to detect missing evidence.'
-    }
+    Assert-MaintenanceIssue -Root $temporaryRoot -Pattern "$fixtureIssueId has no evidence" -FailureMessage 'Harness self-test failed to detect missing evidence.'
 
-    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot 'docs/KNOWN_ISSUES.md') -Destination $knownIssuesCopy
+    Reset-KnownIssuesFixture -SourceRoot $repositoryRoot -DestinationPath $knownIssuesCopy -FixtureIssueId $fixtureIssueId
     $knownText = Get-Content -Raw -Encoding UTF8 -LiteralPath $knownIssuesCopy
     $firstRow = ([regex]::Match($knownText, '(?m)^\| KI-001 .+$')).Value
     $knownText = $knownText.Replace($firstRow, "$firstRow`r`n$firstRow")
     [System.IO.File]::WriteAllText($knownIssuesCopy, $knownText)
-    if (@(Get-MaintenanceIssues -Root $temporaryRoot) -notmatch 'Duplicate known-issue identifier: KI-001') {
-        throw 'Harness self-test failed to detect a duplicate issue.'
-    }
+    Assert-MaintenanceIssue -Root $temporaryRoot -Pattern 'Duplicate known-issue identifier: KI-001' -FailureMessage 'Harness self-test failed to detect a duplicate issue.'
 
-    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot 'docs/KNOWN_ISSUES.md') -Destination $knownIssuesCopy
-    $ticketCopy = Get-ChildItem -LiteralPath (Join-Path $temporaryRoot 'docs/tickets') -Filter 'T0030-*.md' -File
+    Reset-KnownIssuesFixture -SourceRoot $repositoryRoot -DestinationPath $knownIssuesCopy -FixtureIssueId $fixtureIssueId
+    $ticketCopy = Get-ChildItem -LiteralPath (Join-Path $temporaryRoot 'docs/tickets') -Filter "$fixtureTicketId-*.md" -File
     $ticketText = Get-Content -Raw -Encoding UTF8 -LiteralPath $ticketCopy.FullName
-    $ticketText = $ticketText.Replace('Status: In progress', 'Status: Review')
+    $ticketText = $ticketText.Replace('Status: Ready', 'Status: Review')
     [System.IO.File]::WriteAllText($ticketCopy.FullName, $ticketText)
-    if (@(Get-MaintenanceIssues -Root $temporaryRoot) -notmatch 'Ticket T0030 status differs') {
-        throw 'Harness self-test failed to detect ticket/index drift.'
-    }
+    Assert-MaintenanceIssue -Root $temporaryRoot -Pattern "Ticket $fixtureTicketId status differs" -FailureMessage 'Harness self-test failed to detect ticket/index drift.'
 
-    Copy-Item -Force -LiteralPath (Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'docs/tickets') -Filter 'T0030-*.md' -File).FullName -Destination $ticketCopy.FullName
+    [System.IO.File]::WriteAllText($ticketCopy.FullName, "# $fixtureTicketId - Maintenance self-test fixture`r`n`r`nStatus: Ready`r`n")
     $markerPath = Join-Path $temporaryRoot 'apps/fixture/debt.ts'
     [System.IO.File]::WriteAllText($markerPath, '// TODO: untracked debt')
-    if (@(Get-MaintenanceIssues -Root $temporaryRoot) -notmatch 'Untracked debt marker') {
-        throw 'Harness self-test failed to detect an untracked debt marker.'
-    }
+    Assert-MaintenanceIssue -Root $temporaryRoot -Pattern 'Untracked debt marker' -FailureMessage 'Harness self-test failed to detect an untracked debt marker.'
 
-    [System.IO.File]::WriteAllText($markerPath, '// TODO(KI-022): tracked; FIXME: untracked debt')
-    if (@(Get-MaintenanceIssues -Root $temporaryRoot) -notmatch 'Untracked debt marker') {
-        throw 'Harness self-test failed to detect a second untracked marker on a tracked line.'
-    }
+    [System.IO.File]::WriteAllText($markerPath, "// TODO($fixtureIssueId): tracked; FIXME: untracked debt")
+    Assert-MaintenanceIssue -Root $temporaryRoot -Pattern 'Untracked debt marker' -FailureMessage 'Harness self-test failed to detect a second untracked marker on a tracked line.'
 
-    [System.IO.File]::WriteAllText($markerPath, '// TODO(KI-022): tracked governance debt')
+    [System.IO.File]::WriteAllText($markerPath, "// TODO($fixtureIssueId): tracked governance debt")
     if (@(Get-MaintenanceIssues -Root $temporaryRoot).Count -ne 0) {
         throw 'Harness self-test rejected a debt marker linked to a scheduled issue.'
     }
