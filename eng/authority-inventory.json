@@ -85,12 +85,13 @@
         "public.purchase_aircraft"
       ],
       "evidencePaths": [
+        "apps/desktop/src/features/aircraft-purchase/aircraftPurchase.ts",
         "supabase/functions/aircraft-purchase/handler.ts",
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql"
       ],
-      "evidenceMarkers": ["createAircraftPurchaseHandler", "purchase_aircraft", "company_aircraft"],
-      "limitations": ["Authenticated synthetic purchase is covered; no desktop caller or deployment is provided, and lease and later fleet mutations are not implemented."]
+      "evidenceMarkers": ["functions/v1/aircraft-purchase", "createAircraftPurchaseHandler", "purchase_aircraft", "company_aircraft"],
+      "limitations": ["The bounded desktop command is implemented behind injected session and offer inputs, but authentication, catalogue, routed UI, live desktop connectivity and deployment are not provided; lease and later fleet mutations are not implemented."]
     },
     {
       "id": "dispatch",
@@ -126,6 +127,7 @@
         "public.purchase_aircraft"
       ],
       "evidencePaths": [
+        "apps/desktop/src/features/aircraft-purchase/aircraftPurchase.ts",
         "eng/economy-policy.json",
         "supabase/migrations/20260731000300_immutable_financial_ledger.sql",
         "supabase/tests/database/financial_ledger.test.sql",
@@ -133,8 +135,8 @@
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql"
       ],
-      "evidenceMarkers": ["new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft"],
-      "limitations": ["Opening and authenticated one-off aircraft purchase are covered without a desktop caller; recurring lease and other financial commands are not defined."]
+      "evidenceMarkers": ["functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft"],
+      "limitations": ["Opening and authenticated one-off aircraft purchase are covered, including a bounded desktop command with injected inputs; authentication, catalogue, routed UI, live connectivity, recurring lease and other financial commands are not defined."]
     },
     {
       "id": "reputation-progression",

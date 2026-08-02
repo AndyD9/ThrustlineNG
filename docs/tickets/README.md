@@ -49,7 +49,8 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0033 | Réconcilier les livraisons récentes et le README | Gouvernance | T0027–T0032 | Done |
 | T0034 | Découpler la fixture du gate de maintenance | Gouvernance | T0030, T0033 | Done |
 | T0035 | Exposer l'achat d'avion derrière une frontière serveur authentifiée | 2 | T0023–T0024, T0029, T0034 | Done |
-| T0036 | Valider l'achat d'avion sur le runtime local réel | 2 | T0021, T0023, T0029, T0035 | Review |
+| T0036 | Valider l'achat d'avion sur le runtime local réel | 2 | T0021, T0023, T0029, T0035 | Done |
+| T0037 | Consommer l'achat d'avion depuis le desktop sans autorité client | 2–4 | T0024, T0029, T0035–T0036 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -190,10 +191,17 @@ payload client à l'offre et à l'idempotence. La PR #62 est fusionnée dans
 `main` au commit `76a47c9` avec ses trois checks verts ; le ticket est `Done`
 sans consommation desktop, location ni déploiement distant.
 
-T0036 valide maintenant cette fonction dans l'Edge Runtime local réel, avec une
+T0036 valide cette fonction dans l'Edge Runtime local réel, avec une
 identité, une session, une compagnie et un achat exclusivement synthétiques. Il
 confirme Auth, rejeu, état SQL et nettoyage sans modifier le contrat, la
-transaction ni une cible distante ; le ticket est en `Review`.
+transaction ni une cible distante. La PR #63 est fusionnée dans `main`; T0036
+est `Done`.
+
+T0037 ajoute la commande et l'état UI desktop bornés pour cette Edge Function.
+Il ne crée ni authentification, ni catalogue, ni cible distante et reçoit la
+session ainsi que l'offre de futurs appelants. Ses 38 tests frontend, sa
+couverture, son build et les gates d'autorité, données et maintenance passent ;
+le ticket est en `Review`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

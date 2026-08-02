@@ -144,6 +144,18 @@ détail interne. L'arrêt `--no-backup` puis le redémarrage confirment zéro
 identité T0036 persistée. Cette preuve ne vaut ni parcours de connexion
 utilisateur, déploiement distant, parité cloud, appel desktop ou donnée réelle.
 
+Preuve T0037 du 2 août 2026 : le typecheck, les 5 fichiers/38 tests frontend, la
+couverture et le build Vite passent. La couverture globale atteint 91,52 % des
+statements, 88,78 % des branches, 91,30 % des fonctions et 93,10 % des lignes.
+Les tests couvrent payload/headers fermés, cibles HTTPS ou loopback, contrats de
+réponse invalides, statuts 401/409/5xx, panne réseau, double clic, annulation et
+retry avec clé d'idempotence stable. Les gates autorité, données et maintenance
+passent avec 5, 6 et 8 mutations négatives. L'inspection du bundle ne trouve ni
+credential de test, ni référence privilégiée, ni accès Data API. Cette preuve
+porte sur une commande et un panneau injectés : la CSP reste `connect-src
+'none'` et aucun auth, catalogue, écran routé, appel live ou cible distante
+n'est validé.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme
