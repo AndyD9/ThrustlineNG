@@ -9,6 +9,7 @@ import {
 } from "@/features/auth/connectionConfig";
 import type { SignInCommand } from "@/features/auth/PasswordSignInPanel";
 import { DesktopSessionManager } from "@/features/auth/session";
+import type { CompanyOnboardingCommand } from "@/features/company-onboarding/CompanyOnboardingPanel";
 
 export interface DesktopAuthRuntime {
   config: DesktopConnectionConfig;
@@ -17,6 +18,7 @@ export interface DesktopAuthRuntime {
 
 export interface AppProps {
   authRuntime?: DesktopAuthRuntime;
+  companyOnboardingCommand?: CompanyOnboardingCommand | undefined;
   signInCommand?: SignInCommand | undefined;
 }
 
@@ -25,7 +27,7 @@ function createBundledAuthRuntime(): DesktopAuthRuntime {
   return { config, sessionManager: new DesktopSessionManager(config) };
 }
 
-function AppContent({ authRuntime, signInCommand }: AppProps) {
+function AppContent({ authRuntime, companyOnboardingCommand, signInCommand }: AppProps) {
   const [runtime] = useState(() => authRuntime ?? createBundledAuthRuntime());
   const [authenticated, setAuthenticated] = useState(() => runtime.sessionManager.hasSession());
 
@@ -45,6 +47,7 @@ function AppContent({ authRuntime, signInCommand }: AppProps) {
         </header>
         <AppRoutes
           authenticated={authenticated}
+          companyOnboardingCommand={companyOnboardingCommand}
           config={runtime.config}
           onAuthenticated={() => setAuthenticated(runtime.sessionManager.hasSession())}
           onSignOut={signOut}

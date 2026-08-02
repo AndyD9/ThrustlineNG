@@ -6,6 +6,7 @@ import { App, type DesktopAuthRuntime } from "@/app/App";
 import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
 import type { PasswordSignInInput } from "@/features/auth/passwordSignIn";
 import { DesktopSessionManager, type UserSessionTokens } from "@/features/auth/session";
+import { CompanyOnboardingError } from "@/features/company-onboarding/companyOnboarding";
 
 const config: DesktopConnectionConfig = {
   anonKey: "public-anon-key",
@@ -97,6 +98,26 @@ describe("App", () => {
     expect(homeLink).toHaveFocus();
     await user.click(homeLink);
     expect(await screen.findByRole("heading", { name: "Connexion à Thrustline" })).toBeInTheDocument();
+  });
+
+  it("efface une session refusée pendant l'onboarding puis revient au login", async () => {
+    const user = userEvent.setup();
+    const runtime = createRuntime(session);
+    const companyOnboardingCommand = vi.fn(async () => {
+      throw new CompanyOnboardingError("authentication-required");
+    });
+    render(
+      <App
+        authRuntime={runtime}
+        companyOnboardingCommand={companyOnboardingCommand}
+      />,
+    );
+    await user.type(screen.getByLabelText("Nom de la compagnie"), "Synthetic Airways");
+    await user.click(screen.getByRole("button", { name: "Créer la compagnie" }));
+
+    expect(await screen.findByRole("heading", { name: "Connexion à Thrustline" })).toBeInTheDocument();
+    expect(runtime.sessionManager.hasSession()).toBe(false);
+    expect(window.location.hash).toBe("#/login");
   });
 
   it("n’effectue aucun appel réseau pendant le rendu ou la redirection", async () => {

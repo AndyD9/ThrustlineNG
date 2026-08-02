@@ -78,4 +78,19 @@ describe("invariants frontend et Tauri", () => {
       /localStorage|sessionStorage|indexedDB|document\.cookie|console\.(?:debug|error|info|log|warn)/,
     );
   });
+
+  it("ne persiste ni ne journalise la session ou l'intention d'onboarding", () => {
+    const onboardingSources = [
+      read("apps/desktop/src/features/company-onboarding/companyOnboarding.ts"),
+      read("apps/desktop/src/features/company-onboarding/CompanyOnboardingPanel.tsx"),
+      read("apps/desktop/src/pages/HomePage.tsx"),
+    ].join("\n");
+
+    expect(onboardingSources).not.toMatch(
+      /localStorage|sessionStorage|indexedDB|document\.cookie|console\.(?:debug|error|info|log|warn)/,
+    );
+    expect(onboardingSources).not.toMatch(
+      /ownerId|openingAmountMinor|currencyCode|service.role/i,
+    );
+  });
 });

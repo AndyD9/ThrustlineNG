@@ -1,11 +1,13 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 2 août 2026 (T0040 livré par #67 ; faux succès de
-livraison T0041 détecté après la fusion de #68 dans une base déjà intégrée).
+Dernière revue documentaire : 2 août 2026 (T0042 validé localement au-dessus de
+T0041/PR corrective #69, encore non fusionnée).
 Statut : T0012–T0031 et T0033–T0040 sont `Done`. T0041 est `Review` : sa PR #68
 est fusionnée dans l'ancienne branche T0040, mais ses commits restent absents de
 `main`; la PR corrective #69 est ouverte prête vers la branche distante par
 défaut.
+T0042 est `Review` sur une branche empilée sur T0041 ; aucune capacité
+d'onboarding desktop n'est revendiquée dans `main`.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -79,6 +81,8 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   global fermé et prouve la commande contre le runtime synthétique. T0041
   compose sur une branche empilée la route locale et la déconnexion en mémoire,
   sans livraison dans `main`.
+  T0042 compose sur sa branche l'onboarding T0023 avec la session en mémoire et
+  une intention idempotente, sans catalogue, achat ou persistance.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -564,6 +568,14 @@ WebView live. La PR #68 a été fusionnée avec ses checks verts dans
 base. Les tests d'ascendance confirment donc que T0041 n'est pas livré dans
 `main`; la PR corrective #69 est ouverte prête vers `main`.
 
+T0042 ajoute à cet accueil protégé une commande `company-onboarding` qui envoie
+uniquement nom normalisé et idempotence, obtient le bearer depuis le gestionnaire
+au moment de la soumission et efface la session si Auth la refuse. Un retry du
+même nom conserve la clé tandis qu'un changement crée une nouvelle intention.
+Les 104 tests frontend, la couverture, le build et les gates passent localement.
+Cette preuve jsdom/fetch injectée ne valide ni WebView live, CSP de production,
+cible distante ou donnée réelle. La branche reste empilée sur T0041/PR #69.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -665,10 +677,10 @@ version restent non validés et relèvent de la phase 6.
 ## Prochain ticket recommandé
 
 T0040 est livré. T0041 doit encore être propagé vers `main` par la PR corrective
-#69 car #68 a fusionné dans une base obsolète. Le prochain ticket recommandé est
-de composer l'onboarding depuis la session en mémoire, sans anticiper catalogue
-ou achat ; la persistance Windows reste un ticket de sécurité séparé avant tout
-stockage de refresh token.
+#69 et T0042 reste empilé sur cette dépendance. Après ces fusions, le prochain
+ticket recommandé est une lecture serveur bornée du catalogue avant de composer
+l'achat T0037 ; la persistance Windows reste un ticket de sécurité séparé avant
+tout stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et

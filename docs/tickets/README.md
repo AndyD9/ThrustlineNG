@@ -55,6 +55,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0039 | Acquérir une session locale par email et mot de passe | 4 | T0021, T0024, T0038, décision Andy | Done |
 | T0040 | Activer et valider Auth locale email/mot de passe | 4 | T0021, T0038–T0039 | Done |
 | T0041 | Rendre la connexion locale accessible par une route bornée | 4 | T0038–T0040 | Review |
+| T0042 | Composer l'onboarding de compagnie depuis le desktop | 4 | T0022–T0023, T0038–T0041 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -236,6 +237,12 @@ branche T0040 après la fusion de #67 vers `main` : son état `MERGED` ne livre
 donc pas les commits T0041 dans la branche par défaut. T0041 reste `Review` en
 attente de la PR corrective #69, ouverte prête vers `main`, et ne revendique ni
 login WebView live, persistance, onboarding, catalogue ou achat composé.
+
+T0042 compose l'Edge Function d'onboarding T0023 depuis l'accueil authentifié,
+avec une intention idempotente, un payload fermé et le bearer obtenu à la
+soumission depuis le gestionnaire T0038. Ses 104 tests frontend, couverture,
+build et gates passent localement. Il est `Review` sur une branche empilée sur
+T0041/PR #69 et exclut persistance, catalogue, achat et backend.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
