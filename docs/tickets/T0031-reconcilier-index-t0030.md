@@ -1,6 +1,6 @@
 # T0031 — Réconcilier l'index après les fusions T0029–T0030
 
-Status: In progress
+Status: Review
 Owner: Andy
 Branch: `fix/T0031-reconcile-ticket-index`
 Phase: Gouvernance
@@ -31,6 +31,8 @@ suivi incohérent invalide précisément le contrôle que T0030 introduit.
 - 2 août 2026 — `In progress` : ticket et index synchronisés sur la branche
   isolée `fix/T0031-reconcile-ticket-index` ; correction limitée aux zones
   autorisées.
+- 2 août 2026 — `Review` : T0030 restauré sans altérer T0029 ; gate de
+  maintenance, harnais CI, cohérence des statuts et diff validés.
 
 ## Dependencies
 
@@ -69,12 +71,12 @@ suivi incohérent invalide précisément le contrôle que T0030 introduit.
 
 ## Acceptance criteria
 
-- [ ] T0029, T0030 et T0031 apparaissent chacun une fois dans l'index.
-- [ ] Le statut T0031 est identique dans le ticket et l'index.
-- [ ] Le résumé T0030 reflète son ticket sans revendiquer de livraison dans
+- [x] T0029, T0030 et T0031 apparaissent chacun une fois dans l'index.
+- [x] Le statut T0031 est identique dans le ticket et l'index.
+- [x] Le résumé T0030 reflète son ticket sans revendiquer de livraison dans
       `main`.
-- [ ] Le gate de maintenance, le harnais CI et `git diff --check` passent.
-- [ ] Le diff reste limité aux deux fichiers autorisés.
+- [x] Le gate de maintenance, le harnais CI et `git diff --check` passent.
+- [x] Le diff reste limité aux deux fichiers autorisés.
 
 ## Security review
 
@@ -115,4 +117,58 @@ Aucune donnée persistante ou migration n'est concernée.
 
 ## Completion Report
 
-À remplir après implémentation.
+### Summary
+
+L'entrée et le résumé T0030 perdus pendant les fusions croisées sont restaurés
+sans modifier T0029. T0031 est lui-même indexé et le gate introduit par T0030
+repasse sur le résultat combiné.
+
+### Files changed
+
+- `docs/tickets/T0031-reconcilier-index-t0030.md` — périmètre, preuves et
+  rapport de la réconciliation ;
+- `docs/tickets/README.md` — lignes T0030/T0031 et résumé T0030.
+
+### Commands and results
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File
+  .\tests\maintenance\run.ps1` avant correction — échec attendu : T0030 absent
+  de l'index ;
+- `pnpm.cmd run maintenance:check` dans le nouveau worktree — bloqué par
+  l'environnement : restauration des dépendances refusée par le réseau sandboxé,
+  aucun gate exécuté et aucun fichier versionné modifié ;
+- même script PowerShell après correction — PASS : registre, index, marqueurs
+  et huit mutations ;
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\ci\run.ps1` —
+  PASS : invariants CI et deux mutations ;
+- recherche ciblée T0029–T0031 et statuts des trois tickets — une entrée par
+  ticket, statuts `Review`, `Review`, `Review` ;
+- `git diff --check` — PASS.
+
+### Manual verification result
+
+PASS le 2 août 2026 : T0029 reste intact, T0030 est de nouveau présent dans le
+tableau et le texte, T0031 correspond à son index et le diff final est limité
+aux deux fichiers autorisés.
+
+### Risks and limitations
+
+- La correction est empilée sur `origin/docs/T0028-production-economy-policy`
+  au commit `2324b61`, qui contient T0029 et T0030 ; elle ne les rend pas
+  présents dans `main`.
+- Le gate empêche la divergence constatée, mais cette correction ne change pas
+  le statut historique `Review` de T0029 ou T0030.
+- Aucun test applicatif n'est nécessaire pour ce diff exclusivement
+  documentaire ; les deux gates concernés ont été exécutés directement.
+
+### Follow-ups
+
+- Propager T0029, T0030 puis T0031 vers `main` sans présenter une branche
+  empilée comme livrée.
+- Créer ensuite le ticket fonctionnel de location d'avion après décision d'Andy
+  sur durée, échéances, défaut et résiliation.
+
+### Documentation updated
+
+Ticket T0031 et index des tickets uniquement ; `CURRENT_STATE.md` reste
+inchangé car aucune capacité produit ou livraison dans `main` n'a changé.
