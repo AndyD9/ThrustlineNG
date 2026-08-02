@@ -31,6 +31,9 @@ données réelles : T0038 sélectionne donc exclusivement Supabase local
   commit `47cd50c`, worktree propre.
 - 2 août 2026 — `Review` : configuration, refresh en mémoire, CSP locale,
   documentation et validations automatisées sont prêts pour revue.
+- 2 août 2026 — publication : commit `4ad7ddd` poussé sur
+  `feature/T0038-desktop-session-foundation`; PR #65 ouverte prête pour revue,
+  base `main`, avec les trois checks GitHub démarrés.
 
 ## Dependencies
 
@@ -219,5 +222,9 @@ l’inventaire d’autorité.
 
 - branche : `feature/T0038-desktop-session-foundation` ;
 - base : `origin/main` au commit `47cd50c` ;
-- commit et Pull Request : à consigner après publication ;
+- commit d’implémentation : `4ad7ddd` ;
+- PR #65 : ouverte et prête, base `main`, head
+  `feature/T0038-desktop-session-foundation` ;
+- checks GitHub : Windows multi-stack et PostgreSQL 17 en cours, supply-chain en
+  file d’attente lors de cette mise à jour ;
 - fusion finale réservée à Andy.
