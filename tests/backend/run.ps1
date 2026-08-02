@@ -32,6 +32,7 @@ function Get-BackendIssues {
     $restoreMigrationPath = Join-Path $Root "supabase\migrations\20260731000200_account_deletion_restore_replay.sql"
     $ledgerMigrationPath = Join-Path $Root "supabase\migrations\20260731000300_immutable_financial_ledger.sql"
     $onboardingMigrationPath = Join-Path $Root "supabase\migrations\20260731000400_authoritative_company_onboarding.sql"
+    $purchaseMigrationPath = Join-Path $Root "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $structureTestPath = Join-Path $Root "supabase\tests\database\companies_structure.test.sql"
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
@@ -43,6 +44,8 @@ function Get-BackendIssues {
     $ledgerTestPath = Join-Path $Root "supabase\tests\database\financial_ledger.test.sql"
     $onboardingStructureTestPath = Join-Path $Root "supabase\tests\database\company_onboarding_structure.test.sql"
     $onboardingTestPath = Join-Path $Root "supabase\tests\database\company_onboarding.test.sql"
+    $purchaseStructureTestPath = Join-Path $Root "supabase\tests\database\aircraft_purchase_structure.test.sql"
+    $purchaseTestPath = Join-Path $Root "supabase\tests\database\aircraft_purchase.test.sql"
     $onboardingFunctionPath = Join-Path $Root "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionPolicyPath = Join-Path $Root "supabase\functions\company-onboarding\economy-policy.json"
     $onboardingFunctionEntryPath = Join-Path $Root "supabase\functions\company-onboarding\index.ts"
@@ -66,6 +69,7 @@ function Get-BackendIssues {
         $restoreMigrationPath,
         $ledgerMigrationPath,
         $onboardingMigrationPath,
+        $purchaseMigrationPath,
         $seedPath,
         $structureTestPath,
         $rlsTestPath,
@@ -77,6 +81,8 @@ function Get-BackendIssues {
         $ledgerTestPath,
         $onboardingStructureTestPath,
         $onboardingTestPath,
+        $purchaseStructureTestPath,
+        $purchaseTestPath,
         $onboardingFunctionPath,
         $onboardingFunctionPolicyPath,
         $onboardingFunctionEntryPath,
@@ -347,6 +353,34 @@ function Get-BackendIssues {
         $issues.Add("Client roles must not regain direct company mutation privileges.")
     }
 
+    $purchaseMigration = Get-Content -Raw -Encoding UTF8 $purchaseMigrationPath
+    $purchaseRequirements = @{
+        "server offers" = 'create table public\.aircraft_purchase_offers'
+        "company ownership" = 'create table public\.company_aircraft'
+        "private purchase registry" = 'create table private\.aircraft_purchase_commands'
+        "owner idempotency" = 'primary key \(owner_id, idempotency_key\)'
+        "server price lookup" = 'from public\.aircraft_purchase_offers as offers[\s\S]+for update'
+        "server seller" = "seller_kind text not null default 'system'"
+        "company lock" = 'from public\.companies as companies[\s\S]+for update'
+        "financial subject lock" = 'from private\.financial_ledger_subjects as subjects[\s\S]+for update'
+        "derived balance" = 'coalesce\(sum\(entries\.amount_minor\), 0\)'
+        "immutable purchase debit" = "'aircraft_purchase',[\s\S]+-offer\.price_minor"
+        "service-only purchase" = 'grant execute on function public\.purchase_aircraft\(uuid, uuid, uuid\) to service_role'
+        "owner aircraft read" = 'create function public\.get_company_aircraft\(\)'
+        "forced offer RLS" = 'alter table public\.aircraft_purchase_offers force row level security'
+        "forced aircraft RLS" = 'alter table public\.company_aircraft force row level security'
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $purchaseRequirements.GetEnumerator()) {
+        Require-Text $purchaseMigration $entry.Value "Aircraft purchase invariant missing: $($entry.Key)."
+    }
+    if ($purchaseMigration -match '(?i)grant\s+execute\s+on\s+function\s+public\.purchase_aircraft\([^;]+\)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Aircraft purchase must remain service-role-only.")
+    }
+    if ($purchaseMigration -match '(?i)grant\s+(insert|update|delete)[^;]*on\s+(table\s+)?public\.(aircraft_purchase_offers|company_aircraft)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Client roles must not gain direct offer or aircraft mutation privileges.")
+    }
+
     $onboardingFunction = Get-Content -Raw -Encoding UTF8 $onboardingFunctionPath
     $onboardingFunctionEntry = Get-Content -Raw -Encoding UTF8 $onboardingFunctionEntryPath
     $onboardingFunctionTests = Get-Content -Raw -Encoding UTF8 $onboardingFunctionTestPath
@@ -416,7 +450,11 @@ function Get-BackendIssues {
         "`n" +
         (Get-Content -Raw -Encoding UTF8 $onboardingStructureTestPath) +
         "`n" +
-        (Get-Content -Raw -Encoding UTF8 $onboardingTestPath)
+        (Get-Content -Raw -Encoding UTF8 $onboardingTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $purchaseStructureTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $purchaseTestPath)
     )
     foreach ($marker in @(
         "set local role authenticated",
@@ -453,6 +491,15 @@ function Get-BackendIssues {
         "A can read only company A after onboarding",
         "B can read only company B after onboarding",
         "an injected opening failure rolls back onboarding",
+        "authenticated cannot execute the purchase command",
+        "authenticated cannot forge aircraft ownership",
+        "identical purchase replays with the same response",
+        "purchase idempotency collision is rejected",
+        "insufficient balance leaves no partial state",
+        "owner B cannot read owner A aircraft",
+        "authenticated cannot forge an offer price",
+        "deletion pending blocks aircraft purchase",
+        "injected failure rolls back ownership, command, debit and offer state",
         "rollback;"
     )) {
         if (-not $allTests.Contains($marker)) {
@@ -471,6 +518,10 @@ function Get-BackendIssues {
     Require-Text $types 'post_company_opening_balance:' "Generated types do not expose the server ledger command."
     Require-Text $types 'get_company_ledger:' "Generated types do not expose owner ledger reads."
     Require-Text $types 'create_company_with_opening_balance:' "Generated types do not expose authoritative onboarding."
+    Require-Text $types 'aircraft_purchase_offers:' "Generated types do not expose purchase offers."
+    Require-Text $types 'company_aircraft:' "Generated types do not expose company aircraft."
+    Require-Text $types 'purchase_aircraft:' "Generated types do not expose authoritative purchase."
+    Require-Text $types 'get_company_aircraft:' "Generated types do not expose owner aircraft reads."
 
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $typeScript 'Invoke-IsolatedSupabaseCli' "Type generation does not use the isolated local runtime."
@@ -488,6 +539,12 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'node --test \./supabase/functions/company-onboarding/handler\.test\.ts' "Backend CI does not execute the Edge handler tests on Linux."
     Require-Text $ciBackend 'realtime,storage-api,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor' "Backend CI must isolate PostgreSQL resets from the Edge Runtime port lifecycle."
     Require-Text $ciBackend '"1\|1"' "Backend CI does not verify one immutable concurrent ledger entry."
+    Require-Text $ciBackend 'Aircraft purchase concurrency passed' "Backend CI does not report purchase concurrency."
+    Require-Text $ciBackend 'Concurrent aircraft purchases did not converge' "Backend CI does not verify purchase convergence."
+    Require-Text $ciBackend '"1\|1\|1\|33000000"' "Backend CI does not verify one aircraft, command, debit and safe balance."
+    Require-Text $ciBackend 'Aircraft balance concurrency passed' "Backend CI does not report the shared-balance race."
+    Require-Text $ciBackend '"0\|1"' "Backend CI does not require exactly one distinct purchase to fail."
+    Require-Text $ciBackend '"1\|1\|1\|5000000"' "Backend CI does not verify nonnegative balance after the race."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
     foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
         Require-Text $ciBackend "--schema $schema" "Backend CI backup scope is missing schema: $schema."
@@ -530,6 +587,7 @@ try {
         "supabase\migrations\20260731000200_account_deletion_restore_replay.sql",
         "supabase\migrations\20260731000300_immutable_financial_ledger.sql",
         "supabase\migrations\20260731000400_authoritative_company_onboarding.sql",
+        "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
@@ -541,6 +599,8 @@ try {
         "supabase\tests\database\financial_ledger.test.sql",
         "supabase\tests\database\company_onboarding_structure.test.sql",
         "supabase\tests\database\company_onboarding.test.sql",
+        "supabase\tests\database\aircraft_purchase_structure.test.sql",
+        "supabase\tests\database\aircraft_purchase.test.sql",
         "supabase\functions\company-onboarding\handler.ts",
         "supabase\functions\company-onboarding\economy-policy.json",
         "supabase\functions\company-onboarding\index.ts",
@@ -682,6 +742,21 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260731000400_authoritative_company_onboarding.sql") -Destination $onboardingMigrationCopy
+    $purchaseMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql"
+    $purchaseText = Get-Content -Raw -Encoding UTF8 $purchaseMigrationCopy
+    $purchaseText = $purchaseText.Replace(
+        "grant execute on function public.purchase_aircraft(uuid, uuid, uuid) to service_role;",
+        "grant execute on function public.purchase_aircraft(uuid, uuid, uuid) to authenticated;"
+    )
+    [System.IO.File]::WriteAllText($purchaseMigrationCopy, $purchaseText)
+    $unsafePurchaseIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unsafePurchaseIssues -match "service-role-only") -or
+        -not ($unsafePurchaseIssues -match "service-only purchase")) {
+        Write-Error "Harness self-test failed to detect client-executable aircraft purchase."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql") -Destination $purchaseMigrationCopy
     $onboardingFunctionCopy = Join-Path $temporaryRoot "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionText = Get-Content -Raw -Encoding UTF8 $onboardingFunctionCopy
     $onboardingFunctionText = $onboardingFunctionText.Replace(
@@ -749,4 +824,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023 and T0028 repository plus 14 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0029 repository plus 15 mutation scenarios)."

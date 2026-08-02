@@ -71,3 +71,29 @@ values
         '2026-07-28 00:00:00+00',
         '2026-07-28 00:00:00+00'
     );
+
+insert into public.aircraft_purchase_offers (
+    id,
+    aircraft_type_code,
+    serial_number,
+    display_name,
+    price_minor,
+    currency_code
+)
+values
+    (
+        'e1000000-0000-4000-8000-000000000001',
+        'C172',
+        'SYN-C172-0001',
+        'Synthetic Cessna 172',
+        10000000,
+        'EUR'
+    ),
+    (
+        'e2000000-0000-4000-8000-000000000002',
+        'TBM9',
+        'SYN-TBM9-0002',
+        'Synthetic TBM 930',
+        50000000,
+        'EUR'
+    );

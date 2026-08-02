@@ -42,6 +42,10 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0026 | Réconcilier la livraison de T0010 | 1 | T0010 | Done |
 | T0027 | Encadrer l'orchestration multitâche des agents | Gouvernance | T0026 | Review |
 | T0028 | Fixer la politique économique d'ouverture de production | 2 | T0020, T0022–T0023, décision Andy | Review |
+| T0029 | Acquérir un premier avion sans double débit ni propriété partielle | 2 | T0020, T0022–T0024, T0028, décision Andy | Review |
+| T0030 | Empêcher les dettes techniques silencieuses | Gouvernance | T0027–T0028 | Review |
+| T0031 | Réconcilier l'index après les fusions T0029–T0030 | Gouvernance | T0029–T0030 | Review |
+| T0032 | Louer un avion sans double prélèvement ni usage hors contrat | 2 | T0020, T0022–T0024, T0028–T0029, décisions Andy | Draft |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -142,6 +146,28 @@ MVP. Andy confirme le 2 août 2026 une ouverture de 430 000 EUR ; la même valeu
 utilisée auparavant comme fixture locale ne constitue pas une preuve de
 production rétroactive. La source canonique, le handler et les gates sont
 terminés ; le ticket est `Review` sur sa branche isolée.
+
+T0029 cadre la première acquisition d'avion autoritaire. Andy confirme le
+2 août 2026 achat puis location : T0029 traite l'achat atomique ; la location,
+ses contrats, paiements temporels et résiliation restent un ticket distinct.
+T0029 est en `Review` dans la PR brouillon #56, empilée sur T0028 jusqu'à
+livraison de #54. Deux resets, 12 fichiers/234 assertions, types, gates et deux
+courses PostgreSQL locales passent ; CI `30740977879` et supply-chain
+`30740977888` sont vertes sur le commit d'implémentation. Aucun endpoint
+applicatif ni environnement distant n'est inclus.
+
+T0030 automatise l'intégrité du registre de maintenance, la cohérence entre
+statuts des tickets et index, ainsi que la traçabilité des marqueurs de dette
+dans le code. Il reste empilé sur T0028 jusqu'à réconciliation de sa livraison
+vers `main` et ne corrige aucune dette produit hors de son périmètre de
+gouvernance.
+
+T0032 cadre la location d'avion confirmée après l'achat T0029. Il reste `Draft`
+jusqu'à décision explicite d'Andy sur durée, cadence, montants, grâce, défaut,
+résiliation, fin d'usage et autorité temporelle. Aucune migration ni politique
+économique n'est inventée avant ce passage en `Ready`; la branche reste empilée
+sur l'intégration T0028 qui contient T0029–T0031 sans les présenter comme livrés
+dans `main`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

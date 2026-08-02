@@ -7,6 +7,7 @@
       "create_company_with_opening_balance",
       "finalize_account_deletion",
       "post_company_opening_balance",
+      "purchase_aircraft",
       "replay_account_deletion_event"
     ]
   },
@@ -77,11 +78,15 @@
     },
     {
       "id": "fleet",
-      "status": "not-implemented",
-      "coverage": "none",
-      "serverBoundaries": [],
-      "evidencePaths": ["docs/CURRENT_STATE.md"],
-      "limitations": ["Purchase, lease, ownership and fleet mutations have no new-product implementation."]
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": ["public.purchase_aircraft"],
+      "evidencePaths": [
+        "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
+        "supabase/tests/database/aircraft_purchase.test.sql"
+      ],
+      "evidenceMarkers": ["purchase_aircraft", "company_aircraft"],
+      "limitations": ["Synthetic purchase is covered; lease and later fleet mutations are not implemented."]
     },
     {
       "id": "dispatch",
@@ -111,14 +116,16 @@
       "id": "finance",
       "status": "server-authoritative",
       "coverage": "partial",
-      "serverBoundaries": ["public.post_company_opening_balance"],
+      "serverBoundaries": ["public.post_company_opening_balance", "public.purchase_aircraft"],
       "evidencePaths": [
         "eng/economy-policy.json",
         "supabase/migrations/20260731000300_immutable_financial_ledger.sql",
-        "supabase/tests/database/financial_ledger.test.sql"
+        "supabase/tests/database/financial_ledger.test.sql",
+        "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
+        "supabase/tests/database/aircraft_purchase.test.sql"
       ],
-      "evidenceMarkers": ["new-company-opening", "post_company_opening_balance"],
-      "limitations": ["Opening policy is fixed at 43000000 EUR; no second financial command is defined."]
+      "evidenceMarkers": ["new-company-opening", "post_company_opening_balance", "purchase_aircraft"],
+      "limitations": ["Opening and one-off aircraft purchase are covered; recurring lease and other financial commands are not defined."]
     },
     {
       "id": "reputation-progression",

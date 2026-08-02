@@ -253,6 +253,7 @@ pnpm desktop:check
 pnpm desktop:test
 pnpm desktop:build
 pnpm frontend:measure
+pnpm maintenance:check
 ```
 
 Si la branche expose des scripts `bridge:*`, utiliser ceux du `package.json` de

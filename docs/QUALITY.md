@@ -1,5 +1,22 @@
 # Qualité du dépôt
 
+## Gouvernance de maintenance
+
+Depuis la racine :
+
+```powershell
+pnpm maintenance:check
+```
+
+Le harnais valide `KNOWN_ISSUES.md`, la cohérence des statuts entre fichiers de
+ticket et index et l'absence de marqueur `TODO`/`FIXME`/`HACK`/`XXX` non relié à
+une entrée active. Huit mutations négatives couvrent schéma, sévérité et statut
+invalides, preuve absente, identifiant dupliqué, divergence de statut et
+marqueurs non suivis, y compris après un marqueur valide sur la même ligne.
+
+Ce gate ne transforme pas une capacité future, un risque accepté ou une preuve
+environnementale manquante en dette résolue.
+
 ## Politique de données
 
 Depuis la racine :
@@ -87,9 +104,10 @@ Ubuntu, le cycle de reset tente sinon de recréer PostgreSQL alors que son port
 est encore occupé. Le chargement Deno réel reste une preuve Windows séparée.
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les dix fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. Les 190 assertions couvrent le cycle de compte
-T0018, le replay T0019, le grand livre T0020 et l'onboarding T0022. Le job CI
+les douze fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 234 assertions couvrent le cycle de compte
+T0018, le replay T0019, le grand livre T0020, l'onboarding T0022 et l'achat
+T0029. Le job CI
 lance deux sessions PostgreSQL concurrentes pour les cycles sensibles et exige
 notamment une compagnie, une commande et une ouverture uniques pour deux appels
 T0022 identiques. Il restaure aussi un dump synthétique pris
@@ -97,6 +115,15 @@ avant suppression dans une base distincte, vérifie les ACL/RLS et `pgcrypto`,
 rejoue le journal, refuse les événements altéré/inconnu et détruit les fichiers
 et la cible. `backend:types:check` régénère les types en mémoire et échoue si le
 fichier versionné diffère.
+
+T0029 ajoute deux sessions concurrentes qui rejouent le même achat et exige les
+mêmes identifiants, un avion, une commande, un débit et un solde final exact. Une
+seconde course oppose deux offres de 10 000 000 à un solde de 15 000 000 : une
+seule commande doit réussir et le solde final doit rester à 5 000 000.
+Les pgTAP couvrent aussi prix serveur, ACL/RLS, A/B/anonyme, collision, offre
+consommée, solde insuffisant, suppression en attente et rollback injecté. Ces
+preuves restent locales et synthétiques ; elles ne valent ni déploiement distant
+ni validation d'un catalogue de production.
 
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
