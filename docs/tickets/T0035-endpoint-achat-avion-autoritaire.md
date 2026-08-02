@@ -1,6 +1,6 @@
 # T0035 — Exposer l'achat d'avion derrière une frontière serveur authentifiée
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0035-aircraft-purchase-endpoint`
 Phase: 2
@@ -37,6 +37,8 @@ ni ne modifie ces décisions : il expose uniquement l'achat comptant déjà vali
 - 2 août 2026 — publication : commit `083ccad` poussé sur
   `feature/T0035-aircraft-purchase-endpoint`; PR #62 ouverte prête pour revue,
   base `main`, head T0035. Les trois checks GitHub sont démarrés.
+- 2 août 2026 — `Done` : PR #62 fusionnée dans `main` au commit `76a47c9` ;
+  Windows multi-stack, Supabase PostgreSQL 17 et supply-chain sont réussis.
 
 ## Dependencies
 
@@ -243,3 +245,10 @@ retourné. Aucun runtime Deno réel ni projet distant n'a été lancé.
 - checks GitHub : Windows multi-stack, PostgreSQL 17 et supply-chain en cours au
   moment du handoff ;
 - fusion finale réservée à Andy.
+
+### Clôture — 2 août 2026
+
+Andy a fusionné la PR #62 dans `main` au commit `76a47c9`. Les checks GitHub
+Windows multi-stack, Supabase PostgreSQL 17 et supply-chain sont tous réussis ;
+T0035 passe à `Done`. Le chargement Edge Runtime réel reste une preuve distincte
+portée par T0036 et n'est pas antidaté dans ce rapport.
