@@ -40,12 +40,13 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0024 | Inventorier les mutations sensibles du golden path | 2 | T0018–T0020, T0022–T0023 | Done |
 | T0025 | Synchroniser la roadmap avec l'état prouvé | 1–2 | T0012, T0021, T0024 | Done |
 | T0026 | Réconcilier la livraison de T0010 | 1 | T0010 | Done |
-| T0027 | Encadrer l'orchestration multitâche des agents | Gouvernance | T0026 | Review |
-| T0028 | Fixer la politique économique d'ouverture de production | 2 | T0020, T0022–T0023, décision Andy | Review |
-| T0029 | Acquérir un premier avion sans double débit ni propriété partielle | 2 | T0020, T0022–T0024, T0028, décision Andy | Review |
-| T0030 | Empêcher les dettes techniques silencieuses | Gouvernance | T0027–T0028 | Review |
-| T0031 | Réconcilier l'index après les fusions T0029–T0030 | Gouvernance | T0029–T0030 | Review |
+| T0027 | Encadrer l'orchestration multitâche des agents | Gouvernance | T0026 | Done |
+| T0028 | Fixer la politique économique d'ouverture de production | 2 | T0020, T0022–T0023, décision Andy | Done |
+| T0029 | Acquérir un premier avion sans double débit ni propriété partielle | 2 | T0020, T0022–T0024, T0028, décision Andy | Done |
+| T0030 | Empêcher les dettes techniques silencieuses | Gouvernance | T0027–T0028 | Done |
+| T0031 | Réconcilier l'index après les fusions T0029–T0030 | Gouvernance | T0029–T0030 | Done |
 | T0032 | Louer un avion sans double prélèvement ni usage hors contrat | 2 | T0020, T0022–T0024, T0028–T0029, décisions Andy | Draft |
+| T0033 | Réconcilier les livraisons récentes et le README | Gouvernance | T0027–T0032 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -139,35 +140,40 @@ T0027 définit une orchestration multitâche contrôlée : un coordinateur reste
 responsable de chaque ticket, la lecture parallèle est privilégiée, les écritures
 dans un worktree partagé exigent des chemins disjoints et plusieurs tickets ne
 peuvent avancer simultanément que dans des worktrees et branches distincts. La
-branche est empilée sur T0026 jusqu'à la livraison de ce dernier dans `main`.
+PR #51 livre ces règles dans `main`; T0027 est `Done`.
 
 T0028 cadre la politique d'ouverture économique unique des nouvelles compagnies
 MVP. Andy confirme le 2 août 2026 une ouverture de 430 000 EUR ; la même valeur
 utilisée auparavant comme fixture locale ne constitue pas une preuve de
 production rétroactive. La source canonique, le handler et les gates sont
-terminés ; le ticket est `Review` sur sa branche isolée.
+livrés dans `main` par la PR #54 ; T0028 est `Done`.
 
 T0029 cadre la première acquisition d'avion autoritaire. Andy confirme le
 2 août 2026 achat puis location : T0029 traite l'achat atomique ; la location,
 ses contrats, paiements temporels et résiliation restent un ticket distinct.
-T0029 est en `Review` dans la PR brouillon #56, empilée sur T0028 jusqu'à
-livraison de #54. Deux resets, 12 fichiers/234 assertions, types, gates et deux
-courses PostgreSQL locales passent ; CI `30740977879` et supply-chain
-`30740977888` sont vertes sur le commit d'implémentation. Aucun endpoint
-applicatif ni environnement distant n'est inclus.
+Deux resets, 12 fichiers/234 assertions, types, gates et deux courses PostgreSQL
+locales passent ; CI `30740977879` et supply-chain `30740977888` sont vertes sur
+le commit d'implémentation. La chaîne de fusions empilées est désormais dans
+`main`; T0029 est `Done`, sans endpoint applicatif ni environnement distant.
 
 T0030 automatise l'intégrité du registre de maintenance, la cohérence entre
 statuts des tickets et index, ainsi que la traçabilité des marqueurs de dette
-dans le code. Il reste empilé sur T0028 jusqu'à réconciliation de sa livraison
-vers `main` et ne corrige aucune dette produit hors de son périmètre de
-gouvernance.
+dans le code. Le gate et ses huit mutations sont dans `main`; T0030 est `Done`,
+sans correction opportuniste d'une dette produit. KI-022 suit encore le
+découplage de sa fixture d'auto-test, découvert par T0033.
+
+T0031 a restauré l'entrée T0030 perdue pendant les fusions croisées et son
+résultat est livré dans `main`. T0031 est `Done`.
 
 T0032 cadre la location d'avion confirmée après l'achat T0029. Il reste `Draft`
 jusqu'à décision explicite d'Andy sur durée, cadence, montants, grâce, défaut,
 résiliation, fin d'usage et autorité temporelle. Aucune migration ni politique
-économique n'est inventée avant ce passage en `Ready`; la branche reste empilée
-sur l'intégration T0028 qui contient T0029–T0031 sans les présenter comme livrés
-dans `main`.
+économique n'est inventée avant ce passage en `Ready`. Son cadrage est présent
+dans `main` depuis la PR #59, sans migration ni capacité de location.
+
+T0033 réconcilie les livraisons T0027–T0031, l'état courant et le README. Il ne
+modifie aucune capacité produit et conserve T0032 en attente des décisions
+économiques et temporelles d'Andy.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

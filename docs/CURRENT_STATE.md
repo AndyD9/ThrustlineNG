@@ -1,11 +1,10 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 1er août 2026 (T0024 fusionné dans `main` par la
-PR #46).
-Statut : T0012–T0024 sont `Done` : leurs implémentations sont fusionnées dans
-`main`, leurs critères automatisés passent et leurs vérifications humaines sont
-terminées. La phase 2 reste toutefois sous interdiction de données utilisateur
-réelles.
+Dernière revue documentaire : 2 août 2026 (réconciliation T0033 sur
+`origin/main` au commit `dc3584e`).
+Statut : T0012–T0031 sont `Done`. Les vérifications historiques T0007–T0009 et
+T0011 restent `Verify`. Le cadrage T0032 est `Draft` en attente de décisions
+produit. La phase 2 reste sous interdiction de données utilisateur réelles.
 
 La fusion #41 (`06cece5`) est couverte par le run CI `30706049048`, réussi sur
 PostgreSQL 17 et Windows multi-stack, et par le run supply-chain `30706049088`,
@@ -60,12 +59,15 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   performance, packaging Windows, CI et supply chain.
 - Workflows dans `main` :
   `.github/workflows/ci.yml` et `.github/workflows/security.yml`.
-- Migrations Supabase append-only constatées : 5.
+- Migrations Supabase append-only constatées : 6.
 - Variables/configurations relevées par nom seulement : `SUPABASE_URL`,
   `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`.
-- Politique économique T0028 présente sur sa branche : source v1
+- Politique économique T0028 présente dans `main` : source v1
   `eng/economy-policy.json`, ouverture `43000000` unités mineures en `EUR` ;
-  elle n'est pas encore livrée dans `main`.
+- Achat T0029 présent dans `main` : offre synthétique, propriété de compagnie et
+  débit autoritaire atomique, sans endpoint applicatif.
+- Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
+  statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
   clientes dans `eng/authority-inventory.json`.
 
@@ -442,33 +444,32 @@ Quinze tests Node passent, dont six politiques invalides et une tentative de
 surcharge par environnement. Le gate backend passe avec quatorze mutations et
 le gate de données avec six mutations. L'inventaire d'autorité reflète la
 politique tout en conservant l'absence d'une deuxième commande financière.
-T0028 reste présent uniquement sur sa branche empilée tant que sa PR n'est pas
-fusionnée ; aucun projet distant, appel desktop ou donnée réelle n'est ajouté.
+La PR #54 (`af2ab1b`) livre T0028 dans `main`. Aucun projet distant, appel
+desktop ou donnée réelle n'est ajouté.
 
 ## Achat d'avion autoritaire T0029
 
-La branche `feature/T0029-authoritative-aircraft-acquisition`, empilée sur
-T0028, ajoute une offre synthétique unitaire, une propriété de compagnie et une
-commande `service_role` atomique/idempotente. Le prix et la devise viennent de
-l'offre verrouillée ; le solde est recalculé sous verrou depuis le grand livre,
-puis l'avion et le débit immuable sont créés dans la même transaction. Les
-clients authentifiés restent limités aux lectures RLS de leur flotte et des
-offres actives.
+T0029 ajoute dans `main` une offre synthétique unitaire, une propriété de
+compagnie et une commande `service_role` atomique/idempotente. Le prix et la
+devise viennent de l'offre verrouillée ; le solde est recalculé sous verrou
+depuis le grand livre, puis l'avion et le débit immuable sont créés dans la même
+transaction. Les clients authentifiés restent limités aux lectures RLS de leur
+flotte et des offres actives.
 
 Le 2 août 2026, le gate statique backend passe avec quinze mutations. Après
 redémarrage de Docker Desktop 29.6.2, deux resets PostgreSQL 17 passent, les
 12 fichiers/234 assertions concluent par `Result: PASS` et les types générés
 restent stables. Deux connexions rejouant le même achat convergent vers
 `1|1|1|33000000`; deux offres de 10 000 000 face à 15 000 000 produisent un
-succès, un refus et `1|1|1|5000000`. La capacité reste présente uniquement sur
-cette branche, sans endpoint desktop, déploiement distant ni donnée réelle.
+succès, un refus et `1|1|1|5000000`. La capacité est livrée dans `main`, sans
+endpoint desktop, déploiement distant ni donnée réelle.
 Andy a confirmé que la location suivra dans un ticket distinct avec contrat,
 échéances et autorité temporelle.
 
-La PR brouillon #56 cible la branche T0028. Sur le commit d'implémentation
-`1ede937`, l'exécution CI `30740977879` valide PostgreSQL 17 et Windows, et
-l'exécution supply-chain `30740977888` est verte. Cette preuve distante reste
-empilée : elle ne rend pas T0028 ni T0029 présents dans `main`.
+Sur le commit d'implémentation `1ede937`, l'exécution CI `30740977879` valide
+PostgreSQL 17 et Windows, et l'exécution supply-chain `30740977888` est verte.
+La chaîne de fusions empilées qui portait T0029 est intégrée dans `main` par la
+PR #54 ; T0033 réconcilie son statut sans rejouer ces preuves.
 
 ## Autorité des mutations du golden path
 
@@ -564,11 +565,11 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-Après livraison de T0029, cadrer la location d'avion dans un ticket distinct :
-contrat, échéances, défaut/résiliation et autorité temporelle, sans anticiper le
-reste de l'économie. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS 2024
-exigés par ADR-0003. Les autres dettes ouvertes restent priorisées par sévérité
-dans `KNOWN_ISSUES.md`.
+T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
+d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et
+autorité temporelle. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS
+2024 exigés par ADR-0003. Les autres dettes ouvertes restent priorisées par
+sévérité dans `KNOWN_ISSUES.md`.
 
 ## Mise à jour de ce fichier
 

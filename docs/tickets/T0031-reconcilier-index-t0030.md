@@ -1,6 +1,6 @@
 # T0031 — Réconcilier l'index après les fusions T0029–T0030
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `fix/T0031-reconcile-ticket-index`
 Phase: Gouvernance
@@ -177,3 +177,10 @@ aux deux fichiers autorisés.
 
 Ticket T0031 et index des tickets uniquement ; `CURRENT_STATE.md` reste
 inchangé car aucune capacité produit ou livraison dans `main` n'a changé.
+
+### Delivery reconciliation
+
+Le 2 août 2026, T0033 confirme que le commit de correction `581f698` est dans
+l'ascendance de `origin/main` par la chaîne de fusions empilées intégrée avec la
+PR #54. Les gates et la vérification manuelle étant déjà consignés, T0031 passe
+de `Review` à `Done`.

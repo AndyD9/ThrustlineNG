@@ -46,16 +46,18 @@ contrat. Le ticket doit borner cette autorité avant de passer en `Ready`.
 - 2 août 2026 — cadrage suspendu avant `Ready` : les décisions économiques et
   temporelles ci-dessus modifient le produit et ne peuvent pas être inventées
   par l'agent.
+- 2 août 2026 — réconciliation T0033 : la PR #59 a livré ce cadrage documentaire
+  dans `main`. Le ticket reste `Draft` et aucune capacité de location n'est
+  implémentée.
 
 ## Dependencies
 
 - T0020 — grand livre financier immuable (`Done`, livré dans `main`) ;
 - T0022–T0024 — compagnie autoritaire, frontière serveur et inventaire des
   mutations (`Done`, livrés dans `main`) ;
-- T0028 — politique d'ouverture (`Review`, PR #54 fusionnée dans `main` selon
-  les références Git inspectées) ;
-- T0029 — achat autoritaire (`Review`, fusionné dans la branche T0028 par la PR
-  #56, absent de `origin/main` au dernier fetch) ;
+- T0028 — politique d'ouverture (`Done`, livrée dans `main` par la PR #54) ;
+- T0029 — achat autoritaire (`Done`, livré dans `main` par la chaîne de fusions
+  empilées intégrée avec la PR #54) ;
 - décisions explicites d'Andy listées dans ce ticket.
 
 ## Allowed areas

@@ -1,6 +1,6 @@
 # T0029 — Acquérir un premier avion sans double débit ni propriété partielle
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0029-authoritative-aircraft-acquisition`
 Phase: 2
@@ -266,3 +266,10 @@ assertions ont été rejoués avec succès.
 
 `PRODUCT.md`, `ARCHITECTURE.md`, `SECURITY.md`, `QUALITY.md`,
 `CURRENT_STATE.md`, `eng/authority-inventory.json`, ce ticket et l'index.
+
+### Delivery reconciliation
+
+Le 2 août 2026, T0033 confirme que le commit d'implémentation `1ede937` et sa
+preuve CI sont dans l'ascendance de `origin/main` par la chaîne de fusions
+empilées intégrée avec la PR #54. Les deux resets, 234 assertions, courses et
+vérifications manuelles étant déjà consignés, T0029 passe de `Review` à `Done`.

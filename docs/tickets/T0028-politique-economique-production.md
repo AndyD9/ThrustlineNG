@@ -1,6 +1,6 @@
 # T0028 — Fixer la politique économique d'ouverture de production
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `docs/T0028-production-economy-policy`
 Phase: 2
@@ -287,3 +287,10 @@ commandes de qualité, état courant, inventaire d'autorité et suivi des ticket
 - PR #54 : brouillon, base `main`, head
   `docs/T0028-production-economy-policy` ;
 - fusion finale réservée à Andy.
+
+### Delivery reconciliation
+
+Le 2 août 2026, T0033 confirme que les commits de décision `ef502e7` et
+d'implémentation `7584bcc` sont dans l'ascendance de `origin/main` via la PR #54
+(`af2ab1b`). Les critères, gates et vérifications manuelles consignés ci-dessus
+étant terminés, T0028 passe de `Review` à `Done`.
