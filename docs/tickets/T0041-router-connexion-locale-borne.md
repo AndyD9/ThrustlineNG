@@ -41,6 +41,9 @@ GitHub `MERGED` ne livre donc pas T0041 dans la branche distante par défaut.
   les tests d'ascendance confirment que `ccab6ef` et `84ab900` restent absents de
   `origin/main`. `origin/main` est fusionné sans réécriture dans la branche
   T0041 afin d'ouvrir une nouvelle PR corrective vers `main`.
+- 2 août 2026 — republication : branche réconciliée poussée au commit `4729236` ;
+  PR corrective #69 ouverte prête, base `main`, head
+  `feature/T0041-bounded-login-route`.
 
 ## Dependencies
 
@@ -240,4 +243,7 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md` et `SECURITY.md`.
 - commit d'implémentation : `ccab6ef` ;
 - PR #68 : fusionnée avec checks verts dans
   `fix/T0040-enable-local-password-auth`, mais cette base avait déjà fusionné
-  dans `main`; T0041 reste donc en `Review` jusqu'à sa PR corrective.
+  dans `main` ;
+- PR #69 : ouverte prête vers `main`, head
+  `feature/T0041-bounded-login-route`; T0041 reste en `Review` jusqu'à sa revue
+  et sa fusion par Andy.

@@ -234,8 +234,8 @@ Ses 80 tests frontend, sa couverture, son build et les gates autorité, données
 et maintenance passent localement. La PR #68 a été fusionnée dans l'ancienne
 branche T0040 après la fusion de #67 vers `main` : son état `MERGED` ne livre
 donc pas les commits T0041 dans la branche par défaut. T0041 reste `Review` en
-attente d'une PR corrective vers `main` et ne revendique ni login WebView live,
-persistance, onboarding, catalogue ou achat composé.
+attente de la PR corrective #69, ouverte prête vers `main`, et ne revendique ni
+login WebView live, persistance, onboarding, catalogue ou achat composé.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

@@ -4,7 +4,8 @@ Dernière revue documentaire : 2 août 2026 (T0040 livré par #67 ; faux succès
 livraison T0041 détecté après la fusion de #68 dans une base déjà intégrée).
 Statut : T0012–T0031 et T0033–T0040 sont `Done`. T0041 est `Review` : sa PR #68
 est fusionnée dans l'ancienne branche T0040, mais ses commits restent absents de
-`main` et exigent une PR corrective vers la branche distante par défaut.
+`main`; la PR corrective #69 est ouverte prête vers la branche distante par
+défaut.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -561,7 +562,7 @@ redirections et à la déconnexion. Cette preuve jsdom ne constitue pas un login
 WebView live. La PR #68 a été fusionnée avec ses checks verts dans
 `fix/T0040-enable-local-password-auth` après que #67 avait déjà intégré cette
 base. Les tests d'ascendance confirment donc que T0041 n'est pas livré dans
-`main`; une PR corrective vers `main` reste requise.
+`main`; la PR corrective #69 est ouverte prête vers `main`.
 
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
@@ -663,11 +664,11 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0040 est livré. T0041 doit encore être propagé vers `main` par une PR corrective
-car #68 a fusionné dans une base obsolète. Après cette correction, le prochain
-ticket recommandé est de composer l'onboarding depuis la session en mémoire,
-sans anticiper catalogue ou achat ; la persistance Windows reste un ticket de
-sécurité séparé avant tout stockage de refresh token.
+T0040 est livré. T0041 doit encore être propagé vers `main` par la PR corrective
+#69 car #68 a fusionné dans une base obsolète. Le prochain ticket recommandé est
+de composer l'onboarding depuis la session en mémoire, sans anticiper catalogue
+ou achat ; la persistance Windows reste un ticket de sécurité séparé avant tout
+stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et
