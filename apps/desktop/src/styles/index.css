@@ -122,7 +122,8 @@ h1 {
 
 .status-card,
 .error-panel,
-.auth-panel {
+.auth-panel,
+.onboarding-panel {
   margin-top: clamp(2.5rem, 8vw, 6rem);
   padding: clamp(1.25rem, 4vw, 2rem);
   border: 1px solid rgb(99 230 165 / 30%);
@@ -160,16 +161,23 @@ h1 {
   margin: 0;
 }
 
-.auth-panel h2 {
+.onboarding-panel {
+  max-width: 40rem;
+}
+
+.auth-panel h2,
+.onboarding-panel h2 {
   margin-top: 0;
 }
 
-.auth-panel form {
+.auth-panel form,
+.onboarding-panel form {
   display: grid;
   gap: 0.75rem;
 }
 
-.auth-panel input {
+.auth-panel input,
+.onboarding-panel input {
   min-height: 2.75rem;
   padding: 0.65rem 0.75rem;
   border: 1px solid rgb(184 200 217 / 35%);
@@ -178,7 +186,8 @@ h1 {
   background: var(--color-background);
 }
 
-.auth-panel button {
+.auth-panel button,
+.onboarding-panel button {
   min-height: 2.75rem;
   margin-top: 0.5rem;
   border: 0;
@@ -189,7 +198,8 @@ h1 {
   cursor: pointer;
 }
 
-.auth-panel button:disabled {
+.auth-panel button:disabled,
+.onboarding-panel button:disabled {
   cursor: wait;
   opacity: 0.7;
 }

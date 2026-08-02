@@ -191,6 +191,21 @@ Cette garde d'interface ne remplace pas l'autorité Auth et ne protège pas les
 secrets en mémoire contre une WebView compromise. T0041 ne prouve ni persistance,
 ni onboarding, ni achat composé, ni cible distante.
 
+## Composition de l'onboarding desktop T0042
+
+Le formulaire protégé envoie exactement un nom normalisé et une clé UUID à
+`company-onboarding`. Il obtient le bearer depuis l'unique gestionnaire T0038 au
+moment de la soumission ; aucun token n'est copié dans l'état React. Propriétaire,
+montant et devise restent absents du client et sont dérivés par T0023 puis T0022.
+
+Une intention conserve sa clé après panne transitoire ou réponse perdue et la
+renouvelle lorsque le nom change. Le panneau bloque les soumissions concurrentes,
+annule au démontage et valide une réponse allowlistée bornée. Un refus Auth efface
+la session avant le retour au login. Les sources onboarding sont scannées contre
+stockage Web, cookie, logs et champs métier interdits. Cette composition ne
+charge pas une compagnie existante, ne persiste pas l'intention et ne prouve ni
+CSP de production ouverte, WebView live, cible distante ou donnée réelle.
+
 ## Autorité globale du golden path T0024
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de
