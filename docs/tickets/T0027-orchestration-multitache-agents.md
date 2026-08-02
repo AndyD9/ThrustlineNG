@@ -1,6 +1,6 @@
 # T0027 — Encadrer l'orchestration multitâche des agents
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `docs/T0027-agent-multitasking-governance`
 Phase: Gouvernance
@@ -198,3 +198,10 @@ coordinateur. Le ticket et l'index sont alignés sur `Review`.
 ### Documentation updated
 
 Règles globales des agents, workflow d'implémentation et index des tickets.
+
+### Delivery reconciliation
+
+Le 2 août 2026, T0033 confirme que le commit d'implémentation `2ef9343` est dans
+l'ascendance de `origin/main` via la PR #51 (`70a93a3`). Les validations et la
+vérification manuelle consignées ci-dessus étant terminées, T0027 passe de
+`Review` à `Done` sans réécriture de la preuve historique.

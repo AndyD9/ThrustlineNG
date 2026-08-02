@@ -1,6 +1,6 @@
 # T0030 — Empêcher les dettes techniques silencieuses
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `chore/T0030-technical-debt-guardrails`
 Phase: Gouvernance
@@ -229,3 +229,12 @@ suivi des tickets.
 - dépendance : livraison de la PR #54 puis rebase ou changement de base sans
   réécriture d'une branche partagée ;
 - fusion finale réservée à Andy.
+
+### Delivery reconciliation
+
+Le 2 août 2026, T0033 confirme que le commit d'implémentation `909f494` est dans
+l'ascendance de `origin/main` par la chaîne de fusions empilées intégrée avec la
+PR #54. Le gate, ses huit mutations et la vérification manuelle étant déjà
+consignés, T0030 passe de `Review` à `Done`. T0033 constate séparément que
+l'auto-test couple encore sa fixture au statut actif de KI-022 ; ce résidu reste
+planifié sans rouvrir T0030.
