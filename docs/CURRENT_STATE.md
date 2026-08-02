@@ -1,13 +1,16 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 2 août 2026 (T0041 livré ; T0042 validé mais à
-repropager vers `main`).
+Dernière revue documentaire : 2 août 2026 (T0041 livré ; T0042 et T0043 validés
+sur des branches empilées).
 Statut : T0012–T0031, T0033–T0041 sont `Done`. T0041 est livré dans `main` par
 la PR corrective #69 au commit `cb179e9`, avec ses trois checks verts.
 T0042 est `Review` : la PR #70 a fusionné ses commits dans la branche T0041
 déjà intégrée, pas dans `main`. Une PR corrective vers la branche distante par
 défaut #71 est ouverte prête ; aucune capacité d'onboarding desktop n'est
 revendiquée dans `main`.
+T0043 est `Review` sur une branche empilée sur T0042/PR #71 ; sa lecture de
+catalogue n'est pas présente dans `main`. Sa PR brouillon #72 cible la branche
+T0042.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -78,11 +81,12 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   ajoute dans `main` l'acquisition email/mot de passe locale injectée, sans
   persistance, route, catalogue, connectivité live ni déploiement. T0040 active
   dans `main` le provider email local tout en gardant le signup
-  global fermé et prouve la commande contre le runtime synthétique. T0041
-  compose sur une branche empilée la route locale et la déconnexion en mémoire,
-  sans livraison dans `main`.
+  global fermé et prouve la commande contre le runtime synthétique. T0041 livre
+  dans `main` la route locale et la déconnexion en mémoire.
   T0042 compose sur sa branche l'onboarding T0023 avec la session en mémoire et
   une intention idempotente, sans catalogue, achat ou persistance.
+  T0043 ajoute sur une branche empilée une lecture explicite et bornée des offres
+  disponibles sous RLS, sans composition d'achat ni accès distant.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -579,6 +583,14 @@ dans la branche T0041 après son intégration à `main`; les commits T0042 reste
 absents de la branche par défaut. La PR corrective #71 est ouverte prête vers
 `main`.
 
+T0043 ajoute un transport `GET` constant vers les offres d'achat disponibles,
+limité à vingt éléments et 32 Kio, ainsi qu'un panneau injecté sans réseau au
+rendu. Le bearer est obtenu au chargement puis la réponse est strictement
+allowlistée. Le gate d'autorité déclare l'unique couple chemin/ressource et passe
+avec huit mutations négatives. Les 125 tests frontend, la couverture et le build
+passent localement. La preuve reste jsdom/fetch injectée, locale, sans achat
+composé, WebView live, cible distante ou donnée réelle.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -680,9 +692,10 @@ version restent non validés et relèvent de la phase 6.
 ## Prochain ticket recommandé
 
 T0041 est livré. T0042 doit encore être propagé vers `main` par la PR corrective
-#71.
-Le prochain ticket recommandé est une lecture authentifiée et bornée du catalogue
-avant de composer l'achat T0037 ; la persistance Windows reste un ticket de
+#71 et T0043 reste empilé sur cette dépendance. Après ces fusions, le prochain
+ticket recommandé est la composition du catalogue T0043 avec la commande d'achat
+T0037, précédée d'une lecture de l'état de compagnie si le parcours doit aussi
+servir les sessions existantes. La persistance Windows reste un ticket de
 sécurité séparé avant tout stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite

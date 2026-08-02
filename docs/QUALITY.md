@@ -199,7 +199,7 @@ rendu, pendant les redirections et à la déconnexion ; après succès, le DOM n
 contient aucun identifiant ou token synthétique. Les gates autorité, données et
 maintenance passent avec 5, 6 et 8 mutations. Cette preuve ne valide aucun login
 WebView live, persistance, onboarding, catalogue, achat ou cible distante et la
-PR corrective #69 reste non fusionnée dans `main`.
+PR corrective #69 est fusionnée dans `main` au commit `cb179e9`.
 
 Preuve T0042 du 2 août 2026 : typecheck, couverture et build passent avec
 11 fichiers/104 tests frontend ; 1 fichier/2 scénarios runtime T0040 reste
@@ -211,7 +211,18 @@ expiration Auth, redirection et absence de réseau au rendu ou de fuite au DOM.
 Les gates autorité, données et maintenance passent avec 5, 6 et 8 mutations.
 Cette preuve jsdom/fetch injectée ne valide ni WebView live, CSP de production,
 catalogue, achat, cible distante ou donnée réelle ; T0042 reste empilé sur
-T0041/PR #69.
+la PR corrective #71 vers `main`.
+
+Preuve T0043 du 2 août 2026 : typecheck, couverture et build passent avec
+13 fichiers/125 tests frontend ; 1 fichier/2 scénarios runtime T0040 reste
+ignoré sans environnement explicite. La couverture globale atteint 92,26 % des
+statements, 86,41 % des branches, 94,38 % des fonctions et 92,48 % des lignes.
+Les tests couvrent la requête GET fermée, cible locale, headers, projection,
+filtre, ordre, limite, taille streaming, schéma des offres, 401/403, panne,
+zéro réseau au rendu, catalogue vide, concurrence, retry et démontage. Les gates
+autorité, données et maintenance passent avec 8, 6 et 8 mutations. Cette preuve
+jsdom/fetch injectée ne valide ni WebView live, CSP de production, achat composé,
+cible distante ou donnée réelle ; T0043 est empilé sur T0042/PR #71.
 
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis

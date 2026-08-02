@@ -108,6 +108,13 @@ les commandes `service_role`, tout accès Data API non classé, le DML Supabase 
 SQL direct et toute nouvelle extension de code non classée. Cette preuve décrit
 le nouveau dépôt uniquement ; elle n'implémente pas les domaines encore absents.
 
+T0043 classe une seule lecture Data API depuis le transport catalogue desktop :
+`aircraft_purchase_offers`. Le chemin source et la ressource sont déclarés dans
+l'inventaire ; tout autre fichier, ressource divergente ou entrée orpheline fait
+échouer le gate. La requête reste un `GET` à projection, filtre, ordre et limite
+constants. Cette lecture n'autorise aucune mutation Data API et ne compose pas
+encore la commande d'achat T0037.
+
 ## Packaging Windows T0014
 
 Le package Windows est un installateur NSIS x64 en mode utilisateur courant.
