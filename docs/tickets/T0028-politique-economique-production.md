@@ -42,6 +42,10 @@ antérieurs de la même valeur comme fixture en preuve de production.
   `docs/T0028-production-economy-policy`, dans les seules zones `Allowed areas`.
 - 2 août 2026 — `Review` : implémentation et documentation terminées ; quinze
   tests Edge, les gates backend/données/autorité et `git diff --check` passent.
+- 2 août 2026 — réconciliation de livraison : #51 a fusionné T0027 dans
+  `main`, puis #52 a fusionné T0028 dans l'ancienne branche T0027. T0028 est
+  resté absent de `origin/main`; la branche a été synchronisée sans réécriture
+  et la PR brouillon #54 cible directement `main`.
 - T0027 reste une dépendance d'ascendance documentaire non fusionnée dans
   `main`; T0028 reste explicitement empilé et ne présume pas sa livraison.
 
@@ -190,9 +194,10 @@ Ne jamais réécrire ou supprimer une ouverture déjà inscrite au grand livre.
 
 Implémentation terminée le 2 août 2026 sur
 `docs/T0028-production-economy-policy`, dans le worktree isolé
-`.worktrees/t0028`. La branche reste empilée sur T0027, absent de `origin/main`
-tant que la PR #51 n'est pas fusionnée. La PR brouillon #52 cible donc
-temporairement `docs/T0027-agent-multitasking-governance`.
+`.worktrees/t0028`. La PR #52 a fusionné la branche dans T0027 après livraison
+de ce dernier dans `main`, sans livrer T0028 dans la branche par défaut. La PR
+brouillon #54 cible désormais directement `main` après synchronisation non
+destructive.
 
 ### Summary
 
@@ -233,7 +238,11 @@ et devise par environnement sont supprimées sans modifier les migrations ni les
 - `gh pr view 51` — PR T0027 ouverte en brouillon vers `main`, avec Windows,
   PostgreSQL 17 et supply chain réussis ;
 - `gh pr view 52` — PR T0028 ouverte en brouillon, base T0027, head T0028 ; les
-  trois checks GitHub sont en cours au moment du contrôle.
+  trois checks GitHub sont en cours au moment du contrôle ; ils ont ensuite
+  réussi sur les runs CI `30739081294` et supply chain `30739081297` ;
+- contrôle distant suivant : #51 `MERGED` dans `main`, #52 `MERGED` dans T0027
+  mais commit T0028 absent de `origin/main`; fusion non destructive de
+  `origin/main` dans la branche et ouverture de #54 vers `main`.
 
 ### Manual verification result
 
@@ -254,11 +263,13 @@ d'environnement, puis confirme leur détection.
   gates statiques ;
 - 430 000 EUR est une politique d'ouverture, pas une preuve d'équilibrage
   complet ; revenus, coûts, prix et deuxième commande restent absents ;
-- la branche reste empilée sur T0027 jusqu'à livraison de la PR #51.
+- T0028 reste absent de `origin/main` tant que la PR #54 n'est pas fusionnée ;
+  l'état `MERGED` de #52 ne constituait pas une livraison sur la branche par
+  défaut.
 
 ### Follow-ups
 
-- livrer T0027 dans `main`, puis rebaser ou changer la base de la PR T0028 ;
+- faire relire puis fusionner la PR #54 dans `main` ;
 - cadrer ensuite une première acquisition d'avion autoritaire sans anticiper le
   reste de l'économie ;
 - conserver l'interdiction de données réelles suivie par `KI-021`.
@@ -272,8 +283,7 @@ commandes de qualité, état courant, inventaire d'autorité et suivi des ticket
 
 - branche : `docs/T0028-production-economy-policy` ;
 - commits : `ef502e7` (décision `Ready`) et `7584bcc` (implémentation) ;
-- PR #52 : brouillon, base `docs/T0027-agent-multitasking-governance`, head
+- PR #52 : fusionnée dans la branche T0027, sans livrer T0028 dans `main` ;
+- PR #54 : brouillon, base `main`, head
   `docs/T0028-production-economy-policy` ;
-- dépendance : PR T0027 #51 à fusionner dans `main`, puis rebase ou changement
-  de base de #52 avant fusion ;
 - fusion finale réservée à Andy.
