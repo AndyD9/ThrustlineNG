@@ -36,6 +36,9 @@ règles de production du gate.
 - 2 août 2026 — `Review` : fixture synthétique et assertions explicites
   implémentées ; Windows PowerShell 5.1, PowerShell 7.6.4, le harnais CI ciblé et
   le contre-test de mutation neutralisée passent.
+- 2 août 2026 — publication : commit d'implémentation `cb911cb` poussé sur
+  `chore/T0034-decouple-maintenance-fixture`; PR #61 ouverte prête pour revue,
+  base `main`, head T0034.
 
 ## Dependencies
 
@@ -193,3 +196,13 @@ PowerShell et supprime ses répertoires temporaires.
 ### Documentation updated
 
 `CURRENT_STATE.md`, `KNOWN_ISSUES.md`, l'index des tickets, T0033 et T0034.
+
+### Git status
+
+- branche : `chore/T0034-decouple-maintenance-fixture` ;
+- commit d'implémentation : `cb911cb` ;
+- PR #61 : prête, base `main`, head T0034 ;
+- checks locaux : maintenance PowerShell 5.1/7.6.4, CI ciblée et diff verts ;
+- checks GitHub : déclenchés par la publication, état à relever après le commit
+  documentaire de handoff ;
+- fusion finale réservée à Andy.
