@@ -119,6 +119,15 @@ reste dans `private` sans privilège API. Une même clé et un même payload ren
 les identifiants enregistrés ; toute collision échoue. La location reste hors
 périmètre car ses échéances exigent une autorité temporelle distincte.
 
+T0035 place une frontière Edge authentifiée devant cette commande. Le client ne
+fournit que `offerId` et `idempotencyKey`; la fonction vérifie une session non
+anonyme auprès d'Auth, dérive `owner_id`, puis utilise le credential
+`service_role` uniquement côté serveur. Le corps est borné à 4 Kio, les appels
+amont à 5 secondes et la réponse est une allowlist versionnée `no-store`. Les
+rejets Auth, transport et SQL sont remplacés par des codes publics sans détail
+de solde, d'offre, de JWT ou de credential. Aucun appelant desktop ni
+déploiement distant n'est couvert.
+
 ## Autorité globale du golden path T0024
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de

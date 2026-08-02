@@ -78,8 +78,15 @@ compagnie, sujet financier puis offre unitaire, et calcule le solde depuis les
 registre d'idempotence sont modifiés dans un seul statement transactionnel. Le
 client authentifié ne reçoit que les offres actives et ses avions via RLS et
 `get_company_aircraft()` ; il ne peut fournir ni prix, ni devise, ni compagnie
-à la commande. Cette tranche couvre uniquement l'achat synthétique : location,
-appelant applicatif et catalogue de production restent absents.
+à la commande.
+
+T0035 ajoute `aircraft-purchase`, une Edge Function séparée qui accepte seulement
+`offerId` et `idempotencyKey`, vérifie la session auprès de Supabase Auth, dérive
+le propriétaire du JWT puis appelle `purchase_aircraft` avec `service_role`.
+Elle borne corps et appels amont, redige les rejets et allowliste la réponse.
+Cette tranche couvre uniquement l'achat synthétique authentifié : appelant
+desktop, location, déploiement distant et catalogue de production restent
+absents.
 
 ## Inventaire d'autorité T0024
 

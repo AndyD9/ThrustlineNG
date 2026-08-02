@@ -80,13 +80,17 @@
       "id": "fleet",
       "status": "server-authoritative",
       "coverage": "partial",
-      "serverBoundaries": ["public.purchase_aircraft"],
+      "serverBoundaries": [
+        "supabase/functions/aircraft-purchase/handler.ts",
+        "public.purchase_aircraft"
+      ],
       "evidencePaths": [
+        "supabase/functions/aircraft-purchase/handler.ts",
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql"
       ],
-      "evidenceMarkers": ["purchase_aircraft", "company_aircraft"],
-      "limitations": ["Synthetic purchase is covered; lease and later fleet mutations are not implemented."]
+      "evidenceMarkers": ["createAircraftPurchaseHandler", "purchase_aircraft", "company_aircraft"],
+      "limitations": ["Authenticated synthetic purchase is covered; no desktop caller or deployment is provided, and lease and later fleet mutations are not implemented."]
     },
     {
       "id": "dispatch",
@@ -116,16 +120,21 @@
       "id": "finance",
       "status": "server-authoritative",
       "coverage": "partial",
-      "serverBoundaries": ["public.post_company_opening_balance", "public.purchase_aircraft"],
+      "serverBoundaries": [
+        "public.post_company_opening_balance",
+        "supabase/functions/aircraft-purchase/handler.ts",
+        "public.purchase_aircraft"
+      ],
       "evidencePaths": [
         "eng/economy-policy.json",
         "supabase/migrations/20260731000300_immutable_financial_ledger.sql",
         "supabase/tests/database/financial_ledger.test.sql",
+        "supabase/functions/aircraft-purchase/handler.ts",
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql"
       ],
-      "evidenceMarkers": ["new-company-opening", "post_company_opening_balance", "purchase_aircraft"],
-      "limitations": ["Opening and one-off aircraft purchase are covered; recurring lease and other financial commands are not defined."]
+      "evidenceMarkers": ["new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft"],
+      "limitations": ["Opening and authenticated one-off aircraft purchase are covered without a desktop caller; recurring lease and other financial commands are not defined."]
     },
     {
       "id": "reputation-progression",

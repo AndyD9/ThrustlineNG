@@ -47,7 +47,8 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0031 | Réconcilier l'index après les fusions T0029–T0030 | Gouvernance | T0029–T0030 | Done |
 | T0032 | Louer un avion sans double prélèvement ni usage hors contrat | 2 | T0020, T0022–T0024, T0028–T0029, décisions Andy | Draft |
 | T0033 | Réconcilier les livraisons récentes et le README | Gouvernance | T0027–T0032 | Done |
-| T0034 | Découpler la fixture du gate de maintenance | Gouvernance | T0030, T0033 | Review |
+| T0034 | Découpler la fixture du gate de maintenance | Gouvernance | T0030, T0033 | Done |
+| T0035 | Exposer l'achat d'avion derrière une frontière serveur authentifiée | 2 | T0023–T0024, T0029, T0034 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -178,9 +179,15 @@ modifie aucune capacité produit et conserve T0032 en attente des décisions
 est `Done` et T0034 traite séparément la fixture résiduelle KI-022.
 
 T0034 découple l'auto-test du gate de maintenance des entrées réelles du
-registre et rend ses assertions négatives explicites. Les validations locales
-passent et le ticket est en `Review`; il ne change aucune règle de maintenance
-ni capacité produit.
+registre et rend ses assertions négatives explicites. La PR #61 est fusionnée
+dans `main` avec ses trois checks verts ; le ticket est `Done` sans changer de
+règle de maintenance ni de capacité produit.
+
+T0035 expose l'achat autoritaire T0029 derrière une Edge Function qui vérifie
+la session auprès de Supabase Auth, dérive le propriétaire du JWT et limite le
+payload client à l'offre et à l'idempotence. Les 30 tests Node, 18 mutations du
+gate backend et les gates applicables passent ; le ticket est en `Review` sans
+consommation desktop, location ni déploiement distant.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

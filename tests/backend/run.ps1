@@ -51,6 +51,10 @@ function Get-BackendIssues {
     $onboardingFunctionEntryPath = Join-Path $Root "supabase\functions\company-onboarding\index.ts"
     $onboardingFunctionTestPath = Join-Path $Root "supabase\functions\company-onboarding\handler.test.ts"
     $onboardingFunctionPackagePath = Join-Path $Root "supabase\functions\company-onboarding\package.json"
+    $purchaseFunctionPath = Join-Path $Root "supabase\functions\aircraft-purchase\handler.ts"
+    $purchaseFunctionEntryPath = Join-Path $Root "supabase\functions\aircraft-purchase\index.ts"
+    $purchaseFunctionTestPath = Join-Path $Root "supabase\functions\aircraft-purchase\handler.test.ts"
+    $purchaseFunctionPackagePath = Join-Path $Root "supabase\functions\aircraft-purchase\package.json"
     $typesPath = Join-Path $Root "packages\database\src\database.types.ts"
     $startScriptPath = Join-Path $Root "scripts\start-supabase-local.ps1"
     $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
@@ -88,6 +92,10 @@ function Get-BackendIssues {
         $onboardingFunctionEntryPath,
         $onboardingFunctionTestPath,
         $onboardingFunctionPackagePath,
+        $purchaseFunctionPath,
+        $purchaseFunctionEntryPath,
+        $purchaseFunctionTestPath,
+        $purchaseFunctionPackagePath,
         $typesPath,
         $startScriptPath,
         $invokeScriptPath,
@@ -423,6 +431,47 @@ function Get-BackendIssues {
         }
     }
 
+    $purchaseFunction = Get-Content -Raw -Encoding UTF8 $purchaseFunctionPath
+    $purchaseFunctionEntry = Get-Content -Raw -Encoding UTF8 $purchaseFunctionEntryPath
+    $purchaseFunctionTests = Get-Content -Raw -Encoding UTF8 $purchaseFunctionTestPath
+    $purchaseFunctionRequirements = @{
+        "bounded request body" = 'MAX_BODY_BYTES = 4_096'
+        "bounded upstream calls" = 'UPSTREAM_TIMEOUT_MILLISECONDS = 5_000'
+        "strict purchase payload" = 'keys\.length !== 2'
+        "Auth session verification" = '/auth/v1/user'
+        "anonymous session rejection" = 'user\.is_anonymous !== false'
+        "service-role purchase RPC" = '/rest/v1/rpc/purchase_aircraft'
+        "owner derived from Auth" = 'owner_id: user\.id'
+        "service credential API key" = 'apikey: configuration\.serviceRoleKey'
+        "service credential bearer" = 'authorization: `Bearer \$\{configuration\.serviceRoleKey\}`'
+        "redacted purchase failure" = 'purchase_rejected'
+        "allowlisted public response" = 'aircraftId: value\.aircraftId[\s\S]+ledgerEntryId: value\.ledgerEntryId[\s\S]+offerId: value\.offerId'
+        "non-cacheable response" = 'headers\.set\("cache-control", "no-store"\)'
+    }
+    foreach ($entry in $purchaseFunctionRequirements.GetEnumerator()) {
+        Require-Text $purchaseFunction $entry.Value "Aircraft purchase endpoint invariant missing: $($entry.Key)."
+    }
+    if ($purchaseFunction -match 'request\.(owner|company|price|currency)[A-Za-z]*') {
+        $issues.Add("Aircraft purchase endpoint must not accept client-controlled owner, company, price or currency.")
+    }
+    Require-Text $config '\[functions\.aircraft-purchase\][\s\S]+verify_jwt = true[\s\S]+entrypoint = "\./functions/aircraft-purchase/index\.ts"' "Aircraft purchase Edge function must verify JWTs and register its entrypoint."
+    Require-Text $purchaseFunctionEntry 'Deno\.serve\(createAircraftPurchaseHandler\(Deno\.env\.toObject\(\)\)\)' "Aircraft purchase handler is not registered with the Edge runtime."
+    foreach ($marker in @(
+        "rejects owner, company, price, currency, and other client-controlled fields",
+        "rejects an invalid or anonymous Auth session",
+        "fails closed when Auth is unavailable",
+        "derives the owner from Auth and sends only the RPC contract",
+        "does not disclose database rejection details",
+        "fails closed when the privileged RPC is unavailable",
+        "fails closed on a malformed privileged response",
+        "returns only public fields from a privileged response"
+    )) {
+        if (-not $purchaseFunctionTests.Contains($marker)) {
+            $issues.Add("Missing aircraft purchase endpoint test scenario: $marker")
+        }
+    }
+    Require-Text ([string]$package.scripts.'backend:functions:test') 'company-onboarding/handler\.test\.ts.+aircraft-purchase/handler\.test\.ts' "The functions test script must execute onboarding and aircraft purchase handlers."
+
     $seed = Get-Content -Raw -Encoding UTF8 $seedPath
     Require-Text $seed 'pilot-a@thrustline\.invalid' "Synthetic user A is missing."
     Require-Text $seed 'pilot-b@thrustline\.invalid' "Synthetic user B is missing."
@@ -536,7 +585,7 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'Concurrent financial ledger commands did not converge' "Backend CI does not verify identical ledger command convergence."
     Require-Text $ciBackend 'Company onboarding concurrency passed' "Backend CI does not report onboarding concurrency."
     Require-Text $ciBackend 'Concurrent company onboarding commands did not converge' "Backend CI does not verify identical onboarding convergence."
-    Require-Text $ciBackend 'node --test \./supabase/functions/company-onboarding/handler\.test\.ts' "Backend CI does not execute the Edge handler tests on Linux."
+    Require-Text $ciBackend 'pnpm backend:functions:test' "Backend CI does not execute all Edge handler tests on Linux."
     Require-Text $ciBackend 'realtime,storage-api,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor' "Backend CI must isolate PostgreSQL resets from the Edge Runtime port lifecycle."
     Require-Text $ciBackend '"1\|1"' "Backend CI does not verify one immutable concurrent ledger entry."
     Require-Text $ciBackend 'Aircraft purchase concurrency passed' "Backend CI does not report purchase concurrency."
@@ -606,6 +655,10 @@ try {
         "supabase\functions\company-onboarding\index.ts",
         "supabase\functions\company-onboarding\handler.test.ts",
         "supabase\functions\company-onboarding\package.json",
+        "supabase\functions\aircraft-purchase\handler.ts",
+        "supabase\functions\aircraft-purchase\index.ts",
+        "supabase\functions\aircraft-purchase\handler.test.ts",
+        "supabase\functions\aircraft-purchase\package.json",
         "packages\database\src\database.types.ts",
         "scripts\start-supabase-local.ps1",
         "scripts\invoke-supabase-local.ps1",
@@ -784,6 +837,47 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\company-onboarding\handler.ts") -Destination $onboardingFunctionCopy
+    $purchaseFunctionCopy = Join-Path $temporaryRoot "supabase\functions\aircraft-purchase\handler.ts"
+    $purchaseFunctionText = Get-Content -Raw -Encoding UTF8 $purchaseFunctionCopy
+    $purchaseFunctionText = $purchaseFunctionText.Replace(
+        "owner_id: user.id,",
+        "owner_id: request.ownerId,"
+    )
+    [System.IO.File]::WriteAllText($purchaseFunctionCopy, $purchaseFunctionText)
+    $clientPurchaseOwnerIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientPurchaseOwnerIssues -match "owner derived from Auth") -or
+        -not ($clientPurchaseOwnerIssues -match "client-controlled owner")) {
+        Write-Error "Harness self-test failed to detect a client-controlled aircraft owner."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\aircraft-purchase\handler.ts") -Destination $purchaseFunctionCopy
+    $purchaseFunctionText = Get-Content -Raw -Encoding UTF8 $purchaseFunctionCopy
+    $purchaseFunctionText = $purchaseFunctionText.Replace(
+        "apikey: configuration.serviceRoleKey,",
+        "apikey: configuration.anonKey,"
+    )
+    [System.IO.File]::WriteAllText($purchaseFunctionCopy, $purchaseFunctionText)
+    $unprivilegedPurchaseIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unprivilegedPurchaseIssues -match "service credential API key")) {
+        Write-Error "Harness self-test failed to detect an unprivileged aircraft purchase RPC call."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\aircraft-purchase\handler.ts") -Destination $purchaseFunctionCopy
+    $purchaseFunctionText = Get-Content -Raw -Encoding UTF8 $purchaseFunctionCopy
+    $purchaseFunctionText = $purchaseFunctionText.Replace(
+        "offer_id: request.offerId,",
+        "offer_id: request.offerId,`r`n        price_minor: request.priceMinor,"
+    )
+    [System.IO.File]::WriteAllText($purchaseFunctionCopy, $purchaseFunctionText)
+    $clientPriceIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientPriceIssues -match "client-controlled owner, company, price or currency")) {
+        Write-Error "Harness self-test failed to detect a client-controlled aircraft price."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\aircraft-purchase\handler.ts") -Destination $purchaseFunctionCopy
     $economyPolicyCopy = Join-Path $temporaryRoot "eng\economy-policy.json"
     $economyPolicyText = Get-Content -Raw -Encoding UTF8 $economyPolicyCopy
     $economyPolicyText = $economyPolicyText.Replace('"schemaVersion": 1', '"schemaVersion": 2')
@@ -824,4 +918,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0029 repository plus 15 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0029 and T0035 repository plus 18 mutation scenarios)."

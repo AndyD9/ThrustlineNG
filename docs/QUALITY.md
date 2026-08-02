@@ -71,12 +71,14 @@ sa disparition du workflow.
 Le contrôle statique fonctionne sans Docker et couvre la version de CLI, la
 configuration PostgreSQL 17, l'ordre migration/seed, les contraintes, les
 politiques, les scénarios A/B/anonyme et l'absence de commande distante. Il
-exécute aussi quatorze mutations négatives, dont une publication wildcard, un
+exécute aussi dix-huit mutations négatives, dont une publication wildcard, un
 montage du socket Docker hôte et une commande d'onboarding rendue exécutable par
 un rôle client. T0023 ajoute la détection d'un propriétaire repris du payload ou
 d'un appel RPC effectué sans le credential serveur. T0028 ajoute une version de
 politique inconnue, une divergence entre source canonique et copie embarquée et
-le retour d'une surcharge par environnement :
+le retour d'une surcharge par environnement. T0035 ajoute trois mutations pour
+le propriétaire d'achat repris du payload, le credential RPC abaissé et un prix
+client réintroduit :
 
 ```powershell
 pnpm backend:check
@@ -94,11 +96,12 @@ pnpm backend:types:check
 pnpm backend:stop
 ```
 
-`backend:functions:test` exécute 14 tests Node sans dépendance tierce : méthode,
-corps 4 Kio, payload exact, normalisation, UUID, configuration, Auth anonyme ou
-invalide, indisponibilité Auth/RPC, dérivation du propriétaire, credential
-privilégié, redaction et réponse versionnée `no-store`.
-Le harnais Linux `ci:backend` rejoue ces tests avant de démarrer PostgreSQL. Il
+`backend:functions:test` exécute 30 tests Node sans dépendance tierce : 15 pour
+l'onboarding et 15 pour l'achat. Ils couvrent méthode, corps 4 Kio, payload
+exact, normalisation, UUID, configuration, Auth anonyme ou invalide,
+indisponibilité Auth/RPC, dérivation du propriétaire, credential privilégié,
+redaction, rejeu et réponse allowlistée versionnée `no-store`.
+Le harnais Linux `ci:backend` rejoue tous ces tests avant de démarrer PostgreSQL. Il
 exclut ensuite Edge Runtime de la pile SQL : avec Supabase CLI 2.109.1 sur
 Ubuntu, le cycle de reset tente sinon de recréer PostgreSQL alors que son port
 est encore occupé. Le chargement Deno réel reste une preuve Windows séparée.
@@ -124,6 +127,12 @@ Les pgTAP couvrent aussi prix serveur, ACL/RLS, A/B/anonyme, collision, offre
 consommée, solde insuffisant, suppression en attente et rollback injecté. Ces
 preuves restent locales et synthétiques ; elles ne valent ni déploiement distant
 ni validation d'un catalogue de production.
+
+Preuve T0035 du 2 août 2026 : les 30 tests Node passent, dont les 15 scénarios
+de la nouvelle frontière d'achat. Le gate backend passe avec 18 mutations et
+l'inventaire d'autorité référence le handler Edge pour flotte et finance. Cette
+preuve est locale et simulée ; elle ne prouve ni chargement Deno réel,
+déploiement distant, appel desktop ni donnée réelle.
 
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis

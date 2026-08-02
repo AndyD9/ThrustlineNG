@@ -112,6 +112,8 @@ de devise et ne constitue pas un équilibrage économique complet.
 - Zéro variation financière sans écriture de grand livre.
 - Zéro acquisition d'avion sans propriété et débit atomiques ; un rejeu
   identique ne crée ni second avion ni second débit.
+- Une demande d'achat n'accepte du client que l'offre et l'idempotence ; la
+  compagnie est dérivée de la session vérifiée par la frontière serveur.
 - Reprise après coupure testée sur chaque parcours essentiel.
 - Temps de démarrage et consommation mémoire budgétés.
 - Mise à jour N-1 → N et rollback validés sur VM propre.
