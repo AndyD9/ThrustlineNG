@@ -43,6 +43,37 @@ function Get-AuthorityIssues {
         $issues.Add("Service-only command inventory must be non-empty and unique.")
     }
 
+    $dataApiReads = @($inventory.policy.clientDataApiReads)
+    $dataApiReadPaths = @($dataApiReads | ForEach-Object { ([string]$_.path).Replace('\', '/') })
+    if ($dataApiReads.Count -eq 0 -or
+        $dataApiReadPaths.Count -ne @($dataApiReadPaths | Sort-Object -Unique).Count) {
+        $issues.Add("Client Data API read allowlist must be non-empty and have unique paths.")
+    }
+    foreach ($read in $dataApiReads) {
+        $readPath = ([string]$read.path).Replace('\', '/')
+        $resource = [string]$read.resource
+        if ([System.IO.Path]::IsPathRooted($readPath) -or
+            $readPath -match '(^|/)\.\.(/|$)' -or
+            $readPath -notmatch '^apps/(desktop/src|desktop/src-tauri/src|bridge)/' -or
+            $resource -notmatch '^[a-z][a-z0-9_]{1,62}$') {
+            $issues.Add("Client Data API read allowlist contains an unsafe entry: $readPath")
+            continue
+        }
+        $absoluteReadPath = Join-Path $Root $readPath
+        if (-not (Test-Path -LiteralPath $absoluteReadPath -PathType Leaf)) {
+            $issues.Add("Client Data API read allowlist path does not exist: $readPath")
+            continue
+        }
+        $readText = Get-Content -Raw -Encoding UTF8 $absoluteReadPath
+        if (-not $readText.Contains("/rest/v1/$resource")) {
+            $issues.Add("Allowlisted Data API read path does not contain declared resource '$resource': $readPath")
+        }
+        if ($readText -notmatch '(?i)method\s*:\s*["'']GET["'']' -or
+            $readText -match '(?i)method\s*:\s*["''](POST|PUT|PATCH|DELETE)["'']') {
+            $issues.Add("Allowlisted Data API read path must use GET only: $readPath")
+        }
+    }
+
     $domains = @($inventory.domains)
     $domainIds = @($domains | ForEach-Object { [string]$_.id })
     if ($domainIds.Count -eq 0 -or $domainIds.Count -ne @($domainIds | Sort-Object -Unique).Count) {
@@ -154,7 +185,6 @@ function Get-AuthorityIssues {
     $forbiddenPatterns = @(
         @{ Pattern = '(?i)SUPABASE_SERVICE_ROLE_KEY|\bservice_role\b'; Message = "privileged service-role reference" },
         @{ Pattern = '(?is)\.from\s*\([^)]*\)\s*\.\s*(insert|update|upsert|delete)\s*\('; Message = "direct Supabase table mutation" },
-        @{ Pattern = '(?i)/rest/v1/'; Message = "direct Supabase Data API access" },
         @{ Pattern = '(?i)\b(insert\s+into|update\s+(public|private|auth)\.|delete\s+from|truncate\s+table)\b'; Message = "embedded direct SQL mutation" }
     )
     if ($escapedCommands.Count -gt 0) {
@@ -201,9 +231,26 @@ function Get-AuthorityIssues {
                 continue
             }
             $text = Get-Content -Raw -Encoding UTF8 $file.FullName
+            $relativeFile = $file.FullName.Substring($Root.Length).TrimStart('\', '/').Replace('\', '/')
+            $dataApiMatches = @([regex]::Matches($text, '(?i)/rest/v1/([a-z][a-z0-9_]*)'))
+            if ($dataApiMatches.Count -gt 0) {
+                $allowlistedRead = @($dataApiReads | Where-Object {
+                    ([string]$_.path).Replace('\', '/') -eq $relativeFile
+                })
+                if ($allowlistedRead.Count -ne 1) {
+                    $issues.Add("Client source contains undeclared direct Supabase Data API access: $relativeFile")
+                }
+                else {
+                    $declaredResource = [string]$allowlistedRead[0].resource
+                    foreach ($match in $dataApiMatches) {
+                        if ($match.Groups[1].Value -cne $declaredResource) {
+                            $issues.Add("Client source Data API resource differs from allowlist: $relativeFile")
+                        }
+                    }
+                }
+            }
             foreach ($rule in $forbiddenPatterns) {
                 if ($text -match $rule.Pattern) {
-                    $relativeFile = $file.FullName.Substring($Root.Length).TrimStart('\', '/')
                     $issues.Add("Client source contains $($rule.Message): $relativeFile")
                 }
             }
@@ -310,6 +357,39 @@ try {
     if (-not (@(Get-AuthorityIssues -Root $unknownExtensionRoot) -match "unclassified extension")) {
         throw "Harness self-test failed to detect an unclassified client extension."
     }
+
+    $undeclaredReadRoot = New-AuthorityTestRoot
+    $temporaryRoots.Add($undeclaredReadRoot)
+    $injectedPath = Join-Path $undeclaredReadRoot "apps\desktop\src\undeclared-read.ts"
+    [System.IO.File]::WriteAllText($injectedPath, 'new URL("/rest/v1/aircraft_purchase_offers", baseUrl);', [System.Text.UTF8Encoding]::new($false))
+    if (-not (@(Get-AuthorityIssues -Root $undeclaredReadRoot) -match "undeclared direct Supabase Data API access")) {
+        throw "Harness self-test failed to detect an undeclared Data API read."
+    }
+
+    $divergentReadRoot = New-AuthorityTestRoot
+    $temporaryRoots.Add($divergentReadRoot)
+    $path = Join-Path $divergentReadRoot "apps\desktop\src\features\aircraft-catalog\aircraftCatalog.ts"
+    $mutation = (Get-Content -Raw -Encoding UTF8 $path).Replace(
+        "/rest/v1/aircraft_purchase_offers",
+        "/rest/v1/companies"
+    )
+    [System.IO.File]::WriteAllText($path, $mutation, [System.Text.UTF8Encoding]::new($false))
+    if (-not (@(Get-AuthorityIssues -Root $divergentReadRoot) -match "differs from allowlist")) {
+        throw "Harness self-test failed to detect a divergent Data API resource."
+    }
+
+    $orphanReadRoot = New-AuthorityTestRoot
+    $temporaryRoots.Add($orphanReadRoot)
+    $path = Join-Path $orphanReadRoot "eng\authority-inventory.json"
+    $mutation = Get-Content -Raw -Encoding UTF8 $path | ConvertFrom-Json
+    $mutation.policy.clientDataApiReads += [pscustomobject]@{
+        path = "apps/desktop/src/features/auth/session.ts"
+        resource = "companies"
+    }
+    [System.IO.File]::WriteAllText($path, ($mutation | ConvertTo-Json -Depth 12), [System.Text.UTF8Encoding]::new($false))
+    if (-not (@(Get-AuthorityIssues -Root $orphanReadRoot) -match "does not contain declared resource")) {
+        throw "Harness self-test failed to detect an orphaned Data API allowlist entry."
+    }
 }
 finally {
     foreach ($temporaryRoot in $temporaryRoots) {
@@ -319,4 +399,4 @@ finally {
     }
 }
 
-Write-Output "Authority inventory checks passed (10 golden-path steps, 13 domains, 3 client surfaces, 5 mutation scenarios)."
+Write-Output "Authority inventory checks passed (10 golden-path steps, 13 domains, 3 client surfaces, 8 mutation scenarios)."

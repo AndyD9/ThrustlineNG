@@ -93,4 +93,16 @@ describe("invariants frontend et Tauri", () => {
       /ownerId|openingAmountMinor|currencyCode|service.role/i,
     );
   });
+
+  it("ne persiste ni ne journalise la session ou le catalogue d'avions", () => {
+    const catalogSources = [
+      read("apps/desktop/src/features/aircraft-catalog/aircraftCatalog.ts"),
+      read("apps/desktop/src/features/aircraft-catalog/AircraftCatalogPanel.tsx"),
+    ].join("\n");
+
+    expect(catalogSources).not.toMatch(
+      /localStorage|sessionStorage|indexedDB|document\.cookie|console\.(?:debug|error|info|log|warn)/,
+    );
+    expect(catalogSources).not.toMatch(/service.role|insert|update|upsert|delete/i);
+  });
 });
