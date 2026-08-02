@@ -25,6 +25,7 @@ function Get-BackendIssues {
     }
 
     $packagePath = Join-Path $Root "package.json"
+    $economyPolicyPath = Join-Path $Root "eng\economy-policy.json"
     $configPath = Join-Path $Root "supabase\config.toml"
     $migrationPath = Join-Path $Root "supabase\migrations\20260728000100_create_companies.sql"
     $lifecycleMigrationPath = Join-Path $Root "supabase\migrations\20260731000100_account_lifecycle.sql"
@@ -43,6 +44,7 @@ function Get-BackendIssues {
     $onboardingStructureTestPath = Join-Path $Root "supabase\tests\database\company_onboarding_structure.test.sql"
     $onboardingTestPath = Join-Path $Root "supabase\tests\database\company_onboarding.test.sql"
     $onboardingFunctionPath = Join-Path $Root "supabase\functions\company-onboarding\handler.ts"
+    $onboardingFunctionPolicyPath = Join-Path $Root "supabase\functions\company-onboarding\economy-policy.json"
     $onboardingFunctionEntryPath = Join-Path $Root "supabase\functions\company-onboarding\index.ts"
     $onboardingFunctionTestPath = Join-Path $Root "supabase\functions\company-onboarding\handler.test.ts"
     $onboardingFunctionPackagePath = Join-Path $Root "supabase\functions\company-onboarding\package.json"
@@ -57,6 +59,7 @@ function Get-BackendIssues {
 
     $requiredPaths = @(
         $packagePath,
+        $economyPolicyPath,
         $configPath,
         $migrationPath,
         $lifecycleMigrationPath,
@@ -75,6 +78,7 @@ function Get-BackendIssues {
         $onboardingStructureTestPath,
         $onboardingTestPath,
         $onboardingFunctionPath,
+        $onboardingFunctionPolicyPath,
         $onboardingFunctionEntryPath,
         $onboardingFunctionTestPath,
         $onboardingFunctionPackagePath,
@@ -99,6 +103,29 @@ function Get-BackendIssues {
     $package = Get-Content -Raw -Encoding UTF8 $packagePath | ConvertFrom-Json
     if ($package.devDependencies.supabase -ne "2.109.1") {
         $issues.Add("Supabase CLI must be pinned exactly to 2.109.1.")
+    }
+
+    $economyPolicyText = Get-Content -Raw -Encoding UTF8 $economyPolicyPath
+    $onboardingFunctionPolicyText = Get-Content -Raw -Encoding UTF8 $onboardingFunctionPolicyPath
+    try {
+        $economyPolicy = $economyPolicyText | ConvertFrom-Json
+    }
+    catch {
+        $issues.Add("Economy policy must be valid JSON.")
+        $economyPolicy = $null
+    }
+    if ($null -ne $economyPolicy) {
+        $economyPolicyProperties = @($economyPolicy.PSObject.Properties.Name | Sort-Object)
+        if (($economyPolicyProperties -join ",") -ne "currencyCode,openingAmountMinor,schemaVersion,scope" -or
+            $economyPolicy.schemaVersion -ne 1 -or
+            $economyPolicy.scope -ne "new-company-opening" -or
+            $economyPolicy.openingAmountMinor -ne 43000000 -or
+            $economyPolicy.currencyCode -cne "EUR") {
+            $issues.Add("Economy policy must be schema v1 for a 43000000 EUR new-company opening.")
+        }
+    }
+    if ($economyPolicyText -cne $onboardingFunctionPolicyText) {
+        $issues.Add("Packaged company onboarding economy policy diverges from eng/economy-policy.json.")
     }
 
     $backendScripts = $package.scripts.PSObject.Properties |
@@ -163,8 +190,6 @@ function Get-BackendIssues {
     Require-Text $runtimeScript 'DOCKER_HOST=tcp://\$\(\$script:SupabaseEngineContainer\):2375' "The CLI does not target the isolated Docker API."
     Require-Text $runtimeScript 'DO_NOT_TRACK=1' "The isolated CLI does not disable generic telemetry."
     Require-Text $runtimeScript 'SUPABASE_TELEMETRY_DISABLED=1' "The isolated CLI does not disable Supabase telemetry."
-    Require-Text $runtimeScript 'COMPANY_OPENING_BALANCE_MINOR=43000000' "Local onboarding amount fixture is not injected server-side."
-    Require-Text $runtimeScript 'COMPANY_OPENING_CURRENCY=EUR' "Local onboarding currency fixture is not injected server-side."
     Require-Text $runtimeScript ([regex]::Escape('${script:SupabaseProjectVolume}:/workspace')) "The CLI does not use the dedicated project volume."
     Require-Text $startScript ([regex]::Escape('${script:SupabaseEngineCacheVolume}:/var/lib/docker')) "The inner image cache is not isolated in its dedicated volume."
     Require-Text $invokeScript 'Remove-SupabaseLocalRuntime -DockerPath \$dockerPath -PreserveImageCache' "Normal shutdown does not preserve only the source-free image cache."
@@ -189,8 +214,6 @@ function Get-BackendIssues {
     Require-Text $config '(?s)\[realtime\].*?enabled = false' "Realtime must remain disabled in T0012."
     Require-Text $config '(?s)\[storage\].*?enabled = false' "Storage must remain disabled in T0012."
     Require-Text $config '(?s)\[edge_runtime\].*?enabled = true' "Edge Runtime must be enabled for the T0023 server boundary."
-    Require-Text $config '(?s)\[edge_runtime\.secrets\].*?COMPANY_OPENING_BALANCE_MINOR = "env\(COMPANY_OPENING_BALANCE_MINOR\)"' "Opening amount must come from Edge Runtime server configuration."
-    Require-Text $config '(?s)\[edge_runtime\.secrets\].*?COMPANY_OPENING_CURRENCY = "env\(COMPANY_OPENING_CURRENCY\)"' "Opening currency must come from Edge Runtime server configuration."
     Require-Text $config '(?s)\[functions\.company-onboarding\].*?enabled = true' "Company onboarding function must be enabled explicitly."
     Require-Text $config '(?s)\[functions\.company-onboarding\].*?verify_jwt = true' "Company onboarding must retain the platform JWT gate."
     Require-Text $config '(?s)\[functions\.company-onboarding\].*?entrypoint = "\./functions/company-onboarding/index\.ts"' "Company onboarding entrypoint is not explicit."
@@ -333,8 +356,10 @@ function Get-BackendIssues {
         "strict client payload" = 'keys\.length !== 2'
         "Auth session verification" = '/auth/v1/user'
         "anonymous session rejection" = 'user\.is_anonymous !== false'
-        "server opening amount" = 'COMPANY_OPENING_BALANCE_MINOR'
-        "server currency" = 'COMPANY_OPENING_CURRENCY'
+        "canonical economy import" = 'economy-policy\.json'
+        "canonical economy validation" = 'readEconomyPolicy'
+        "canonical opening amount" = 'openingAmountMinor: policy\.openingAmountMinor'
+        "canonical currency" = 'currencyCode: policy\.currencyCode'
         "service-role RPC" = '/rest/v1/rpc/create_company_with_opening_balance'
         "owner derived from Auth" = 'owner_id: user\.id'
         "service credential header" = 'apikey: configuration\.serviceRoleKey'
@@ -344,9 +369,14 @@ function Get-BackendIssues {
     foreach ($entry in $onboardingFunctionRequirements.GetEnumerator()) {
         Require-Text $onboardingFunction $entry.Value "Company onboarding endpoint invariant missing: $($entry.Key)."
     }
+    if (($runtimeScript + $config + $onboardingFunction) -match 'COMPANY_OPENING_(BALANCE_MINOR|CURRENCY)') {
+        $issues.Add("Company onboarding economy policy must not be replaceable through environment variables.")
+    }
     Require-Text $onboardingFunctionEntry 'Deno\.serve\(createCompanyOnboardingHandler\(Deno\.env\.toObject\(\)\)\)' "Company onboarding handler is not registered with the Edge runtime."
     foreach ($marker in @(
         "rejects owner, amount, currency, and other client-controlled fields",
+        "rejects invalid canonical economy policies",
+        "ignores deployment attempts to override the canonical economy policy",
         "rejects an invalid or anonymous Auth session",
         "fails closed when Auth is unavailable",
         "derives the owner from Auth and keeps economic inputs server-side",
@@ -493,6 +523,7 @@ try {
     New-Item -ItemType Directory -Path $temporaryRoot | Out-Null
     foreach ($relativePath in @(
         "package.json",
+        "eng\economy-policy.json",
         "supabase\config.toml",
         "supabase\migrations\20260728000100_create_companies.sql",
         "supabase\migrations\20260731000100_account_lifecycle.sql",
@@ -511,6 +542,7 @@ try {
         "supabase\tests\database\company_onboarding_structure.test.sql",
         "supabase\tests\database\company_onboarding.test.sql",
         "supabase\functions\company-onboarding\handler.ts",
+        "supabase\functions\company-onboarding\economy-policy.json",
         "supabase\functions\company-onboarding\index.ts",
         "supabase\functions\company-onboarding\handler.test.ts",
         "supabase\functions\company-onboarding\package.json",
@@ -675,6 +707,41 @@ try {
         Write-Error "Harness self-test failed to detect an unprivileged onboarding RPC call."
         exit 1
     }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\company-onboarding\handler.ts") -Destination $onboardingFunctionCopy
+    $economyPolicyCopy = Join-Path $temporaryRoot "eng\economy-policy.json"
+    $economyPolicyText = Get-Content -Raw -Encoding UTF8 $economyPolicyCopy
+    $economyPolicyText = $economyPolicyText.Replace('"schemaVersion": 1', '"schemaVersion": 2')
+    [System.IO.File]::WriteAllText($economyPolicyCopy, $economyPolicyText)
+    $unknownPolicyVersionIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unknownPolicyVersionIssues -match "schema v1")) {
+        Write-Error "Harness self-test failed to detect an unknown economy policy version."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "eng\economy-policy.json") -Destination $economyPolicyCopy
+    $packagedEconomyPolicyCopy = Join-Path $temporaryRoot "supabase\functions\company-onboarding\economy-policy.json"
+    $packagedEconomyPolicyText = Get-Content -Raw -Encoding UTF8 $packagedEconomyPolicyCopy
+    $packagedEconomyPolicyText = $packagedEconomyPolicyText.Replace('"currencyCode": "EUR"', '"currencyCode": "USD"')
+    [System.IO.File]::WriteAllText($packagedEconomyPolicyCopy, $packagedEconomyPolicyText)
+    $divergentPolicyIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($divergentPolicyIssues -match "diverges")) {
+        Write-Error "Harness self-test failed to detect a divergent packaged economy policy."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\company-onboarding\economy-policy.json") -Destination $packagedEconomyPolicyCopy
+    $runtimeText = Get-Content -Raw -Encoding UTF8 $runtimeCopy
+    $runtimeText = $runtimeText.Replace(
+        '"--env", "SUPABASE_TELEMETRY_DISABLED=1",',
+        '"--env", "SUPABASE_TELEMETRY_DISABLED=1",`r`n        "--env", "COMPANY_OPENING_CURRENCY=USD",'
+    )
+    [System.IO.File]::WriteAllText($runtimeCopy, $runtimeText)
+    $environmentOverrideIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($environmentOverrideIssues -match "replaceable through environment variables")) {
+        Write-Error "Harness self-test failed to detect an economy policy environment override."
+        exit 1
+    }
 }
 finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
@@ -682,4 +749,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023 repository plus 11 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023 and T0028 repository plus 14 mutation scenarios)."

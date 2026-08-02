@@ -1,3 +1,5 @@
+import economyPolicy from "./economy-policy.json" with { type: "json" };
+
 const MAX_BODY_BYTES = 4_096;
 const MAX_OPENING_AMOUNT_MINOR = 1_000_000_000_000_000;
 const UPSTREAM_TIMEOUT_MILLISECONDS = 5_000;
@@ -7,8 +9,13 @@ export interface CompanyOnboardingEnvironment {
   SUPABASE_URL?: string;
   SUPABASE_ANON_KEY?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
-  COMPANY_OPENING_BALANCE_MINOR?: string;
-  COMPANY_OPENING_CURRENCY?: string;
+}
+
+export interface EconomyPolicy {
+  schemaVersion: 1;
+  scope: "new-company-opening";
+  openingAmountMinor: number;
+  currencyCode: string;
 }
 
 interface CompanyOnboardingRequest {
@@ -29,6 +36,41 @@ interface CompanyOnboardingResponse {
 }
 
 type Fetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+
+export function readEconomyPolicy(value: unknown): EconomyPolicy {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Economy policy must be an object.");
+  }
+
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record).sort();
+  const openingAmountMinor = record.openingAmountMinor;
+  const currencyCode = record.currencyCode;
+  if (
+    keys.length !== 4 ||
+    keys[0] !== "currencyCode" ||
+    keys[1] !== "openingAmountMinor" ||
+    keys[2] !== "schemaVersion" ||
+    keys[3] !== "scope" ||
+    record.schemaVersion !== 1 ||
+    record.scope !== "new-company-opening" ||
+    typeof openingAmountMinor !== "number" ||
+    !Number.isSafeInteger(openingAmountMinor) ||
+    openingAmountMinor <= 0 ||
+    openingAmountMinor > MAX_OPENING_AMOUNT_MINOR ||
+    typeof currencyCode !== "string" ||
+    !/^[A-Z]{3}$/.test(currencyCode)
+  ) {
+    throw new Error("Economy policy is invalid.");
+  }
+
+  return {
+    schemaVersion: 1,
+    scope: "new-company-opening",
+    openingAmountMinor,
+    currencyCode,
+  };
+}
 
 class HttpError extends Error {
   readonly status: number;
@@ -150,9 +192,12 @@ function readRuntimeConfiguration(environment: CompanyOnboardingEnvironment): {
   const supabaseUrl = environment.SUPABASE_URL?.replace(/\/$/, "");
   const anonKey = environment.SUPABASE_ANON_KEY;
   const serviceRoleKey = environment.SUPABASE_SERVICE_ROLE_KEY;
-  const currencyCode = environment.COMPANY_OPENING_CURRENCY;
-  const rawAmount = environment.COMPANY_OPENING_BALANCE_MINOR;
-  const openingAmountMinor = rawAmount === undefined ? Number.NaN : Number(rawAmount);
+  let policy: EconomyPolicy;
+  try {
+    policy = readEconomyPolicy(economyPolicy);
+  } catch {
+    throw new HttpError(503, "configuration_unavailable", "Company onboarding is not configured.");
+  }
 
   if (
     supabaseUrl === undefined ||
@@ -160,17 +205,18 @@ function readRuntimeConfiguration(environment: CompanyOnboardingEnvironment): {
     anonKey === undefined ||
     anonKey.length === 0 ||
     serviceRoleKey === undefined ||
-    serviceRoleKey.length === 0 ||
-    currencyCode === undefined ||
-    !/^[A-Z]{3}$/.test(currencyCode) ||
-    !Number.isSafeInteger(openingAmountMinor) ||
-    openingAmountMinor === 0 ||
-    Math.abs(openingAmountMinor) > MAX_OPENING_AMOUNT_MINOR
+    serviceRoleKey.length === 0
   ) {
     throw new HttpError(503, "configuration_unavailable", "Company onboarding is not configured.");
   }
 
-  return { anonKey, currencyCode, openingAmountMinor, serviceRoleKey, supabaseUrl };
+  return {
+    anonKey,
+    currencyCode: policy.currencyCode,
+    openingAmountMinor: policy.openingAmountMinor,
+    serviceRoleKey,
+    supabaseUrl,
+  };
 }
 
 async function authenticateUser(

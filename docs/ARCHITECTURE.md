@@ -63,10 +63,13 @@ n'ajoute encore aucun appelant applicatif direct.
 T0023 place cette RPC derrière l'Edge Function `company-onboarding`. Le client
 envoie uniquement un nom normalisé et une clé d'idempotence. La fonction vérifie
 le bearer token auprès de Supabase Auth, dérive `owner_id` de l'utilisateur non
-anonyme et lit montant/devise depuis son environnement serveur avant d'appeler
-T0022 avec `service_role`. La fonction ne fractionne donc pas la transaction SQL
-et ne livre jamais le credential privilégié au desktop. Aucun appelant desktop,
-CORS applicatif ou déploiement distant n'est encore fourni.
+anonyme et lit montant/devise depuis la projection embarquée de la politique
+T0028 avant d'appeler T0022 avec `service_role`. `eng/economy-policy.json` fixe
+la v1 à `43000000` unités mineures en `EUR`; le gate exige que la copie livrée
+avec la fonction soit strictement identique et interdit les anciennes surcharges
+par environnement. La fonction ne fractionne donc pas la transaction SQL et ne
+livre jamais le credential privilégié au desktop. Aucun appelant desktop, CORS
+applicatif ou déploiement distant n'est encore fourni.
 
 ## Inventaire d'autorité T0024
 
