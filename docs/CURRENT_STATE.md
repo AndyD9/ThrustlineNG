@@ -1,8 +1,8 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 2 août 2026 (T0035 sur une branche issue de
-`origin/main` au commit `3b839bc`).
-Statut : T0012–T0031 et T0033–T0034 sont `Done`; T0035 est `Review`. Les
+Dernière revue documentaire : 2 août 2026 (T0036 sur une branche issue de
+`origin/main` au commit `76a47c9`).
+Statut : T0012–T0031 et T0033–T0035 sont `Done`; T0036 est `Review`. Les
 vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -66,8 +66,9 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
 - Politique économique T0028 présente dans `main` : source v1
   `eng/economy-policy.json`, ouverture `43000000` unités mineures en `EUR` ;
 - Achat T0029 présent dans `main` : offre synthétique, propriété de compagnie et
-  débit autoritaire atomique. T0035 ajoute sur sa branche une Edge Function
-  authentifiée, sans appelant desktop ni déploiement.
+  débit autoritaire atomique. T0035 ajoute dans `main` une Edge Function
+  authentifiée ; T0036 prouve son runtime local réel, sans appelant desktop ni
+  déploiement.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -473,14 +474,21 @@ PostgreSQL 17 et Windows, et l'exécution supply-chain `30740977888` est verte.
 La chaîne de fusions empilées qui portait T0029 est intégrée dans `main` par la
 PR #54 ; T0033 réconcilie son statut sans rejouer ces preuves.
 
-T0035 ajoute sur sa branche `aircraft-purchase`, une frontière Edge qui accepte
+T0035 ajoute dans `main` `aircraft-purchase`, une frontière Edge qui accepte
 uniquement offre et idempotence, vérifie une session non anonyme, dérive le
 propriétaire puis appelle la commande T0029 avec le credential serveur. Trente
 tests Node passent au total, dont quinze scénarios d'achat ; le gate backend
 passe avec dix-huit mutations. La réponse est allowlistée et `no-store`, les
-rejets sont redigés. Aucun chargement Deno réel, appel desktop, projet distant
-ou donnée réelle n'est encore prouvé. La PR #62 est ouverte prête pour revue
-vers `main`; ses checks GitHub sont en cours au moment du handoff.
+rejets sont redigés. La PR #62 est fusionnée au commit `76a47c9` avec ses trois
+checks verts ; T0035 est `Done`.
+
+T0036 charge cette fonction dans l'Edge Runtime local réel. Une
+identité/session/JWT synthétiques traverse Auth, onboarding et achat ; le rejeu
+conserve les mêmes identifiants. PostgreSQL confirme une compagnie, deux
+écritures, un solde de `33000000`, un avion et une commande. Les refus sans JWT
+et avec prix client rendent HTTP 401 et 400 sans détail interne. L'arrêt sans
+backup puis le redémarrage confirment zéro identité T0036 persistée. Aucun appel
+desktop, projet distant, parité cloud ou donnée réelle n'est prouvé.
 
 ## Autorité des mutations du golden path
 
@@ -576,16 +584,15 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0034 corrige le couplage résiduel du gate de maintenance à KI-022 et les
-assertions négatives qui pouvaient accepter une liste vide. La PR #61 est
-fusionnée dans `main` au commit `3b839bc`; Windows multi-stack, PostgreSQL 17 et
-supply-chain sont verts. T0034 est `Done`.
+T0035 est fusionné dans `main` par la PR #62 au commit `76a47c9` avec ses trois
+checks verts. T0036 valide son chargement Edge Runtime, la chaîne Auth → RPC,
+le rejeu, l'état PostgreSQL et le nettoyage sur données synthétiques ; le ticket
+est en `Review`, sans appel desktop ni environnement distant.
 
-T0035 expose maintenant l'achat T0029 derrière une frontière serveur
-authentifiée. Son périmètre reste borné à la vérification Auth, la dérivation du
-propriétaire, l'appel privilégié à `purchase_aircraft`, une réponse minimale et
-des tests fail-closed ; aucun appel desktop ni environnement distant n'est
-couvert.
+Après fusion de T0036, le prochain ticket recommandé est la consommation
+desktop bornée de l'achat, avec états pending/rejected explicites et sans
+credential privilégié côté client. Il ne doit ni englober la location, ni
+présumer une cible Supabase distante prête.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et

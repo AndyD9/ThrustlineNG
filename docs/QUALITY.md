@@ -134,6 +134,16 @@ l'inventaire d'autorité référence le handler Edge pour flotte et finance. Cet
 preuve est locale et simulée ; elle ne prouve ni chargement Deno réel,
 déploiement distant, appel desktop ni donnée réelle.
 
+Preuve T0036 du 2 août 2026 : l'Edge Runtime réel charge les fonctions sur la
+pile T0021 et une identité/session/JWT synthétiques traverse Auth, onboarding et
+achat. La réponse d'achat contient seulement les cinq champs publics et
+`Cache-Control: no-store`; le rejeu conserve les identifiants. PostgreSQL
+confirme une compagnie, deux écritures, un solde de `33000000`, un avion et une
+commande. Sans JWT, l'appel rend HTTP 401 ; avec `priceMinor`, HTTP 400 sans
+détail interne. L'arrêt `--no-backup` puis le redémarrage confirment zéro
+identité T0036 persistée. Cette preuve ne vaut ni parcours de connexion
+utilisateur, déploiement distant, parité cloud, appel desktop ou donnée réelle.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme
