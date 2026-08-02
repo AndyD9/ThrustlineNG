@@ -6,8 +6,8 @@ Statut : T0012–T0031, T0033–T0041 sont `Done`. T0041 est livré dans `main` 
 la PR corrective #69 au commit `cb179e9`, avec ses trois checks verts.
 T0042 est `Review` : la PR #70 a fusionné ses commits dans la branche T0041
 déjà intégrée, pas dans `main`. Une PR corrective vers la branche distante par
-défaut reste nécessaire ; aucune capacité d'onboarding desktop n'est revendiquée
-dans `main`.
+défaut #71 est ouverte prête ; aucune capacité d'onboarding desktop n'est
+revendiquée dans `main`.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -576,7 +576,8 @@ Les 104 tests frontend, la couverture, le build et les gates passent localement.
 Cette preuve jsdom/fetch injectée ne valide ni WebView live, CSP de production,
 cible distante ou donnée réelle. La PR #70 a fusionné avec trois checks verts
 dans la branche T0041 après son intégration à `main`; les commits T0042 restent
-absents de la branche par défaut et nécessitent une PR corrective.
+absents de la branche par défaut. La PR corrective #71 est ouverte prête vers
+`main`.
 
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
@@ -678,7 +679,8 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0041 est livré. T0042 doit encore être propagé vers `main` par une PR corrective.
+T0041 est livré. T0042 doit encore être propagé vers `main` par la PR corrective
+#71.
 Le prochain ticket recommandé est une lecture authentifiée et bornée du catalogue
 avant de composer l'achat T0037 ; la persistance Windows reste un ticket de
 sécurité séparé avant tout stockage de refresh token.

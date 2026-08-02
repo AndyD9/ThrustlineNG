@@ -245,7 +245,8 @@ soumission depuis le gestionnaire T0038. Ses 104 tests frontend, couverture,
 build et gates passent localement. Il est `Review` sur une branche empilée sur
 T0041. La PR #70 a été fusionnée avec ses trois checks verts dans cette branche
 après son intégration à `main`; T0042 reste donc `Review` en attente d'une PR
-corrective vers `main` et exclut persistance, catalogue, achat et backend.
+corrective #71 ouverte prête vers `main`, et exclut persistance, catalogue,
+achat et backend.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

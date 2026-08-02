@@ -40,6 +40,9 @@ après sa fusion vers `main`; une republication corrective reste nécessaire.
   commit `cb179e9`, puis PR #70 fusionnée dans la branche T0041 déjà intégrée ;
   les commits T0042 restent absents de `main`. `origin/main` est fusionné sans
   réécriture dans la branche T0042 pour permettre une PR corrective.
+- 2 août 2026 — republication : branche réconciliée poussée au commit `7a5b95b` ;
+  PR corrective #71 ouverte prête, base `main`, head
+  `feature/T0042-desktop-company-onboarding`.
 
 ## Dependencies
 
@@ -253,4 +256,7 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md` et `SECURITY.md`.
 - commit d'implémentation : `c2e1c32` ;
 - PR #70 : fusionnée avec trois checks verts dans
   `feature/T0041-bounded-login-route`, mais cette base avait déjà fusionné dans
-  `main`; une PR corrective vers `main` reste nécessaire.
+  `main` ;
+- PR #71 : ouverte prête vers `main`, head
+  `feature/T0042-desktop-company-onboarding`; T0042 reste en `Review` jusqu'à sa
+  revue et sa fusion par Andy.
