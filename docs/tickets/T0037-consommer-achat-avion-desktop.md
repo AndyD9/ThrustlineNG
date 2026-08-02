@@ -35,6 +35,9 @@ stockage de token, un parcours de connexion ou une offre codée en dur.
   `82e79ea`, dans un worktree dédié et propre.
 - 2 août 2026 — `Review` : commande, panneau et preuves automatisées terminés ;
   aucun branchement réseau live ni élargissement CSP n'est revendiqué.
+- 2 août 2026 — publication : commit `3220394` poussé sur
+  `feature/T0037-desktop-aircraft-purchase`; PR #64 ouverte prête pour revue,
+  base `main`, avec les trois checks GitHub en cours.
 
 ## Dependencies
 
@@ -266,5 +269,9 @@ d'autorité.
 
 - branche : `feature/T0037-desktop-aircraft-purchase` ;
 - base : `origin/main` au commit `82e79ea` ;
-- publication et PR à consigner après handoff Git ;
+- commit d'implémentation : `3220394` ;
+- PR #64 : ouverte et prête, base `main`, head
+  `feature/T0037-desktop-aircraft-purchase` ;
+- checks GitHub : Windows multi-stack, PostgreSQL 17 et supply-chain en cours
+  au moment de cette mise à jour ;
 - fusion finale réservée à Andy.
