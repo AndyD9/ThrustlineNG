@@ -198,3 +198,11 @@ non exécutées.
 
 README, état courant, registre de maintenance, index, preuves de livraison
 T0027–T0031, dépendances T0032 et Completion Report T0033.
+
+### Git status
+
+- branche : `docs/T0033-reconcile-delivery-readme` ;
+- commit d'implémentation : `21a4dfa` ;
+- PR #60 : brouillon, base `main`, head
+  `docs/T0033-reconcile-delivery-readme` ;
+- aucune dépendance empilée ; fusion finale réservée à Andy.
