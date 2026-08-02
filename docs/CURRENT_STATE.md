@@ -1,10 +1,11 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 2 août 2026 (réconciliation T0033 sur
-`origin/main` au commit `dc3584e`).
-Statut : T0012–T0031 sont `Done`. Les vérifications historiques T0007–T0009 et
-T0011 restent `Verify`. Le cadrage T0032 est `Draft` en attente de décisions
-produit. La phase 2 reste sous interdiction de données utilisateur réelles.
+Dernière revue documentaire : 2 août 2026 (T0034 sur une branche issue de
+`origin/main` au commit `167e763`).
+Statut : T0012–T0031 et T0033 sont `Done`; T0034 est `Review`. Les vérifications
+historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage T0032 est `Draft`
+en attente de décisions produit. La phase 2 reste sous interdiction de données
+utilisateur réelles.
 
 La fusion #41 (`06cece5`) est couverte par le run CI `30706049048`, réussi sur
 PostgreSQL 17 et Windows multi-stack, et par le run supply-chain `30706049088`,
@@ -564,6 +565,13 @@ Signature, SmartScreen, MSI, updater, provenance, upgrade N-1 et rollback de
 version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
+
+T0034 corrige le couplage résiduel du gate de maintenance à KI-022 et les
+assertions négatives qui pouvaient accepter une liste vide. Le gate passe sous
+Windows PowerShell 5.1 et PowerShell 7.6.4 avec huit mutations, et un
+contre-test neutralisé échoue explicitement. Le ticket reste en `Review` sur
+`chore/T0034-decouple-maintenance-fixture` tant que la branche n'est pas
+fusionnée dans `main`.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et
