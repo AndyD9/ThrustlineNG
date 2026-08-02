@@ -259,5 +259,6 @@ T0035, ce ticket, l'index, `QUALITY.md` et `CURRENT_STATE.md`.
 - commit de validation : `41b707c` ;
 - PR #63 : ouverte et prête, base `main`, head
   `chore/T0036-validate-aircraft-purchase-runtime` ;
-- checks GitHub : à relever après le push final de traçabilité ;
+- checks GitHub : aucun check encore reporté immédiatement après le push final
+  de traçabilité au moment du handoff ;
 - fusion finale réservée à Andy.
