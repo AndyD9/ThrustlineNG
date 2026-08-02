@@ -11,6 +11,11 @@
 Un même outil peut tenir plusieurs rôles, mais pas dans la même étape sans
 effectuer une revue adversariale explicite.
 
+Lorsqu'un ticket utilise plusieurs agents, l'un d'eux est désigné coordinateur.
+Il reste responsable du ticket et distribue des sous-tâches bornées aux autres
+agents ; la responsabilité du périmètre, de l'intégration et des preuves n'est
+jamais déléguée implicitement.
+
 ## États d'un ticket
 
 `Draft → Ready → In progress → Review → Verify → Done`
@@ -53,6 +58,79 @@ frontière ou absence de preuve = retour en Draft.
 5. Implémenter seulement le ticket.
 6. Exécuter d'abord les tests ciblés, puis les gates applicables.
 7. Ne pas corriger les découvertes hors scope ; les consigner.
+
+### 3.1 Décider si le parallélisme est pertinent
+
+Le coordinateur utilise plusieurs agents seulement si au moins deux sous-tâches
+peuvent produire un résultat utile indépendamment. Le temps de coordination, le
+risque de collision et la revalidation du résultat combiné doivent rester
+proportionnés au ticket.
+
+Usages adaptés :
+
+- inspection indépendante de zones différentes ;
+- recherche documentaire ou de précédents en lecture seule ;
+- exécution de validations indépendantes qui ne partagent pas d'état mutable ;
+- revue adversariale sécurité, conformité ou régression après implémentation ;
+- modifications sur des chemins explicitement disjoints lorsque leur contrat est
+  déjà stable.
+
+Usages à garder séquentiels :
+
+- sous-tâches dont l'une dépend du résultat encore inconnu de l'autre ;
+- modifications concurrentes du même fichier ou du même état persistant ;
+- changement d'un contrat avec ses producteurs ou consommateurs ;
+- migration, génération de types et adaptation des appelants ;
+- opérations Git ou publication depuis un worktree partagé.
+
+### 3.2 Préparer une délégation
+
+Avant de lancer un sous-agent, le coordinateur consigne dans sa demande :
+
+1. le résultat attendu et la question précise à résoudre ;
+2. les sources à lire et le contexte suffisant ;
+3. les chemins autorisés et interdits ;
+4. le mode `lecture seule` ou la liste exhaustive des chemins dont l'écriture est
+   attribuée ;
+5. les validations attendues et la forme du compte rendu ;
+6. les conditions d'arrêt : contradiction, dépendance, secret, modification
+   inattendue ou décision réservée à Andy.
+
+Dans un worktree partagé, la lecture seule est la valeur par défaut. Si une
+écriture est attribuée, le coordinateur vérifie d'abord les modifications
+préexistantes et interdit tout chevauchement de propriété. Un sous-agent ne
+bascule jamais la branche du worktree partagé.
+
+### 3.3 Intégrer les résultats
+
+Le coordinateur attend les sous-tâches nécessaires, puis :
+
+1. distingue constats, hypothèses et modifications réellement présentes ;
+2. inspecte chaque chemin modifié et refuse tout changement hors attribution ;
+3. résout les interactions en série, sans demander deux corrections concurrentes
+   sur la même zone ;
+4. exécute la revue adversariale sur le diff combiné ;
+5. rejoue les tests ciblés affectés puis les gates applicables ;
+6. remplit le Completion Report avec les résultats intégrés et leurs limites.
+
+Une commande réussie dans une sous-tâche ne prouve pas que le résultat intégré
+passe. Seules les validations rejouées ou explicitement confirmées après la
+dernière modification peuvent servir de preuve finale.
+
+### 3.4 Exécuter plusieurs tickets en parallèle
+
+Des tickets indépendants peuvent être `In progress` simultanément si chacun
+dispose d'un worktree et d'une branche dédiés. Avant de les lancer, vérifier :
+
+- que chaque ticket est `Ready` et que ses dépendances sont réellement
+  satisfaites sur son parent ;
+- que leurs `Allowed areas` ne se chevauchent pas, ou désigner un ordre
+  d'intégration explicite ;
+- que chaque branche part de la base réelle attendue ;
+- qu'une éventuelle pile de branches est déclarée dans les tickets et les PR.
+
+Chaque ticket conserve son propre coordinateur, ses validations et son handoff.
+Une preuve issue d'un worktree ne clôt jamais implicitement un autre ticket.
 
 Types de branche : `foundation`, `feature`, `fix`, `security`, `refactor`,
 `docs`, `chore`.
@@ -183,6 +261,11 @@ séparément et confirmer qu'ils ne figurent pas dans `git add`.
 Codex inclut les résultats du commit, du push et de la Pull Request dans le
 rapport final. Seule la fusion exige une confirmation explicite d'Andy et ne doit
 jamais être exécutée par l'agent.
+
+Avec plusieurs agents, seul le coordinateur du ticket effectue ce handoff dans
+le worktree concerné. Il indexe les chemins après intégration, jamais pendant
+qu'un sous-agent écrit encore, et vérifie qu'aucun résultat d'un autre ticket ou
+worktree n'est inclus.
 
 Si GitHub demande un mot de passe HTTPS, ne pas utiliser le mot de passe du
 compte. Configurer GitHub CLI depuis PowerShell :

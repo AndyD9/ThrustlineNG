@@ -40,6 +40,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0024 | Inventorier les mutations sensibles du golden path | 2 | T0018–T0020, T0022–T0023 | Done |
 | T0025 | Synchroniser la roadmap avec l'état prouvé | 1–2 | T0012, T0021, T0024 | Done |
 | T0026 | Réconcilier la livraison de T0010 | 1 | T0010 | Done |
+| T0027 | Encadrer l'orchestration multitâche des agents | Gouvernance | T0026 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -128,6 +129,12 @@ T0026 réconcilie l'écart de livraison T0010 sans réécrire son rapport histor
 La PR #7 avait ciblé une branche déjà intégrée ; la PR #10 a ensuite fusionné
 les commits T0010 `22f97d4` et `41cc940` dans `main` via `26cbcbf`. Les tests
 d'ascendance et les validations bridge/desktop repassent ; `KI-016` est résolu.
+
+T0027 définit une orchestration multitâche contrôlée : un coordinateur reste
+responsable de chaque ticket, la lecture parallèle est privilégiée, les écritures
+dans un worktree partagé exigent des chemins disjoints et plusieurs tickets ne
+peuvent avancer simultanément que dans des worktrees et branches distincts. La
+branche est empilée sur T0026 jusqu'à la livraison de ce dernier dans `main`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
