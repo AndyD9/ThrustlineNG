@@ -1,6 +1,10 @@
 import { StatusCard } from "@/shared/ui/StatusCard";
 
-export function HomePage() {
+export interface HomePageProps {
+  onSignOut: () => void;
+}
+
+export function HomePage({ onSignOut }: HomePageProps) {
   return (
     <main className="page" id="main-content">
       <section className="hero" aria-labelledby="home-title">
@@ -12,8 +16,11 @@ export function HomePage() {
       </section>
       <StatusCard
         status="Ready"
-        detail="React 19 · TypeScript 6 · Vite 8 · Tailwind CSS 4 · React Router 8"
+        detail="Session locale active · aucune donnée persistée"
       />
+      <button className="primary-action" type="button" onClick={onSignOut}>
+        Se déconnecter
+      </button>
     </main>
   );
 }

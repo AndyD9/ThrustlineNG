@@ -69,6 +69,9 @@ describe("invariants frontend et Tauri", () => {
       read("apps/desktop/src/features/auth/passwordSignIn.ts"),
       read("apps/desktop/src/features/auth/PasswordSignInPanel.tsx"),
       read("apps/desktop/src/features/auth/session.ts"),
+      read("apps/desktop/src/app/App.tsx"),
+      read("apps/desktop/src/app/routes.tsx"),
+      read("apps/desktop/src/pages/LoginPage.tsx"),
     ].join("\n");
 
     expect(authSources).not.toMatch(

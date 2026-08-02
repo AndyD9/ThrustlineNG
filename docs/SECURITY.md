@@ -175,6 +175,22 @@ désactivation du provider requis. La preuve runtime utilise une adresse
 l'identité et la pile sans backup. Elle ne change pas l'hypothèse de WebView non
 fiable et n'autorise aucune donnée réelle.
 
+## Route de connexion locale T0041
+
+La composition desktop lit une fois la configuration publique T0038 et conserve
+un seul `DesktopSessionManager` pour la durée de l'application. Sans session,
+`/` redirige vers `/login`; après validation et installation atomique par T0039,
+le login redirige vers l'accueil. Le booléen React de navigation ne contient
+aucun token et ne devient vrai qu'après vérification de `hasSession()`.
+
+La déconnexion efface le gestionnaire avant de rendre à nouveau le formulaire.
+Rendu, redirections et déconnexion ne déclenchent aucun appel réseau. L'invariant
+de non-persistance couvre aussi la composition, les routes et la page login :
+aucun bearer, refresh token ou mot de passe n'est stocké, journalisé ou rendu.
+Cette garde d'interface ne remplace pas l'autorité Auth et ne protège pas les
+secrets en mémoire contre une WebView compromise. T0041 ne prouve ni persistance,
+ni onboarding, ni achat composé, ni cible distante.
+
 ## Autorité globale du golden path T0024
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de

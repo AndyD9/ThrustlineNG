@@ -1,6 +1,6 @@
 # T0040 — Activer et valider Auth locale email/mot de passe
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `fix/T0040-enable-local-password-auth`
 Phase: 4
@@ -38,6 +38,9 @@ doit cibler `main`.
   `fix/T0040-enable-local-password-auth`; PR #67 ouverte prête pour revue, base
   `main`. Les checks GitHub sont déclenchés mais pas encore attribués comme
   réussis dans cette preuve.
+- 2 août 2026 — `Done` : PR #67 fusionnée dans `main` au commit `471c7c1` ; les
+  jobs Windows multi-stack, PostgreSQL 17 et supply-chain du run observé sont
+  tous réussis.
 
 ## Dependencies
 
@@ -210,8 +213,8 @@ de passe et `/signup` sont refusés. Les ports 54321–54323 sont liés uniqueme
 
 ### Risks and limitations
 
-T0040 est rebasé sur T0039 désormais fusionné. Le test runtime exige Docker et des
-variables éphémères explicites, donc il est ignoré dans le gate frontend normal.
+T0040 est livré dans `main`. Le test runtime exige Docker et des variables
+éphémères explicites, donc il est ignoré dans le gate frontend normal.
 Aucune route, persistance, inscription, cible distante ou donnée réelle n'est
 validée ; une WebView compromise peut toujours lire les tokens en mémoire.
 
@@ -224,14 +227,14 @@ validée ; une WebView compromise peut toujours lire les tokens en mémoire.
 ### Documentation updated
 
 `CURRENT_STATE.md`, `QUALITY.md`, `SECURITY.md`, inventaire d'autorité, index,
-T0039 et T0040. T0039 est réconcilié `Done`; T0040 reste non livré dans `main`.
+T0039 et T0040. T0039 et T0040 sont réconciliés `Done`.
 
 ### Git status
 
 - branche : `fix/T0040-enable-local-password-auth` ;
 - base : `origin/main` au commit `47c8f341` ;
 - commit d'implémentation rebasé : `61fd54e` ;
-- PR #67 : ouverte et prête, base `main`, head
+- PR #67 : fusionnée dans `main` au commit `471c7c1`, base `main`, head
   `fix/T0040-enable-local-password-auth` ;
-- checks GitHub : déclenchés, résultat final non encore observé ;
+- checks GitHub : Windows multi-stack, PostgreSQL 17 et supply-chain réussis ;
 - fusion finale réservée à Andy.

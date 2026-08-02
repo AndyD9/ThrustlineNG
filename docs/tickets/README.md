@@ -53,7 +53,8 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0037 | Consommer l'achat d'avion depuis le desktop sans autorité client | 2–4 | T0024, T0029, T0035–T0036 | Done |
 | T0038 | Fonder la configuration et la session authentifiée du desktop | 2–4 | T0021, T0024, T0035–T0037 | Done |
 | T0039 | Acquérir une session locale par email et mot de passe | 4 | T0021, T0024, T0038, décision Andy | Done |
-| T0040 | Activer et valider Auth locale email/mot de passe | 4 | T0021, T0038–T0039 | Review |
+| T0040 | Activer et valider Auth locale email/mot de passe | 4 | T0021, T0038–T0039 | Done |
+| T0041 | Rendre la connexion locale accessible par une route bornée | 4 | T0038–T0040 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -221,13 +222,20 @@ distante et données réelles restent exclues. La PR #66 est fusionnée dans
 T0039 est `Done`.
 
 T0040 corrige l'écart entre cette commande et la configuration locale qui
-désactivait le provider email. Après fusion de T0039, sa branche est rebasée sur
-`main` : inscription globale fermée, identité `.invalid` provisionnée par
-l'Admin API locale, test runtime et destruction sans backup. Sa branche ne doit
-pas être présentée comme livrée dans
-`main` tant que T0040 n'est pas fusionné. Deux scénarios runtime
-passent et le redémarrage confirme zéro identité T0040. La PR #67 est ouverte
-prête vers `main`; le ticket est `Review`.
+désactivait le provider email : inscription globale fermée, identité `.invalid`
+provisionnée par l'Admin API locale, test runtime et destruction sans backup.
+Deux scénarios runtime passent et le redémarrage confirme zéro identité T0040.
+La PR #67 est fusionnée dans `main` au commit `471c7c1` avec Windows,
+PostgreSQL 17 et supply-chain verts ; le ticket est `Done`.
+
+T0041 compose la configuration et le gestionnaire de session existants avec une
+route `/login`, une garde d'accueil et une déconnexion exclusivement en mémoire.
+Ses 80 tests frontend, sa couverture, son build et les gates autorité, données
+et maintenance passent localement. La PR #68 a été fusionnée dans l'ancienne
+branche T0040 après la fusion de #67 vers `main` : son état `MERGED` ne livre
+donc pas les commits T0041 dans la branche par défaut. T0041 reste `Review` en
+attente de la PR corrective #69, ouverte prête vers `main`, et ne revendique ni
+login WebView live, persistance, onboarding, catalogue ou achat composé.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
