@@ -167,6 +167,17 @@ production reste fermée. Les gates autorité, données et maintenance passent
 avec 5, 6 et 8 mutations négatives. Cette preuve est simulée par `fetch` injecté : aucun
 login, appel live, persistance, staging ou cible distante n'est validé.
 
+Preuve T0039 du 2 août 2026 : typecheck, couverture et build passent avec
+9 fichiers/78 tests frontend. La couverture globale atteint 92 % des
+statements, 86,13 % des branches, 92,45 % des fonctions et 92,56 % des lignes.
+Les tests couvrent payload et headers Auth fermés, bornes email/mot de passe,
+timeout ou panne, refus redigé, réponse streaming limitée à 16 Kio, validation
+de session, double soumission, installation atomique, effacement du mot de
+passe et annulation. L'invariant auth refuse stockage Web, cookie et logs. Les
+gates autorité, données et maintenance passent avec 5, 6 et 8 mutations. Cette
+preuve utilise un `fetch` injecté et un DOM jsdom : aucun login live, route,
+persistance Windows, cible distante ou donnée réelle n'est validé.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme

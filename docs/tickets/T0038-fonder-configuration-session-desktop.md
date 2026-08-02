@@ -1,6 +1,6 @@
 # T0038 — Fonder la configuration et la session authentifiée du desktop
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0038-desktop-session-foundation`
 Phase: 2–4
@@ -34,6 +34,9 @@ données réelles : T0038 sélectionne donc exclusivement Supabase local
 - 2 août 2026 — publication : commit `4ad7ddd` poussé sur
   `feature/T0038-desktop-session-foundation`; PR #65 ouverte prête pour revue,
   base `main`, avec les trois checks GitHub démarrés.
+- 2 août 2026 — `Done` : PR #65 fusionnée dans `main` au commit `e88bdef` ;
+  Windows multi-stack, PostgreSQL 17 et supply-chain réussis sur le head
+  `5cf957f`.
 
 ## Dependencies
 
@@ -225,8 +228,8 @@ l’inventaire d’autorité.
 - branche : `feature/T0038-desktop-session-foundation` ;
 - base : `origin/main` au commit `47cd50c` ;
 - commit d’implémentation : `4ad7ddd` ;
-- PR #65 : ouverte et prête, base `main`, head
+- PR #65 : fusionnée dans `main` au commit `e88bdef`, base `main`, head
   `feature/T0038-desktop-session-foundation` ;
-- checks GitHub : Windows multi-stack et PostgreSQL 17 en cours, supply-chain en
-  file d’attente lors de cette mise à jour ;
-- fusion finale réservée à Andy.
+- checks GitHub : Windows multi-stack, PostgreSQL 17 et supply-chain réussis sur
+  le head `5cf957f` ;
+- fusion finale réalisée par Andy.
