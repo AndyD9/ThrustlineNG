@@ -1,6 +1,6 @@
 # T0049 — Valider le brouillon de dispatch sur le runtime local réel
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `chore/T0049-validate-dispatch-runtime`
 Phase: 2
@@ -43,6 +43,13 @@ capacité produit et ne modifie ni la migration, ni le handler.
   `main`, head T0049, `OPEN` et `MERGEABLE`. Ses trois checks sont démarrés mais
   encore `pending` lors de cette observation ; aucun n'est revendiqué comme
   réussi.
+- 3 août 2026 — checks verts sur le commit `2685a2a` : Windows multi-stack
+  (`30825221051`, 15 min 36 s), Supabase PostgreSQL 17 (`30825221051`,
+  3 min 13 s) et audits/licences/SBOM (`30825220958`, 4 min 14 s) réussissent.
+- 3 août 2026 — `Done` : PR #87 fusionnée dans `main` au merge `00ec05d`, head
+  `2685a2a`. Le commit `7e9a76d`, poussé sur la branche après la fusion, ne fait
+  donc pas partie de `main`; la branche de propagation `docs/T0049-record-merge`
+  porte son contenu et cette clôture.
 
 ## Dependencies
 
@@ -297,8 +304,15 @@ Ce ticket, `docs/tickets/README.md`, `docs/QUALITY.md` et
 - branche : `chore/T0049-validate-dispatch-runtime` ;
 - base : `main` / `origin/main` au commit `b57a2c5` ;
 - commit de validation : `4e60c70` ;
-- PR #87 : `OPEN` et `MERGEABLE`, base `main`, head
-  `chore/T0049-validate-dispatch-runtime`, prête pour revue ;
-- checks GitHub : Windows multi-stack, Supabase PostgreSQL 17 et
-  audits/licences/SBOM déclenchés, `pending` lors de la dernière observation ;
-- fusion : réservée à Andy.
+- PR #87 : fusionnée dans `main` au merge `00ec05d`, base `main`, head
+  `chore/T0049-validate-dispatch-runtime` au commit `2685a2a` ;
+- checks GitHub : Windows multi-stack et Supabase PostgreSQL 17 du run
+  `30825221051` et audits/licences/SBOM du run `30825220958` sont réussis sur le
+  commit `2685a2a` ;
+- commit résiduel `7e9a76d` : poussé après la fusion, absent de `main`, propagé
+  par la branche `docs/T0049-record-merge` et sa Pull Request de clôture ;
+- collision de worktree relevée : une session concurrente a créé
+  `feature/T0050-authoritative-flight-start` dans le worktree principal et l'a
+  réinitialisée sur la branche T0049. Le commit `7e9a76d` a d'abord atterri sur
+  cette branche, puis T0049 a été avancée en fast-forward sans toucher au travail
+  T0050 en cours. La clôture se fait donc dans un worktree dédié.
