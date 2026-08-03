@@ -285,7 +285,8 @@ possédé et deux ICAO distincts. La compagnie, l'état et le temps restent
 serveur ; rejeu, isolation A/B, exclusivité et concurrence sont prouvés sur
 PostgreSQL 17 avec 14 fichiers/270 assertions. Le ticket est `Review`, sans
 endpoint Auth, desktop, SimBrief, cycle de vol, cible distante ou livraison dans
-`main`.
+`main`. La PR prête #81 cible T0046 et ses trois checks sont en cours lors de
+l'observation initiale.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

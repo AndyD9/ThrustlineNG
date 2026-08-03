@@ -38,6 +38,9 @@ empilé sur T0046 et ne présente pas la pile comme livrée.
 - 3 août 2026 — `Review` : migration, ACL/RLS, commande idempotente, types,
   tests, course intersession, revue adversariale et documentation terminés ;
   publication encore à effectuer sur la branche T0046.
+- 3 août 2026 — publication : commit `0559a8e` poussé ; PR prête #81 ouverte,
+  base `feature/T0046-desktop-aircraft-fleet`, head T0047, état `OPEN` et
+  `MERGEABLE` ; les trois checks GitHub sont en cours lors de l'observation.
 
 ## Dependencies
 
@@ -265,3 +268,14 @@ ni donnée réelle.
 
 `PRODUCT.md`, `ARCHITECTURE.md`, `SECURITY.md`, `QUALITY.md`,
 `CURRENT_STATE.md`, l'inventaire d'autorité, ce ticket et son index.
+
+### Git status
+
+- branche : `feature/T0047-authoritative-dispatch-draft` ;
+- base : T0046 au commit `0ed21b1` ;
+- dépendances empilées : T0043–T0046 restent absents de `main` ;
+- commit d'implémentation : `0559a8e` ;
+- branche poussée avec upstream exact ;
+- PR prête #81 : https://github.com/AndyD9/ThrustlineNG/pull/81, base T0046,
+  head T0047, état `OPEN` et `MERGEABLE` ; Windows multi-stack, PostgreSQL 17 et
+  supply-chain sont en cours lors de l'observation initiale.

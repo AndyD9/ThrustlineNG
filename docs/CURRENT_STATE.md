@@ -22,7 +22,9 @@ l'observation initiale.
 T0047 est `Review` sur une branche empilée sur T0046 : un brouillon de dispatch
 minimal peut être créé côté serveur pour un avion possédé, avec isolation,
 idempotence et exclusivité prouvées localement. T0043–T0047 restent absents de
-`main` et aucune frontière Edge ou consommation desktop du dispatch n'est livrée.
+`main` et aucune frontière Edge ou consommation desktop du dispatch n'est
+livrée. La PR prête #81 cible T0046 et ses trois checks sont en cours lors de
+l'observation initiale.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
