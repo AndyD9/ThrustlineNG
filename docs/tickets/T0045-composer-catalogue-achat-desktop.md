@@ -32,6 +32,10 @@ comme livrées dans la branche distante par défaut.
 - 3 août 2026 — `Review` : composition, acquisition tardive de session, revue
   adversariale, vérification jsdom et validations automatisées terminées ; la
   branche reste empilée sur T0044.
+- 3 août 2026 — publication : commit `34f96bb` poussé ; PR prête #76 ouverte,
+  base `feature/T0044-desktop-company-state`, head
+  `feature/T0045-compose-aircraft-purchase`, fusionnable ; les trois checks
+  GitHub sont en attente ou en cours lors de l'observation initiale.
 
 ## Dependencies
 
@@ -252,4 +256,8 @@ T0042, ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md`, `ARCHITECTURE.md` e
 - branche : `feature/T0045-compose-aircraft-purchase` ;
 - base : T0044 au commit `2a2de58`, PR #74 fusionnée dans T0043 ;
 - dépendances : T0043 et T0044 restent absents de `main` ;
-- commit et PR : à créer après inspection du diff indexé.
+- commit d'implémentation : `34f96bb` ;
+- PR #76 : ouverte prête, fusionnable, base
+  `feature/T0044-desktop-company-state`, head
+  `feature/T0045-compose-aircraft-purchase` ; Windows multi-stack est en file,
+  PostgreSQL 17 et supply-chain sont en cours lors de l'observation initiale.
