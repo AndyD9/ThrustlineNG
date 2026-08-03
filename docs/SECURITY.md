@@ -206,6 +206,22 @@ stockage Web, cookie, logs et champs métier interdits. Cette composition ne
 charge pas une compagnie existante, ne persiste pas l'intention et ne prouve ni
 CSP de production ouverte, WebView live, cible distante ou donnée réelle.
 
+## Lecture du catalogue desktop T0043
+
+Le desktop peut demander explicitement au plus vingt lignes de
+`aircraft_purchase_offers` via la Data API locale. L'URL, la projection, le
+filtre `available`, l'ordre et la limite sont constants. La requête porte la clé
+anonyme publique et le bearer obtenu au dernier moment ; la RLS T0029 reste
+l'autorité de lecture et aucune mutation Data API n'est autorisée.
+
+Le corps est lu en streaming jusqu'à 32 Kio puis chaque objet et chaque champ
+sont strictement validés. Le panneau ne charge rien au rendu, bloque la
+concurrence, annule au démontage et efface la session sur refus Auth. Il ne
+persiste ni ne journalise token ou catalogue. L'allowlist canonique lie l'unique
+chemin source à l'unique ressource ; le gate refuse accès non déclaré, ressource
+divergente et entrée orpheline en plus des invariants d'autorité existants.
+Production reste fermée par CSP et l'achat T0037 n'est pas composé.
+
 ## Autorité globale du golden path T0024
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de
@@ -217,7 +233,7 @@ Les tranches compagnie, cycle de compte, flotte, finance et continuité déjà p
 sont `server-authoritative` avec une couverture partielle et des limites
 explicites. Supabase Auth reste la seule `external-authority`. Le gate statique
 scanne les sources WebView, Tauri et bridge et échoue fermé sur credential
-`service_role`, commande réservée au serveur, accès Data API non classé, mutation
+`service_role`, commande réservée au serveur, accès Data API non allowlisté, mutation
 par client Supabase, SQL direct ou nouveau langage client non inventorié.
 
 ## Frontière installateur Windows T0014

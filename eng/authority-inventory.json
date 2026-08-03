@@ -9,6 +9,12 @@
       "post_company_opening_balance",
       "purchase_aircraft",
       "replay_account_deletion_event"
+    ],
+    "clientDataApiReads": [
+      {
+        "path": "apps/desktop/src/features/aircraft-catalog/aircraftCatalog.ts",
+        "resource": "aircraft_purchase_offers"
+      }
     ]
   },
   "clientSurfaces": [
@@ -89,13 +95,14 @@
         "public.purchase_aircraft"
       ],
       "evidencePaths": [
+        "apps/desktop/src/features/aircraft-catalog/aircraftCatalog.ts",
         "apps/desktop/src/features/aircraft-purchase/aircraftPurchase.ts",
         "supabase/functions/aircraft-purchase/handler.ts",
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql"
       ],
-      "evidenceMarkers": ["functions/v1/aircraft-purchase", "createAircraftPurchaseHandler", "purchase_aircraft", "company_aircraft"],
-      "limitations": ["The bounded purchase command and local sign-in foundation remain separate injected components; catalogue, routed composition, live desktop connectivity and deployment are not provided, and lease or later fleet mutations are not implemented."]
+      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "createAircraftPurchaseHandler", "purchase_aircraft", "company_aircraft"],
+      "limitations": ["The bounded catalogue read and purchase command remain separate injected components; routed composition, live desktop connectivity and deployment are not provided, and lease or later fleet mutations are not implemented."]
     },
     {
       "id": "dispatch",
@@ -131,6 +138,7 @@
         "public.purchase_aircraft"
       ],
       "evidencePaths": [
+        "apps/desktop/src/features/aircraft-catalog/aircraftCatalog.ts",
         "apps/desktop/src/features/aircraft-purchase/aircraftPurchase.ts",
         "eng/economy-policy.json",
         "supabase/migrations/20260731000300_immutable_financial_ledger.sql",
@@ -139,8 +147,8 @@
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql"
       ],
-      "evidenceMarkers": ["functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft"],
-      "limitations": ["Opening and authenticated one-off aircraft purchase are covered, with separate bounded desktop purchase and local sign-in foundations; catalogue, routed composition, live connectivity, recurring lease and other financial commands are not defined."]
+      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft"],
+      "limitations": ["Opening, bounded authenticated catalogue read and one-off aircraft purchase are covered as separate components; routed composition, live connectivity, recurring lease and other financial commands are not defined."]
     },
     {
       "id": "reputation-progression",
