@@ -62,6 +62,34 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Review |
 | T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Review |
 | T0048 | Exposer le brouillon de dispatch derrière une frontière authentifiée | 2–4 | T0023, T0024, T0047 | Review |
+| T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Ready |
+| T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Ready |
+| T0051 | Clôturer un vol une seule fois et écrire au grand livre | 2 | T0020, T0028–T0029, T0047, T0050, décisions Andy | Draft |
+| T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Ready |
+| T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Draft |
+| T0054 | Publier la télémétrie bornée du bridge sur le contrat local | 3 | T0010–T0011, T0015 | Ready |
+| T0055 | Fixer la source canonique de version produit et livrer l'alpha technique interne | 1–6 | T0006, T0014–T0015, T0043–T0048 | Ready |
+| T0056 | Clôturer les vérifications interactives T0007 à T0009 | 1 | T0007–T0009, T0015, décision Andy | Ready |
+
+## Vague de tickets vers l'alpha interne
+
+T0049 à T0056 constituent la vague détaillée suivante, ordonnée par les trois flux
+du mode accéléré de `docs/ROADMAP.md`. Chaque flux ne porte qu'un ticket
+`In progress` à la fois, dans un worktree distinct, et chaque branche part du
+dernier `origin/main` en ciblant `main`.
+
+- flux moteur de vol et bridge : T0054, puis la détection déterministe des phases
+  et la reprise, encore au niveau roadmap ;
+- flux backend du golden path : T0049, T0050 puis T0051 ;
+- flux desktop et parcours E2E : T0052 puis T0053 ;
+- transverses au jalon d'alpha technique : T0055 et T0056.
+
+T0051 reste `Draft` jusqu'aux sept décisions produit et économiques d'Andy listées
+dans son ticket ; aucune migration ni valeur monétaire ne doit être inventée avant.
+T0053 reste `Draft` jusqu'à la fusion de T0052 dans `main`, afin de ne pas rouvrir
+une pile de branches. La location T0032 reste hors du gate de l'alpha et conserve
+son statut `Draft`. T0011 reste `Verify` jusqu'aux essais MSFS 2024 réels et n'est
+pas couvert par T0056.
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
