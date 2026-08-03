@@ -128,6 +128,31 @@ rejets Auth, transport et SQL sont remplacés par des codes publics sans détail
 de solde, d'offre, de JWT ou de credential. Aucun appelant desktop ni
 déploiement distant n'est couvert.
 
+## Brouillon de dispatch autoritaire T0047–T0048
+
+`create_dispatch_draft` est une fonction `security definer` à `search_path`
+vide exécutable uniquement par `service_role`. Elle accepte un propriétaire
+dérivé par la frontière Auth T0048, une clé UUID, un avion et
+deux codes ICAO. La compagnie, l'état `draft` et l'horodatage ne traversent pas
+la frontière comme autorité cliente. Les ICAO sont normalisés en ASCII
+alphanumérique sur quatre caractères et doivent être distincts.
+
+La commande verrouille la compagnie puis l'avion, refuse un compte en
+suppression et vérifie que l'avion appartient à la compagnie dérivée. Un
+registre `private` lie l'intention normalisée au résultat ; rejeu identique,
+collision et deux créations concurrentes convergent ou échouent sans second
+brouillon. `flight_dispatches` force RLS, n'accorde que `select` à
+`authenticated` sous politique propriétaire et interdit toute mutation client.
+
+L'Edge Function `dispatch-draft` refuse tout champ autre que l'avion, les deux
+ICAO et l'idempotence dans un corps de 4 Kio. Elle vérifie une session non
+anonyme avec la clé anon, dérive le propriétaire et réserve le credential
+`service_role` à l'appel RPC sous timeout. Toute réponse privilégiée est validée,
+recoupée avec la requête, projetée sur sept champs publics et marquée `no-store` ;
+les rejets Auth, transport et SQL sont redigés. La preuve Edge reste injectée et
+synthétique : aucun runtime live, desktop, SimBrief, cycle de vol, cible distante
+ou donnée réelle n'est couvert.
+
 ## Configuration et session desktop T0038
 
 Le bundle n'accepte que deux paramètres explicitement publics : URL Supabase et
@@ -220,7 +245,7 @@ concurrence, annule au démontage et efface la session sur refus Auth. Il ne
 persiste ni ne journalise token ou catalogue. L'allowlist canonique lie l'unique
 chemin source à l'unique ressource ; le gate refuse accès non déclaré, ressource
 divergente et entrée orpheline en plus des invariants d'autorité existants.
-Production reste fermée par CSP et l'achat T0037 n'est pas composé.
+Production reste fermée par CSP. T0045 compose l'achat sans élargir cette CSP.
 
 ## Lecture de présence de compagnie T0044
 
@@ -238,12 +263,47 @@ efface la session sur refus Auth. L'allowlist canonique lie le transport à
 preuve reste locale et injectée ; elle n'ouvre ni cible distante, ni CSP de
 production, ni achat composé.
 
+## Composition catalogue et achat desktop T0045
+
+Seule une offre présente dans la réponse T0043 strictement validée peut être
+sélectionnée. Le panneau T0037 n'accepte plus un bearer brut comme prop : il
+obtient le bearer courant depuis l'unique gestionnaire de session au moment de
+la soumission, l'envoie exclusivement à l'Edge Function et efface la session sur
+refus Auth. Aucun token n'est copié dans l'état React, persisté, journalisé ou
+rendu.
+
+La commande conserve une clé d'idempotence stable pour les retries de la même
+offre, bloque les doubles soumissions et interdit un changement d'offre pendant
+une requête. Le payload reste fermé à `offerId` et `idempotencyKey`; prix,
+devise, compagnie, propriétaire et solde restent dérivés ou contrôlés côté
+serveur. La preuve est locale et injectée ; elle n'ouvre ni CSP de production,
+ni cible distante, flotte ou donnée réelle.
+
+## Lecture et actualisation de flotte desktop T0046
+
+Le desktop lit `company_aircraft` avec une projection, un ordre et une limite
+constants, sans `company_id`, `owner_id` ou autre filtre choisi par le client.
+Le bearer acquis au clic porte le sujet Auth et la RLS propriétaire T0029 reste
+l'unique autorité d'isolation. La réponse est bornée à 64 Kio et cinquante
+lignes ; champs, UUID, codes, numéros de série, timestamps, version et doublons
+sont validés avant rendu.
+
+Le panneau ne charge rien au rendu, bloque les lectures concurrentes, annule au
+démontage et efface la session sur refus Auth. Après achat, il relit uniquement
+une flotte déjà chargée et ne fabrique jamais un avion depuis l'offre ou la
+réponse d'achat. Credential, identifiant interne et détail amont ne sont ni
+persistés, ni journalisés, ni rendus. La preuve reste locale et injectée ; elle
+n'ouvre ni CSP de production, cible distante, pagination, mutation de flotte ou
+donnée réelle.
+
 ## Autorité globale du golden path T0024
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de
 `PRODUCT.md`. Il ne transforme jamais l'absence de code en contrôle de sécurité :
-les domaines dispatch, suivi et clôture de vol, réputation, maintenance,
-opérations passives et distribution restent `not-implemented`.
+T0048 classe la frontière Auth du dispatch `server-authoritative` avec une
+couverture partielle ;
+le suivi et la clôture de vol, la réputation, la maintenance, les opérations
+passives et la distribution restent `not-implemented`.
 
 Les tranches compagnie, cycle de compte, flotte, finance et continuité déjà présentes
 sont `server-authoritative` avec une couverture partielle et des limites

@@ -5,6 +5,7 @@
     "mutationRule": "server-command-only",
     "serviceOnlyCommands": [
       "create_company_with_opening_balance",
+      "create_dispatch_draft",
       "finalize_account_deletion",
       "post_company_opening_balance",
       "purchase_aircraft",
@@ -18,6 +19,10 @@
       {
         "path": "apps/desktop/src/features/company-state/companyState.ts",
         "resource": "companies"
+      },
+      {
+        "path": "apps/desktop/src/features/aircraft-fleet/aircraftFleet.ts",
+        "resource": "company_aircraft"
       }
     ]
   },
@@ -101,21 +106,35 @@
       ],
       "evidencePaths": [
         "apps/desktop/src/features/aircraft-catalog/aircraftCatalog.ts",
+        "apps/desktop/src/features/aircraft-fleet/aircraftFleet.ts",
         "apps/desktop/src/features/aircraft-purchase/aircraftPurchase.ts",
         "supabase/functions/aircraft-purchase/handler.ts",
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql"
       ],
-      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "createAircraftPurchaseHandler", "purchase_aircraft", "company_aircraft"],
-      "limitations": ["The bounded catalogue read and purchase command remain separate injected components; routed composition, live desktop connectivity and deployment are not provided, and lease or later fleet mutations are not implemented."]
+      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "rest/v1/company_aircraft", "functions/v1/aircraft-purchase", "createAircraftPurchaseHandler", "purchase_aircraft", "company_aircraft"],
+      "limitations": ["Bounded catalogue, purchase and owner-fleet reads are composed behind explicit user actions; live desktop connectivity and deployment are not provided, and lease or later fleet mutations are not implemented."]
     },
     {
       "id": "dispatch",
-      "status": "not-implemented",
-      "coverage": "none",
-      "serverBoundaries": [],
-      "evidencePaths": ["docs/CURRENT_STATE.md"],
-      "limitations": ["Dispatch creation and SimBrief persistence are not implemented."]
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": [
+        "supabase/functions/dispatch-draft/handler.ts",
+        "public.create_dispatch_draft"
+      ],
+      "evidencePaths": [
+        "supabase/functions/dispatch-draft/handler.ts",
+        "supabase/migrations/20260803000100_authoritative_dispatch_draft.sql",
+        "supabase/tests/database/dispatch_draft.test.sql"
+      ],
+      "evidenceMarkers": [
+        "createDispatchDraftHandler",
+        "create_dispatch_draft",
+        "flight_dispatches",
+        "owner A cannot dispatch owner B aircraft"
+      ],
+      "limitations": ["An authenticated bounded endpoint and the server-created idempotent draft are covered; no desktop composition, live Edge Runtime proof, remote deployment, SimBrief preparation, lifecycle transition, flight runtime or financial impact is implemented."]
     },
     {
       "id": "flight-runtime",

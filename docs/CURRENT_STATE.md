@@ -1,19 +1,36 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 3 août 2026 (T0041 livré ; T0042–T0044 validés
+Dernière revue documentaire : 3 août 2026 (T0042 livré ; T0043–T0048 validés
 sur des branches empilées).
-Statut : T0012–T0031, T0033–T0041 sont `Done`. T0041 est livré dans `main` par
-la PR corrective #69 au commit `cb179e9`, avec ses trois checks verts.
-T0042 est `Review` : la PR #70 a fusionné ses commits dans la branche T0041
-déjà intégrée, pas dans `main`. Une PR corrective vers la branche distante par
-défaut #71 est ouverte prête ; aucune capacité d'onboarding desktop n'est
-revendiquée dans `main`.
-T0043 est `Review` sur une branche empilée sur T0042/PR #71 ; sa lecture de
-catalogue n'est pas présente dans `main`. Sa PR brouillon #72 cible la branche
-T0042.
+Statut : T0012–T0031, T0033–T0042 sont `Done`. T0042 est livré dans `main` par
+la PR corrective #73 au commit `a4047a5`, avec ses trois checks verts.
+T0043 est `Review` sur une branche empilée sur T0042 ; sa lecture de catalogue
+n'est pas présente dans `main`. La PR #72 a fusionné dans T0042 après la
+propagation de cette branche vers `main`.
 T0044 est `Review` sur une branche empilée sur T0043 : la reprise de compagnie
-et l'aiguillage onboarding/catalogue ne sont pas présents dans `main`. Sa PR
-brouillon #74 cible explicitement la branche T0043.
+et l'aiguillage onboarding/catalogue ne sont pas présents dans `main`. La PR
+#74 a fusionné dans la branche T0043.
+T0045 est `Review` sur une branche empilée sur T0044 : la composition
+catalogue/achat est validée localement mais absente de `main`. La PR #76 a
+fusionné dans la branche T0044 pendant les checks, sans propager la pile vers
+`main`. La PR corrective documentaire #77 propage cette réconciliation vers
+T0044.
+T0046 est `Review` sur une branche empilée sur T0045 : la flotte propriétaire
+peut être chargée et relue après achat, mais T0043–T0046 restent absents de
+`main`. La PR prête #80 cible T0045 et ses trois checks sont en cours lors de
+l'observation initiale.
+T0047 est `Review` sur une branche empilée sur T0046 : un brouillon de dispatch
+minimal peut être créé côté serveur pour un avion possédé, avec isolation,
+idempotence et exclusivité prouvées localement. T0043–T0047 restent absents de
+`main` et aucune frontière Edge ou consommation desktop du dispatch n'est
+livrée. La PR prête #81 cible T0046 et ses trois checks sont en cours lors de
+l'observation initiale.
+T0048 est `Review` sur une branche empilée sur T0047 : l'Edge Function
+`dispatch-draft` vérifie une session non anonyme, dérive le propriétaire et
+appelle la commande T0047 avec le credential serveur. T0043–T0048 restent
+absents de `main`; aucun appel desktop, runtime Edge live ou SimBrief n'est
+livré. La PR prête #82 cible T0047 ; elle est `OPEN` et `MERGEABLE`, avec ses
+trois checks démarrés lors de l'observation initiale.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -71,7 +88,8 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   performance, packaging Windows, CI et supply chain.
 - Workflows dans `main` :
   `.github/workflows/ci.yml` et `.github/workflows/security.yml`.
-- Migrations Supabase append-only constatées : 6.
+- Migrations Supabase append-only constatées : 7 sur la branche T0047 ; `main`
+  en contient 6.
 - Variables/configurations relevées par nom seulement : `SUPABASE_URL`,
   `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`.
 - Politique économique T0028 présente dans `main` : source v1
@@ -92,6 +110,10 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   disponibles sous RLS, sans composition d'achat ni accès distant.
   T0044 ajoute au-dessus une lecture explicite de présence de compagnie et
   aiguille l'accueil vers onboarding ou catalogue, sans achat composé.
+  T0045 compose ensuite catalogue et achat, T0046 relit la flotte après achat,
+  puis T0047 ajoute sur sa branche un brouillon de dispatch serveur minimal.
+  T0048 l'expose derrière une frontière Auth bornée, sans desktop, SimBrief ou
+  cycle de vol.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -583,10 +605,9 @@ au moment de la soumission et efface la session si Auth la refuse. Un retry du
 même nom conserve la clé tandis qu'un changement crée une nouvelle intention.
 Les 104 tests frontend, la couverture, le build et les gates passent localement.
 Cette preuve jsdom/fetch injectée ne valide ni WebView live, CSP de production,
-cible distante ou donnée réelle. La PR #70 a fusionné avec trois checks verts
-dans la branche T0041 après son intégration à `main`; les commits T0042 restent
-absents de la branche par défaut. La PR corrective #71 est ouverte prête vers
-`main`.
+cible distante ou donnée réelle. La PR #70 a fusionné dans une branche déjà
+intégrée ; la PR corrective #73 livre T0042 dans `main` au commit `a4047a5` avec
+ses trois checks verts.
 
 T0043 ajoute un transport `GET` constant vers les offres d'achat disponibles,
 limité à vingt éléments et 32 Kio, ainsi qu'un panneau injecté sans réseau au
@@ -607,6 +628,43 @@ localement ; le gate d'autorité couvre neuf mutations. Cette preuve reste
 jsdom/fetch injectée, locale, sans achat composé, WebView live, cible distante ou
 donnée réelle. T0044 est empilé sur T0043/PR #72.
 
+T0045 limite la sélection aux offres validées du catalogue et compose l'unique
+offre choisie avec la commande Edge T0037. Le bearer est obtenu depuis le
+gestionnaire de session à la soumission ; aucun prix, devise, compagnie,
+propriétaire ou solde n'entre dans le payload d'achat. Le changement d'offre est
+bloqué pendant une commande, les retries conservent l'idempotence et un refus
+Auth efface la session. Les 149 tests frontend exécutés, la couverture, le build
+et les gates passent localement. La preuve reste injectée, empilée sur T0044,
+sans WebView live, cible distante, donnée réelle, flotte ou livraison dans
+`main`.
+
+T0046 ajoute une lecture `GET` constante de `company_aircraft`, sans filtre de
+compagnie ou propriétaire fourni par le client. La RLS T0029 reste l'autorité ;
+le corps borné et chaque ligne sont validés avant rendu. L'accueil ne charge
+rien implicitement et une flotte déjà ouverte est relue après achat, y compris
+si le signal arrive pendant une lecture en cours. Les 173 tests frontend
+exécutés, la couverture, le build et les gates passent localement. La preuve
+reste injectée, empilée sur T0045, sans WebView live, cible distante, donnée
+réelle, pagination ou livraison dans `main`.
+
+T0047 ajoute `flight_dispatches`, un registre privé et la commande
+`create_dispatch_draft` réservée à `service_role`. La compagnie, l'état et le
+temps sont dérivés côté serveur ; l'avion doit appartenir à cette compagnie et
+les deux ICAO normalisés doivent être distincts. Deux resets puis 14 fichiers/270
+assertions pgTAP passent sur PostgreSQL 17, les types restent stables et une
+course intersession différente sur le même avion rend `0|1` avec l'état
+`1|1|0|1`. Cette tranche est empilée sur T0046 et ne livre ni endpoint Auth,
+desktop, SimBrief, transition de vol, cible distante ou donnée réelle.
+
+T0048 ajoute l'Edge Function `dispatch-draft`, limitée à `POST`, à un bearer et
+à un corps de 4 Kio contenant seulement avion, deux ICAO et idempotence. Elle
+normalise les ICAO, vérifie la session auprès d'Auth, dérive le propriétaire et
+appelle `create_dispatch_draft` avec `service_role` sous timeout. La réponse est
+validée, recoupée, projetée sur sept champs publics et marquée `no-store`. Les
+46 tests de fonctions et le gate backend à 26 mutations passent ; la preuve
+reste injectée, empilée sur T0047, sans Edge Runtime live, desktop, SimBrief,
+cible distante ou donnée réelle.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -616,9 +674,11 @@ ni référence privilégiée, ni accès Data API.
 ## Autorité des mutations du golden path
 
 T0024 ajoute une source JSON versionnée couvrant exactement les dix étapes
-produit. Treize domaines sont classés : compagnie, cycle de compte, finance et
-continuité sont des tranches serveur partielles ; Supabase Auth est une autorité
-externe ; huit domaines restent `not-implemented`.
+produit. T0048 classe désormais le dispatch comme tranche serveur partielle avec
+frontière Auth bornée, en
+plus de la compagnie, du cycle de compte, de la flotte, de la finance et de la
+continuité ; Supabase Auth est une autorité externe et six domaines restent
+`not-implemented`.
 
 `pnpm authority:check` scanne React, Tauri et le bridge, refuse toute mutation
 Supabase/SQL directe, accès Data API non classé, credential ou commande
@@ -707,12 +767,14 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0041 est livré. T0042 doit encore être propagé vers `main` par la PR corrective
-#71 ; T0043/PR #72 et T0044 restent empilés sur cette dépendance. Après
-publication et fusion ordonnée de cette pile, le prochain ticket recommandé est
-T0045, composition du catalogue T0043 avec la commande d'achat T0037 derrière
-l'aiguillage T0044. La persistance Windows reste un ticket de sécurité séparé
-avant tout stockage de refresh token.
+T0042 est livré. T0043 à T0048 doivent encore être propagés vers `main`
+par des PR correctives ordonnées ; leurs fusions empilées ne suffisent pas à les
+livrer dans la branche distante par défaut. Le prochain ticket recommandé est
+la preuve locale réelle Auth → Edge Runtime → `create_dispatch_draft`, avec
+identité, compagnie, avion et dispatch exclusivement synthétiques, sans encore
+composer le desktop, appeler SimBrief ni démarrer un vol. La location T0032 reste bloquée sur
+ses décisions produit et la persistance Windows reste un ticket de sécurité
+séparé avant tout stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et

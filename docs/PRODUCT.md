@@ -82,6 +82,23 @@ les seules compagnies créées ensuite ; elle ne réécrira jamais une ouverture
 existante. Cette décision ne définit ni revenus, ni coûts, ni prix, ni conversion
 de devise et ne constitue pas un équilibrage économique complet.
 
+## Brouillon de dispatch minimal du MVP
+
+Le premier dispatch persistant associe un avion possédé à un départ et une
+arrivée ICAO distincts. Le client peut proposer l'avion et ces deux codes, mais
+le serveur dérive la compagnie, valide la propriété, normalise les codes et crée
+seul l'état initial `draft` ainsi que son horodatage. Un même avion ne peut pas
+porter deux brouillons actifs et une intention rejouée ne crée pas de doublon.
+
+La frontière applicative n'accepte du client que l'avion, les deux ICAO et
+l'idempotence. Elle dérive le propriétaire d'une session non anonyme vérifiée ;
+compagnie, état et horodatage restent exclusivement serveur.
+
+Cette tranche ne définit pas encore une route détaillée, un horaire, un appel
+SimBrief, un OFP, des passagers, du fret, un coût, un revenu ou le cycle de vie
+d'un vol. Ces données et transitions exigent des tickets séparés avant de
+devenir des règles produit.
+
 ## Hors MVP
 
 - Réseau social, marketplace communautaire et mods.
@@ -114,6 +131,8 @@ de devise et ne constitue pas un équilibrage économique complet.
   identique ne crée ni second avion ni second débit.
 - Une demande d'achat n'accepte du client que l'offre et l'idempotence ; la
   compagnie est dérivée de la session vérifiée par la frontière serveur.
+- Zéro brouillon de dispatch pour un avion hors compagnie ou déjà engagé dans
+  un brouillon actif ; un rejeu identique conserve le même dispatch.
 - Reprise après coupure testée sur chaque parcours essentiel.
 - Temps de démarrage et consommation mémoire budgétés.
 - Mise à jour N-1 → N et rollback validés sur VM propre.

@@ -115,7 +115,37 @@ divergente, chemin dupliqué ou entrée orpheline fait échouer le gate. Les req
 restent des `GET` à projection et limite constantes ; le catalogue ajoute filtre
 et ordre constants. La présence de compagnie est immédiatement réduite à un
 booléen avant la composition React. Ces lectures n'autorisent aucune mutation
-Data API et ne composent pas encore la commande d'achat T0037.
+Data API.
+
+T0045 compose le résultat validé du catalogue avec la commande Edge T0037 sans
+fusionner les transports : la sélection ne peut référencer qu'une offre chargée,
+et le panneau d'achat obtient le bearer depuis le gestionnaire de session à la
+soumission. Le payload serveur reste limité à l'offre et à l'idempotence ; prix,
+devise, compagnie, propriétaire et solde ne traversent pas cette frontière comme
+autorité cliente.
+
+T0046 ajoute un troisième transport Data API desktop vers `company_aircraft`.
+Sa projection, son ordre et sa limite sont constants ; aucun identifiant de
+compagnie ou propriétaire ne sert de filtre client. La RLS T0029 sélectionne la
+flotte du sujet Auth, puis le transport valide strictement la réponse avant que
+le panneau ne la rende. Le succès d'achat ne construit aucun avion localement :
+il signale seulement au panneau déjà chargé de relire la source autoritaire.
+
+T0047 ouvre le domaine dispatch par une migration serveur append-only. La
+commande `create_dispatch_draft`, réservée à `service_role`, reçoit uniquement
+le propriétaire vérifié par la frontière T0048, une clé d'idempotence, un
+avion et deux codes ICAO. Elle verrouille la compagnie puis l'avion, dérive la
+compagnie depuis le propriétaire, vérifie l'appartenance et persiste dans une
+transaction un brouillon `draft` horodaté par PostgreSQL avec son registre privé.
+
+`flight_dispatches` force RLS et reste en lecture seule pour `authenticated`,
+filtrée par la compagnie du sujet Auth. Une contrainte et le verrou d'avion
+garantissent un seul brouillon actif par avion. T0048 ajoute l'Edge Function
+`dispatch-draft` : elle borne le corps à 4 Kio, vérifie le bearer auprès d'Auth,
+dérive le propriétaire, normalise les ICAO puis appelle la RPC avec le credential
+`service_role` sous délai de cinq secondes. Elle projette uniquement la réponse
+publique versionnée et `no-store`. Aucun transport desktop, SimBrief, transition
+ou runtime de vol n'est fourni.
 
 ## Packaging Windows T0014
 

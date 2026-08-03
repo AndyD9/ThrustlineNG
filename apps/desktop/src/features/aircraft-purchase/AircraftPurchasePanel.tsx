@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 
+import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
+import { type DesktopSessionManager, SessionError } from "@/features/auth/session";
 import {
   AircraftPurchaseError,
   type AircraftPurchaseResult,
@@ -7,42 +9,44 @@ import {
   type PurchaseAircraftInput,
 } from "@/features/aircraft-purchase/aircraftPurchase";
 
-type PurchaseCommand = (input: PurchaseAircraftInput) => Promise<AircraftPurchaseResult>;
+export type AircraftPurchaseCommand = (
+  input: PurchaseAircraftInput,
+) => Promise<AircraftPurchaseResult>;
 
-interface PurchaseOffer {
+export interface PurchaseOffer {
   id: string;
   label: string;
 }
 
-interface UserSession {
-  accessToken: string;
-}
-
-interface AircraftPurchasePanelProps {
-  anonKey: string;
-  command?: PurchaseCommand;
-  createIdempotencyKey?: () => string;
+export interface AircraftPurchasePanelProps {
+  command?: AircraftPurchaseCommand | undefined;
+  config: DesktopConnectionConfig;
+  createIdempotencyKey?: (() => string) | undefined;
+  onAuthenticationRequired: () => void;
+  onPendingChange?: ((pending: boolean) => void) | undefined;
+  onPurchased?: (() => void) | undefined;
   offer: PurchaseOffer;
-  session: UserSession;
-  supabaseUrl: string;
+  sessionManager: DesktopSessionManager;
 }
 
 type PanelState =
   | { kind: "ready" }
   | { kind: "pending" }
   | { kind: "owned"; aircraftId: string }
-  | { kind: "rejected"; authenticationRequired: boolean }
+  | { kind: "rejected" }
   | { kind: "unavailable" };
 
 const defaultIdempotencyKeyFactory = () => crypto.randomUUID();
 
 export function AircraftPurchasePanel({
-  anonKey,
   command = purchaseAircraft,
+  config,
   createIdempotencyKey = defaultIdempotencyKeyFactory,
+  onAuthenticationRequired,
+  onPendingChange,
+  onPurchased,
   offer,
-  session,
-  supabaseUrl,
+  sessionManager,
 }: AircraftPurchasePanelProps) {
   const titleId = useId();
   const [state, setState] = useState<PanelState>({ kind: "ready" });
@@ -59,8 +63,9 @@ export function AircraftPurchasePanel({
 
     return () => {
       abortControllerRef.current?.abort();
+      onPendingChange?.(false);
     };
-  }, [offer.id]);
+  }, [offer.id, onPendingChange]);
 
   const submitPurchase = async () => {
     if (pendingRef.current || state.kind === "owned") {
@@ -68,31 +73,42 @@ export function AircraftPurchasePanel({
     }
 
     pendingRef.current = true;
-    const idempotencyKey = idempotencyKeyRef.current ?? createIdempotencyKey();
-    idempotencyKeyRef.current = idempotencyKey;
+    onPendingChange?.(true);
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     setState({ kind: "pending" });
 
     try {
+      const idempotencyKey = idempotencyKeyRef.current ?? createIdempotencyKey();
+      idempotencyKeyRef.current = idempotencyKey;
+      const accessToken = await sessionManager.getAccessToken();
+      if (abortController.signal.aborted) {
+        return;
+      }
       const result = await command({
-        accessToken: session.accessToken,
-        anonKey,
+        accessToken,
+        anonKey: config.anonKey,
         idempotencyKey,
         offerId: offer.id,
         signal: abortController.signal,
-        supabaseUrl,
+        supabaseUrl: config.supabaseUrl,
       });
       if (!abortController.signal.aborted) {
         setState({ kind: "owned", aircraftId: result.aircraftId });
+        onPurchased?.();
       }
     } catch (error) {
       if (!abortController.signal.aborted) {
-        if (error instanceof AircraftPurchaseError) {
-          if (error.failure === "authentication-required") {
-            setState({ kind: "rejected", authenticationRequired: true });
-          } else if (error.failure === "rejected") {
-            setState({ kind: "rejected", authenticationRequired: false });
+        if (
+          (error instanceof SessionError && error.failure === "authentication-required") ||
+          (error instanceof AircraftPurchaseError &&
+            error.failure === "authentication-required")
+        ) {
+          sessionManager.clear();
+          onAuthenticationRequired();
+        } else if (error instanceof AircraftPurchaseError) {
+          if (error.failure === "rejected") {
+            setState({ kind: "rejected" });
           } else {
             setState({ kind: "unavailable" });
           }
@@ -104,6 +120,7 @@ export function AircraftPurchasePanel({
       if (abortControllerRef.current === abortController) {
         abortControllerRef.current = null;
         pendingRef.current = false;
+        onPendingChange?.(false);
       }
     }
   };
@@ -115,9 +132,7 @@ export function AircraftPurchasePanel({
       ? "Avion acquis"
       : state.kind === "unavailable"
         ? "Réessayer"
-        : state.kind === "rejected" && state.authenticationRequired
-          ? "Réessayer après reconnexion"
-          : "Acheter cet avion";
+        : "Acheter cet avion";
 
   return (
     <section aria-labelledby={titleId}>
@@ -133,11 +148,7 @@ export function AircraftPurchasePanel({
       </div>
 
       {state.kind === "rejected" && (
-        <p role="alert">
-          {state.authenticationRequired
-            ? "Votre session a expiré. Reconnectez-vous avant de réessayer."
-            : "L’achat a été refusé. Actualisez l’offre et votre solde avant de réessayer."}
-        </p>
+        <p role="alert">L’achat a été refusé. Actualisez l’offre et votre solde avant de réessayer.</p>
       )}
       {state.kind === "unavailable" && (
         <p role="alert">Le service d’achat est indisponible. Réessayez dans quelques instants.</p>

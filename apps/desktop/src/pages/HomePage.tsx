@@ -4,8 +4,13 @@ import {
   AircraftCatalogPanel,
   type AircraftCatalogCommand,
 } from "@/features/aircraft-catalog/AircraftCatalogPanel";
+import type { AircraftPurchaseCommand } from "@/features/aircraft-purchase/AircraftPurchasePanel";
 import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
 import type { DesktopSessionManager } from "@/features/auth/session";
+import {
+  AircraftFleetPanel,
+  type AircraftFleetCommand,
+} from "@/features/aircraft-fleet/AircraftFleetPanel";
 import {
   CompanyOnboardingPanel,
   type CompanyOnboardingCommand,
@@ -18,6 +23,8 @@ import { StatusCard } from "@/shared/ui/StatusCard";
 
 export interface HomePageProps {
   aircraftCatalogCommand?: AircraftCatalogCommand | undefined;
+  aircraftFleetCommand?: AircraftFleetCommand | undefined;
+  aircraftPurchaseCommand?: AircraftPurchaseCommand | undefined;
   companyOnboardingCommand?: CompanyOnboardingCommand | undefined;
   companyPresenceCommand?: CompanyPresenceCommand | undefined;
   config: DesktopConnectionConfig;
@@ -28,6 +35,8 @@ export interface HomePageProps {
 
 export function HomePage({
   aircraftCatalogCommand,
+  aircraftFleetCommand,
+  aircraftPurchaseCommand,
   companyOnboardingCommand,
   companyPresenceCommand,
   config,
@@ -38,6 +47,7 @@ export function HomePage({
   const [companyState, setCompanyState] = useState<"unchecked" | "absent" | "present">(
     "unchecked",
   );
+  const [fleetRefreshVersion, setFleetRefreshVersion] = useState(0);
 
   return (
     <main className="page" id="main-content">
@@ -71,12 +81,23 @@ export function HomePage({
         />
       )}
       {companyState === "present" && (
-        <AircraftCatalogPanel
-          command={aircraftCatalogCommand}
-          config={config}
-          onAuthenticationRequired={onAuthenticationRequired}
-          sessionManager={sessionManager}
-        />
+        <>
+          <AircraftFleetPanel
+            command={aircraftFleetCommand}
+            config={config}
+            onAuthenticationRequired={onAuthenticationRequired}
+            refreshVersion={fleetRefreshVersion}
+            sessionManager={sessionManager}
+          />
+          <AircraftCatalogPanel
+            command={aircraftCatalogCommand}
+            config={config}
+            onAuthenticationRequired={onAuthenticationRequired}
+            onPurchaseSucceeded={() => setFleetRefreshVersion((version) => version + 1)}
+            purchaseCommand={aircraftPurchaseCommand}
+            sessionManager={sessionManager}
+          />
+        </>
       )}
       <button className="primary-action" type="button" onClick={onSignOut}>
         Se déconnecter

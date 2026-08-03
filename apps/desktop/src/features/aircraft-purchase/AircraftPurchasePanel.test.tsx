@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
+import { DesktopSessionManager } from "@/features/auth/session";
 import { AircraftPurchasePanel } from "@/features/aircraft-purchase/AircraftPurchasePanel";
 import {
   AircraftPurchaseError,
@@ -24,13 +26,31 @@ const result: AircraftPurchaseResult = {
   state: "owned",
 };
 
-const baseProps = {
+const config: DesktopConnectionConfig = {
   anonKey: "public-anon-key",
-  createIdempotencyKey: () => firstKey,
-  offer: { id: offerId, label: "Cessna 172" },
-  session: { accessToken: "private-user-token" },
-  supabaseUrl: "https://example.supabase.co",
+  supabaseUrl: "http://127.0.0.1:54321",
+  target: "local",
 };
+
+function createSessionManager(accessToken = "private-user-token") {
+  const manager = new DesktopSessionManager(config, vi.fn(), () => 1_000);
+  manager.setSession({
+    accessToken,
+    expiresAtEpochSeconds: 4_600,
+    refreshToken: "private-refresh-token",
+  });
+  return manager;
+}
+
+function createBaseProps(sessionManager = createSessionManager()) {
+  return {
+    config,
+    createIdempotencyKey: () => firstKey,
+    offer: { id: offerId, label: "Cessna 172" },
+    onAuthenticationRequired: vi.fn(),
+    sessionManager,
+  };
+}
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -47,7 +67,7 @@ describe("AircraftPurchasePanel", () => {
     const user = userEvent.setup();
     const pending = deferred<AircraftPurchaseResult>();
     const command = vi.fn((_input: PurchaseAircraftInput) => pending.promise);
-    const { container } = render(<AircraftPurchasePanel {...baseProps} command={command} />);
+    const { container } = render(<AircraftPurchasePanel {...createBaseProps()} command={command} />);
 
     const button = screen.getByRole("button", { name: "Acheter cet avion" });
     await user.dblClick(button);
@@ -76,7 +96,7 @@ describe("AircraftPurchasePanel", () => {
       .fn<(input: PurchaseAircraftInput) => Promise<AircraftPurchaseResult>>()
       .mockRejectedValueOnce(new AircraftPurchaseError("unavailable"))
       .mockResolvedValueOnce(result);
-    render(<AircraftPurchasePanel {...baseProps} command={command} />);
+    render(<AircraftPurchasePanel {...createBaseProps()} command={command} />);
 
     await user.click(screen.getByRole("button", { name: "Acheter cet avion" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("indisponible");
@@ -101,7 +121,7 @@ describe("AircraftPurchasePanel", () => {
       .mockReturnValueOnce(secondKey);
     const { rerender } = render(
       <AircraftPurchasePanel
-        {...baseProps}
+        {...createBaseProps()}
         command={command}
         createIdempotencyKey={createIdempotencyKey}
       />,
@@ -111,7 +131,7 @@ describe("AircraftPurchasePanel", () => {
     expect(await screen.findByText(/maintenant dans votre flotte/)).toBeInTheDocument();
     rerender(
       <AircraftPurchasePanel
-        {...baseProps}
+        {...createBaseProps()}
         command={command}
         createIdempotencyKey={createIdempotencyKey}
         offer={{ id: secondOfferId, label: "Diamond DA40" }}
@@ -126,48 +146,40 @@ describe("AircraftPurchasePanel", () => {
     });
   });
 
-  it.each([
-    ["authentication-required", "Votre session a expiré", "Réessayer après reconnexion"],
-    ["rejected", "L’achat a été refusé", "Acheter cet avion"],
-  ] as const)("présente un refus %s sans détail technique", async (failure, message, buttonName) => {
+  it("présente un refus métier sans détail technique", async () => {
     const user = userEvent.setup();
     const command = vi.fn(async (_input: PurchaseAircraftInput): Promise<AircraftPurchaseResult> => {
-      throw new AircraftPurchaseError(failure);
+      throw new AircraftPurchaseError("rejected");
     });
-    const { container } = render(<AircraftPurchasePanel {...baseProps} command={command} />);
+    const { container } = render(<AircraftPurchasePanel {...createBaseProps()} command={command} />);
 
     await user.click(screen.getByRole("button", { name: "Acheter cet avion" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(message);
-    expect(screen.getByRole("button", { name: buttonName })).toBeInTheDocument();
-    expect(container).not.toHaveTextContent(failure);
+    expect(await screen.findByRole("alert")).toHaveTextContent("L’achat a été refusé");
+    expect(screen.getByRole("button", { name: "Acheter cet avion" })).toBeInTheDocument();
+    expect(container).not.toHaveTextContent("rejected");
   });
 
-  it("réutilise l’intention après reconnexion avec le nouveau bearer", async () => {
+  it("efface la session et demande le retour au login sur refus Auth", async () => {
     const user = userEvent.setup();
-    const command = vi
-      .fn<(input: PurchaseAircraftInput) => Promise<AircraftPurchaseResult>>()
-      .mockRejectedValueOnce(new AircraftPurchaseError("authentication-required"))
-      .mockResolvedValueOnce(result);
-    const { rerender } = render(<AircraftPurchasePanel {...baseProps} command={command} />);
-
-    await user.click(screen.getByRole("button", { name: "Acheter cet avion" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("session a expiré");
-    rerender(
+    const command = vi.fn(async () => {
+      throw new AircraftPurchaseError("authentication-required");
+    });
+    const manager = createSessionManager();
+    const onAuthenticationRequired = vi.fn();
+    render(
       <AircraftPurchasePanel
-        {...baseProps}
+        {...createBaseProps(manager)}
         command={command}
-        session={{ accessToken: "refreshed-user-token" }}
+        onAuthenticationRequired={onAuthenticationRequired}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Réessayer après reconnexion" }));
 
-    expect(await screen.findByText(/maintenant dans votre flotte/)).toBeInTheDocument();
-    expect(command.mock.calls[0]![0].idempotencyKey).toBe(firstKey);
-    expect(command.mock.calls[1]![0]).toMatchObject({
-      accessToken: "refreshed-user-token",
-      idempotencyKey: firstKey,
-    });
+    await user.click(screen.getByRole("button", { name: "Acheter cet avion" }));
+
+    expect(onAuthenticationRequired).toHaveBeenCalledOnce();
+    expect(manager.hasSession()).toBe(false);
+    expect(screen.queryByText("private-user-token")).not.toBeInTheDocument();
   });
 
   it("annule la commande lors du démontage", async () => {
@@ -177,7 +189,7 @@ describe("AircraftPurchasePanel", () => {
       return new Promise<AircraftPurchaseResult>(() => undefined);
     });
     const user = userEvent.setup();
-    const { unmount } = render(<AircraftPurchasePanel {...baseProps} command={command} />);
+    const { unmount } = render(<AircraftPurchasePanel {...createBaseProps()} command={command} />);
 
     await user.click(screen.getByRole("button", { name: "Acheter cet avion" }));
     unmount();

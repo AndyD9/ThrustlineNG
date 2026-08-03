@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from "react-router";
 
 import type { AircraftCatalogCommand } from "@/features/aircraft-catalog/AircraftCatalogPanel";
+import type { AircraftPurchaseCommand } from "@/features/aircraft-purchase/AircraftPurchasePanel";
+import type { AircraftFleetCommand } from "@/features/aircraft-fleet/AircraftFleetPanel";
 import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
 import type { SignInCommand } from "@/features/auth/PasswordSignInPanel";
 import type { DesktopSessionManager } from "@/features/auth/session";
@@ -12,6 +14,8 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 
 export interface AppRoutesProps {
   aircraftCatalogCommand?: AircraftCatalogCommand | undefined;
+  aircraftFleetCommand?: AircraftFleetCommand | undefined;
+  aircraftPurchaseCommand?: AircraftPurchaseCommand | undefined;
   authenticated: boolean;
   companyOnboardingCommand?: CompanyOnboardingCommand | undefined;
   companyPresenceCommand?: CompanyPresenceCommand | undefined;
@@ -24,6 +28,8 @@ export interface AppRoutesProps {
 
 export function AppRoutes({
   aircraftCatalogCommand,
+  aircraftFleetCommand,
+  aircraftPurchaseCommand,
   authenticated,
   companyOnboardingCommand,
   companyPresenceCommand,
@@ -41,6 +47,8 @@ export function AppRoutes({
           ? (
               <HomePage
                 aircraftCatalogCommand={aircraftCatalogCommand}
+                aircraftFleetCommand={aircraftFleetCommand}
+                aircraftPurchaseCommand={aircraftPurchaseCommand}
                 companyOnboardingCommand={companyOnboardingCommand}
                 companyPresenceCommand={companyPresenceCommand}
                 config={config}

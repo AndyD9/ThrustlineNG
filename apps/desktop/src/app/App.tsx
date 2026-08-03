@@ -4,6 +4,8 @@ import { HashRouter } from "react-router";
 import { AppErrorBoundary } from "@/app/AppErrorBoundary";
 import { AppRoutes } from "@/app/routes";
 import type { AircraftCatalogCommand } from "@/features/aircraft-catalog/AircraftCatalogPanel";
+import type { AircraftPurchaseCommand } from "@/features/aircraft-purchase/AircraftPurchasePanel";
+import type { AircraftFleetCommand } from "@/features/aircraft-fleet/AircraftFleetPanel";
 import {
   readBundledDesktopConnectionConfig,
   type DesktopConnectionConfig,
@@ -20,6 +22,8 @@ export interface DesktopAuthRuntime {
 
 export interface AppProps {
   aircraftCatalogCommand?: AircraftCatalogCommand | undefined;
+  aircraftFleetCommand?: AircraftFleetCommand | undefined;
+  aircraftPurchaseCommand?: AircraftPurchaseCommand | undefined;
   authRuntime?: DesktopAuthRuntime;
   companyOnboardingCommand?: CompanyOnboardingCommand | undefined;
   companyPresenceCommand?: CompanyPresenceCommand | undefined;
@@ -33,6 +37,8 @@ function createBundledAuthRuntime(): DesktopAuthRuntime {
 
 function AppContent({
   aircraftCatalogCommand,
+  aircraftFleetCommand,
+  aircraftPurchaseCommand,
   authRuntime,
   companyOnboardingCommand,
   companyPresenceCommand,
@@ -57,6 +63,8 @@ function AppContent({
         </header>
         <AppRoutes
           aircraftCatalogCommand={aircraftCatalogCommand}
+          aircraftFleetCommand={aircraftFleetCommand}
+          aircraftPurchaseCommand={aircraftPurchaseCommand}
           authenticated={authenticated}
           companyOnboardingCommand={companyOnboardingCommand}
           companyPresenceCommand={companyPresenceCommand}
