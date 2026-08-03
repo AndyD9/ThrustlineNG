@@ -100,7 +100,9 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   T0048 l'expose derrière une frontière Auth bornée et T0049 le valide sur
   l'Edge Runtime local réel. T0050 ajoute au-dessus le démarrage serveur d'un
   vol depuis ce brouillon, sans frontière Auth, desktop, SimBrief, télémétrie
-  ni clôture.
+  ni clôture. T0057 ajoute sur sa propre branche, non fusionnée, un référentiel
+  d'aérodromes serveur en lecture seule dont tout brouillon doit désormais
+  référencer les deux codes, sans distance, revenu ni lecture desktop.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -683,6 +685,29 @@ passent, les types restent stables, la vérification manuelle rend `1|2|1|1` san
 endpoint, appelant desktop, télémétrie, clôture, annulation, cible distante ou
 donnée réelle.
 
+T0057 ajoute une neuvième migration append-only qui n'en réécrit aucune. La table
+`public.airports` porte un code ICAO en clé primaire, un nom borné, une position
+en `numeric` à quatre décimales contrainte à `[-90, 90]` et `[-180, 180]`, un
+palier de popularité pris dans la liste fermée ordonnée `regional`, `standard`,
+`major`, `hub`, et une `schema_version` contrainte. Elle force RLS, n'accorde que
+`select` à `authenticated` par une politique unique et ne donne aucune mutation à
+`anon`, `authenticated` ou `service_role`. La source canonique
+`eng/airports.json` déclare 103 aérodromes écrits à la main, sans import d'un jeu
+de données tiers ni téléchargement à l'exécution ; `supabase/seed.sql` en charge
+une projection idempotente, `backend:check` échoue sur toute divergence textuelle
+et le harnais CI compare la table réellement chargée à la source.
+
+La même migration remplace `create_dispatch_draft` par `create or replace` en
+conservant signature, contrat public, idempotence et verrous : les deux codes
+normalisés doivent désormais exister dans le référentiel, et un code inconnu rend
+exactement le refus d'un code mal formé. Deux resets puis 18 fichiers/356
+assertions pgTAP passent, les types n'ajoutent que la table `airports`, la
+comparaison table ↔ source rend 103 lignes identiques et la vérification manuelle
+confirme `103|103|4|0|1`, un rejeu de contrat inchangé, trois refus indiscernables
+et `42501` pour toute mutation cliente comme pour la lecture anonyme. Cette
+tranche n'ajoute ni lecture desktop, ni sélecteur d'aérodromes, ni calcul de
+distance, de durée ou de revenu, et n'est pas encore fusionnée dans `main`.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -697,7 +722,10 @@ frontière Auth bornée et T0050 classe `flight-runtime` comme tranche serveur
 partielle limitée au démarrage d'un vol, en
 plus de la compagnie, du cycle de compte, de la flotte, de la finance et de la
 continuité ; Supabase Auth est une autorité externe et cinq domaines restent
-`not-implemented`.
+`not-implemented`. T0057 rattache le référentiel d'aérodromes au domaine
+dispatch et classe explicitement son absence de consommateur client : la table
+est serveur, en lecture seule pour `authenticated`, et ne figure donc pas dans
+l'allowlist `clientDataApiReads`.
 
 `pnpm authority:check` scanne React, Tauri et le bridge, refuse toute mutation
 Supabase/SQL directe, accès Data API non classé, credential ou commande
@@ -787,10 +815,12 @@ version restent non validés et relèvent de la phase 6.
 ## Prochain ticket recommandé
 
 T0043 à T0049 sont livrés dans `main`, y compris la preuve locale réelle
-Auth → Edge Runtime → `create_dispatch_draft`. Le
-prochain ticket recommandé du flux backend est T0050, le démarrage d'un vol
-autoritaire depuis un brouillon, puis T0057 pour le référentiel d'aérodromes
-qu'exige la clôture T0051. Le flux desktop reste T0052, sans SimBrief. La
+Auth → Edge Runtime → `create_dispatch_draft`, et T0050 y ajoute le démarrage
+serveur d'un vol. T0057 livre le référentiel d'aérodromes borné sur sa propre
+branche : il n'est pas encore fusionné et ne doit donc pas être présumé présent
+dans `main`. Le prochain ticket recommandé du flux backend est T0051, la clôture
+d'un vol avec son règlement et sa réputation, dont la sortie de `Draft` exige la
+fusion de T0050 puis de T0057. Le flux desktop reste T0052, sans SimBrief. La
 location T0032 reste bloquée sur ses décisions produit et la persistance Windows
 reste un ticket de sécurité séparé avant tout stockage de refresh token.
 

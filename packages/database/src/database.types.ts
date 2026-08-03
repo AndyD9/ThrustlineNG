@@ -51,6 +51,33 @@ export type Database = {
         }
         Relationships: []
       }
+      airports: {
+        Row: {
+          icao_code: string
+          latitude: number
+          longitude: number
+          name: string
+          popularity_tier: string
+          schema_version: number
+        }
+        Insert: {
+          icao_code: string
+          latitude: number
+          longitude: number
+          name: string
+          popularity_tier: string
+          schema_version?: number
+        }
+        Update: {
+          icao_code?: string
+          latitude?: number
+          longitude?: number
+          name?: string
+          popularity_tier?: string
+          schema_version?: number
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           created_at: string

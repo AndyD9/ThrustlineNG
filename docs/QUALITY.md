@@ -109,10 +109,14 @@ Ubuntu, le cycle de reset tente sinon de recréer PostgreSQL alors que son port
 est encore occupé. Le chargement Deno réel reste une preuve Windows séparée.
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les douze fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. Les 234 assertions couvrent le cycle de compte
-T0018, le replay T0019, le grand livre T0020, l'onboarding T0022 et l'achat
-T0029. Le job CI
+les dix-huit fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 356 assertions couvrent le cycle de compte
+T0018, le replay T0019, le grand livre T0020, l'onboarding T0022, l'achat
+T0029, le dispatch T0047, le démarrage de vol T0050 et le référentiel
+d'aérodromes T0057. `backend:test` s'exécute sur les sources copiées dans le
+runtime isolé par `backend:start` : après avoir modifié une migration, un seed ou
+un fichier pgTAP, relancer `backend:start` avant de conclure, sinon la commande
+rejoue silencieusement la version précédente. Le job CI
 lance deux sessions PostgreSQL concurrentes pour les cycles sensibles et exige
 notamment une compagnie, une commande et une ouverture uniques pour deux appels
 T0022 identiques. Il restaure aussi un dump synthétique pris
@@ -335,6 +339,39 @@ sur la commande comme sur la table, et deux sessions concurrentes sur le même
 dispatch rendent les codes `0|1` avec l'état `1|1|0|1|0`. Cette preuve locale
 synthétique ne valide ni frontière Auth, endpoint, appelant desktop, télémétrie,
 clôture, cible distante ou donnée réelle ; T0050 est empilé sur T0049.
+
+Preuve T0057 du 3 août 2026 : `backend:check` passe avec 35 mutations, dont cinq
+nouvelles qui détectent un seed divergeant de `eng/airports.json`, un chargement
+du référentiel caché dans un commentaire SQL, une coordonnée hors bornes dans la
+source, un référentiel rendu mutable par un rôle client et une commande de
+dispatch qui n'interroge plus le référentiel. Sous Docker Desktop 29.6.2 et
+PostgreSQL 17, deux resets appliquent les neuf migrations append-only, puis 18
+fichiers/356 assertions pgTAP concluent par `Result: PASS`. Les types régénérés
+n'ajoutent que la table `airports` en 27 lignes, sans toucher
+`create_dispatch_draft`, et `backend:types:check` les confirme stables. Les gates
+autorité et données passent avec 9 et 6 mutations.
+
+La comparaison table ↔ source est rejouée localement avec la logique ajoutée au
+harnais CI : 103 aérodromes attendus, 103 chargés, égalité exacte sur code, nom,
+latitude, longitude et palier. Le référentiel rend `103|103|4|0|1` — 103 lignes,
+103 codes uniques, quatre paliers, aucune coordonnée hors bornes et une seule
+`schema_version`. Les apostrophes échappées de la projection reviennent intactes,
+par exemple `Chicago O'Hare` et `Nice Cote d'Azur`.
+
+La vérification manuelle du 3 août 2026 confirme sur la pile locale :
+` lfpg `/`lfml` sont normalisés en `LFPG`/`LFML` et créent un seul brouillon
+`cc9c4506-defc-4efc-8fab-d3968ebb81cc` horodaté
+`2026-08-03T16:54:40.654855+00:00`; le rejeu de la même clé rend exactement la
+même réponse à sept champs, donc le contrat T0047 est inchangé. Un départ
+inconnu `ZZZZ`, une arrivée inconnue `ZZZZ` et un code mal formé `ABC` rendent
+tous trois `SQLSTATE 22023` avec le message identique « Departure and arrival
+must be distinct four-character ICAO codes. », ce qui rend un aérodrome inconnu
+indiscernable d'un code invalide et interdit d'énumérer le référentiel ; aucun
+brouillon n'est créé pour l'avion refusé. `authenticated` lit 103 aérodromes et
+reçoit `SQLSTATE 42501` sur `insert`, `update` et `delete`; `anon` reçoit
+`42501` en lecture. Cette preuve locale synthétique ne valide ni consommateur
+desktop, ni cible distante, ni donnée réelle, et le harnais Linux `ci:backend`
+n'est pas exécutable depuis Windows.
 
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis

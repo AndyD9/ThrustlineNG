@@ -35,6 +35,8 @@ function Get-BackendIssues {
     $purchaseMigrationPath = Join-Path $Root "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql"
     $dispatchMigrationPath = Join-Path $Root "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql"
     $flightStartMigrationPath = Join-Path $Root "supabase\migrations\20260803000200_authoritative_flight_start.sql"
+    $airportMigrationPath = Join-Path $Root "supabase\migrations\20260803000300_bounded_airport_reference.sql"
+    $airportsPath = Join-Path $Root "eng\airports.json"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $structureTestPath = Join-Path $Root "supabase\tests\database\companies_structure.test.sql"
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
@@ -52,6 +54,8 @@ function Get-BackendIssues {
     $dispatchTestPath = Join-Path $Root "supabase\tests\database\dispatch_draft.test.sql"
     $flightStartStructureTestPath = Join-Path $Root "supabase\tests\database\flight_start_structure.test.sql"
     $flightStartTestPath = Join-Path $Root "supabase\tests\database\flight_start.test.sql"
+    $airportStructureTestPath = Join-Path $Root "supabase\tests\database\airport_reference_structure.test.sql"
+    $airportTestPath = Join-Path $Root "supabase\tests\database\airport_reference.test.sql"
     $onboardingFunctionPath = Join-Path $Root "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionPolicyPath = Join-Path $Root "supabase\functions\company-onboarding\economy-policy.json"
     $onboardingFunctionEntryPath = Join-Path $Root "supabase\functions\company-onboarding\index.ts"
@@ -86,6 +90,8 @@ function Get-BackendIssues {
         $purchaseMigrationPath,
         $dispatchMigrationPath,
         $flightStartMigrationPath,
+        $airportMigrationPath,
+        $airportsPath,
         $seedPath,
         $structureTestPath,
         $rlsTestPath,
@@ -103,6 +109,8 @@ function Get-BackendIssues {
         $dispatchTestPath,
         $flightStartStructureTestPath,
         $flightStartTestPath,
+        $airportStructureTestPath,
+        $airportTestPath,
         $onboardingFunctionPath,
         $onboardingFunctionPolicyPath,
         $onboardingFunctionEntryPath,
@@ -521,6 +529,152 @@ function Get-BackendIssues {
         }
     }
 
+    $airportsText = Get-Content -Raw -Encoding UTF8 $airportsPath
+    $seedProjection = $null
+    try {
+        $airports = $airportsText | ConvertFrom-Json
+    }
+    catch {
+        $issues.Add("Airport reference must be valid JSON.")
+        $airports = $null
+    }
+    if ($null -ne $airports) {
+        $airportProperties = @($airports.PSObject.Properties.Name | Sort-Object)
+        if (($airportProperties -join ",") -ne "airports,coordinatePrecision,origin,popularityTiers,schemaVersion,scope" -or
+            $airports.schemaVersion -ne 1 -or
+            $airports.scope -ne "alpha-airport-reference" -or
+            $airports.coordinatePrecision -ne 4 -or
+            (@($airports.popularityTiers) -join ",") -cne "regional,standard,major,hub") {
+            $issues.Add("Airport reference must be schema v1 with exactly four ordered popularity tiers.")
+        }
+        if ([string]$airports.origin -notmatch 'No third-party dataset is imported') {
+            $issues.Add("Airport reference must record the origin of its values.")
+        }
+        $airportEntries = @($airports.airports)
+        if ($airportEntries.Count -lt 1 -or $airportEntries.Count -gt 200) {
+            $issues.Add("Airport reference must declare between 1 and 200 aerodromes.")
+        }
+        $airportCodes = @($airportEntries | ForEach-Object { [string]$_.icaoCode })
+        if ($airportCodes.Count -ne @($airportCodes | Sort-Object -Unique).Count) {
+            $issues.Add("Airport reference contains a duplicate ICAO code.")
+        }
+        if (($airportCodes -join ",") -cne (@($airportCodes | Sort-Object) -join ",")) {
+            $issues.Add("Airport reference must stay sorted by ICAO code.")
+        }
+        $declaredTiers = @($airports.popularityTiers | ForEach-Object { [string]$_ })
+        $invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
+        foreach ($entry in $airportEntries) {
+            $code = [string]$entry.icaoCode
+            $entryProperties = @($entry.PSObject.Properties.Name | Sort-Object)
+            if (($entryProperties -join ",") -ne "icaoCode,latitude,longitude,name,popularityTier") {
+                $issues.Add("Airport reference entry has unexpected fields: $code")
+                continue
+            }
+            $name = [string]$entry.name
+            $latitude = [decimal]$entry.latitude
+            $longitude = [decimal]$entry.longitude
+            if ($code -cnotmatch '^[A-Z0-9]{4}$') {
+                $issues.Add("Airport reference contains a malformed ICAO code: $code")
+            }
+            if ($name -cne $name.Trim() -or
+                $name.Length -lt 1 -or
+                $name.Length -gt 64 -or
+                $name -cnotmatch "^[A-Za-z0-9 '-]+$") {
+                $issues.Add("Airport reference contains an unbounded or non-ASCII name: $code")
+            }
+            if ($latitude -lt -90 -or $latitude -gt 90 -or
+                $longitude -lt -180 -or $longitude -gt 180) {
+                $issues.Add("Airport reference contains an out-of-bounds coordinate: $code")
+            }
+            if ([decimal]::Round($latitude, 4) -ne $latitude -or
+                [decimal]::Round($longitude, 4) -ne $longitude) {
+                $issues.Add("Airport reference coordinate exceeds four decimals: $code")
+            }
+            if ([string]$entry.popularityTier -notin $declaredTiers) {
+                $issues.Add("Airport reference contains an unknown popularity tier: $code")
+            }
+        }
+        if (@($airportEntries | ForEach-Object { [string]$_.popularityTier } | Sort-Object -Unique).Count -ne 4) {
+            $issues.Add("Airport reference must use all four popularity tiers.")
+        }
+        if ($airportsText -match '(?i)(multiplier|amount_minor|priceMinor|currencyCode|revenue)') {
+            $issues.Add("Airport reference must not carry a monetary value.")
+        }
+
+        $projectedRows = @(
+            $airportEntries |
+                Sort-Object -Property { [string]$_.icaoCode } |
+                ForEach-Object {
+                    "    ('{0}', '{1}', {2}, {3}, '{4}')" -f
+                        ([string]$_.icaoCode),
+                        ([string]$_.name).Replace("'", "''"),
+                        ([decimal]$_.latitude).ToString("F4", $invariantCulture),
+                        ([decimal]$_.longitude).ToString("F4", $invariantCulture),
+                        ([string]$_.popularityTier)
+                }
+        )
+        $seedProjection = (
+            "insert into public.airports (icao_code, name, latitude, longitude, popularity_tier)`n" +
+            "values`n" +
+            ($projectedRows -join ",`n") +
+            "`non conflict (icao_code) do update`n" +
+            "set name = excluded.name,`n" +
+            "    latitude = excluded.latitude,`n" +
+            "    longitude = excluded.longitude,`n" +
+            "    popularity_tier = excluded.popularity_tier;`n"
+        )
+    }
+
+    $airportMigration = Get-Content -Raw -Encoding UTF8 $airportMigrationPath
+    $airportRequirements = @{
+        "reference table" = 'create table public\.airports'
+        "ICAO identity" = 'icao_code text primary key'
+        "ICAO format" = "constraint airports_icao_code_format check \(icao_code ~ '\^\[A-Z0-9\]\{4\}\$'\)"
+        "bounded name" = 'constraint airports_name_bounded check'
+        "latitude bounds" = 'constraint airports_latitude_bounds check \(latitude >= -90 and latitude <= 90\)'
+        "longitude bounds" = 'constraint airports_longitude_bounds check \(longitude >= -180 and longitude <= 180\)'
+        "closed tier list" = "constraint airports_popularity_tier check \([\s\S]*popularity_tier in \('regional', 'standard', 'major', 'hub'\)"
+        "schema version" = 'constraint airports_schema_version check \(schema_version = 1\)'
+        "RLS enabled" = 'alter table public\.airports enable row level security'
+        "RLS forced" = 'alter table public\.airports force row level security'
+        "anonymous revoked" = 'revoke all on table public\.airports from anon'
+        "service revoked" = 'revoke all on table public\.airports from service_role'
+        "read-only grant" = 'grant select on table public\.airports to authenticated'
+        "read policy" = 'create policy airports_select_reference'
+        "dispatch revalidation" = 'create or replace function public\.create_dispatch_draft'
+        "departure lookup" = 'where airports\.icao_code = normalized_departure'
+        "arrival lookup" = 'where airports\.icao_code = normalized_arrival'
+        "opaque unknown airport" = "message = 'Departure and arrival must be distinct four-character ICAO codes\.'"
+        "service-only dispatch" = 'grant execute on function public\.create_dispatch_draft\(uuid, uuid, uuid, text, text\) to service_role'
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $airportRequirements.GetEnumerator()) {
+        Require-Text $airportMigration $entry.Value "Airport reference invariant missing: $($entry.Key)."
+    }
+    if ($airportMigration -match '(?i)grant\s+(insert|update|delete|truncate|all)[^;]*on\s+(table\s+)?public\.airports\s+to\s+(anon|authenticated|service_role)') {
+        $issues.Add("Client roles must not gain airport reference mutation privileges.")
+    }
+    if (($airportMigration -replace '(?m)--.*$', '') -match '(?i)(multiplier|amount_minor|price_minor|currency_code)') {
+        $issues.Add("The airport reference must not carry a monetary value or multiplier.")
+    }
+    if ($airportMigration -match '(?i)create_dispatch_draft\([^)]*(company_id|state|created_at)[^)]*\)') {
+        $issues.Add("Airport revalidation must not accept client-controlled company, state or time.")
+    }
+    foreach ($existingMigration in @(
+        $migrationPath,
+        $lifecycleMigrationPath,
+        $restoreMigrationPath,
+        $ledgerMigrationPath,
+        $onboardingMigrationPath,
+        $purchaseMigrationPath,
+        $dispatchMigrationPath,
+        $flightStartMigrationPath
+    )) {
+        if ((Get-Content -Raw -Encoding UTF8 $existingMigration) -match 'public\.airports') {
+            $issues.Add("The airport reference must arrive by a new append-only migration: $([System.IO.Path]::GetFileName($existingMigration))")
+        }
+    }
+
     $onboardingFunction = Get-Content -Raw -Encoding UTF8 $onboardingFunctionPath
     $onboardingFunctionEntry = Get-Content -Raw -Encoding UTF8 $onboardingFunctionEntryPath
     $onboardingFunctionTests = Get-Content -Raw -Encoding UTF8 $onboardingFunctionTestPath
@@ -653,6 +807,16 @@ function Get-BackendIssues {
     if ($seed -match '(?i)@(gmail|outlook|hotmail|yahoo)\.' -or $seed -match '(?i)(password|secret|token)\s*=') {
         $issues.Add("Seed may contain a real identity or secret-like assignment.")
     }
+    if ($null -ne $seedProjection -and
+        -not ($seed.Replace("`r`n", "`n")).Contains("`n" + $seedProjection)) {
+        $issues.Add("Seeded airport reference diverges from eng/airports.json.")
+    }
+    if (($seed.Replace("`r`n", "`n")) -match '(?m)^[^\r\n]*--[^\r\n]*\binsert into public\.airports\b') {
+        $issues.Add("The airport reference load must not sit inside a SQL comment.")
+    }
+    if (($seed.Replace("`r`n", "`n")) -match '(?m)^insert into public\.airports\b[\s\S]*?;[\s\S]*^insert into public\.airports\b') {
+        $issues.Add("The airport reference must be loaded by exactly one seed statement.")
+    }
 
     $allTests = (
         (Get-Content -Raw -Encoding UTF8 $structureTestPath) +
@@ -685,7 +849,11 @@ function Get-BackendIssues {
         "`n" +
         (Get-Content -Raw -Encoding UTF8 $flightStartStructureTestPath) +
         "`n" +
-        (Get-Content -Raw -Encoding UTF8 $flightStartTestPath)
+        (Get-Content -Raw -Encoding UTF8 $flightStartTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $airportStructureTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $airportTestPath)
     )
     foreach ($marker in @(
         "set local role authenticated",
@@ -757,6 +925,34 @@ function Get-BackendIssues {
         "deletion pending blocks a flight start",
         "injected failure rolls back the flight state, its time and the command",
         "the whole scenario leaves exactly one active flight",
+        "authenticated can only read the reference",
+        "the reference exposes only its read policy",
+        "the reference constrains code, bounds, tier and schema version",
+        "the dispatch command keeps its signature",
+        "the loaded reference stays inside its declared bounds",
+        "every popularity tier belongs to the closed list",
+        "ICAO codes are unique in the loaded reference",
+        "the reference uses exactly four ordered tiers",
+        "A can read the aerodrome reference",
+        "B can read the same aerodrome reference",
+        "anonymous cannot read the aerodrome reference",
+        "authenticated cannot insert an aerodrome",
+        "authenticated cannot update an aerodrome",
+        "authenticated cannot delete an aerodrome",
+        "service role cannot mutate the reference directly",
+        "a duplicate ICAO code is rejected",
+        "an out-of-bounds latitude is rejected",
+        "an out-of-bounds longitude is rejected",
+        "an unknown popularity tier is rejected",
+        "replaying the seed load does not duplicate an aerodrome",
+        "the replayed seed load converges on the canonical row",
+        "two known aerodromes create one draft",
+        "a lowercase known aerodrome is normalized and accepted",
+        "an unknown departure aerodrome is rejected without naming the reference",
+        "an unknown arrival aerodrome is rejected identically",
+        "a malformed code and an unknown code fail identically",
+        "a rejected aerodrome leaves no dispatch",
+        "the T0047 replay contract is unchanged",
         "rollback;"
     )) {
         if (-not $allTests.Contains($marker)) {
@@ -783,6 +979,8 @@ function Get-BackendIssues {
     Require-Text $types 'create_dispatch_draft:' "Generated types do not expose authoritative dispatch creation."
     Require-Text $types 'started_at: string \| null' "Generated types do not expose the nullable server departure time."
     Require-Text $types 'start_flight_from_dispatch:' "Generated types do not expose the authoritative flight start."
+    Require-Text $types 'airports:' "Generated types do not expose the airport reference."
+    Require-Text $types 'popularity_tier: string' "Generated types do not expose the airport popularity tier."
 
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $typeScript 'Invoke-IsolatedSupabaseCli' "Type generation does not use the isolated local runtime."
@@ -812,6 +1010,10 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'Flight start concurrency passed' "Backend CI does not report flight start concurrency."
     Require-Text $ciBackend 'Concurrent flight starts did not reject exactly one command' "Backend CI does not verify that one concurrent flight start fails."
     Require-Text $ciBackend '"1\|1\|0\|1\|0"' "Backend CI does not require one active flight, one command, no draft, one server time and no missing time."
+    Require-Text $ciBackend 'airport_reference_structure' "Backend CI does not prove the airport reference structure."
+    Require-Text $ciBackend 'eighteen files with Result: PASS' "Backend CI does not require all eighteen pgTAP files."
+    Require-Text $ciBackend 'Airport reference matches eng/airports\.json' "Backend CI does not compare the loaded reference with its canonical source."
+    Require-Text $ciBackend 'Loaded airport reference diverges from eng/airports\.json' "Backend CI does not fail on a divergent airport reference."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
     foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
         Require-Text $ciBackend "--schema $schema" "Backend CI backup scope is missing schema: $schema."
@@ -848,6 +1050,7 @@ try {
     foreach ($relativePath in @(
         "package.json",
         "eng\economy-policy.json",
+        "eng\airports.json",
         "supabase\config.toml",
         "supabase\migrations\20260728000100_create_companies.sql",
         "supabase\migrations\20260731000100_account_lifecycle.sql",
@@ -857,6 +1060,7 @@ try {
         "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql",
         "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql",
         "supabase\migrations\20260803000200_authoritative_flight_start.sql",
+        "supabase\migrations\20260803000300_bounded_airport_reference.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
@@ -874,6 +1078,8 @@ try {
         "supabase\tests\database\dispatch_draft.test.sql",
         "supabase\tests\database\flight_start_structure.test.sql",
         "supabase\tests\database\flight_start.test.sql",
+        "supabase\tests\database\airport_reference_structure.test.sql",
+        "supabase\tests\database\airport_reference.test.sql",
         "supabase\functions\company-onboarding\handler.ts",
         "supabase\functions\company-onboarding\economy-policy.json",
         "supabase\functions\company-onboarding\index.ts",
@@ -1158,6 +1364,74 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql") -Destination $dispatchMigrationCopy
+    $airportsCopy = Join-Path $temporaryRoot "eng\airports.json"
+    $airportsCopyText = Get-Content -Raw -Encoding UTF8 $airportsCopy
+    [System.IO.File]::WriteAllText(
+        $airportsCopy,
+        $airportsCopyText.Replace('"latitude": 43.6777', '"latitude": 43.6778')
+    )
+    $divergentReferenceIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($divergentReferenceIssues -match "Seeded airport reference diverges")) {
+        Write-Error "Harness self-test failed to detect a seed that diverges from the airport reference."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $airportsCopy,
+        $airportsCopyText.Replace('"latitude": 43.6777', '"latitude": 95.0000')
+    )
+    $unboundedReferenceIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unboundedReferenceIssues -match "out-of-bounds coordinate")) {
+        Write-Error "Harness self-test failed to detect an out-of-bounds aerodrome coordinate."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "eng\airports.json") -Destination $airportsCopy
+    $seedCopy = Join-Path $temporaryRoot "supabase\seed.sql"
+    $seedCopyText = Get-Content -Raw -Encoding UTF8 $seedCopy
+    [System.IO.File]::WriteAllText(
+        $seedCopy,
+        $seedCopyText.Replace(
+            "personal data.`r`ninsert into public.airports",
+            "personal data.insert into public.airports"
+        ).Replace(
+            "personal data.`ninsert into public.airports",
+            "personal data.insert into public.airports"
+        )
+    )
+    $commentedReferenceIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($commentedReferenceIssues -match "must not sit inside a SQL comment")) {
+        Write-Error "Harness self-test failed to detect an airport reference load hidden in a comment."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\seed.sql") -Destination $seedCopy
+    $airportMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260803000300_bounded_airport_reference.sql"
+    $airportMigrationText = Get-Content -Raw -Encoding UTF8 $airportMigrationCopy
+    [System.IO.File]::WriteAllText(
+        $airportMigrationCopy,
+        $airportMigrationText + "`ngrant insert on table public.airports to authenticated;`n"
+    )
+    $mutableReferenceIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($mutableReferenceIssues -match "airport reference mutation privileges")) {
+        Write-Error "Harness self-test failed to detect a client-mutable airport reference."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $airportMigrationCopy,
+        $airportMigrationText.Replace(
+            "where airports.icao_code = normalized_departure",
+            "where airports.icao_code is not null"
+        )
+    )
+    $unvalidatedDispatchIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unvalidatedDispatchIssues -match "departure lookup")) {
+        Write-Error "Harness self-test failed to detect a dispatch command that ignores the airport reference."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000300_bounded_airport_reference.sql") -Destination $airportMigrationCopy
     $onboardingFunctionCopy = Join-Path $temporaryRoot "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionText = Get-Content -Raw -Encoding UTF8 $onboardingFunctionCopy
     $onboardingFunctionText = $onboardingFunctionText.Replace(
@@ -1321,4 +1595,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035, T0040 and T0047-T0050 repository plus 30 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035, T0040, T0047-T0050 and T0057 repository plus 35 mutation scenarios)."

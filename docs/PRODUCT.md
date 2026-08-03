@@ -99,6 +99,27 @@ SimBrief, un OFP, des passagers, du fret, un coût, un revenu ou le cycle de vie
 d'un vol. Ces données et transitions exigent des tickets séparés avant de
 devenir des règles produit.
 
+## Référentiel d'aérodromes borné
+
+Les deux codes d'un dispatch ne sont plus n'importe quelle chaîne de quatre
+caractères : ils doivent désigner deux aérodromes distincts d'un référentiel
+serveur versionné. Ce référentiel porte pour chaque aérodrome un code ICAO
+unique, un nom borné, une position et un palier de popularité choisi parmi
+quatre valeurs ordonnées, de `regional` à `hub`.
+
+Le référentiel est une donnée de jeu, pas une base aéronautique : il couvre au
+plus 200 aérodromes écrits dans le dépôt, sans import d'un jeu de données tiers
+ni téléchargement à l'exécution. Ses paliers sont un choix de cadrage de
+l'alpha, pas une mesure du trafic réel, et il devra être élargi ou remplacé par
+une source maintenue avant toute ouverture externe.
+
+Il est en lecture seule pour un joueur authentifié et aucun rôle client ne peut
+le modifier, car un référentiel modifiable permettrait plus tard de gonfler le
+revenu d'un vol. Il ne porte lui-même ni montant, ni multiplicateur, ni devise :
+un code inconnu est refusé exactement comme un code mal formé, sans révéler le
+contenu du référentiel. Cette tranche n'expose pas de sélecteur d'aérodromes au
+desktop et ne calcule ni distance, ni durée, ni revenu.
+
 ## Hors MVP
 
 - Réseau social, marketplace communautaire et mods.
@@ -133,6 +154,8 @@ devenir des règles produit.
   compagnie est dérivée de la session vérifiée par la frontière serveur.
 - Zéro brouillon de dispatch pour un avion hors compagnie ou déjà engagé dans
   un brouillon actif ; un rejeu identique conserve le même dispatch.
+- Zéro brouillon de dispatch portant un aérodrome absent du référentiel serveur,
+  et zéro mutation de ce référentiel par un rôle client.
 - Reprise après coupure testée sur chaque parcours essentiel.
 - Temps de démarrage et consommation mémoire budgétés.
 - Mise à jour N-1 → N et rollback validés sur VM propre.
