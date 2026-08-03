@@ -1,6 +1,6 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 2 août 2026 (T0041 livré ; T0042 et T0043 validés
+Dernière revue documentaire : 3 août 2026 (T0041 livré ; T0042–T0044 validés
 sur des branches empilées).
 Statut : T0012–T0031, T0033–T0041 sont `Done`. T0041 est livré dans `main` par
 la PR corrective #69 au commit `cb179e9`, avec ses trois checks verts.
@@ -11,6 +11,9 @@ revendiquée dans `main`.
 T0043 est `Review` sur une branche empilée sur T0042/PR #71 ; sa lecture de
 catalogue n'est pas présente dans `main`. Sa PR brouillon #72 cible la branche
 T0042.
+T0044 est `Review` sur une branche locale empilée sur T0043 : la reprise de
+compagnie et l'aiguillage onboarding/catalogue ne sont pas présents dans `main`
+et aucune PR T0044 n'est encore revendiquée.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -87,6 +90,8 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   une intention idempotente, sans catalogue, achat ou persistance.
   T0043 ajoute sur une branche empilée une lecture explicite et bornée des offres
   disponibles sous RLS, sans composition d'achat ni accès distant.
+  T0044 ajoute au-dessus une lecture explicite de présence de compagnie et
+  aiguille l'accueil vers onboarding ou catalogue, sans achat composé.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -591,6 +596,17 @@ avec huit mutations négatives. Les 125 tests frontend, la couverture et le buil
 passent localement. La preuve reste jsdom/fetch injectée, locale, sans achat
 composé, WebView live, cible distante ou donnée réelle.
 
+T0044 ajoute un second transport `GET` constant vers `companies`, projeté sur
+`id` et limité à deux lignes afin de détecter une violation de l'unicité
+propriétaire. La réponse strictement validée est immédiatement réduite à un
+booléen : aucun nom ou identifiant n'est conservé ou rendu. L'accueil ne charge
+rien au rendu puis affiche explicitement l'onboarding en l'absence de compagnie
+ou le catalogue si elle existe ; une création réussie bascule aussi vers le
+catalogue. Les 146 tests frontend, la couverture, le build et les gates passent
+localement ; le gate d'autorité couvre neuf mutations. Cette preuve reste
+jsdom/fetch injectée, locale, sans achat composé, WebView live, cible distante ou
+donnée réelle. T0044 est empilé sur T0043/PR #72.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -692,11 +708,11 @@ version restent non validés et relèvent de la phase 6.
 ## Prochain ticket recommandé
 
 T0041 est livré. T0042 doit encore être propagé vers `main` par la PR corrective
-#71 et T0043 reste empilé sur cette dépendance. Après ces fusions, le prochain
-ticket recommandé est la composition du catalogue T0043 avec la commande d'achat
-T0037, précédée d'une lecture de l'état de compagnie si le parcours doit aussi
-servir les sessions existantes. La persistance Windows reste un ticket de
-sécurité séparé avant tout stockage de refresh token.
+#71 ; T0043/PR #72 et T0044 restent empilés sur cette dépendance. Après
+publication et fusion ordonnée de cette pile, le prochain ticket recommandé est
+T0045, composition du catalogue T0043 avec la commande d'achat T0037 derrière
+l'aiguillage T0044. La persistance Windows reste un ticket de sécurité séparé
+avant tout stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et

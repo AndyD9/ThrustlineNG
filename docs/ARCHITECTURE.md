@@ -108,12 +108,14 @@ les commandes `service_role`, tout accès Data API non classé, le DML Supabase 
 SQL direct et toute nouvelle extension de code non classée. Cette preuve décrit
 le nouveau dépôt uniquement ; elle n'implémente pas les domaines encore absents.
 
-T0043 classe une seule lecture Data API depuis le transport catalogue desktop :
-`aircraft_purchase_offers`. Le chemin source et la ressource sont déclarés dans
-l'inventaire ; tout autre fichier, ressource divergente ou entrée orpheline fait
-échouer le gate. La requête reste un `GET` à projection, filtre, ordre et limite
-constants. Cette lecture n'autorise aucune mutation Data API et ne compose pas
-encore la commande d'achat T0037.
+T0043 et T0044 classent deux lectures Data API depuis des transports desktop
+séparés : `aircraft_purchase_offers` et `companies`. Chaque chemin source et sa
+ressource sont déclarés dans l'inventaire ; tout autre fichier, ressource
+divergente, chemin dupliqué ou entrée orpheline fait échouer le gate. Les requêtes
+restent des `GET` à projection et limite constantes ; le catalogue ajoute filtre
+et ordre constants. La présence de compagnie est immédiatement réduite à un
+booléen avant la composition React. Ces lectures n'autorisent aucune mutation
+Data API et ne composent pas encore la commande d'achat T0037.
 
 ## Packaging Windows T0014
 

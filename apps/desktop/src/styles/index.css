@@ -123,7 +123,8 @@ h1 {
 .status-card,
 .error-panel,
 .auth-panel,
-.onboarding-panel {
+.onboarding-panel,
+.company-presence-panel {
   margin-top: clamp(2.5rem, 8vw, 6rem);
   padding: clamp(1.25rem, 4vw, 2rem);
   border: 1px solid rgb(99 230 165 / 30%);
@@ -165,8 +166,13 @@ h1 {
   max-width: 40rem;
 }
 
+.company-presence-panel {
+  max-width: 40rem;
+}
+
 .auth-panel h2,
-.onboarding-panel h2 {
+.onboarding-panel h2,
+.company-presence-panel h2 {
   margin-top: 0;
 }
 
@@ -187,7 +193,8 @@ h1 {
 }
 
 .auth-panel button,
-.onboarding-panel button {
+.onboarding-panel button,
+.company-presence-panel button {
   min-height: 2.75rem;
   margin-top: 0.5rem;
   border: 0;
@@ -199,7 +206,8 @@ h1 {
 }
 
 .auth-panel button:disabled,
-.onboarding-panel button:disabled {
+.onboarding-panel button:disabled,
+.company-presence-panel button:disabled {
   cursor: wait;
   opacity: 0.7;
 }

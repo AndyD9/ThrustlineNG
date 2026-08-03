@@ -57,6 +57,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0041 | Rendre la connexion locale accessible par une route bornée | 4 | T0038–T0040 | Done |
 | T0042 | Composer l'onboarding de compagnie depuis le desktop | 4 | T0022–T0023, T0038–T0041 | Review |
 | T0043 | Lire le catalogue d'avions depuis le desktop | 4 | T0029, T0037–T0042 | Review |
+| T0044 | Lire l’état de compagnie depuis le desktop | 4 | T0012, T0022, T0042–T0043 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -256,6 +257,14 @@ localement ; le gate d'autorité couvre désormais huit mutations négatives. Le
 ticket est `Review` sur une branche empilée sur T0042/PR #71 et ne compose ni
 achat, ni flotte, ni cible distante. La PR brouillon #72 cible explicitement la
 branche T0042.
+
+T0044 ajoute au-dessus de T0043 une lecture Data API locale de la présence de
+compagnie, projetée sur `id`, bornée à deux lignes puis réduite à un booléen.
+L'accueil ne charge rien au rendu et aiguille explicitement une session vers
+l'onboarding ou le catalogue ; une création réussie bascule vers le catalogue.
+Les 146 tests frontend, la couverture, le build et les gates passent localement.
+T0044 est `Review` sur une branche empilée sur T0043/PR #72, sans achat composé,
+WebView live, cible distante ou donnée réelle.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

@@ -19,6 +19,7 @@ export interface CompanyOnboardingPanelProps {
   config: DesktopConnectionConfig;
   createIdempotencyKey?: (() => string) | undefined;
   onAuthenticationRequired: () => void;
+  onCompanyActive?: (() => void) | undefined;
   sessionManager: DesktopSessionManager;
 }
 
@@ -36,6 +37,7 @@ export function CompanyOnboardingPanel({
   config,
   createIdempotencyKey = defaultIdempotencyKeyFactory,
   onAuthenticationRequired,
+  onCompanyActive,
   sessionManager,
 }: CompanyOnboardingPanelProps) {
   const nameId = useId();
@@ -92,6 +94,7 @@ export function CompanyOnboardingPanel({
       if (!abortController.signal.aborted) {
         setCompanyName("");
         setState("active");
+        onCompanyActive?.();
       }
     } catch (error) {
       if (!abortController.signal.aborted) {

@@ -110,14 +110,63 @@ describe("App", () => {
       <App
         authRuntime={runtime}
         companyOnboardingCommand={companyOnboardingCommand}
+        companyPresenceCommand={async () => false}
       />,
     );
+    await user.click(screen.getByRole("button", { name: "Vérifier ma compagnie" }));
     await user.type(screen.getByLabelText("Nom de la compagnie"), "Synthetic Airways");
     await user.click(screen.getByRole("button", { name: "Créer la compagnie" }));
 
     expect(await screen.findByRole("heading", { name: "Connexion à Thrustline" })).toBeInTheDocument();
     expect(runtime.sessionManager.hasSession()).toBe(false);
     expect(window.location.hash).toBe("#/login");
+  });
+
+  it("aiguille une compagnie existante vers le catalogue sans chargement implicite", async () => {
+    const user = userEvent.setup();
+    const companyPresenceCommand = vi.fn(async () => true);
+    const aircraftCatalogCommand = vi.fn(async () => []);
+    render(
+      <App
+        aircraftCatalogCommand={aircraftCatalogCommand}
+        authRuntime={createRuntime(session)}
+        companyPresenceCommand={companyPresenceCommand}
+      />,
+    );
+
+    expect(companyPresenceCommand).not.toHaveBeenCalled();
+    expect(aircraftCatalogCommand).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Vérifier ma compagnie" }));
+
+    expect(await screen.findByRole("heading", { name: "Catalogue d’avions" })).toBeInTheDocument();
+    expect(companyPresenceCommand).toHaveBeenCalledOnce();
+    expect(aircraftCatalogCommand).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Afficher les offres" }));
+    expect(await screen.findByText("Aucune offre n’est disponible actuellement.")).toBeInTheDocument();
+  });
+
+  it("aiguille une nouvelle compagnie vers le catalogue après l'onboarding", async () => {
+    const user = userEvent.setup();
+    const companyOnboardingCommand = vi.fn(async () => ({
+      companyId: "95000000-0000-4000-8000-000000000001",
+      openingEntryId: "95000000-0000-4000-8000-000000000002",
+      schemaVersion: 1 as const,
+      state: "active" as const,
+    }));
+    render(
+      <App
+        authRuntime={createRuntime(session)}
+        companyOnboardingCommand={companyOnboardingCommand}
+        companyPresenceCommand={async () => false}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Vérifier ma compagnie" }));
+    await user.type(screen.getByLabelText("Nom de la compagnie"), "Synthetic Airways");
+    await user.click(screen.getByRole("button", { name: "Créer la compagnie" }));
+
+    expect(await screen.findByRole("heading", { name: "Catalogue d’avions" })).toBeInTheDocument();
+    expect(companyOnboardingCommand).toHaveBeenCalledOnce();
   });
 
   it("n’effectue aucun appel réseau pendant le rendu ou la redirection", async () => {
