@@ -63,7 +63,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Done |
 | T0048 | Exposer le brouillon de dispatch derrière une frontière authentifiée | 2–4 | T0023, T0024, T0047 | Done |
 | T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Review |
-| T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Ready |
+| T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Review |
 | T0051 | Clôturer un vol une seule fois, régler son revenu et sa réputation | 2 | T0020, T0028–T0029, T0047, T0050, T0057 | Draft |
 | T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Ready |
 | T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Draft |
@@ -343,6 +343,17 @@ distante. La PR #87 cible `main`, elle est `OPEN` et `MERGEABLE`, et ses trois
 checks sont démarrés sans être encore réussis. Le nettoyage réel vient de la destruction de la pile jetable, parce que
 `companies_owner_id_fkey` refuse volontairement d'orphaner une compagnie en
 supprimant son propriétaire par l'Admin API.
+
+T0050 ajoute au-dessus de T0049 le démarrage serveur d'un vol depuis un
+brouillon possédé. Une huitième migration append-only ouvre une liste fermée de
+deux états, ajoute un horodatage de départ dérivé de PostgreSQL et réserve
+`start_flight_from_dispatch` à `service_role`. Compagnie, avion, état et temps
+restent serveur ; rejeu, collision, dispatch étranger, dispatch déjà actif,
+compte en suppression, rollback injecté et concurrence sont prouvés sur
+PostgreSQL 17 avec 16 fichiers/312 assertions, et la vérification manuelle
+confirme un vol actif unique sans écriture financière. Le ticket est `Review` sur
+`feature/T0050-authoritative-flight-start`, empilé sur T0049, sans frontière
+Auth, endpoint, desktop, SimBrief, télémétrie, clôture ni cible distante.
 
 T0049 réconcilie aussi l'index avec les fichiers de tickets : la fusion #86 avait
 ramené les six lignes T0043–T0048 à `Review` alors que leurs fichiers étaient

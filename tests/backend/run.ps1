@@ -34,6 +34,7 @@ function Get-BackendIssues {
     $onboardingMigrationPath = Join-Path $Root "supabase\migrations\20260731000400_authoritative_company_onboarding.sql"
     $purchaseMigrationPath = Join-Path $Root "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql"
     $dispatchMigrationPath = Join-Path $Root "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql"
+    $flightStartMigrationPath = Join-Path $Root "supabase\migrations\20260803000200_authoritative_flight_start.sql"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $structureTestPath = Join-Path $Root "supabase\tests\database\companies_structure.test.sql"
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
@@ -49,6 +50,8 @@ function Get-BackendIssues {
     $purchaseTestPath = Join-Path $Root "supabase\tests\database\aircraft_purchase.test.sql"
     $dispatchStructureTestPath = Join-Path $Root "supabase\tests\database\dispatch_draft_structure.test.sql"
     $dispatchTestPath = Join-Path $Root "supabase\tests\database\dispatch_draft.test.sql"
+    $flightStartStructureTestPath = Join-Path $Root "supabase\tests\database\flight_start_structure.test.sql"
+    $flightStartTestPath = Join-Path $Root "supabase\tests\database\flight_start.test.sql"
     $onboardingFunctionPath = Join-Path $Root "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionPolicyPath = Join-Path $Root "supabase\functions\company-onboarding\economy-policy.json"
     $onboardingFunctionEntryPath = Join-Path $Root "supabase\functions\company-onboarding\index.ts"
@@ -82,6 +85,7 @@ function Get-BackendIssues {
         $onboardingMigrationPath,
         $purchaseMigrationPath,
         $dispatchMigrationPath,
+        $flightStartMigrationPath,
         $seedPath,
         $structureTestPath,
         $rlsTestPath,
@@ -97,6 +101,8 @@ function Get-BackendIssues {
         $purchaseTestPath,
         $dispatchStructureTestPath,
         $dispatchTestPath,
+        $flightStartStructureTestPath,
+        $flightStartTestPath,
         $onboardingFunctionPath,
         $onboardingFunctionPolicyPath,
         $onboardingFunctionEntryPath,
@@ -458,6 +464,63 @@ function Get-BackendIssues {
         $issues.Add("Dispatch creation must not accept client-controlled company, state or time.")
     }
 
+    $flightStartMigration = Get-Content -Raw -Encoding UTF8 $flightStartMigrationPath
+    $flightStartRequirements = @{
+        "closed state list" = "add constraint flight_dispatches_known_states check \(state in \('draft', 'active'\)\)"
+        "replaced draft-only constraint" = 'drop constraint flight_dispatches_draft_only'
+        "departure timestamp column" = 'add column started_at timestamptz'
+        "timestamp bound to the active state" = "\(state = 'draft' and started_at is null\)[\s\S]+\(state = 'active' and started_at is not null\)"
+        "server departure time" = 'new\.started_at := clock_timestamp\(\)'
+        "server time trigger" = 'create trigger flight_dispatches_server_started_at[\s\S]+before insert or update on public\.flight_dispatches'
+        "private flight start registry" = 'create table private\.flight_start_commands'
+        "owner idempotency" = 'primary key \(owner_id, idempotency_key\)'
+        "one start per dispatch" = 'constraint flight_start_commands_dispatch unique \(dispatch_id\)'
+        "payload fingerprint" = 'extensions\.digest\('
+        "forced registry RLS" = 'alter table private\.flight_start_commands force row level security'
+        "no registry API grants" = 'revoke all on table private\.flight_start_commands from authenticated'
+        "authoritative flight start command" = 'create function public\.start_flight_from_dispatch\('
+        "company lock" = 'from public\.companies as companies[\s\S]+for update'
+        "company derivation" = 'where companies\.owner_id = start_flight_from_dispatch\.owner_id'
+        "active account" = 'private\.account_is_active\(start_flight_from_dispatch\.owner_id\)'
+        "owned dispatch lock" = 'from public\.flight_dispatches as dispatches[\s\S]+dispatches\.company_id = company\.id[\s\S]+for update'
+        "draft-only transition" = "dispatch\.state <> 'draft'"
+        "opaque dispatch rejection" = "message = 'Dispatch is unavailable for flight start\.'"
+        "service-only flight start" = 'grant execute on function public\.start_flight_from_dispatch\(uuid, uuid, uuid\) to service_role'
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $flightStartRequirements.GetEnumerator()) {
+        Require-Text $flightStartMigration $entry.Value "Flight start invariant missing: $($entry.Key)."
+    }
+    if ($flightStartMigration -match '(?i)grant\s+execute\s+on\s+function\s+public\.start_flight_from_dispatch\([^;]+\)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Flight start must remain service-role-only.")
+    }
+    if ($flightStartMigration -match '(?i)grant\s+(insert|update|delete)[^;]*on\s+(table\s+)?public\.flight_dispatches\s+to\s+(anon|authenticated)') {
+        $issues.Add("Client roles must not gain direct flight state mutation privileges.")
+    }
+    if ($flightStartMigration -match '(?i)start_flight_from_dispatch\([^)]*(company_id|aircraft_id|state|started_at)[^)]*\)') {
+        $issues.Add("Flight start must not accept a client-controlled company, aircraft, state or departure time.")
+    }
+    $openedStates = @(
+        [regex]::Matches($flightStartMigration, "state in \(([^)]*)\)") |
+            ForEach-Object { $_.Groups[1].Value }
+    )
+    if ($openedStates.Count -ne 1 -or $openedStates[0] -ne "'draft', 'active'") {
+        $issues.Add("The flight state list must stay closed to exactly draft and active.")
+    }
+    foreach ($existingMigration in @(
+        $migrationPath,
+        $lifecycleMigrationPath,
+        $restoreMigrationPath,
+        $ledgerMigrationPath,
+        $onboardingMigrationPath,
+        $purchaseMigrationPath,
+        $dispatchMigrationPath
+    )) {
+        if ((Get-Content -Raw -Encoding UTF8 $existingMigration) -match 'start_flight_from_dispatch') {
+            $issues.Add("The flight start must arrive by a new append-only migration: $([System.IO.Path]::GetFileName($existingMigration))")
+        }
+    }
+
     $onboardingFunction = Get-Content -Raw -Encoding UTF8 $onboardingFunctionPath
     $onboardingFunctionEntry = Get-Content -Raw -Encoding UTF8 $onboardingFunctionEntryPath
     $onboardingFunctionTests = Get-Content -Raw -Encoding UTF8 $onboardingFunctionTestPath
@@ -618,7 +681,11 @@ function Get-BackendIssues {
         "`n" +
         (Get-Content -Raw -Encoding UTF8 $dispatchStructureTestPath) +
         "`n" +
-        (Get-Content -Raw -Encoding UTF8 $dispatchTestPath)
+        (Get-Content -Raw -Encoding UTF8 $dispatchTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $flightStartStructureTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $flightStartTestPath)
     )
     foreach ($marker in @(
         "set local role authenticated",
@@ -674,6 +741,22 @@ function Get-BackendIssues {
         "owner B cannot read owner A dispatch",
         "deletion pending blocks dispatch creation",
         "injected failure rolls back dispatch and command",
+        "authenticated cannot execute the flight start command",
+        "authenticated cannot forge a flight state or departure time",
+        "exactly one owned draft becomes one server-timed active flight",
+        "identical flight start replays with the same response",
+        "flight start idempotency payload collision is rejected",
+        "owner A cannot start owner B dispatch",
+        "a second start of the same dispatch is rejected",
+        "an unknown dispatch fails closed with the same message",
+        "owner B cannot read owner A active flight",
+        "anonymous cannot read a flight state",
+        "no state outside draft and active is accepted",
+        "a forged departure time cannot replace the recorded server time",
+        "a draft cannot carry a departure time",
+        "deletion pending blocks a flight start",
+        "injected failure rolls back the flight state, its time and the command",
+        "the whole scenario leaves exactly one active flight",
         "rollback;"
     )) {
         if (-not $allTests.Contains($marker)) {
@@ -698,6 +781,8 @@ function Get-BackendIssues {
     Require-Text $types 'get_company_aircraft:' "Generated types do not expose owner aircraft reads."
     Require-Text $types 'flight_dispatches:' "Generated types do not expose flight dispatches."
     Require-Text $types 'create_dispatch_draft:' "Generated types do not expose authoritative dispatch creation."
+    Require-Text $types 'started_at: string \| null' "Generated types do not expose the nullable server departure time."
+    Require-Text $types 'start_flight_from_dispatch:' "Generated types do not expose the authoritative flight start."
 
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $typeScript 'Invoke-IsolatedSupabaseCli' "Type generation does not use the isolated local runtime."
@@ -724,6 +809,9 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'Dispatch draft concurrency passed' "Backend CI does not report dispatch concurrency."
     Require-Text $ciBackend 'Concurrent dispatch drafts did not preserve one active draft' "Backend CI does not verify one active dispatch under concurrency."
     Require-Text $ciBackend '"1\|1\|0\|1"' "Backend CI does not require one dispatch, one command, draft-only state and one aircraft."
+    Require-Text $ciBackend 'Flight start concurrency passed' "Backend CI does not report flight start concurrency."
+    Require-Text $ciBackend 'Concurrent flight starts did not reject exactly one command' "Backend CI does not verify that one concurrent flight start fails."
+    Require-Text $ciBackend '"1\|1\|0\|1\|0"' "Backend CI does not require one active flight, one command, no draft, one server time and no missing time."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
     foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
         Require-Text $ciBackend "--schema $schema" "Backend CI backup scope is missing schema: $schema."
@@ -768,6 +856,7 @@ try {
         "supabase\migrations\20260731000400_authoritative_company_onboarding.sql",
         "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql",
         "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql",
+        "supabase\migrations\20260803000200_authoritative_flight_start.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
@@ -783,6 +872,8 @@ try {
         "supabase\tests\database\aircraft_purchase.test.sql",
         "supabase\tests\database\dispatch_draft_structure.test.sql",
         "supabase\tests\database\dispatch_draft.test.sql",
+        "supabase\tests\database\flight_start_structure.test.sql",
+        "supabase\tests\database\flight_start.test.sql",
         "supabase\functions\company-onboarding\handler.ts",
         "supabase\functions\company-onboarding\economy-policy.json",
         "supabase\functions\company-onboarding\index.ts",
@@ -1011,6 +1102,62 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql") -Destination $dispatchMigrationCopy
+    $flightStartMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260803000200_authoritative_flight_start.sql"
+    $flightStartText = Get-Content -Raw -Encoding UTF8 $flightStartMigrationCopy
+    $flightStartText = $flightStartText.Replace(
+        "grant execute on function public.start_flight_from_dispatch(uuid, uuid, uuid) to service_role;",
+        "grant execute on function public.start_flight_from_dispatch(uuid, uuid, uuid) to authenticated;"
+    )
+    [System.IO.File]::WriteAllText($flightStartMigrationCopy, $flightStartText)
+    $unsafeFlightStartIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unsafeFlightStartIssues -match "service-role-only") -or
+        -not ($unsafeFlightStartIssues -match "service-only flight start")) {
+        Write-Error "Harness self-test failed to detect a client-executable flight start."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000200_authoritative_flight_start.sql") -Destination $flightStartMigrationCopy
+    $flightStartText = Get-Content -Raw -Encoding UTF8 $flightStartMigrationCopy
+    $flightStartText = $flightStartText.Replace(
+        "check (state in ('draft', 'active'))",
+        "check (state in ('draft', 'active', 'completed'))"
+    )
+    [System.IO.File]::WriteAllText($flightStartMigrationCopy, $flightStartText)
+    $openStateIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($openStateIssues -match "must stay closed to exactly draft and active")) {
+        Write-Error "Harness self-test failed to detect an undeclared flight state."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000200_authoritative_flight_start.sql") -Destination $flightStartMigrationCopy
+    $flightStartText = Get-Content -Raw -Encoding UTF8 $flightStartMigrationCopy
+    $flightStartText = $flightStartText.Replace(
+        "    dispatch_id uuid`r`n)",
+        "    dispatch_id uuid,`r`n    started_at timestamptz`r`n)"
+    ).Replace(
+        "    dispatch_id uuid`n)",
+        "    dispatch_id uuid,`n    started_at timestamptz`n)"
+    )
+    [System.IO.File]::WriteAllText($flightStartMigrationCopy, $flightStartText)
+    $clientFlightTimeIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientFlightTimeIssues -match "client-controlled company, aircraft, state or departure time")) {
+        Write-Error "Harness self-test failed to detect a client-controlled departure time."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000200_authoritative_flight_start.sql") -Destination $flightStartMigrationCopy
+    $dispatchText = Get-Content -Raw -Encoding UTF8 $dispatchMigrationCopy
+    [System.IO.File]::WriteAllText(
+        $dispatchMigrationCopy,
+        ($dispatchText + "`n-- start_flight_from_dispatch rewritten in place`n")
+    )
+    $rewrittenMigrationIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($rewrittenMigrationIssues -match "must arrive by a new append-only migration")) {
+        Write-Error "Harness self-test failed to detect a rewritten delivered migration."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql") -Destination $dispatchMigrationCopy
     $onboardingFunctionCopy = Join-Path $temporaryRoot "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionText = Get-Content -Raw -Encoding UTF8 $onboardingFunctionCopy
     $onboardingFunctionText = $onboardingFunctionText.Replace(
@@ -1174,4 +1321,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035, T0040 and T0047-T0048 repository plus 26 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035, T0040 and T0047-T0050 repository plus 30 mutation scenarios)."

@@ -310,6 +310,32 @@ propriétaire est refusée par `companies_owner_id_fkey`, donc la destruction de
 pile est le seul nettoyage ; et `pnpm backend:test` exige une base fraîchement
 réinitialisée.
 
+Preuve T0050 du 3 août 2026 : `backend:check` passe avec 30 mutations, dont
+quatre nouvelles qui détectent un démarrage exécutable par un client, un
+troisième état de vol, un horodatage de départ fourni par l'appelant et la
+réécriture d'une migration déjà livrée. Sous Docker Desktop 29.6.2 et
+PostgreSQL 17, deux resets appliquent les huit migrations append-only puis 16
+fichiers/312 assertions pgTAP concluent par `Result: PASS`; les types régénérés
+n'exposent que `started_at: string | null` et `start_flight_from_dispatch`, et
+`backend:types:check` les confirme stables. Les gates autorité, données et
+maintenance passent avec 9, 6 et 8 mutations.
+
+Les pgTAP couvrent ACL/grants, RLS forcée, isolation A/B/anonyme, dérivation de
+compagnie et d'avion, rejeu identique, collision de clé, deuxième démarrage,
+dispatch étranger, dispatch inexistant, compte en suppression, rollback injecté,
+refus d'un état hors liste, refus d'un horodatage forgé sur un vol actif et refus
+d'un horodatage sur un brouillon. La vérification manuelle du 3 août 2026
+confirme sur la pile locale : un brouillon possédé devient un vol `active`
+horodaté `2026-08-03T15:21:05.001358+00:00`, le rejeu de la même clé rend la même
+réponse au même horodatage, et seconde identité, collision, dispatch déjà actif
+et dispatch inconnu échouent fermés. L'état SQL rend `1|2|1|1` : un vol actif,
+deux brouillons restants, une commande et un horodatage serveur. Aucune écriture
+financière n'apparaît, `authenticated` et `anon` reçoivent `permission denied`
+sur la commande comme sur la table, et deux sessions concurrentes sur le même
+dispatch rendent les codes `0|1` avec l'état `1|1|0|1|0`. Cette preuve locale
+synthétique ne valide ni frontière Auth, endpoint, appelant desktop, télémétrie,
+clôture, cible distante ou donnée réelle ; T0050 est empilé sur T0049.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme

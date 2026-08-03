@@ -153,6 +153,34 @@ les rejets Auth, transport et SQL sont redigés. La preuve Edge reste injectée 
 synthétique : aucun runtime live, desktop, SimBrief, cycle de vol, cible distante
 ou donnée réelle n'est couvert.
 
+## Démarrage de vol autoritaire T0050
+
+`start_flight_from_dispatch` est une fonction `security definer` à `search_path`
+vide exécutable uniquement par `service_role`. Elle accepte exactement un
+propriétaire vérifié en amont, une clé UUID et un dispatch. Compagnie, avion,
+état et horodatage de départ ne traversent jamais la frontière comme autorité
+cliente : ils sont dérivés du serveur. L'état de vol reste une liste fermée de
+deux valeurs et `started_at` vient d'un trigger `clock_timestamp()` qu'aucun
+appelant ne peut fournir, remplacer ni antidater, y compris par une écriture
+directe sur la table.
+
+La commande verrouille la compagnie du propriétaire puis le dispatch, refuse un
+compte en suppression via `private.account_is_active` et n'autorise que la
+transition `draft` → `active`. Un dispatch inconnu, appartenant à une autre
+compagnie ou déjà actif rend le même message opaque, sans révéler son existence,
+son propriétaire ni son état. Aucun identifiant Auth, message SQL ou donnée
+personnelle n'est exposé à un appelant.
+
+Le registre `private.flight_start_commands` force RLS, n'accorde aucun privilège
+API, lie `(owner_id, idempotency_key)` à l'empreinte SHA-256 du payload et
+n'admet qu'un démarrage par dispatch. Un rejeu identique rend la même réponse ;
+une collision de clé échoue ; deux sessions concurrentes sur le même dispatch
+convergent vers un seul vol actif, une seule commande et un seul horodatage.
+`authenticated` conserve une lecture seule filtrée par la compagnie du sujet Auth
+et ne reçoit aucun `execute`. Aucune frontière Auth, appelant desktop,
+télémétrie, clôture, écriture financière, annulation ou preuve Edge runtime n'est
+couverte par ce ticket.
+
 ## Configuration et session desktop T0038
 
 Le bundle n'accepte que deux paramètres explicitement publics : URL Supabase et

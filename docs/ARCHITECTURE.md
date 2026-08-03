@@ -147,6 +147,27 @@ dérive le propriétaire, normalise les ICAO puis appelle la RPC avec le credent
 publique versionnée et `no-store`. Aucun transport desktop, SimBrief, transition
 ou runtime de vol n'est fourni.
 
+T0050 ouvre le domaine `flight-runtime` par une seconde migration append-only qui
+ne réécrit pas T0047. Elle remplace la contrainte `draft` unique par une liste
+fermée de deux états connus, `draft` et `active`, et ajoute un horodatage de
+départ `started_at` lié par contrainte au seul état `active`. La contrainte
+`flight_dispatches_one_draft_per_aircraft` couvre désormais les deux états : un
+avion n'a jamais plus d'un dispatch, brouillon ou vol. Un trigger `before insert
+or update` dérive `started_at` de `clock_timestamp()` au passage à `active`, le
+conserve ensuite et le remet à null pour un brouillon, de sorte qu'aucun appelant
+ne peut fournir ni remplacer ce temps.
+
+La commande `start_flight_from_dispatch`, réservée à `service_role`, reçoit
+uniquement le propriétaire vérifié en amont, une clé d'idempotence et un
+dispatch. Elle verrouille la compagnie du propriétaire puis le dispatch, dérive
+la compagnie et l'avion du serveur, refuse un compte en suppression et n'accepte
+que la transition `draft` → `active` dans une seule transaction. Un dispatch
+inconnu, étranger ou déjà actif rend le même refus opaque. Le registre privé
+`private.flight_start_commands` lie `(owner_id, idempotency_key)` à l'empreinte
+du payload et n'admet qu'un démarrage par dispatch ; un rejeu identique rend la
+même réponse versionnée à cinq champs. Aucune frontière Auth, appelant desktop,
+télémétrie, clôture ni écriture financière n'est fournie.
+
 ## Packaging Windows T0014
 
 Le package Windows est un installateur NSIS x64 en mode utilisateur courant.
