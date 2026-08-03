@@ -1,6 +1,6 @@
 # T0042 — Composer l'onboarding de compagnie depuis le desktop
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0042-desktop-company-onboarding`
 Phase: 4
@@ -19,8 +19,8 @@ T0022 crée atomiquement compagnie, sujets privés et ouverture financière. T00
 expose cette transaction derrière `company-onboarding`, mais aucun appelant
 desktop ne la consomme. T0038–T0041 fournissent la configuration locale, la
 session en mémoire et la route protégée. T0041 est livré dans `main` par la PR
-corrective #69. La PR #70 a toutefois fusionné T0042 dans la branche T0041
-après sa fusion vers `main`; une republication corrective reste nécessaire.
+corrective #69. La fusion empilée #70 n'avait pas livré T0042 dans `main`; la PR
+corrective #73 l'y a finalement propagé.
 
 ## Workflow evidence
 
@@ -43,6 +43,8 @@ après sa fusion vers `main`; une republication corrective reste nécessaire.
 - 2 août 2026 — republication : branche réconciliée poussée au commit `7a5b95b` ;
   PR corrective #71 ouverte prête, base `main`, head
   `feature/T0042-desktop-company-onboarding`.
+- 3 août 2026 — `Done` : PR corrective #73 fusionnée dans `main` au commit
+  `a4047a5`, avec Windows multi-stack, PostgreSQL 17 et supply-chain réussis.
 
 ## Dependencies
 
@@ -228,8 +230,7 @@ n'est créée.
 
 ### Risks and limitations
 
-T0041 est livré, mais T0042 reste absent de `main` malgré la fusion de #70 dans
-une base déjà intégrée. La CSP de
+T0042 est livré dans `main` par la PR corrective #73. La CSP de
 production reste `connect-src 'none'` et la preuve utilise jsdom/fetch injecté :
 aucun parcours WebView live, déploiement distant ou donnée réelle n'est
 revendiqué. La présence d'une compagnie existante n'est pas chargée avant rendu,
@@ -257,6 +258,6 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md` et `SECURITY.md`.
 - PR #70 : fusionnée avec trois checks verts dans
   `feature/T0041-bounded-login-route`, mais cette base avait déjà fusionné dans
   `main` ;
-- PR #71 : ouverte prête vers `main`, head
-  `feature/T0042-desktop-company-onboarding`; T0042 reste en `Review` jusqu'à sa
-  revue et sa fusion par Andy.
+- PR corrective #73 : fusionnée dans `main` au commit `a4047a5`, head
+  `feature/T0042-desktop-company-onboarding`, avec ses trois checks verts ;
+  fusion finale réalisée par Andy.
