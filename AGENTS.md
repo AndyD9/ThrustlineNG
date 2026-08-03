@@ -93,6 +93,40 @@ l'état Git, de l'intégration et du rapport final. Il utilise le minimum de
 sous-agents nécessaire et délègue uniquement des sous-tâches bornées qui peuvent
 progresser indépendamment.
 
+### Mode accéléré vers la première alpha
+
+Jusqu'à validation de l'alpha jouable interne définie dans `docs/ROADMAP.md`, le
+mode d'exécution par défaut maximise le travail indépendant sans réduire les
+preuves. Le coordinateur applique les règles suivantes :
+
+- maintenir au plus trois tickets produit `In progress` simultanément, chacun
+  dans un worktree distinct, sur les flux moteur de vol/bridge, backend du golden
+  path et composition desktop/E2E ;
+- ne lancer un flux que si son ticket est `Ready`, ses décisions sont prises, ses
+  chemins sont attribués et il peut produire une preuve utile sans présumer une
+  branche non fusionnée ;
+- traiter en priorité une PR fusionnable, une correction de CI ou la propagation
+  d'une capacité déjà validée vers `main` avant d'ouvrir un nouveau travail
+  dépendant ;
+- créer par défaut chaque branche depuis le dernier `origin/main` et cibler
+  `main`. Une branche empilée reste exceptionnelle, explicitement dépendante et
+  sa PR reste brouillon ; elle ne prouve jamais une livraison dans `main` ;
+- après fusion du parent d'une pile, recibler immédiatement la PR vers `main` si
+  son ascendance le permet, sinon ouvrir une branche de propagation propre sans
+  force-push et fermer la chaîne obsolète ;
+- regrouper avant implémentation les décisions produit ou économiques nécessaires
+  aux prochains tickets et laisser `Draft` tout ticket encore ambigu ;
+- reporter explicitement hors alpha les capacités non requises par son gate. Un
+  report ne modifie pas le MVP, les frontières d'autorité ou les exigences de
+  distribution publique ;
+- paralléliser les validations indépendantes, mais ne jamais supprimer un test,
+  une revue adversariale, une vérification manuelle requise ou une gate pour
+  tenir une date.
+
+La limite de trois flux est un plafond, pas un objectif d'occupation. Un flux
+bloqué ne justifie pas un quatrième ticket si cela augmente les collisions ou la
+file d'intégration.
+
 - Les recherches, lectures, diagnostics et revues peuvent être parallélisés en
   lecture seule.
 - Dans un worktree partagé, les sous-agents restent en lecture seule par défaut.

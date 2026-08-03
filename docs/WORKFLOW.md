@@ -31,6 +31,40 @@ jamais déléguée implicitement.
 5. Créer seulement les 3–8 prochains tickets détaillés ; garder le reste au
    niveau roadmap pour éviter un plan périmé de 50 tickets.
 
+### 1.1 Piloter le flux accéléré vers l'alpha
+
+Pendant le mode accéléré défini dans `AGENTS.md`, la préparation maintient une
+vue courte des trois flux indépendants suivants :
+
+1. moteur de vol, SimConnect, reprise et rapport dans le bridge ;
+2. dispatch, clôture et grand livre autoritaires côté backend ;
+3. composition desktop et preuve E2E du golden path.
+
+Chaque flux possède au plus un ticket `In progress`, un worktree, une branche et
+un coordinateur. Les flux ne sont pas des branches permanentes : dès qu'un
+ticket est intégré, son successeur repart du nouveau `origin/main`.
+
+Avant de lancer la vague suivante :
+
+1. cartographier les contrats et chemins partagés entre les 3–8 tickets détaillés ;
+2. demander à Andy en un seul lot les décisions qui changent le produit,
+   l'économie, la sécurité, les données, le support ou l'architecture ;
+3. attribuer les chemins disjoints et l'ordre d'intégration ;
+4. identifier la vérification Windows/MSFS requise et réserver son environnement ;
+5. vérifier qu'aucune PR déjà validée n'attend seulement sa propagation vers
+   `main`.
+
+L'ordre quotidien de priorité est : PR prête à intégrer, CI ou propagation
+bloquante, dépendance du golden path, puis nouveau ticket. La quantité de code
+produite ou le nombre de branches ouvertes ne mesure pas l'avancement ; seule
+une capacité prouvée et présente dans `main` réduit le reste à faire.
+
+Les PR empilées servent uniquement à ne pas immobiliser un travail réellement
+indépendant. Elles restent brouillon, déclarent leur base et leur condition de
+sortie, et ne passent pas `Ready for review` tant qu'elles ne ciblent pas la
+branche destinée à recevoir effectivement la capacité. Le coordinateur ne crée
+pas une troisième couche si la première peut d'abord être propagée vers `main`.
+
 ## 2. Rendre un ticket Ready
 
 Un ticket Ready contient :
@@ -131,6 +165,11 @@ dispose d'un worktree et d'une branche dédiés. Avant de les lancer, vérifier 
 
 Chaque ticket conserve son propre coordinateur, ses validations et son handoff.
 Une preuve issue d'un worktree ne clôt jamais implicitement un autre ticket.
+
+En mode accéléré vers l'alpha, appliquer en plus la limite de trois tickets
+produit simultanés et les trois flux définis en section 1.1. Toute dépendance de
+contrat découverte entre deux flux les rend séquentiels jusqu'à stabilisation et
+fusion du contrat dans `main`.
 
 Types de branche : `foundation`, `feature`, `fix`, `security`, `refactor`,
 `docs`, `chore`.
