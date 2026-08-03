@@ -168,6 +168,30 @@ du payload et n'admet qu'un démarrage par dispatch ; un rejeu identique rend la
 même réponse versionnée à cinq champs. Aucune frontière Auth, appelant desktop,
 télémétrie, clôture ni écriture financière n'est fournie.
 
+T0057 ajoute un référentiel d'aérodromes borné par une troisième migration
+append-only qui ne réécrit ni T0047 ni T0050. `public.airports` porte un code
+ICAO en clé primaire, un nom borné, une latitude et une longitude en
+`numeric` à quatre décimales contraintes à `[-90, 90]` et `[-180, 180]`, un
+palier de popularité pris dans une liste fermée de quatre valeurs ordonnées
+— `regional`, `standard`, `major`, `hub` — et une `schema_version` contrainte.
+La table force RLS, n'accorde que `select` à `authenticated` par une politique
+unique et ne donne aucune mutation à `anon`, `authenticated` ou `service_role`.
+
+La source canonique est `eng/airports.json` ; `supabase/seed.sql` en charge une
+projection idempotente et le référentiel ne porte aucun montant ni
+multiplicateur, la tarification restant à la politique de clôture qui le lira.
+`backend:check` rejoue la projection depuis la source et échoue sur toute
+divergence textuelle ; le harnais CI compare en plus la table réellement
+chargée à la source, ligne par ligne.
+
+La même migration remplace `create_dispatch_draft` par `create or replace` en
+conservant sa signature, son contrat public, son idempotence et ses verrous : la
+validation bornée exige désormais que les deux codes normalisés existent dans le
+référentiel. Un code inconnu réutilise exactement le message de refus d'un code
+mal formé, ce qui le rend indiscernable et empêche d'énumérer le référentiel.
+Aucune lecture desktop, aucun sélecteur d'aérodromes et aucun calcul de
+distance, de temps ou de revenu n'est fourni.
+
 ## Packaging Windows T0014
 
 Le package Windows est un installateur NSIS x64 en mode utilisateur courant.

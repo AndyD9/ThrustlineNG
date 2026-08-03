@@ -145,6 +145,46 @@ try {
         throw "Failed to attach the database alias to the pgTAP network."
     }
 
+    $airportReference = Get-Content -Raw -Encoding UTF8 (
+        Join-Path $repositoryRoot "eng/airports.json"
+    ) | ConvertFrom-Json
+    $invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
+    $expectedAirports = @(
+        @($airportReference.airports) |
+            Sort-Object -Property { [string]$_.icaoCode } |
+            ForEach-Object {
+                "{0}|{1}|{2}|{3}|{4}" -f
+                    ([string]$_.icaoCode),
+                    ([string]$_.name),
+                    ([decimal]$_.latitude).ToString("F4", $invariantCulture),
+                    ([decimal]$_.longitude).ToString("F4", $invariantCulture),
+                    ([string]$_.popularityTier)
+            }
+    )
+    $loadedAirports = @(
+        & $dockerPath exec $databaseContainer `
+            psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres `
+                -c "select icao_code, name, latitude, longitude, popularity_tier from public.airports order by icao_code;"
+    )
+    if ($LASTEXITCODE -ne 0 -or
+        ($loadedAirports -join "`n") -cne ($expectedAirports -join "`n")) {
+        throw "Loaded airport reference diverges from eng/airports.json."
+    }
+    $airportSchemaVersions = @(
+        & $dockerPath exec $databaseContainer `
+            psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres `
+                -c "select distinct schema_version from public.airports;"
+    )
+    if ($LASTEXITCODE -ne 0 -or
+        $airportSchemaVersions.Count -ne 1 -or
+        ([string]$airportSchemaVersions[0]).Trim() -ne "1") {
+        throw "Loaded airport reference does not carry exactly schema version 1."
+    }
+    Write-Output (
+        "Airport reference matches eng/airports.json: {0} aerodromes, schema version 1." -f
+            $expectedAirports.Count
+    )
+
     $testOutput = @(
         & pnpm exec supabase test db --network-id $testNetworkName 2>&1
     )
@@ -170,8 +210,10 @@ try {
         $testText -notmatch "dispatch_draft\.test\.sql" -or
         $testText -notmatch "flight_start_structure\.test\.sql" -or
         $testText -notmatch "flight_start\.test\.sql" -or
+        $testText -notmatch "airport_reference_structure\.test\.sql" -or
+        $testText -notmatch "airport_reference\.test\.sql" -or
         $testText -notmatch "Result:\s+PASS") {
-        throw "Supabase pgTAP did not prove all sixteen files with Result: PASS."
+        throw "Supabase pgTAP did not prove all eighteen files with Result: PASS."
     }
 
     $concurrencyUserId = "44000000-0000-4000-8000-000000000004"
@@ -1416,7 +1458,7 @@ select
         throw "Generated database types are stale."
     }
 
-    Write-Output "Backend CI passed: 2 resets, 16 pgTAP files, concurrent idempotence, purchase, dispatch and flight start, isolated restore replay, authoritative onboarding, stable types, loopback ports."
+    Write-Output "Backend CI passed: 2 resets, 18 pgTAP files, airport reference matching its canonical source, concurrent idempotence, purchase, dispatch and flight start, isolated restore replay, authoritative onboarding, stable types, loopback ports."
 }
 finally {
     if ($null -ne $databaseContainer -and $null -ne $dockerPath) {
