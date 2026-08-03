@@ -43,6 +43,10 @@ capacité produit et ne modifie ni la migration, ni le handler.
   `main`, head T0049, `OPEN` et `MERGEABLE`. Ses trois checks sont démarrés mais
   encore `pending` lors de cette observation ; aucun n'est revendiqué comme
   réussi.
+- 3 août 2026 — checks verts sur le commit `2685a2a` : Windows multi-stack
+  (`30825221051`, 15 min 36 s), Supabase PostgreSQL 17 (`30825221051`,
+  3 min 13 s) et audits/licences/SBOM (`30825220958`, 4 min 14 s) réussissent.
+  Le ticket reste `Review` : seule la fusion par Andy manque.
 
 ## Dependencies
 
@@ -299,6 +303,7 @@ Ce ticket, `docs/tickets/README.md`, `docs/QUALITY.md` et
 - commit de validation : `4e60c70` ;
 - PR #87 : `OPEN` et `MERGEABLE`, base `main`, head
   `chore/T0049-validate-dispatch-runtime`, prête pour revue ;
-- checks GitHub : Windows multi-stack, Supabase PostgreSQL 17 et
-  audits/licences/SBOM déclenchés, `pending` lors de la dernière observation ;
+- checks GitHub : Windows multi-stack et Supabase PostgreSQL 17 du run
+  `30825221051` et audits/licences/SBOM du run `30825220958` sont réussis sur le
+  commit `2685a2a` ;
 - fusion : réservée à Andy.
