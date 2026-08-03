@@ -128,11 +128,11 @@ rejets Auth, transport et SQL sont remplacés par des codes publics sans détail
 de solde, d'offre, de JWT ou de credential. Aucun appelant desktop ni
 déploiement distant n'est couvert.
 
-## Brouillon de dispatch autoritaire T0047
+## Brouillon de dispatch autoritaire T0047–T0048
 
 `create_dispatch_draft` est une fonction `security definer` à `search_path`
 vide exécutable uniquement par `service_role`. Elle accepte un propriétaire
-destiné à être dérivé par une future frontière Auth, une clé UUID, un avion et
+dérivé par la frontière Auth T0048, une clé UUID, un avion et
 deux codes ICAO. La compagnie, l'état `draft` et l'horodatage ne traversent pas
 la frontière comme autorité cliente. Les ICAO sont normalisés en ASCII
 alphanumérique sur quatre caractères et doivent être distincts.
@@ -143,8 +143,15 @@ registre `private` lie l'intention normalisée au résultat ; rejeu identique,
 collision et deux créations concurrentes convergent ou échouent sans second
 brouillon. `flight_dispatches` force RLS, n'accorde que `select` à
 `authenticated` sous politique propriétaire et interdit toute mutation client.
-La preuve reste PostgreSQL locale et synthétique : aucun endpoint, desktop,
-SimBrief, cycle de vol ou donnée réelle n'est couvert.
+
+L'Edge Function `dispatch-draft` refuse tout champ autre que l'avion, les deux
+ICAO et l'idempotence dans un corps de 4 Kio. Elle vérifie une session non
+anonyme avec la clé anon, dérive le propriétaire et réserve le credential
+`service_role` à l'appel RPC sous timeout. Toute réponse privilégiée est validée,
+recoupée avec la requête, projetée sur sept champs publics et marquée `no-store` ;
+les rejets Auth, transport et SQL sont redigés. La preuve Edge reste injectée et
+synthétique : aucun runtime live, desktop, SimBrief, cycle de vol, cible distante
+ou donnée réelle n'est couvert.
 
 ## Configuration et session desktop T0038
 
@@ -293,7 +300,8 @@ donnée réelle.
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de
 `PRODUCT.md`. Il ne transforme jamais l'absence de code en contrôle de sécurité :
-T0047 classe le dispatch `server-authoritative` avec une couverture partielle ;
+T0048 classe la frontière Auth du dispatch `server-authoritative` avec une
+couverture partielle ;
 le suivi et la clôture de vol, la réputation, la maintenance, les opérations
 passives et la distribution restent `not-implemented`.
 

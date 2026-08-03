@@ -78,7 +78,9 @@ d'un appel RPC effectué sans le credential serveur. T0028 ajoute une version de
 politique inconnue, une divergence entre source canonique et copie embarquée et
 le retour d'une surcharge par environnement. T0035 ajoute trois mutations pour
 le propriétaire d'achat repris du payload, le credential RPC abaissé et un prix
-client réintroduit :
+client réintroduit. T0048 ajoute quatre mutations : propriétaire de dispatch
+repris du payload, credential RPC abaissé, état client réintroduit et contrat de
+tests incomplet :
 
 ```powershell
 pnpm backend:check
@@ -96,8 +98,8 @@ pnpm backend:types:check
 pnpm backend:stop
 ```
 
-`backend:functions:test` exécute 30 tests Node sans dépendance tierce : 15 pour
-l'onboarding et 15 pour l'achat. Ils couvrent méthode, corps 4 Kio, payload
+`backend:functions:test` exécute 46 tests Node sans dépendance tierce : 15 pour
+l'onboarding, 15 pour l'achat et 16 pour le dispatch. Ils couvrent méthode, corps 4 Kio, payload
 exact, normalisation, UUID, configuration, Auth anonyme ou invalide,
 indisponibilité Auth/RPC, dérivation du propriétaire, credential privilégié,
 redaction, rejeu et réponse allowlistée versionnée `no-store`.
@@ -271,6 +273,15 @@ produisent les codes `0|1` et l'état `1|1|0|1` : un brouillon, une commande,
 aucun état non-draft et un avion distinct. Cette preuve locale synthétique ne
 valide ni Edge Function, desktop, SimBrief, cycle de vol, cible distante ou
 donnée réelle ; T0047 est empilé sur T0046.
+
+Preuve T0048 du 3 août 2026 : `backend:functions:test` exécute 46 tests Node,
+dont 16 pour `dispatch-draft`, et `backend:check` passe avec 26 mutations. Les
+gates autorité, données et maintenance passent avec 9, 6 et 8 mutations. Les
+tests injectés couvrent allowlist, 4 Kio, UUID/ICAO, Auth non anonyme,
+propriétaire dérivé, credential serveur, timeout, payload RPC exact, redaction,
+projection publique, rejeu et `no-store`. Cette preuve ne valide pas l'Edge
+Runtime live, un appel desktop, SimBrief, une cible distante ou une donnée réelle
+et reste empilée sur T0047.
 
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis

@@ -33,7 +33,7 @@
     "backend:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/invoke-supabase-local.ps1 -Action Stop",
     "backend:reset": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/invoke-supabase-local.ps1 -Action Reset",
     "backend:test": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/invoke-supabase-local.ps1 -Action Test",
-    "backend:functions:test": "node --test ./supabase/functions/company-onboarding/handler.test.ts ./supabase/functions/aircraft-purchase/handler.test.ts",
+    "backend:functions:test": "node --test ./supabase/functions/company-onboarding/handler.test.ts ./supabase/functions/aircraft-purchase/handler.test.ts ./supabase/functions/dispatch-draft/handler.test.ts",
     "backend:types": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1",
     "backend:types:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1 -Check",
     "data-policy:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/data-policy/run.ps1",
