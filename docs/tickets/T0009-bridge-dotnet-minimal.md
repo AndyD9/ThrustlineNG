@@ -1,6 +1,6 @@
 # T0009 — Créer le bridge .NET minimal
 
-Status: Verify
+Status: Done
 Owner: Andy
 Branch: `foundation/t0009-dotnet-bridge`
 Phase: 1
@@ -153,13 +153,13 @@ self-contained Windows x64.
 ### Manual verification result
 
 Les modes santé et erreur du binaire publié ont été exécutés réellement. Le
-processus normal a aussi affiché son état prêt. Le terminal PTY utilisé n'a pas
-converti l'injection de Ctrl+C en signal Windows ; l'instance précisément
-identifiée a été arrêtée et l'absence de processus restant confirmée. Le chemin
-d'annulation a été vérifié automatiquement avec un délai de deux secondes.
-Un nouveau rejeu le 28 juillet 2026 reproduit la même limite du PTY. L'envoi
-Ctrl+C depuis une console Windows native reste requis ; le ticket est donc
-`Verify`, pas `Done`.
+3 août 2026, le binaire self-contained courant a rendu `Healthy`/`0`, puis
+l'aide sûre/code `2` pour `--unknown`. Un second lancement dans un groupe de
+processus Windows dédié a rendu `BRIDGE_READY 1 55078`; un événement console
+Windows `Ctrl+Break`, traité par le même gestionnaire `Console.CancelKeyPress`
+que `Ctrl+C`, a entraîné une sortie `0`. Aucun processus
+`Thrustline.Bridge` ni listener du test n'est resté. Cette preuve lève la limite
+du PTY documentée les 27 et 28 juillet sans modifier le produit.
 
 ### Risks and limitations
 
@@ -174,6 +174,7 @@ Ctrl+C depuis une console Windows native reste requis ; le ticket est donc
 - T0010 : contrat local authentifié, lancement/supervision et health check
   consommable par Tauri.
 - T0011 : abstraction SimConnect et replays.
+- La vérification MSFS réelle reste suivie exclusivement par T0011.
 
 ### Documentation updated
 
@@ -192,4 +193,5 @@ Ctrl+C depuis une console Windows native reste requis ; le ticket est donc
 - diff GitHub vérifié : uniquement les commits et 19 fichiers T0009 ;
 - validations GitHub : aucun check déclaré au dernier relevé ;
 - modifications préexistantes exclues : aucune ;
-- état final : implémentation présente dans `main`, vérification Ctrl+C restante.
+- état final : implémentation présente dans `main`, smoke test console Windows
+  terminé le 3 août 2026 ; ticket `Done`.
