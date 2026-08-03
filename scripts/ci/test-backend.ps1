@@ -166,8 +166,10 @@ try {
         $testText -notmatch "company_onboarding\.test\.sql" -or
         $testText -notmatch "aircraft_purchase_structure\.test\.sql" -or
         $testText -notmatch "aircraft_purchase\.test\.sql" -or
+        $testText -notmatch "dispatch_draft_structure\.test\.sql" -or
+        $testText -notmatch "dispatch_draft\.test\.sql" -or
         $testText -notmatch "Result:\s+PASS") {
-        throw "Supabase pgTAP did not prove all twelve files with Result: PASS."
+        throw "Supabase pgTAP did not prove all fourteen files with Result: PASS."
     }
 
     $concurrencyUserId = "44000000-0000-4000-8000-000000000004"
@@ -744,6 +746,117 @@ select
     }
     finally {
         $balanceRaceJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    }
+
+    $dispatchRaceUserId = "86000000-0000-4000-8000-000000000006"
+    $dispatchRaceCompanyId = "86100000-0000-4000-8000-000000000006"
+    $dispatchRaceOfferId = "86200000-0000-4000-8000-000000000006"
+    $dispatchRaceAircraftId = "86300000-0000-4000-8000-000000000006"
+    $dispatchRaceSetupSql = @"
+insert into auth.users (id, email, raw_user_meta_data, is_anonymous)
+values ('$dispatchRaceUserId', 'dispatch-concurrency@thrustline.invalid', '{}', false);
+insert into public.companies (id, owner_id, name)
+values ('$dispatchRaceCompanyId', '$dispatchRaceUserId', 'Dispatch Concurrency Air');
+insert into public.aircraft_purchase_offers (
+    id, aircraft_type_code, serial_number, display_name, price_minor,
+    currency_code, status, sold_at
+)
+values (
+    '$dispatchRaceOfferId', 'C172', 'CI-C172-4001',
+    'CI Dispatch Cessna', 1, 'EUR', 'sold', clock_timestamp()
+);
+insert into public.company_aircraft (
+    id, company_id, offer_id, aircraft_type_code, serial_number, display_name
+)
+values (
+    '$dispatchRaceAircraftId', '$dispatchRaceCompanyId', '$dispatchRaceOfferId',
+    'C172', 'CI-C172-4001', 'CI Dispatch Cessna'
+);
+"@
+    $dispatchRaceFirstSql = @"
+begin;
+set local role service_role;
+select public.create_dispatch_draft(
+    '$dispatchRaceUserId',
+    '86400000-0000-4000-8000-000000000006',
+    '$dispatchRaceAircraftId',
+    'LFPG',
+    'LFPO'
+) ->> 'dispatchId';
+select pg_sleep(4);
+commit;
+"@
+    $dispatchRaceSecondSql = @"
+begin;
+set local role service_role;
+select public.create_dispatch_draft(
+    '$dispatchRaceUserId',
+    '86500000-0000-4000-8000-000000000006',
+    '$dispatchRaceAircraftId',
+    'LFPG',
+    'EGLL'
+) ->> 'dispatchId';
+commit;
+"@
+
+    & $dockerPath exec $databaseContainers[0] `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $dispatchRaceSetupSql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the dispatch draft concurrency scenario."
+    }
+
+    $dispatchRaceJobs = @()
+    try {
+        $dispatchRaceJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql *> $null
+            $LASTEXITCODE
+        } -ArgumentList $dockerPath, $databaseContainers[0], $dispatchRaceFirstSql
+
+        Start-Sleep -Milliseconds 750
+
+        $dispatchRaceJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql *> $null
+            $LASTEXITCODE
+        } -ArgumentList $dockerPath, $databaseContainers[0], $dispatchRaceSecondSql
+
+        $dispatchRaceJobs | Wait-Job | Out-Null
+        $dispatchRaceExitCodes = @(
+            $dispatchRaceJobs | Receive-Job |
+                ForEach-Object { [int]$_ } |
+                Sort-Object
+        )
+        if ($dispatchRaceJobs.State -contains "Failed" -or
+            ($dispatchRaceExitCodes -join "|") -ne "0|1") {
+            throw "Concurrent dispatch drafts did not reject exactly one command."
+        }
+
+        $dispatchRaceStateSql = @"
+select
+    (select count(*) from public.flight_dispatches
+     where aircraft_id = '$dispatchRaceAircraftId'),
+    (select count(*) from private.dispatch_draft_commands
+     where aircraft_id = '$dispatchRaceAircraftId'),
+    (select count(*) from public.flight_dispatches
+     where aircraft_id = '$dispatchRaceAircraftId' and state <> 'draft'),
+    (select count(distinct aircraft_id) from public.flight_dispatches
+     where aircraft_id = '$dispatchRaceAircraftId');
+"@
+        $dispatchRaceState = @(
+            & $dockerPath exec $databaseContainers[0] `
+                psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres -c $dispatchRaceStateSql
+        )
+        if ($LASTEXITCODE -ne 0 -or
+            ($dispatchRaceState -join "").Trim() -ne "1|1|0|1") {
+            throw "Concurrent dispatch drafts did not preserve one active draft."
+        }
+        Write-Output "Dispatch draft concurrency passed: 2 requests, 1 draft, 1 command."
+    }
+    finally {
+        $dispatchRaceJobs | Remove-Job -Force -ErrorAction SilentlyContinue
     }
 
     $restoreUserId = "48000000-0000-4000-8000-000000000008"

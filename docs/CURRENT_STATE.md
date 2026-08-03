@@ -1,6 +1,6 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 3 août 2026 (T0042 livré ; T0043–T0046 validés
+Dernière revue documentaire : 3 août 2026 (T0042 livré ; T0043–T0047 validés
 sur des branches empilées).
 Statut : T0012–T0031, T0033–T0042 sont `Done`. T0042 est livré dans `main` par
 la PR corrective #73 au commit `a4047a5`, avec ses trois checks verts.
@@ -19,6 +19,10 @@ T0046 est `Review` sur une branche empilée sur T0045 : la flotte propriétaire
 peut être chargée et relue après achat, mais T0043–T0046 restent absents de
 `main`. La PR prête #80 cible T0045 et ses trois checks sont en cours lors de
 l'observation initiale.
+T0047 est `Review` sur une branche empilée sur T0046 : un brouillon de dispatch
+minimal peut être créé côté serveur pour un avion possédé, avec isolation,
+idempotence et exclusivité prouvées localement. T0043–T0047 restent absents de
+`main` et aucune frontière Edge ou consommation desktop du dispatch n'est livrée.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -76,7 +80,8 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   performance, packaging Windows, CI et supply chain.
 - Workflows dans `main` :
   `.github/workflows/ci.yml` et `.github/workflows/security.yml`.
-- Migrations Supabase append-only constatées : 6.
+- Migrations Supabase append-only constatées : 7 sur la branche T0047 ; `main`
+  en contient 6.
 - Variables/configurations relevées par nom seulement : `SUPABASE_URL`,
   `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`.
 - Politique économique T0028 présente dans `main` : source v1
@@ -97,6 +102,9 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   disponibles sous RLS, sans composition d'achat ni accès distant.
   T0044 ajoute au-dessus une lecture explicite de présence de compagnie et
   aiguille l'accueil vers onboarding ou catalogue, sans achat composé.
+  T0045 compose ensuite catalogue et achat, T0046 relit la flotte après achat,
+  puis T0047 ajoute sur sa branche un brouillon de dispatch serveur minimal sans
+  endpoint, desktop, SimBrief ou cycle de vol.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -630,6 +638,15 @@ exécutés, la couverture, le build et les gates passent localement. La preuve
 reste injectée, empilée sur T0045, sans WebView live, cible distante, donnée
 réelle, pagination ou livraison dans `main`.
 
+T0047 ajoute `flight_dispatches`, un registre privé et la commande
+`create_dispatch_draft` réservée à `service_role`. La compagnie, l'état et le
+temps sont dérivés côté serveur ; l'avion doit appartenir à cette compagnie et
+les deux ICAO normalisés doivent être distincts. Deux resets puis 14 fichiers/270
+assertions pgTAP passent sur PostgreSQL 17, les types restent stables et une
+course intersession différente sur le même avion rend `0|1` avec l'état
+`1|1|0|1`. Cette tranche est empilée sur T0046 et ne livre ni endpoint Auth,
+desktop, SimBrief, transition de vol, cible distante ou donnée réelle.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -639,9 +656,10 @@ ni référence privilégiée, ni accès Data API.
 ## Autorité des mutations du golden path
 
 T0024 ajoute une source JSON versionnée couvrant exactement les dix étapes
-produit. Treize domaines sont classés : compagnie, cycle de compte, finance et
-continuité sont des tranches serveur partielles ; Supabase Auth est une autorité
-externe ; huit domaines restent `not-implemented`.
+produit. T0047 classe désormais le dispatch comme tranche serveur partielle, en
+plus de la compagnie, du cycle de compte, de la flotte, de la finance et de la
+continuité ; Supabase Auth est une autorité externe et six domaines restent
+`not-implemented`.
 
 `pnpm authority:check` scanne React, Tauri et le bridge, refuse toute mutation
 Supabase/SQL directe, accès Data API non classé, credential ou commande
@@ -730,12 +748,13 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0042 est livré. T0043, T0044, T0045 et T0046 doivent encore être propagés vers `main`
+T0042 est livré. T0043 à T0047 doivent encore être propagés vers `main`
 par des PR correctives ordonnées ; leurs fusions empilées ne suffisent pas à les
-livrer dans la branche distante par défaut. Après cette propagation, le prochain
-ticket recommandé est le premier slice dispatch autoritaire de phase 4. La
-location T0032 reste bloquée sur ses décisions produit et la persistance Windows
-reste un ticket de sécurité séparé avant tout stockage de refresh token.
+livrer dans la branche distante par défaut. Le prochain ticket recommandé est
+une frontière Edge authentifiée et bornée devant `create_dispatch_draft`, sans
+encore appeler SimBrief ni démarrer un vol. La location T0032 reste bloquée sur
+ses décisions produit et la persistance Windows reste un ticket de sécurité
+séparé avant tout stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et

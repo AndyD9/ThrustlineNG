@@ -128,6 +128,24 @@ rejets Auth, transport et SQL sont remplacés par des codes publics sans détail
 de solde, d'offre, de JWT ou de credential. Aucun appelant desktop ni
 déploiement distant n'est couvert.
 
+## Brouillon de dispatch autoritaire T0047
+
+`create_dispatch_draft` est une fonction `security definer` à `search_path`
+vide exécutable uniquement par `service_role`. Elle accepte un propriétaire
+destiné à être dérivé par une future frontière Auth, une clé UUID, un avion et
+deux codes ICAO. La compagnie, l'état `draft` et l'horodatage ne traversent pas
+la frontière comme autorité cliente. Les ICAO sont normalisés en ASCII
+alphanumérique sur quatre caractères et doivent être distincts.
+
+La commande verrouille la compagnie puis l'avion, refuse un compte en
+suppression et vérifie que l'avion appartient à la compagnie dérivée. Un
+registre `private` lie l'intention normalisée au résultat ; rejeu identique,
+collision et deux créations concurrentes convergent ou échouent sans second
+brouillon. `flight_dispatches` force RLS, n'accorde que `select` à
+`authenticated` sous politique propriétaire et interdit toute mutation client.
+La preuve reste PostgreSQL locale et synthétique : aucun endpoint, desktop,
+SimBrief, cycle de vol ou donnée réelle n'est couvert.
+
 ## Configuration et session desktop T0038
 
 Le bundle n'accepte que deux paramètres explicitement publics : URL Supabase et
@@ -275,8 +293,9 @@ donnée réelle.
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de
 `PRODUCT.md`. Il ne transforme jamais l'absence de code en contrôle de sécurité :
-les domaines dispatch, suivi et clôture de vol, réputation, maintenance,
-opérations passives et distribution restent `not-implemented`.
+T0047 classe le dispatch `server-authoritative` avec une couverture partielle ;
+le suivi et la clôture de vol, la réputation, la maintenance, les opérations
+passives et la distribution restent `not-implemented`.
 
 Les tranches compagnie, cycle de compte, flotte, finance et continuité déjà présentes
 sont `server-authoritative` avec une couverture partielle et des limites

@@ -259,6 +259,19 @@ mutations. Cette preuve jsdom/fetch injectée ne valide ni WebView live, CSP de
 production, cible distante, donnée réelle, pagination ou livraison dans `main`;
 T0046 est empilé sur T0045.
 
+Preuve T0047 du 3 août 2026 : le gate backend passe avec 22 mutations et les
+gates autorité, données et maintenance avec 9, 6 et 8 mutations. Sous Docker
+Desktop 29.6.2, deux resets appliquent les sept migrations append-only puis 14
+fichiers/270 assertions pgTAP concluent par `Result: PASS`. Les types générés
+depuis PostgreSQL restent stables. Les tests couvrent ACL/RLS, dérivation de
+compagnie et d'état, normalisation ICAO, propriété A/B, anonyme, rejeu,
+collision, deuxième brouillon, suppression en attente et rollback injecté.
+Deux sessions avec des clés et destinations différentes sur le même avion
+produisent les codes `0|1` et l'état `1|1|0|1` : un brouillon, une commande,
+aucun état non-draft et un avion distinct. Cette preuve locale synthétique ne
+valide ni Edge Function, desktop, SimBrief, cycle de vol, cible distante ou
+donnée réelle ; T0047 est empilé sur T0046.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme

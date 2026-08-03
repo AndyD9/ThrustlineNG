@@ -131,6 +131,18 @@ flotte du sujet Auth, puis le transport valide strictement la réponse avant que
 le panneau ne la rende. Le succès d'achat ne construit aucun avion localement :
 il signale seulement au panneau déjà chargé de relire la source autoritaire.
 
+T0047 ouvre le domaine dispatch par une migration serveur append-only. La
+commande `create_dispatch_draft`, réservée à `service_role`, reçoit uniquement
+le propriétaire vérifié par une future frontière, une clé d'idempotence, un
+avion et deux codes ICAO. Elle verrouille la compagnie puis l'avion, dérive la
+compagnie depuis le propriétaire, vérifie l'appartenance et persiste dans une
+transaction un brouillon `draft` horodaté par PostgreSQL avec son registre privé.
+
+`flight_dispatches` force RLS et reste en lecture seule pour `authenticated`,
+filtrée par la compagnie du sujet Auth. Une contrainte et le verrou d'avion
+garantissent un seul brouillon actif par avion. Cette tranche ne fournit ni Edge
+Function, ni transport desktop, ni SimBrief, ni transition ou runtime de vol.
+
 ## Packaging Windows T0014
 
 Le package Windows est un installateur NSIS x64 en mode utilisateur courant.

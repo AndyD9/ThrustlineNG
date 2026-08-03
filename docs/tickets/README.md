@@ -60,6 +60,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0044 | Lire l’état de compagnie depuis le desktop | 4 | T0012, T0022, T0042–T0043 | Review |
 | T0045 | Composer le catalogue avec l’achat desktop | 4 | T0037–T0038, T0043–T0044 | Review |
 | T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Review |
+| T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -278,6 +279,13 @@ localement ; le ticket est `Review`, sans WebView live, cible distante, donnée
 réelle ou livraison dans `main`. La PR #76 a fusionné dans T0044 pendant les
 checks, sans propager la pile vers `main`.
 La PR corrective documentaire #77 propage cet état exact vers T0044.
+
+T0047 ajoute sur T0046 un brouillon de dispatch serveur minimal pour un avion
+possédé et deux ICAO distincts. La compagnie, l'état et le temps restent
+serveur ; rejeu, isolation A/B, exclusivité et concurrence sont prouvés sur
+PostgreSQL 17 avec 14 fichiers/270 assertions. Le ticket est `Review`, sans
+endpoint Auth, desktop, SimBrief, cycle de vol, cible distante ou livraison dans
+`main`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

@@ -5,6 +5,7 @@
     "mutationRule": "server-command-only",
     "serviceOnlyCommands": [
       "create_company_with_opening_balance",
+      "create_dispatch_draft",
       "finalize_account_deletion",
       "post_company_opening_balance",
       "purchase_aircraft",
@@ -116,11 +117,21 @@
     },
     {
       "id": "dispatch",
-      "status": "not-implemented",
-      "coverage": "none",
-      "serverBoundaries": [],
-      "evidencePaths": ["docs/CURRENT_STATE.md"],
-      "limitations": ["Dispatch creation and SimBrief persistence are not implemented."]
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": [
+        "public.create_dispatch_draft"
+      ],
+      "evidencePaths": [
+        "supabase/migrations/20260803000100_authoritative_dispatch_draft.sql",
+        "supabase/tests/database/dispatch_draft.test.sql"
+      ],
+      "evidenceMarkers": [
+        "create_dispatch_draft",
+        "flight_dispatches",
+        "owner A cannot dispatch owner B aircraft"
+      ],
+      "limitations": ["Only a server-created, idempotent draft with an owned aircraft and two normalized ICAO codes is covered; no authenticated endpoint, desktop composition, SimBrief preparation, lifecycle transition, flight runtime or financial impact is implemented."]
     },
     {
       "id": "flight-runtime",

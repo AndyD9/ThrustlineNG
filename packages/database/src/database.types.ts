@@ -126,6 +126,54 @@ export type Database = {
           },
         ]
       }
+      flight_dispatches: {
+        Row: {
+          aircraft_id: string
+          arrival_icao: string
+          company_id: string
+          created_at: string
+          departure_icao: string
+          id: string
+          schema_version: number
+          state: string
+        }
+        Insert: {
+          aircraft_id: string
+          arrival_icao: string
+          company_id: string
+          created_at?: string
+          departure_icao: string
+          id?: string
+          schema_version?: number
+          state?: string
+        }
+        Update: {
+          aircraft_id?: string
+          arrival_icao?: string
+          company_id?: string
+          created_at?: string
+          departure_icao?: string
+          id?: string
+          schema_version?: number
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_dispatches_aircraft_id_fkey"
+            columns: ["aircraft_id"]
+            isOneToOne: true
+            referencedRelation: "company_aircraft"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flight_dispatches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -141,6 +189,16 @@ export type Database = {
           currency_code: string
           idempotency_key: string
           opening_amount_minor: number
+          owner_id: string
+        }
+        Returns: Json
+      }
+      create_dispatch_draft: {
+        Args: {
+          aircraft_id: string
+          arrival_icao: string
+          departure_icao: string
+          idempotency_key: string
           owner_id: string
         }
         Returns: Json
