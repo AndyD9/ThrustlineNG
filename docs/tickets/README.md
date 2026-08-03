@@ -56,13 +56,13 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0040 | Activer et valider Auth locale email/mot de passe | 4 | T0021, T0038–T0039 | Done |
 | T0041 | Rendre la connexion locale accessible par une route bornée | 4 | T0038–T0040 | Done |
 | T0042 | Composer l'onboarding de compagnie depuis le desktop | 4 | T0022–T0023, T0038–T0041 | Done |
-| T0043 | Lire le catalogue d'avions depuis le desktop | 4 | T0029, T0037–T0042 | Review |
-| T0044 | Lire l’état de compagnie depuis le desktop | 4 | T0012, T0022, T0042–T0043 | Review |
-| T0045 | Composer le catalogue avec l’achat desktop | 4 | T0037–T0038, T0043–T0044 | Review |
-| T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Review |
-| T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Review |
-| T0048 | Exposer le brouillon de dispatch derrière une frontière authentifiée | 2–4 | T0023, T0024, T0047 | Review |
-| T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Ready |
+| T0043 | Lire le catalogue d'avions depuis le desktop | 4 | T0029, T0037–T0042 | Done |
+| T0044 | Lire l’état de compagnie depuis le desktop | 4 | T0012, T0022, T0042–T0043 | Done |
+| T0045 | Composer le catalogue avec l’achat desktop | 4 | T0037–T0038, T0043–T0044 | Done |
+| T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Done |
+| T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Done |
+| T0048 | Exposer le brouillon de dispatch derrière une frontière authentifiée | 2–4 | T0023, T0024, T0047 | Done |
+| T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Review |
 | T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Ready |
 | T0051 | Clôturer un vol une seule fois, régler son revenu et sa réputation | 2 | T0020, T0028–T0029, T0047, T0050, T0057 | Draft |
 | T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Ready |
@@ -331,6 +331,24 @@ réponse publique versionnée. Les 46 tests de fonctions et les gates applicable
 passent. Le ticket est `Done` et son commit `175203c` est livré dans `main` par
 la PR #83, sans desktop, Edge Runtime live, SimBrief, cycle de vol ou cible
 distante au-delà de son périmètre.
+
+T0049 charge enfin cette frontière dans l'Edge Runtime local réel. Le 3 août
+2026, 48 contrôles passent sans échec : chaînage Auth → Edge → RPC, sept champs
+publics avec `no-store`, rejeu convergent, refus sans bearer, champ interdit,
+ICAO malformés ou identiques, avion d'un autre propriétaire, avion inconnu,
+deuxième brouillon, état final `1|1|1|1` et bindings loopback inchangés. Le
+ticket est `Review` sur `chore/T0049-validate-dispatch-runtime` et n'ajoute
+aucune capacité produit : ni migration, ni handler, ni desktop, ni cible
+distante. La PR #87 cible `main`, elle est `OPEN` et `MERGEABLE`, et ses trois
+checks sont démarrés sans être encore réussis. Le nettoyage réel vient de la destruction de la pile jetable, parce que
+`companies_owner_id_fkey` refuse volontairement d'orphaner une compagnie en
+supprimant son propriétaire par l'Admin API.
+
+T0049 réconcilie aussi l'index avec les fichiers de tickets : la fusion #86 avait
+ramené les six lignes T0043–T0048 à `Review` alors que leurs fichiers étaient
+déjà `Done`, ce qui laissait `pnpm maintenance:check` rouge sur `main`. Les
+statuts substantiels ne changent pas ; seule la table revient à l'état déjà
+prouvé par la PR #85.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
