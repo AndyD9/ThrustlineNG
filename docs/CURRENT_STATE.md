@@ -1,37 +1,32 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 3 août 2026 (T0042 livré ; T0043–T0048 validés
-sur des branches empilées).
-Statut : T0012–T0031, T0033–T0042 sont `Done`. T0042 est livré dans `main` par
-la PR corrective #73 au commit `a4047a5`, avec ses trois checks verts.
-T0043 est `Review` sur une branche empilée sur T0042 ; sa lecture de catalogue
-n'est pas présente dans `main`. La PR #72 a fusionné dans T0042 après la
-propagation de cette branche vers `main`.
-T0044 est `Review` sur une branche empilée sur T0043 : la reprise de compagnie
-et l'aiguillage onboarding/catalogue ne sont pas présents dans `main`. La PR
-#74 a fusionné dans la branche T0043.
+Dernière revue documentaire : 3 août 2026 (audit de tous les tickets ouverts et
+réconciliation des livraisons T0043–T0044).
+Statut : T0009, T0012–T0031, T0033–T0044 sont `Done`. T0009 est clos par le
+smoke test console Windows du 3 août 2026. T0042 est livré dans `main` par la PR
+corrective #73 au commit `a4047a5`. T0043 et T0044 sont livrés ensemble dans
+`main` par la PR corrective #79 au commit `6c232c6`; Windows multi-stack,
+PostgreSQL 17 et audits/licences/SBOM sont réussis.
 T0045 est `Review` sur une branche empilée sur T0044 : la composition
 catalogue/achat est validée localement mais absente de `main`. La PR #76 a
 fusionné dans la branche T0044 pendant les checks, sans propager la pile vers
 `main`. La PR corrective documentaire #77 propage cette réconciliation vers
 T0044.
 T0046 est `Review` sur une branche empilée sur T0045 : la flotte propriétaire
-peut être chargée et relue après achat, mais T0043–T0046 restent absents de
-`main`. La PR prête #80 cible T0045 et ses trois checks sont en cours lors de
-l'observation initiale.
+peut être chargée et relue après achat, mais T0045–T0046 restent absents de
+`main`. La PR #80 a fusionné dans T0045 avec ses trois checks verts.
 T0047 est `Review` sur une branche empilée sur T0046 : un brouillon de dispatch
 minimal peut être créé côté serveur pour un avion possédé, avec isolation,
-idempotence et exclusivité prouvées localement. T0043–T0047 restent absents de
+idempotence et exclusivité prouvées localement. T0045–T0047 restent absents de
 `main` et aucune frontière Edge ou consommation desktop du dispatch n'est
-livrée. La PR prête #81 cible T0046 et ses trois checks sont en cours lors de
-l'observation initiale.
+livrée. La PR #81 a fusionné dans T0046 avec ses trois checks verts.
 T0048 est `Review` sur une branche empilée sur T0047 : l'Edge Function
 `dispatch-draft` vérifie une session non anonyme, dérive le propriétaire et
-appelle la commande T0047 avec le credential serveur. T0043–T0048 restent
+appelle la commande T0047 avec le credential serveur. T0045–T0048 restent
 absents de `main`; aucun appel desktop, runtime Edge live ou SimBrief n'est
-livré. La PR prête #82 cible T0047 ; elle est `OPEN` et `MERGEABLE`, avec ses
-trois checks démarrés lors de l'observation initiale.
-Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
+livré. La PR #82 a fusionné dans T0047 avec ses trois checks verts. La PR
+corrective #83 est ouverte et prête de T0048 vers `main`.
+Les vérifications historiques T0007–T0008 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
 
@@ -767,8 +762,8 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0042 est livré. T0043 à T0048 doivent encore être propagés vers `main`
-par des PR correctives ordonnées ; leurs fusions empilées ne suffisent pas à les
+T0043 et T0044 sont livrés. T0045 à T0048 attendent la fusion par Andy de la PR
+corrective #83 vers `main`; leurs fusions empilées seules ne suffisent pas à les
 livrer dans la branche distante par défaut. Le prochain ticket recommandé est
 la preuve locale réelle Auth → Edge Runtime → `create_dispatch_draft`, avec
 identité, compagnie, avion et dispatch exclusivement synthétiques, sans encore

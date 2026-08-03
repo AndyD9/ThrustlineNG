@@ -22,7 +22,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0006 | Épingler les runtimes et créer la source de versions | 1 | T0005 | Done |
 | T0007 | Créer le shell Tauri minimal et mesurer son empreinte | 1 | T0006 | Verify |
 | T0008 | Créer le frontend React minimal | 1 | T0006–T0007 | Verify |
-| T0009 | Créer le bridge .NET minimal | 1 | T0006 | Verify |
+| T0009 | Créer le bridge .NET minimal | 1 | T0006 | Done |
 | T0010 | Établir le contrat local et le health check | 1 | T0007–T0009 | Done |
 | T0011 | Créer l'adaptateur SimConnect et le replay | 1–3 | T0009–T0010 | Verify |
 | T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Done |
@@ -56,8 +56,8 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0040 | Activer et valider Auth locale email/mot de passe | 4 | T0021, T0038–T0039 | Done |
 | T0041 | Rendre la connexion locale accessible par une route bornée | 4 | T0038–T0040 | Done |
 | T0042 | Composer l'onboarding de compagnie depuis le desktop | 4 | T0022–T0023, T0038–T0041 | Done |
-| T0043 | Lire le catalogue d'avions depuis le desktop | 4 | T0029, T0037–T0042 | Review |
-| T0044 | Lire l’état de compagnie depuis le desktop | 4 | T0012, T0022, T0042–T0043 | Review |
+| T0043 | Lire le catalogue d'avions depuis le desktop | 4 | T0029, T0037–T0042 | Done |
+| T0044 | Lire l’état de compagnie depuis le desktop | 4 | T0012, T0022, T0042–T0043 | Done |
 | T0045 | Composer le catalogue avec l’achat desktop | 4 | T0037–T0038, T0043–T0044 | Review |
 | T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Review |
 | T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Review |
@@ -66,7 +66,8 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
 restent en vérification tant que leurs contrôles humains ne sont pas clos. T0009
-reste aussi en vérification pour son smoke test interactif.
+est `Done` depuis le smoke test console Windows du 3 août 2026 : état prêt,
+annulation console, sortie `0` et aucun processus restant.
 T0011 possède un replay synthétique automatisé et
 reste en vérification jusqu'au test réel MSFS 2024. T0012 est `Done` depuis que
 T0021, sa preuve loopback et l'inspection visuelle de Studio sont fusionnés dans
@@ -257,19 +258,19 @@ backend.
 T0043 ajoute une lecture Data API locale explicitement allowlistée des offres
 `available`, limitée à vingt lignes et 32 Kio, ainsi qu'un panneau injecté sans
 réseau au rendu. Ses 125 tests frontend, couverture, build et gates passent
-localement ; le gate d'autorité couvre désormais huit mutations négatives. Le
-ticket est `Review` sur une branche empilée sur T0042 et ne compose ni achat, ni
-flotte, ni cible distante. La PR #72 a fusionné dans la branche T0042 après sa
-propagation vers `main`; les commits T0043 restent donc absents de `main`.
+localement ; le gate d'autorité couvre désormais huit mutations négatives. La
+PR #72 a fusionné dans la branche T0042, puis la PR corrective #79 a livré
+T0043 dans `main` au commit `6c232c6` avec ses trois checks verts. T0043 est
+`Done` sans composer achat, flotte ou cible distante.
 
 T0044 ajoute au-dessus de T0043 une lecture Data API locale de la présence de
 compagnie, projetée sur `id`, bornée à deux lignes puis réduite à un booléen.
 L'accueil ne charge rien au rendu et aiguille explicitement une session vers
 l'onboarding ou le catalogue ; une création réussie bascule vers le catalogue.
 Les 146 tests frontend, la couverture, le build et les gates passent localement.
-T0044 est `Review` sur une branche empilée sur T0043/PR #72, sans achat composé,
-WebView live, cible distante ou donnée réelle. La PR #74 a fusionné dans la
-branche T0043 sans propager T0043 ou T0044 vers `main`.
+La PR #74 a fusionné dans T0043 avant la PR corrective #79, qui a donc livré
+T0044 dans `main` au commit `6c232c6` avec ses trois checks verts. T0044 est
+`Done`, sans achat composé, WebView live, cible distante ou donnée réelle.
 
 T0045 compose sur une branche empilée la sélection d'une offre T0043 avec la
 commande d'achat T0037 derrière l'aiguillage T0044. Le bearer est acquis au clic
@@ -301,5 +302,5 @@ ses trois checks démarrés lors de l'observation initiale.
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
 cycles manuels et ses preuves CI sont validés ; T0014 est `Done` depuis le
-30 juillet 2026. Les vérifications encore ouvertes de T0007–T0009, les essais
+30 juillet 2026. Les vérifications encore ouvertes de T0007–T0008 et les essais
 MSFS de T0011 restent suivis séparément.
