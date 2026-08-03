@@ -62,8 +62,8 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Done |
 | T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Done |
 | T0048 | Exposer le brouillon de dispatch derrière une frontière authentifiée | 2–4 | T0023, T0024, T0047 | Done |
-| T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Review |
-| T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Review |
+| T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Done |
+| T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Done |
 | T0051 | Clôturer un vol une seule fois, régler son revenu et sa réputation | 2 | T0020, T0028–T0029, T0047, T0050, T0057 | Draft |
 | T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Ready |
 | T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Draft |
@@ -352,9 +352,20 @@ deux états, ajoute un horodatage de départ dérivé de PostgreSQL et réserve
 restent serveur ; rejeu, collision, dispatch étranger, dispatch déjà actif,
 compte en suppression, rollback injecté et concurrence sont prouvés sur
 PostgreSQL 17 avec 16 fichiers/312 assertions, et la vérification manuelle
-confirme un vol actif unique sans écriture financière. Le ticket est `Review` sur
-`feature/T0050-authoritative-flight-start`, empilé sur T0049, sans frontière
-Auth, endpoint, desktop, SimBrief, télémétrie, clôture ni cible distante.
+confirme un vol actif unique sans écriture financière. T0050 est `Done` : son
+commit `3e798db` est livré dans `main` par la PR #89 au merge `6577125`, et le
+job Linux `Supabase PostgreSQL 17` y passe avec 16 fichiers pgTAP, `Result: PASS`
+et `Flight start concurrency passed: 2 sessions, 1 active flight, 1 command,
+1 server time`. Le ticket n'ajoute ni frontière Auth, endpoint, desktop,
+SimBrief, télémétrie, clôture ni cible distante.
+
+La fusion de T0050 a rejoué la dérive d'index déjà connue : le merge `09565ee`
+de `main` dans la branche a résolu le conflit de cette table en écartant la PR
+#88, ramenant la ligne T0049 à `Review` alors que son fichier restait `Done`, ce
+qui a laissé `pnpm maintenance:check` et le job `Windows multi-stack` rouges sur
+`main` au commit `6577125`. Aucune autre ligne de la PR #88 n'est perdue. Cette
+entrée restaure la ligne T0049 à `Done` et consigne la clôture de T0050 ; aucun
+statut substantiel n'est inventé.
 
 T0049 réconcilie aussi l'index avec les fichiers de tickets : la fusion #86 avait
 ramené les six lignes T0043–T0048 à `Review` alors que leurs fichiers étaient

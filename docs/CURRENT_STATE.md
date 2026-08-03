@@ -2,7 +2,11 @@
 
 Dernière revue documentaire : 3 août 2026 (audit de tous les tickets ouverts et
 réconciliation des livraisons T0043–T0048).
-Statut : T0009, T0012–T0031, T0033–T0049 sont `Done`. T0009 est clos par le
+Statut : T0009, T0012–T0031, T0033–T0050 sont `Done`. T0050 est livré dans `main`
+par la PR #89 au merge `6577125`, où le job Linux `Supabase PostgreSQL 17`
+réussit ; le job `Windows multi-stack` du même run échoue sur la seule ligne
+d'index T0049 ramenée à `Review` par la résolution de conflit `09565ee`, corrigée
+par la PR de réconciliation `docs/T0050-record-merge`. T0009 est clos par le
 smoke test console Windows du 3 août 2026. T0042 est livré dans `main` par la PR
 corrective #73 au commit `a4047a5`. T0043 et T0044 sont livrés ensemble dans
 `main` par la PR corrective #79 au commit `6c232c6`; Windows multi-stack,
@@ -814,13 +818,15 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0043 à T0049 sont livrés dans `main`, y compris la preuve locale réelle
-Auth → Edge Runtime → `create_dispatch_draft`, et T0050 y ajoute le démarrage
-serveur d'un vol. T0057 livre le référentiel d'aérodromes borné sur sa propre
-branche : il n'est pas encore fusionné et ne doit donc pas être présumé présent
-dans `main`. Le prochain ticket recommandé du flux backend est T0051, la clôture
-d'un vol avec son règlement et sa réputation, dont la sortie de `Draft` exige la
-fusion de T0050 puis de T0057. Le flux desktop reste T0052, sans SimBrief. La
+T0043 à T0050 sont livrés dans `main`, y compris la preuve locale réelle
+Auth → Edge Runtime → `create_dispatch_draft` et le démarrage serveur d'un vol
+depuis un brouillon possédé. T0057 livre le référentiel d'aérodromes sur sa
+propre branche : il n'est pas encore fusionné et ne doit donc pas être présumé
+présent dans `main`. Le prochain ticket recommandé du flux backend est T0051, la
+clôture d'un vol avec son règlement et sa réputation, dont la sortie de `Draft`
+exige la fusion de T0057 maintenant que T0050 est dans `main` ; l'endpoint
+authentifié du démarrage reste un ticket distinct. Le flux desktop reste T0052,
+sans SimBrief. La
 location T0032 reste bloquée sur ses décisions produit et la persistance Windows
 reste un ticket de sécurité séparé avant tout stockage de refresh token.
 

@@ -338,7 +338,12 @@ financière n'apparaît, `authenticated` et `anon` reçoivent `permission denied
 sur la commande comme sur la table, et deux sessions concurrentes sur le même
 dispatch rendent les codes `0|1` avec l'état `1|1|0|1|0`. Cette preuve locale
 synthétique ne valide ni frontière Auth, endpoint, appelant desktop, télémétrie,
-clôture, cible distante ou donnée réelle ; T0050 est empilé sur T0049.
+clôture, cible distante ou donnée réelle. La PR #89 fusionne T0050 dans `main` au
+merge `6577125`, où le job Linux `Supabase PostgreSQL 17` passe : deux resets,
+16 fichiers/312 assertions pgTAP avec `Result: PASS`, `Flight start concurrency
+passed: 2 sessions, 1 active flight, 1 command, 1 server time` puis
+`Backend CI passed`. La course intersession du harnais CI, non exécutable
+localement sous Windows, est donc prouvée sur le runner Linux.
 
 Preuve T0057 du 3 août 2026 : `backend:check` passe avec 35 mutations, dont cinq
 nouvelles qui détectent un seed divergeant de `eng/airports.json`, un chargement
