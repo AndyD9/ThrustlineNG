@@ -17,7 +17,8 @@ fusionné dans la branche T0044 pendant les checks, sans propager la pile vers
 T0044.
 T0046 est `Review` sur une branche empilée sur T0045 : la flotte propriétaire
 peut être chargée et relue après achat, mais T0043–T0046 restent absents de
-`main`.
+`main`. La PR prête #80 cible T0045 et ses trois checks sont en cours lors de
+l'observation initiale.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.

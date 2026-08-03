@@ -32,6 +32,10 @@ la branche T0045 et ne présente pas la pile comme livrée.
 - 3 août 2026 — `Review` : lecture RLS, composition post-achat, revue
   adversariale et validations automatisées terminées ; publication encore à
   effectuer sur la branche T0045.
+- 3 août 2026 — publication : commits `ad46315` et `d30732a` poussés ; PR prête
+  #80 ouverte, base `feature/T0045-compose-aircraft-purchase`, head
+  `feature/T0046-desktop-aircraft-fleet`, fusionnable ; les trois checks GitHub
+  sont en cours lors de l'observation initiale.
 
 ## Dependencies
 
@@ -242,5 +246,8 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md`, `ARCHITECTURE.md`,
 - base : T0045 au commit `011f68c` ;
 - dépendances empilées : T0043–T0045 restent absents de `main` ;
 - commit d'implémentation : `ad46315` ;
-- push et Pull Request : à effectuer sur la base
-  `feature/T0045-compose-aircraft-purchase`.
+- commit de preuve avant publication : `d30732a` ;
+- branche poussée avec upstream exact ;
+- PR prête #80 : https://github.com/AndyD9/ThrustlineNG/pull/80, base T0045,
+  head T0046, état `OPEN` et `MERGEABLE` ; Windows multi-stack, PostgreSQL 17 et
+  supply-chain sont en cours lors de l'observation initiale.
