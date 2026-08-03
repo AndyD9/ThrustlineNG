@@ -122,11 +122,10 @@ aux paliers appartiennent à la politique de clôture de T0051.
 - [x] La documentation précise l'origine des données et l'absence de dépendance
       externe.
 
-Réserve sur le cinquième critère : `backend:check`, `backend:test`,
-`backend:types:check`, `authority:check` et `data-policy:check` passent.
-`maintenance:check` échoue sur une dérive d'index T0049 déjà présente sur
-`origin/main` et déjà réparée par une branche en attente de fusion, sans lien
-avec ce ticket. `ci:backend` reste réservé au runner Linux.
+Tous les gates exécutables localement passent : `backend:check`, `backend:test`,
+`backend:types:check`, `authority:check`, `data-policy:check` et
+`maintenance:check`. `ci:backend` reste réservé au runner Linux et sa preuve est
+attendue de la CI sur la Pull Request.
 
 ## Security review
 
@@ -263,15 +262,18 @@ les gates, Docker Desktop 29.6.2, Supabase CLI 2.109.1 isolée, PostgreSQL 17.
 | `pnpm backend:stop` | Réussi |
 | `pnpm authority:check` | Réussi — 9 mutations négatives |
 | `pnpm data-policy:check` | Réussi — 6 mutations négatives |
-| `pnpm maintenance:check` | Échoué sur une dérive préexistante, hors périmètre |
+| `pnpm maintenance:check` | Réussi après fusion de la PR #90 — 8 mutations |
 | `git diff --check` | Réussi — aucun problème d'espaces |
 | `pnpm ci:backend` | Non exécuté — harnais réservé au runner Linux |
 
-`maintenance:check` échoue sur `origin/main` avant toute modification de ce
-ticket : le fichier T0049 déclare `Done` alors que l'index déclare `Review`. La
-réparation existe déjà dans le commit `56ee4e3` de la branche
-`docs/T0050-record-merge`, poussée et en attente de fusion. Aucune ligne T0049
-n'est touchée ici et la dérive n'est pas attribuée à T0057.
+`maintenance:check` a d'abord échoué, et pour une raison étrangère à ce ticket :
+`origin/main` portait une dérive où le fichier T0049 déclarait `Done` alors que
+l'index déclarait `Review`. Aucune ligne T0049 n'a été touchée ici. Andy a
+fusionné la PR #90 `docs/T0050-record-merge` pendant l'implémentation, ce qui a
+réparé la dérive et passé T0050 à `Done` dans `main`; `origin/main` a donc été
+fusionné dans cette branche, le conflit de « Prochain ticket recommandé » de
+`CURRENT_STATE.md` résolu, et le gate repasse au vert. La branche reste basée sur
+`main` et n'est pas empilée.
 
 Deux échecs intermédiaires sont consignés parce qu'ils portent un apprentissage.
 Le premier `backend:start` a échoué sur `syntax error at or near "on"` : le
@@ -343,11 +345,9 @@ Durée effective hors démarrage de la pile : environ 6 minutes, sous la cible d
 
 ### Follow-ups
 
-- `maintenance:check` reste rouge sur `main` jusqu'à la fusion de
-  `docs/T0050-record-merge`, qui répare la ligne d'index T0049.
-- T0051 peut sortir de `Draft` une fois T0050 puis T0057 fusionnés ; il
-  consommera les coordonnées pour la distance et les paliers pour le
-  multiplicateur.
+- T0051 peut sortir de `Draft` dès la fusion de cette branche, T0050 étant
+  désormais `Done` dans `main` ; il consommera les coordonnées pour la distance
+  et les paliers pour le multiplicateur.
 - Candidat `LEARNINGS.md` : `backend:test`, `backend:reset` et
   `backend:types` s'exécutent sur les sources copiées dans le runtime isolé par
   `backend:start`. Toute modification de migration, de seed ou de fichier pgTAP
