@@ -97,8 +97,10 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   aiguille l'accueil vers onboarding ou catalogue, sans achat composé.
   T0045 compose ensuite catalogue et achat, T0046 relit la flotte après achat,
   puis T0047 ajoute sur sa branche un brouillon de dispatch serveur minimal.
-  T0048 l'expose derrière une frontière Auth bornée, sans desktop, SimBrief ou
-  cycle de vol.
+  T0048 l'expose derrière une frontière Auth bornée et T0049 le valide sur
+  l'Edge Runtime local réel. T0050 ajoute au-dessus le démarrage serveur d'un
+  vol depuis ce brouillon, sans frontière Auth, desktop, SimBrief, télémétrie
+  ni clôture.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -664,6 +666,23 @@ nettoyage vient de la destruction de la pile jetable ; et `pnpm backend:test`
 suppose une base fraîchement réinitialisée. Aucune parité cloud, cible distante,
 consommation desktop ou donnée réelle n'est prouvée.
 
+T0050 ouvre le domaine `flight-runtime` par une huitième migration append-only
+qui ne réécrit pas T0047. L'état de dispatch devient une liste fermée de `draft`
+et `active`, un horodatage `started_at` n'existe que pour un vol actif et un
+trigger le dérive de `clock_timestamp()`; la contrainte d'unicité par avion
+couvre désormais les deux états. La commande `start_flight_from_dispatch`,
+réservée à `service_role`, accepte seulement propriétaire vérifié, clé
+d'idempotence et dispatch, verrouille la compagnie puis le dispatch, dérive
+compagnie et avion, refuse un compte en suppression et n'autorise que la
+transition `draft` → `active`. Un dispatch inconnu, étranger ou déjà actif rend
+le même refus opaque, et le registre privé `flight_start_commands` n'admet qu'un
+démarrage par dispatch. Deux resets puis 16 fichiers/312 assertions pgTAP
+passent, les types restent stables, la vérification manuelle rend `1|2|1|1` sans
+écriture financière et deux sessions concurrentes sur le même dispatch rendent
+`0|1` avec l'état `1|1|0|1|0`. Cette tranche n'ajoute ni frontière Auth,
+endpoint, appelant desktop, télémétrie, clôture, annulation, cible distante ou
+donnée réelle.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -673,10 +692,11 @@ ni référence privilégiée, ni accès Data API.
 ## Autorité des mutations du golden path
 
 T0024 ajoute une source JSON versionnée couvrant exactement les dix étapes
-produit. T0048 classe désormais le dispatch comme tranche serveur partielle avec
-frontière Auth bornée, en
+produit. T0048 classe le dispatch comme tranche serveur partielle avec
+frontière Auth bornée et T0050 classe `flight-runtime` comme tranche serveur
+partielle limitée au démarrage d'un vol, en
 plus de la compagnie, du cycle de compte, de la flotte, de la finance et de la
-continuité ; Supabase Auth est une autorité externe et six domaines restent
+continuité ; Supabase Auth est une autorité externe et cinq domaines restent
 `not-implemented`.
 
 `pnpm authority:check` scanne React, Tauri et le bridge, refuse toute mutation

@@ -1,6 +1,6 @@
 # T0050 — Démarrer un vol autoritaire depuis un brouillon de dispatch
 
-Status: Ready
+Status: Review
 Owner: Andy
 Branch: `feature/T0050-authoritative-flight-start`
 Phase: 2
@@ -106,17 +106,17 @@ aucune valeur économique : aucune écriture financière n'est créée.
 
 ## Acceptance criteria
 
-- [ ] Une nouvelle migration append-only ouvre l'état `active` sans réécrire
+- [x] Une nouvelle migration append-only ouvre l'état `active` sans réécrire
       T0047 et sans autoriser d'autre état.
-- [ ] Un brouillon possédé devient exactement un vol actif horodaté par le
+- [x] Un brouillon possédé devient exactement un vol actif horodaté par le
       serveur, dans une seule transaction.
-- [ ] Le rejeu de la même clé rend la même réponse ; une collision, un dispatch
+- [x] Le rejeu de la même clé rend la même réponse ; une collision, un dispatch
       étranger, un dispatch déjà actif ou un compte en suppression échouent
       fermés sans fuite.
-- [ ] Aucun rôle client ne peut exécuter la commande ni écrire l'état ou le
+- [x] Aucun rôle client ne peut exécuter la commande ni écrire l'état ou le
       temps ; la lecture reste limitée à la compagnie du sujet Auth.
-- [ ] Deux sessions concurrentes produisent un vol actif unique.
-- [ ] pgTAP, types générés et gates applicables passent avec leurs scénarios
+- [x] Deux sessions concurrentes produisent un vol actif unique.
+- [x] pgTAP, types générés et gates applicables passent avec leurs scénarios
       réellement découverts et consignés.
 
 ## Security review
@@ -179,18 +179,122 @@ réécrire un dispatch existant.
 
 ## Completion Report
 
-À remplir après implémentation.
-
 ### Summary
+
+Une huitième migration append-only ouvre le domaine `flight-runtime` sans
+réécrire T0047. La contrainte `flight_dispatches_draft_only` est remplacée par
+une liste fermée de deux états connus, `draft` et `active`. Une colonne
+`started_at` est ajoutée, liée par contrainte au seul état `active`, et un
+trigger `before insert or update` la dérive de `clock_timestamp()` au passage à
+`active`, la conserve ensuite et la remet à null pour un brouillon : aucun
+appelant ne peut fournir, remplacer ni antidater ce temps, même par une écriture
+directe sur la table. La contrainte d'unicité par avion couvre désormais les deux
+états et le reste documenté comme tel.
+
+`public.start_flight_from_dispatch`, `security definer`, `set search_path = ''`
+et exécutable seulement par `service_role`, accepte exactement propriétaire
+vérifié, clé d'idempotence et dispatch. Elle verrouille la compagnie du
+propriétaire puis le dispatch, dérive compagnie et avion du serveur, refuse un
+compte en suppression via `private.account_is_active` et n'autorise que la
+transition `draft` → `active` dans une seule transaction. Un dispatch inconnu,
+appartenant à une autre compagnie ou déjà actif rend le même message opaque. Le
+registre `private.flight_start_commands` force RLS, n'accorde aucun privilège
+API, lie `(owner_id, idempotency_key)` à l'empreinte SHA-256 du payload et
+n'admet qu'un démarrage par dispatch ; un rejeu identique rend la même réponse
+versionnée à cinq champs. Aucune valeur monétaire n'est écrite.
 
 ### Files changed
 
+- `supabase/migrations/20260803000200_authoritative_flight_start.sql` (nouveau) ;
+- `supabase/tests/database/flight_start_structure.test.sql` (nouveau, 18
+  assertions) ;
+- `supabase/tests/database/flight_start.test.sql` (nouveau, 24 assertions) ;
+- `packages/database/src/database.types.ts` régénéré par le script existant ;
+- `scripts/ci/test-backend.ps1` : deux fichiers pgTAP attendus en plus et une
+  course intersession sur le même dispatch ;
+- `tests/backend/run.ps1` : fichiers requis, 21 invariants de migration, garde
+  append-only sur les sept migrations livrées, marqueurs pgTAP, marqueurs de
+  types, marqueurs CI et quatre mutations négatives supplémentaires ;
+- `eng/authority-inventory.json` : `flight-runtime` passe
+  `server-authoritative`/`partial` et `start_flight_from_dispatch` rejoint les
+  commandes réservées ;
+- `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/QUALITY.md`,
+  `docs/CURRENT_STATE.md`, `docs/tickets/README.md` et ce ticket.
+
 ### Commands and results
+
+Le 3 août 2026, sous Windows 11, Docker Desktop 29.6.2, Supabase CLI 2.109.1 et
+PostgreSQL 17 :
+
+- `pnpm.cmd backend:check` : `Backend checks passed (T0012-T0023, T0028-T0029,
+  T0035, T0040 et T0047-T0050 repository plus 30 mutation scenarios).`
+- `pnpm.cmd backend:start` : pile locale démarrée sur la loopback IPv4 dans le
+  moteur Docker isolé ;
+- `pnpm.cmd backend:reset` : les huit migrations append-only s'appliquent, dont
+  `20260803000200_authoritative_flight_start.sql`;
+- `pnpm.cmd backend:test` : `Files=16, Tests=312` puis `Result: PASS`;
+- `pnpm.cmd backend:types:check` : `Database types match the local schema.`
+- `pnpm.cmd backend:stop` : runtime arrêté, seul le cache d'images sans source
+  est conservé ;
+- `pnpm.cmd authority:check` : 10 étapes, 13 domaines, 3 surfaces, 9 mutations ;
+- `pnpm.cmd data-policy:check` : 6 mutations ;
+- `pnpm.cmd maintenance:check` : registre, index et 8 mutations ;
+- `git diff --check` : aucun défaut d'espaces.
+
+Les types régénérés n'ajoutent que `started_at: string | null` sur
+`flight_dispatches` et `start_flight_from_dispatch` dans `Functions`.
 
 ### Manual verification result
 
+Sur la pile locale réinitialisée, deux identités `.invalid`, deux compagnies,
+trois avions et trois brouillons sont créés par la commande T0047. Le démarrage
+du brouillon possédé rend
+`{"state": "active", "startedAt": "2026-08-03T15:21:05.001358+00:00",
+"aircraftId": "a1300000-…", "dispatchId": "5161288e-…", "schemaVersion": 1}` et le
+rejeu de la même clé rend exactement la même réponse, au même horodatage.
+
+La seconde identité sur le dispatch de la compagnie A, le dispatch déjà actif et
+un dispatch inconnu rendent tous `Dispatch is unavailable for flight start.`; la
+même clé avec un autre dispatch rend `Idempotency key was already used with a
+different payload.` L'état SQL rend `1|2|1|1` : un vol actif, deux brouillons
+restants, une commande privée et un horodatage serveur. Aucune écriture
+financière n'existe pour ces propriétaires et aucun type d'écriture inattendu
+n'apparaît au grand livre. `authenticated` et `anon` reçoivent
+`permission denied for function start_flight_from_dispatch`, et `authenticated`
+reçoit `permission denied for table flight_dispatches` en tentant d'écrire l'état
+et le temps. Le propriétaire A lit `active`/`draft` avec leur horodatage dérivé,
+le propriétaire B ne lit que son propre brouillon.
+
+Deux sessions concurrentes sur le même dispatch, la première tenue quatre
+secondes, rendent les codes de sortie `0|1` : la seconde échoue avec le même
+message opaque. L'état vérifié après la course est `1|1|0|1|0` — un vol actif,
+une commande, aucun brouillon restant sur cet avion, un seul horodatage et aucune
+ligne sans horodatage. Durée effective hors démarrage de la pile : environ
+6 minutes.
+
 ### Risks and limitations
+
+- Aucune frontière Auth, aucun endpoint et aucun appelant n'existent : la
+  commande reste inatteignable hors `service_role`, donc aucune preuve Edge
+  Runtime live n'est produite par ce ticket ;
+- la course intersession est prouvée manuellement ici et automatisée dans
+  `scripts/ci/test-backend.ps1`, qui exige le runner Linux et n'a donc pas été
+  exécuté localement ;
+- comme pour T0047, les pgTAP supposent une base fraîchement réinitialisée ;
+- télémétrie, phases de vol, reprise, clôture, annulation, replanification,
+  libération d'avion, impact financier ou de réputation restent absents ;
+- aucune cible distante et aucune donnée réelle ne sont touchées.
 
 ### Follow-ups
 
+- T0051 clôturera le vol une seule fois et réglera revenu et réputation ;
+- l'endpoint authentifié du démarrage est un ticket distinct, hors périmètre ;
+- `flight-runtime` reste `partial` jusqu'à la clôture et son endpoint.
+
 ### Documentation updated
+
+`docs/ARCHITECTURE.md` (frontière serveur et modèle d'état),
+`docs/SECURITY.md` (section « Démarrage de vol autoritaire T0050 »),
+`docs/QUALITY.md` (preuve T0050 datée), `docs/CURRENT_STATE.md` (tranche livrée,
+domaine `flight-runtime` et compte des domaines non implémentés),
+`docs/tickets/README.md` (statut et narration) et ce ticket.

@@ -9,7 +9,8 @@
       "finalize_account_deletion",
       "post_company_opening_balance",
       "purchase_aircraft",
-      "replay_account_deletion_event"
+      "replay_account_deletion_event",
+      "start_flight_from_dispatch"
     ],
     "clientDataApiReads": [
       {
@@ -138,11 +139,22 @@
     },
     {
       "id": "flight-runtime",
-      "status": "not-implemented",
-      "coverage": "none",
-      "serverBoundaries": [],
-      "evidencePaths": ["docs/CURRENT_STATE.md"],
-      "limitations": ["The replay adapter emits samples but no flight state is persisted or mutated."]
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": [
+        "public.start_flight_from_dispatch"
+      ],
+      "evidencePaths": [
+        "supabase/migrations/20260803000200_authoritative_flight_start.sql",
+        "supabase/tests/database/flight_start.test.sql"
+      ],
+      "evidenceMarkers": [
+        "start_flight_from_dispatch",
+        "flight_dispatches_known_states",
+        "flight_start_commands",
+        "owner A cannot start owner B dispatch"
+      ],
+      "limitations": ["Only the server transition from one owned draft to one server-timed active flight is covered. No Auth boundary, desktop caller, telemetry, flight phase, resume, closure or financial impact exists, and the replay adapter still emits samples without persisting flight state."]
     },
     {
       "id": "flight-finalization",

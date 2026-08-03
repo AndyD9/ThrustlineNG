@@ -135,6 +135,7 @@ export type Database = {
           departure_icao: string
           id: string
           schema_version: number
+          started_at: string | null
           state: string
         }
         Insert: {
@@ -145,6 +146,7 @@ export type Database = {
           departure_icao: string
           id?: string
           schema_version?: number
+          started_at?: string | null
           state?: string
         }
         Update: {
@@ -155,6 +157,7 @@ export type Database = {
           departure_icao?: string
           id?: string
           schema_version?: number
+          started_at?: string | null
           state?: string
         }
         Relationships: [
@@ -256,6 +259,10 @@ export type Database = {
       }
       request_account_deletion: {
         Args: { idempotency_key: string }
+        Returns: Json
+      }
+      start_flight_from_dispatch: {
+        Args: { dispatch_id: string; idempotency_key: string; owner_id: string }
         Returns: Json
       }
     }
