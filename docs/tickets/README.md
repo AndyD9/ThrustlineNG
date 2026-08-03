@@ -22,7 +22,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0006 | Épingler les runtimes et créer la source de versions | 1 | T0005 | Done |
 | T0007 | Créer le shell Tauri minimal et mesurer son empreinte | 1 | T0006 | Verify |
 | T0008 | Créer le frontend React minimal | 1 | T0006–T0007 | Verify |
-| T0009 | Créer le bridge .NET minimal | 1 | T0006 | Verify |
+| T0009 | Créer le bridge .NET minimal | 1 | T0006 | Done |
 | T0010 | Établir le contrat local et le health check | 1 | T0007–T0009 | Done |
 | T0011 | Créer l'adaptateur SimConnect et le replay | 1–3 | T0009–T0010 | Verify |
 | T0012 | Créer Supabase local et les tests RLS | 1 | T0006 | Done |
@@ -101,7 +101,8 @@ par T0056.
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
 restent en vérification tant que leurs contrôles humains ne sont pas clos. T0009
-reste aussi en vérification pour son smoke test interactif.
+est `Done` depuis le smoke test console Windows du 3 août 2026 : état prêt,
+annulation console, sortie `0` et aucun processus restant.
 T0011 possède un replay synthétique automatisé et
 reste en vérification jusqu'au test réel MSFS 2024. T0012 est `Done` depuis que
 T0021, sa preuve loopback et l'inspection visuelle de Studio sont fusionnés dans
@@ -292,49 +293,47 @@ backend.
 T0043 ajoute une lecture Data API locale explicitement allowlistée des offres
 `available`, limitée à vingt lignes et 32 Kio, ainsi qu'un panneau injecté sans
 réseau au rendu. Ses 125 tests frontend, couverture, build et gates passent
-localement ; le gate d'autorité couvre désormais huit mutations négatives. Le
-ticket est `Review` sur une branche empilée sur T0042 et ne compose ni achat, ni
-flotte, ni cible distante. La PR #72 a fusionné dans la branche T0042 après sa
-propagation vers `main`; les commits T0043 restent donc absents de `main`.
+localement ; le gate d'autorité couvre désormais huit mutations négatives. La
+PR #72 a fusionné dans la branche T0042, puis la PR corrective #79 a livré
+T0043 dans `main` au commit `6c232c6` avec ses trois checks verts. T0043 est
+`Done` sans composer achat, flotte ou cible distante.
 
 T0044 ajoute au-dessus de T0043 une lecture Data API locale de la présence de
 compagnie, projetée sur `id`, bornée à deux lignes puis réduite à un booléen.
 L'accueil ne charge rien au rendu et aiguille explicitement une session vers
 l'onboarding ou le catalogue ; une création réussie bascule vers le catalogue.
 Les 146 tests frontend, la couverture, le build et les gates passent localement.
-T0044 est `Review` sur une branche empilée sur T0043/PR #72, sans achat composé,
-WebView live, cible distante ou donnée réelle. La PR #74 a fusionné dans la
-branche T0043 sans propager T0043 ou T0044 vers `main`.
+La PR #74 a fusionné dans T0043 avant la PR corrective #79, qui a donc livré
+T0044 dans `main` au commit `6c232c6` avec ses trois checks verts. T0044 est
+`Done`, sans achat composé, WebView live, cible distante ou donnée réelle.
 
-T0045 compose sur une branche empilée la sélection d'une offre T0043 avec la
+T0045 compose la sélection d'une offre T0043 avec la
 commande d'achat T0037 derrière l'aiguillage T0044. Le bearer est acquis au clic
 depuis le gestionnaire de session, la sélection reste limitée au catalogue
 validé et aucun prix, propriétaire ou solde n'est envoyé comme autorité. Ses 149
 tests frontend exécutés, sa couverture, son build et ses gates passent
-localement ; le ticket est `Review`, sans WebView live, cible distante, donnée
-réelle ou livraison dans `main`. La PR #76 a fusionné dans T0044 pendant les
-checks, sans propager la pile vers `main`.
-La PR corrective documentaire #77 propage cet état exact vers T0044.
+localement. T0046 ajoute la lecture et l'actualisation de la flotte propriétaire.
+Les deux tickets sont `Done` : la PR corrective #83 a livré leurs commits
+`34f96bb` et `ad46315` dans `main` au merge `d117690`, avec les trois checks
+verts. WebView live, cible distante et donnée réelle restent hors preuve.
 
 T0047 ajoute sur T0046 un brouillon de dispatch serveur minimal pour un avion
 possédé et deux ICAO distincts. La compagnie, l'état et le temps restent
 serveur ; rejeu, isolation A/B, exclusivité et concurrence sont prouvés sur
-PostgreSQL 17 avec 14 fichiers/270 assertions. Le ticket est `Review`, sans
-endpoint Auth, desktop, SimBrief, cycle de vol, cible distante ou livraison dans
-`main`. La PR prête #81 cible T0046 et ses trois checks sont en cours lors de
-l'observation initiale.
+PostgreSQL 17 avec 14 fichiers/270 assertions. Le ticket est `Done` et son
+commit `0559a8e` est livré dans `main` par la PR #83, sans endpoint Auth,
+desktop, SimBrief, cycle de vol ou cible distante au-delà de son périmètre.
 
 T0048 ajoute sur T0047 une Edge Function `dispatch-draft` bornée à 4 Kio. Elle
 vérifie une session Auth non anonyme, dérive le propriétaire, normalise les ICAO
 et appelle la RPC T0047 avec le credential serveur, puis projette uniquement la
 réponse publique versionnée. Les 46 tests de fonctions et les gates applicables
-passent. Le ticket est `Review`, empilé sur T0047, sans
-desktop, Edge Runtime live, SimBrief, cycle de vol, cible distante ou livraison
-dans `main`. La PR prête #82 cible T0047 ; elle est `OPEN` et `MERGEABLE`, avec
-ses trois checks démarrés lors de l'observation initiale.
+passent. Le ticket est `Done` et son commit `175203c` est livré dans `main` par
+la PR #83, sans desktop, Edge Runtime live, SimBrief, cycle de vol ou cible
+distante au-delà de son périmètre.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
 cycles manuels et ses preuves CI sont validés ; T0014 est `Done` depuis le
-30 juillet 2026. Les vérifications encore ouvertes de T0007–T0009, les essais
+30 juillet 2026. Les vérifications encore ouvertes de T0007–T0008 et les essais
 MSFS de T0011 restent suivis séparément.

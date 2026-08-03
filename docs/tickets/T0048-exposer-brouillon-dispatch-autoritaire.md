@@ -1,6 +1,6 @@
 # T0048 — Exposer le brouillon de dispatch derrière une frontière authentifiée
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0048-dispatch-draft-endpoint`
 Phase: 2–4
@@ -37,6 +37,9 @@ sur T0047 et ne présente pas cette pile comme une capacité livrée.
 - 3 août 2026 — publication : commit `175203c` poussé ; PR prête #82 ouverte,
   base T0047, head T0048, état `OPEN` et `MERGEABLE`. Windows et supply-chain
   sont en cours, PostgreSQL 17 est en file lors de l'observation initiale.
+- 3 août 2026 — livraison : la PR #83 a intégré le commit `175203c` dans `main`
+  via le merge `d117690`; les trois checks applicables sont verts. Le ticket
+  passe à `Done`.
 
 ## Dependencies
 
@@ -221,13 +224,11 @@ n'est créée ; `KI-021` reste respecté.
 
 ### Risks and limitations
 
-T0048 est empilé sur T0047 et T0043–T0048 sont absents de `main`. La preuve est
-Node/fetch injectée, sans Edge Runtime live, desktop, cible distante, donnée
-réelle, SimBrief ou transition de vol.
+La preuve est Node/fetch injectée, sans Edge Runtime live, desktop, cible
+distante, donnée réelle, SimBrief ou transition de vol.
 
 ### Follow-ups
 
-- publier T0048 sur T0047 puis propager la pile vers `main` dans l'ordre ;
 - valider Auth → Edge Runtime → RPC localement avec des données synthétiques ;
 - traiter la composition desktop, SimBrief et le cycle de vol séparément.
 
@@ -239,10 +240,9 @@ réelle, SimBrief ou transition de vol.
 ### Git status
 
 - branche : `feature/T0048-dispatch-draft-endpoint` ;
-- base : T0047 au commit `74d0421` ;
-- dépendances empilées : T0043–T0047 restent absents de `main` ;
+- base historique : T0047 au commit `74d0421` ;
 - commit d'implémentation : `175203c` ;
-- branche poussée avec upstream exact ;
-- PR prête #82 : https://github.com/AndyD9/ThrustlineNG/pull/82, base T0047,
-  head T0048, état `OPEN` et `MERGEABLE` ; Windows et supply-chain sont en cours,
-  PostgreSQL 17 est en file lors de l'observation initiale.
+- PR historique #82 fusionnée dans la pile ;
+- livraison consolidée : PR #83 fusionnée dans `main`, merge `d117690` ;
+- checks de la PR #83 : `PostgreSQL 17`, `Supply-chain security` et
+  `Windows multi-stack` verts.

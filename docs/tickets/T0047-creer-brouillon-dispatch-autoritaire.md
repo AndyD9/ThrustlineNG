@@ -1,6 +1,6 @@
 # T0047 — Créer un brouillon de dispatch autoritaire et idempotent
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0047-authoritative-dispatch-draft`
 Phase: 2–4
@@ -41,6 +41,9 @@ empilé sur T0046 et ne présente pas la pile comme livrée.
 - 3 août 2026 — publication : commit `0559a8e` poussé ; PR prête #81 ouverte,
   base `feature/T0046-desktop-aircraft-fleet`, head T0047, état `OPEN` et
   `MERGEABLE` ; les trois checks GitHub sont en cours lors de l'observation.
+- 3 août 2026 — livraison : la PR #83 a intégré le commit `0559a8e` dans `main`
+  via le merge `d117690`; les trois checks applicables sont verts. Le ticket
+  passe à `Done`.
 
 ## Dependencies
 
@@ -250,17 +253,13 @@ rejoué dans l'ordre compagnie, offre, identité et a réussi.
 
 ### Risks and limitations
 
-T0047 reste empilé sur T0046 et T0043–T0047 sont absents de `main`. Aucun
-endpoint authentifié, appel desktop, SimBrief, référentiel d'aérodromes,
+Aucun endpoint authentifié, appel desktop, SimBrief, référentiel d'aérodromes,
 transition, runtime ou clôture de vol n'est fourni. Les ICAO sont seulement
 validés syntaxiquement. La preuve reste locale, synthétique, sans cible distante
 ni donnée réelle.
 
 ### Follow-ups
 
-- publier T0047 sur T0046 puis propager la pile vers `main` dans l'ordre ;
-- exposer `create_dispatch_draft` derrière une Edge Function authentifiée,
-  bornée et redigée ;
 - traiter lecture desktop, SimBrief et transitions de vol dans des tickets
   séparés ; T0032 reste `Draft`.
 
@@ -272,10 +271,9 @@ ni donnée réelle.
 ### Git status
 
 - branche : `feature/T0047-authoritative-dispatch-draft` ;
-- base : T0046 au commit `0ed21b1` ;
-- dépendances empilées : T0043–T0046 restent absents de `main` ;
+- base historique : T0046 au commit `0ed21b1` ;
 - commit d'implémentation : `0559a8e` ;
-- branche poussée avec upstream exact ;
-- PR prête #81 : https://github.com/AndyD9/ThrustlineNG/pull/81, base T0046,
-  head T0047, état `OPEN` et `MERGEABLE` ; Windows multi-stack, PostgreSQL 17 et
-  supply-chain sont en cours lors de l'observation initiale.
+- PR historique #81 fusionnée dans la pile ;
+- livraison consolidée : PR #83 fusionnée dans `main`, merge `d117690` ;
+- checks de la PR #83 : `PostgreSQL 17`, `Supply-chain security` et
+  `Windows multi-stack` verts.
