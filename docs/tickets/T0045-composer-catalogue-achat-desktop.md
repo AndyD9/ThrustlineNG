@@ -36,6 +36,10 @@ comme livrées dans la branche distante par défaut.
   base `feature/T0044-desktop-company-state`, head
   `feature/T0045-compose-aircraft-purchase`, fusionnable ; les trois checks
   GitHub sont en attente ou en cours lors de l'observation initiale.
+- 3 août 2026 — fusion empilée : PR #76 fusionnée par Andy dans la branche
+  T0044 pendant les checks ; PostgreSQL 17 et supply-chain sont verts, Windows
+  multi-stack reste en cours. T0045 demeure `Review`, car cette fusion ne
+  propage ni T0043, ni T0044, ni T0045 dans `main`.
 
 ## Dependencies
 
@@ -257,7 +261,7 @@ T0042, ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md`, `ARCHITECTURE.md` e
 - base : T0044 au commit `2a2de58`, PR #74 fusionnée dans T0043 ;
 - dépendances : T0043 et T0044 restent absents de `main` ;
 - commit d'implémentation : `34f96bb` ;
-- PR #76 : ouverte prête, fusionnable, base
-  `feature/T0044-desktop-company-state`, head
-  `feature/T0045-compose-aircraft-purchase` ; Windows multi-stack est en file,
-  PostgreSQL 17 et supply-chain sont en cours lors de l'observation initiale.
+- PR #76 : fusionnée par Andy dans `feature/T0044-desktop-company-state`, head
+  `feature/T0045-compose-aircraft-purchase` ; PostgreSQL 17 et supply-chain sont
+  réussis, Windows multi-stack reste en cours lors de la dernière observation.
+  Cette fusion empilée ne livre pas T0045 dans `main`.
