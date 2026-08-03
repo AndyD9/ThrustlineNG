@@ -124,6 +124,13 @@ soumission. Le payload serveur reste limité à l'offre et à l'idempotence ; pr
 devise, compagnie, propriétaire et solde ne traversent pas cette frontière comme
 autorité cliente.
 
+T0046 ajoute un troisième transport Data API desktop vers `company_aircraft`.
+Sa projection, son ordre et sa limite sont constants ; aucun identifiant de
+compagnie ou propriétaire ne sert de filtre client. La RLS T0029 sélectionne la
+flotte du sujet Auth, puis le transport valide strictement la réponse avant que
+le panneau ne la rende. Le succès d'achat ne construit aucun avion localement :
+il signale seulement au panneau déjà chargé de relire la source autoritaire.
+
 ## Packaging Windows T0014
 
 Le package Windows est un installateur NSIS x64 en mode utilisateur courant.

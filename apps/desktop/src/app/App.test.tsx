@@ -7,6 +7,7 @@ import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
 import type { PasswordSignInInput } from "@/features/auth/passwordSignIn";
 import { DesktopSessionManager, type UserSessionTokens } from "@/features/auth/session";
 import type { AircraftCatalogOffer } from "@/features/aircraft-catalog/aircraftCatalog";
+import type { CompanyAircraft } from "@/features/aircraft-fleet/aircraftFleet";
 import {
   AircraftPurchaseError,
   type PurchaseAircraftInput,
@@ -29,6 +30,15 @@ const catalogOffer: AircraftCatalogOffer = {
   displayName: "Cessna 172 Skyhawk",
   id: "96000000-0000-4000-8000-000000000001",
   priceMinor: 12_500_000,
+  schemaVersion: 1,
+  serialNumber: "SYN-001",
+};
+const fleetAircraft: CompanyAircraft = {
+  acquiredAt: "2026-08-03T10:15:30Z",
+  acquisitionKind: "purchase",
+  aircraftTypeCode: "C172",
+  displayName: "Cessna 172 Skyhawk",
+  id: "96000000-0000-4000-8000-000000000002",
   schemaVersion: 1,
   serialNumber: "SYN-001",
 };
@@ -186,6 +196,9 @@ describe("App", () => {
   it("compose catalogue et achat sans réseau implicite ni autorité économique cliente", async () => {
     const user = userEvent.setup();
     const aircraftCatalogCommand = vi.fn(async () => [catalogOffer]);
+    const aircraftFleetCommand = vi.fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([fleetAircraft]);
     const aircraftPurchaseCommand = vi.fn(async (input: PurchaseAircraftInput) => ({
       aircraftId: "96000000-0000-4000-8000-000000000002",
       ledgerEntryId: "96000000-0000-4000-8000-000000000003",
@@ -196,6 +209,7 @@ describe("App", () => {
     render(
       <App
         aircraftCatalogCommand={aircraftCatalogCommand}
+        aircraftFleetCommand={aircraftFleetCommand}
         aircraftPurchaseCommand={aircraftPurchaseCommand}
         authRuntime={createRuntime(session)}
         companyPresenceCommand={async () => true}
@@ -203,14 +217,22 @@ describe("App", () => {
     );
 
     expect(aircraftCatalogCommand).not.toHaveBeenCalled();
+    expect(aircraftFleetCommand).not.toHaveBeenCalled();
     expect(aircraftPurchaseCommand).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Vérifier ma compagnie" }));
+    expect(aircraftFleetCommand).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole("button", { name: "Afficher ma flotte" }));
+    expect(await screen.findByText("Votre flotte ne contient encore aucun avion."))
+      .toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Afficher les offres" }));
     await user.click(await screen.findByRole("button", { name: "Choisir Cessna 172 Skyhawk" }));
     await user.click(screen.getByRole("button", { name: "Acheter cet avion" }));
 
     expect(await screen.findByText("Avion acquis. Il est maintenant dans votre flotte."))
       .toBeInTheDocument();
+    expect(await screen.findByRole("list", { name: "Avions de la flotte" }))
+      .toHaveTextContent("Cessna 172 Skyhawk");
+    expect(aircraftFleetCommand).toHaveBeenCalledTimes(2);
     expect(aircraftPurchaseCommand).toHaveBeenCalledOnce();
     expect(aircraftPurchaseCommand.mock.calls[0]![0]).toMatchObject({
       accessToken: "private-access-token",

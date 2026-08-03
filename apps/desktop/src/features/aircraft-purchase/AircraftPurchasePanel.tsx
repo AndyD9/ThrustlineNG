@@ -24,6 +24,7 @@ export interface AircraftPurchasePanelProps {
   createIdempotencyKey?: (() => string) | undefined;
   onAuthenticationRequired: () => void;
   onPendingChange?: ((pending: boolean) => void) | undefined;
+  onPurchased?: (() => void) | undefined;
   offer: PurchaseOffer;
   sessionManager: DesktopSessionManager;
 }
@@ -43,6 +44,7 @@ export function AircraftPurchasePanel({
   createIdempotencyKey = defaultIdempotencyKeyFactory,
   onAuthenticationRequired,
   onPendingChange,
+  onPurchased,
   offer,
   sessionManager,
 }: AircraftPurchasePanelProps) {
@@ -93,6 +95,7 @@ export function AircraftPurchasePanel({
       });
       if (!abortController.signal.aborted) {
         setState({ kind: "owned", aircraftId: result.aircraftId });
+        onPurchased?.();
       }
     } catch (error) {
       if (!abortController.signal.aborted) {

@@ -22,6 +22,7 @@ export interface AircraftCatalogPanelProps {
   config: DesktopConnectionConfig;
   createPurchaseIdempotencyKey?: (() => string) | undefined;
   onAuthenticationRequired: () => void;
+  onPurchaseSucceeded?: (() => void) | undefined;
   purchaseCommand?: AircraftPurchaseCommand | undefined;
   sessionManager: DesktopSessionManager;
 }
@@ -42,6 +43,7 @@ export function AircraftCatalogPanel({
   config,
   createPurchaseIdempotencyKey,
   onAuthenticationRequired,
+  onPurchaseSucceeded,
   purchaseCommand,
   sessionManager,
 }: AircraftCatalogPanelProps) {
@@ -154,6 +156,7 @@ export function AircraftCatalogPanel({
           offer={{ id: selectedOffer.id, label: selectedOffer.displayName }}
           onAuthenticationRequired={onAuthenticationRequired}
           onPendingChange={handlePurchasePendingChange}
+          onPurchased={onPurchaseSucceeded}
           sessionManager={sessionManager}
         />
       )}
