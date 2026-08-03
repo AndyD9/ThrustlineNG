@@ -3,6 +3,48 @@
 La roadmap est ordonnée par réduction du risque. Elle décrit des résultats ; les
 détails d'exécution appartiennent aux tickets.
 
+## Mode accéléré vers la première alpha
+
+Décision de pilotage d'Andy du 3 août 2026 : les phases et leurs gates restent
+inchangées, mais les travaux indépendants des phases 2 à 4 peuvent avancer en
+parallèle selon `AGENTS.md` et `docs/WORKFLOW.md`. L'intégration dans `main` prime
+sur l'ouverture de nouvelles branches et les données utilisateur réelles restent
+interdites.
+
+L'alpha est un jalon de validation interne distinct du MVP et d'une publication
+publique. Son périmètre est gelé à :
+
+- authentification et création/reprise d'une compagnie solo ;
+- consultation du catalogue, achat autoritaire et flotte minimale ;
+- dispatch minimal et préparation d'un vol ;
+- connexion MSFS, suivi déterministe des phases et télémétrie bornée ;
+- reprise après déconnexion ou crash ;
+- rapport versionné, clôture unique et écriture dans le grand livre.
+
+La location, les opérations passives, l'équipage, les événements, la progression
+avancée, la profondeur économique et la finition visuelle sont hors du gate de
+l'alpha. Ils restent dans le MVP ou les phases ultérieures lorsqu'ils y sont déjà
+prévus. La signature, l'updater, le rollback N-1 et toute distribution publique
+restent gouvernés par la phase 6 et ne sont pas contournés.
+
+Trois flux peuvent avancer simultanément dans des worktrees distincts :
+
+1. moteur de vol/bridge et reprise ;
+2. backend du dispatch au grand livre ;
+3. desktop et parcours E2E.
+
+Objectifs de pilotage, conditionnels aux dépendances et validations :
+
+| Jalon | Contenu minimal | Fenêtre cible | Nature de la preuve |
+| --- | --- | --- | --- |
+| Alpha technique interne | login → compagnie → catalogue → achat sur pile locale synthétique | août 2026 | build installable interne, tests automatisés et vérification WebView locale |
+| Alpha jouable interne | dispatch → vol MSFS → reprise → rapport → grand livre | 1er–15 septembre 2026 | golden path E2E, replay et fiche Windows/MSFS réelle |
+| Alpha fermée externe | cohorte bornée sans perte de données ni secret client | au plus tôt octobre 2026 | staging, sauvegarde/restauration et contrôles de distribution applicables |
+
+Ces fenêtres sont des objectifs de coordination, pas une promesse de release.
+Un jalon glisse plutôt que de supprimer une preuve, d'admettre des données réelles
+prématurément ou de présenter une branche non fusionnée comme livrée.
+
 ## Phase 0 — Baseline et décisions
 
 Objectif : rendre l'existant mesurable et décider ce que l'on reconstruit.
