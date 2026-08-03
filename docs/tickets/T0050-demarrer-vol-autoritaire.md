@@ -1,6 +1,6 @@
 # T0050 — Démarrer un vol autoritaire depuis un brouillon de dispatch
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0050-authoritative-flight-start`
 Phase: 2
@@ -243,6 +243,25 @@ PostgreSQL 17 :
 
 Les types régénérés n'ajoutent que `started_at: string | null` sur
 `flight_dispatches` et `start_flight_from_dispatch` dans `Functions`.
+
+Preuve CI du 3 août 2026 : la PR #89 est fusionnée dans `main` au merge
+`6577125`, où le job Linux `Supabase PostgreSQL 17` passe. Il applique deux
+resets, exécute 16 fichiers/312 assertions pgTAP avec `Result: PASS`, prouve
+`Flight start concurrency passed: 2 sessions, 1 active flight, 1 command,
+1 server time` et conclut par `Backend CI passed: 2 resets, 16 pgTAP files,
+concurrent idempotence, purchase, dispatch and flight start, isolated restore
+replay, authoritative onboarding, stable types, loopback ports.` La course
+intersession du harnais CI, impossible à exécuter localement sous Windows, est
+donc prouvée sur le runner Linux. Les runs antérieurs sur `3e798db` et `6418e12`
+avaient été annulés par les poussées suivantes, sans jamais atteindre ce job.
+
+Le job `Windows multi-stack` du même run échoue, non pas sur cette tranche, mais
+sur `Validate maintenance governance` avec `Ticket T0049 status differs: index
+'Review', file 'Done'.` Le merge `09565ee` de `main` dans la branche a résolu le
+conflit de `docs/tickets/README.md` en écartant la PR #88 et en ramenant la ligne
+d'index T0049 à `Review`. Le contenu de T0050 n'est pas affecté ; la correction
+d'une ligne et la clôture de ce ticket sont livrées par la PR de
+réconciliation `docs/T0050-record-merge`.
 
 ### Manual verification result
 
