@@ -274,7 +274,9 @@ depuis le gestionnaire de session, la sélection reste limitée au catalogue
 validé et aucun prix, propriétaire ou solde n'est envoyé comme autorité. Ses 149
 tests frontend exécutés, sa couverture, son build et ses gates passent
 localement ; le ticket est `Review`, sans WebView live, cible distante, donnée
-réelle ou livraison dans `main`. La PR prête #76 cible explicitement T0044.
+réelle ou livraison dans `main`. La PR #76 a fusionné dans T0044 pendant les
+checks, sans propager la pile vers `main`.
+La PR corrective documentaire #77 propage cet état exact vers T0044.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre
