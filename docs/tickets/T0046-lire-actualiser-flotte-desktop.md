@@ -241,4 +241,6 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md`, `ARCHITECTURE.md`,
 - branche : `feature/T0046-desktop-aircraft-fleet` ;
 - base : T0045 au commit `011f68c` ;
 - dépendances empilées : T0043–T0045 restent absents de `main` ;
-- commit, push et Pull Request : à effectuer après inspection du diff indexé.
+- commit d'implémentation : `ad46315` ;
+- push et Pull Request : à effectuer sur la base
+  `feature/T0045-compose-aircraft-purchase`.
