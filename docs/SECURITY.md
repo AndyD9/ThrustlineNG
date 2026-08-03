@@ -254,6 +254,23 @@ devise, compagnie, propriétaire et solde restent dérivés ou contrôlés côt�
 serveur. La preuve est locale et injectée ; elle n'ouvre ni CSP de production,
 ni cible distante, flotte ou donnée réelle.
 
+## Lecture et actualisation de flotte desktop T0046
+
+Le desktop lit `company_aircraft` avec une projection, un ordre et une limite
+constants, sans `company_id`, `owner_id` ou autre filtre choisi par le client.
+Le bearer acquis au clic porte le sujet Auth et la RLS propriétaire T0029 reste
+l'unique autorité d'isolation. La réponse est bornée à 64 Kio et cinquante
+lignes ; champs, UUID, codes, numéros de série, timestamps, version et doublons
+sont validés avant rendu.
+
+Le panneau ne charge rien au rendu, bloque les lectures concurrentes, annule au
+démontage et efface la session sur refus Auth. Après achat, il relit uniquement
+une flotte déjà chargée et ne fabrique jamais un avion depuis l'offre ou la
+réponse d'achat. Credential, identifiant interne et détail amont ne sont ni
+persistés, ni journalisés, ni rendus. La preuve reste locale et injectée ; elle
+n'ouvre ni CSP de production, cible distante, pagination, mutation de flotte ou
+donnée réelle.
+
 ## Autorité globale du golden path T0024
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de

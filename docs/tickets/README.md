@@ -59,6 +59,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0043 | Lire le catalogue d'avions depuis le desktop | 4 | T0029, T0037–T0042 | Review |
 | T0044 | Lire l’état de compagnie depuis le desktop | 4 | T0012, T0022, T0042–T0043 | Review |
 | T0045 | Composer le catalogue avec l’achat desktop | 4 | T0037–T0038, T0043–T0044 | Review |
+| T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008

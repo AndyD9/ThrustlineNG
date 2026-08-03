@@ -247,6 +247,18 @@ données et maintenance passent avec 9, 6 et 8 mutations. Cette preuve
 jsdom/fetch injectée ne valide ni WebView live, CSP de production, cible
 distante, donnée réelle ou livraison dans `main`; T0045 est empilé sur T0044.
 
+Preuve T0046 du 3 août 2026 : typecheck, couverture et build passent avec 17
+fichiers/173 tests frontend exécutés ; 1 fichier/2 scénarios runtime T0040 reste
+ignoré sans environnement explicite. La couverture globale atteint 93,26 % des
+statements, 87,36 % des branches, 96,72 % des fonctions et 93,25 % des lignes.
+Les tests couvrent requête de flotte sans filtre propriétaire, réponse et taille
+bornées, schéma strict, doublons, zéro réseau au rendu, flotte vide, concurrence,
+retry, refus Auth, démontage, actualisation post-achat et refresh reçu pendant
+une lecture. Les gates autorité, données et maintenance passent avec 9, 6 et 8
+mutations. Cette preuve jsdom/fetch injectée ne valide ni WebView live, CSP de
+production, cible distante, donnée réelle, pagination ou livraison dans `main`;
+T0046 est empilé sur T0045.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme

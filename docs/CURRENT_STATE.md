@@ -1,6 +1,6 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 3 août 2026 (T0042 livré ; T0043–T0045 validés
+Dernière revue documentaire : 3 août 2026 (T0042 livré ; T0043–T0046 validés
 sur des branches empilées).
 Statut : T0012–T0031, T0033–T0042 sont `Done`. T0042 est livré dans `main` par
 la PR corrective #73 au commit `a4047a5`, avec ses trois checks verts.
@@ -15,6 +15,10 @@ catalogue/achat est validée localement mais absente de `main`. La PR #76 a
 fusionné dans la branche T0044 pendant les checks, sans propager la pile vers
 `main`. La PR corrective documentaire #77 propage cette réconciliation vers
 T0044.
+T0046 est `Review` sur une branche empilée sur T0045 : la flotte propriétaire
+peut être chargée et relue après achat, mais T0043–T0046 restent absents de
+`main`. La PR prête #80 cible T0045 et ses trois checks sont en cours lors de
+l'observation initiale.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -617,6 +621,15 @@ et les gates passent localement. La preuve reste injectée, empilée sur T0044,
 sans WebView live, cible distante, donnée réelle, flotte ou livraison dans
 `main`.
 
+T0046 ajoute une lecture `GET` constante de `company_aircraft`, sans filtre de
+compagnie ou propriétaire fourni par le client. La RLS T0029 reste l'autorité ;
+le corps borné et chaque ligne sont validés avant rendu. L'accueil ne charge
+rien implicitement et une flotte déjà ouverte est relue après achat, y compris
+si le signal arrive pendant une lecture en cours. Les 173 tests frontend
+exécutés, la couverture, le build et les gates passent localement. La preuve
+reste injectée, empilée sur T0045, sans WebView live, cible distante, donnée
+réelle, pagination ou livraison dans `main`.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -717,12 +730,12 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0042 est livré. T0043, T0044 et T0045 doivent encore être propagés vers `main`
+T0042 est livré. T0043, T0044, T0045 et T0046 doivent encore être propagés vers `main`
 par des PR correctives ordonnées ; leurs fusions empilées ne suffisent pas à les
 livrer dans la branche distante par défaut. Après cette propagation, le prochain
-ticket doit être choisi dans la phase 4 sans inventer la flotte ni la
-persistance. La persistance Windows reste un ticket de sécurité séparé avant
-tout stockage de refresh token.
+ticket recommandé est le premier slice dispatch autoritaire de phase 4. La
+location T0032 reste bloquée sur ses décisions produit et la persistance Windows
+reste un ticket de sécurité séparé avant tout stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et

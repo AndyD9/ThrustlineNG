@@ -18,6 +18,10 @@
       {
         "path": "apps/desktop/src/features/company-state/companyState.ts",
         "resource": "companies"
+      },
+      {
+        "path": "apps/desktop/src/features/aircraft-fleet/aircraftFleet.ts",
+        "resource": "company_aircraft"
       }
     ]
   },
@@ -101,13 +105,14 @@
       ],
       "evidencePaths": [
         "apps/desktop/src/features/aircraft-catalog/aircraftCatalog.ts",
+        "apps/desktop/src/features/aircraft-fleet/aircraftFleet.ts",
         "apps/desktop/src/features/aircraft-purchase/aircraftPurchase.ts",
         "supabase/functions/aircraft-purchase/handler.ts",
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql"
       ],
-      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "createAircraftPurchaseHandler", "purchase_aircraft", "company_aircraft"],
-      "limitations": ["The bounded catalogue read and purchase command remain separate injected components; routed composition, live desktop connectivity and deployment are not provided, and lease or later fleet mutations are not implemented."]
+      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "rest/v1/company_aircraft", "functions/v1/aircraft-purchase", "createAircraftPurchaseHandler", "purchase_aircraft", "company_aircraft"],
+      "limitations": ["Bounded catalogue, purchase and owner-fleet reads are composed behind explicit user actions; live desktop connectivity and deployment are not provided, and lease or later fleet mutations are not implemented."]
     },
     {
       "id": "dispatch",
