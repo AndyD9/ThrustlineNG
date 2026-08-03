@@ -1,16 +1,20 @@
 import { Navigate, Route, Routes } from "react-router";
 
+import type { AircraftCatalogCommand } from "@/features/aircraft-catalog/AircraftCatalogPanel";
 import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
 import type { SignInCommand } from "@/features/auth/PasswordSignInPanel";
 import type { DesktopSessionManager } from "@/features/auth/session";
 import type { CompanyOnboardingCommand } from "@/features/company-onboarding/CompanyOnboardingPanel";
+import type { CompanyPresenceCommand } from "@/features/company-state/CompanyPresencePanel";
 import { HomePage } from "@/pages/HomePage";
 import { LoginPage } from "@/pages/LoginPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 export interface AppRoutesProps {
+  aircraftCatalogCommand?: AircraftCatalogCommand | undefined;
   authenticated: boolean;
   companyOnboardingCommand?: CompanyOnboardingCommand | undefined;
+  companyPresenceCommand?: CompanyPresenceCommand | undefined;
   config: DesktopConnectionConfig;
   onAuthenticated: () => void;
   onSignOut: () => void;
@@ -19,8 +23,10 @@ export interface AppRoutesProps {
 }
 
 export function AppRoutes({
+  aircraftCatalogCommand,
   authenticated,
   companyOnboardingCommand,
+  companyPresenceCommand,
   config,
   onAuthenticated,
   onSignOut,
@@ -34,7 +40,9 @@ export function AppRoutes({
         element={authenticated
           ? (
               <HomePage
+                aircraftCatalogCommand={aircraftCatalogCommand}
                 companyOnboardingCommand={companyOnboardingCommand}
+                companyPresenceCommand={companyPresenceCommand}
                 config={config}
                 onAuthenticationRequired={onSignOut}
                 onSignOut={onSignOut}

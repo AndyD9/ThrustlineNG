@@ -51,12 +51,14 @@ describe("CompanyOnboardingPanel", () => {
     const user = userEvent.setup();
     const command = vi.fn<CompanyOnboardingCommand>(async () => result);
     const onAuthenticationRequired = vi.fn();
+    const onCompanyActive = vi.fn();
     const { container } = render(
       <CompanyOnboardingPanel
         command={command}
         config={config}
         createIdempotencyKey={() => firstKey}
         onAuthenticationRequired={onAuthenticationRequired}
+        onCompanyActive={onCompanyActive}
         sessionManager={createSessionManager()}
       />,
     );
@@ -78,6 +80,7 @@ describe("CompanyOnboardingPanel", () => {
     expect(container).not.toHaveTextContent("private-access-token");
     expect(container).not.toHaveTextContent(result.companyId);
     expect(onAuthenticationRequired).not.toHaveBeenCalled();
+    expect(onCompanyActive).toHaveBeenCalledOnce();
   });
 
   it("bloque le double clic et réutilise l'intention après indisponibilité", async () => {

@@ -14,6 +14,10 @@
       {
         "path": "apps/desktop/src/features/aircraft-catalog/aircraftCatalog.ts",
         "resource": "aircraft_purchase_offers"
+      },
+      {
+        "path": "apps/desktop/src/features/company-state/companyState.ts",
+        "resource": "companies"
       }
     ]
   },
@@ -63,12 +67,13 @@
         "public.create_company_with_opening_balance"
       ],
       "evidencePaths": [
+        "apps/desktop/src/features/company-state/companyState.ts",
         "supabase/functions/company-onboarding/handler.ts",
         "supabase/migrations/20260731000400_authoritative_company_onboarding.sql",
         "supabase/tests/database/company_onboarding.test.sql"
       ],
-      "evidenceMarkers": ["createCompanyOnboardingHandler", "create_company_with_opening_balance"],
-      "limitations": ["Creation and deletion are covered; later company profile mutations are not designed."]
+      "evidenceMarkers": ["rest/v1/companies", "createCompanyOnboardingHandler", "create_company_with_opening_balance"],
+      "limitations": ["Creation, deletion and a bounded owner-presence read are covered; later company profile mutations are not designed."]
     },
     {
       "id": "account-lifecycle",

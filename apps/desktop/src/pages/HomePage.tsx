@@ -1,13 +1,25 @@
+import { useState } from "react";
+
+import {
+  AircraftCatalogPanel,
+  type AircraftCatalogCommand,
+} from "@/features/aircraft-catalog/AircraftCatalogPanel";
 import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
 import type { DesktopSessionManager } from "@/features/auth/session";
 import {
   CompanyOnboardingPanel,
   type CompanyOnboardingCommand,
 } from "@/features/company-onboarding/CompanyOnboardingPanel";
+import {
+  CompanyPresencePanel,
+  type CompanyPresenceCommand,
+} from "@/features/company-state/CompanyPresencePanel";
 import { StatusCard } from "@/shared/ui/StatusCard";
 
 export interface HomePageProps {
+  aircraftCatalogCommand?: AircraftCatalogCommand | undefined;
   companyOnboardingCommand?: CompanyOnboardingCommand | undefined;
+  companyPresenceCommand?: CompanyPresenceCommand | undefined;
   config: DesktopConnectionConfig;
   onAuthenticationRequired: () => void;
   onSignOut: () => void;
@@ -15,12 +27,18 @@ export interface HomePageProps {
 }
 
 export function HomePage({
+  aircraftCatalogCommand,
   companyOnboardingCommand,
+  companyPresenceCommand,
   config,
   onAuthenticationRequired,
   onSignOut,
   sessionManager,
 }: HomePageProps) {
+  const [companyState, setCompanyState] = useState<"unchecked" | "absent" | "present">(
+    "unchecked",
+  );
+
   return (
     <main className="page" id="main-content">
       <section className="hero" aria-labelledby="home-title">
@@ -34,12 +52,32 @@ export function HomePage({
         status="Ready"
         detail="Session locale active · aucune donnée persistée"
       />
-      <CompanyOnboardingPanel
-        command={companyOnboardingCommand}
-        config={config}
-        onAuthenticationRequired={onAuthenticationRequired}
-        sessionManager={sessionManager}
-      />
+      {companyState === "unchecked" && (
+        <CompanyPresencePanel
+          command={companyPresenceCommand}
+          config={config}
+          onAuthenticationRequired={onAuthenticationRequired}
+          onResolved={(hasCompany) => setCompanyState(hasCompany ? "present" : "absent")}
+          sessionManager={sessionManager}
+        />
+      )}
+      {companyState === "absent" && (
+        <CompanyOnboardingPanel
+          command={companyOnboardingCommand}
+          config={config}
+          onAuthenticationRequired={onAuthenticationRequired}
+          onCompanyActive={() => setCompanyState("present")}
+          sessionManager={sessionManager}
+        />
+      )}
+      {companyState === "present" && (
+        <AircraftCatalogPanel
+          command={aircraftCatalogCommand}
+          config={config}
+          onAuthenticationRequired={onAuthenticationRequired}
+          sessionManager={sessionManager}
+        />
+      )}
       <button className="primary-action" type="button" onClick={onSignOut}>
         Se déconnecter
       </button>
