@@ -33,6 +33,7 @@ function Get-BackendIssues {
     $ledgerMigrationPath = Join-Path $Root "supabase\migrations\20260731000300_immutable_financial_ledger.sql"
     $onboardingMigrationPath = Join-Path $Root "supabase\migrations\20260731000400_authoritative_company_onboarding.sql"
     $purchaseMigrationPath = Join-Path $Root "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql"
+    $dispatchMigrationPath = Join-Path $Root "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $structureTestPath = Join-Path $Root "supabase\tests\database\companies_structure.test.sql"
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
@@ -46,6 +47,8 @@ function Get-BackendIssues {
     $onboardingTestPath = Join-Path $Root "supabase\tests\database\company_onboarding.test.sql"
     $purchaseStructureTestPath = Join-Path $Root "supabase\tests\database\aircraft_purchase_structure.test.sql"
     $purchaseTestPath = Join-Path $Root "supabase\tests\database\aircraft_purchase.test.sql"
+    $dispatchStructureTestPath = Join-Path $Root "supabase\tests\database\dispatch_draft_structure.test.sql"
+    $dispatchTestPath = Join-Path $Root "supabase\tests\database\dispatch_draft.test.sql"
     $onboardingFunctionPath = Join-Path $Root "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionPolicyPath = Join-Path $Root "supabase\functions\company-onboarding\economy-policy.json"
     $onboardingFunctionEntryPath = Join-Path $Root "supabase\functions\company-onboarding\index.ts"
@@ -74,6 +77,7 @@ function Get-BackendIssues {
         $ledgerMigrationPath,
         $onboardingMigrationPath,
         $purchaseMigrationPath,
+        $dispatchMigrationPath,
         $seedPath,
         $structureTestPath,
         $rlsTestPath,
@@ -87,6 +91,8 @@ function Get-BackendIssues {
         $onboardingTestPath,
         $purchaseStructureTestPath,
         $purchaseTestPath,
+        $dispatchStructureTestPath,
+        $dispatchTestPath,
         $onboardingFunctionPath,
         $onboardingFunctionPolicyPath,
         $onboardingFunctionEntryPath,
@@ -413,6 +419,37 @@ function Get-BackendIssues {
         $issues.Add("Client roles must not gain direct offer or aircraft mutation privileges.")
     }
 
+    $dispatchMigration = Get-Content -Raw -Encoding UTF8 $dispatchMigrationPath
+    $dispatchRequirements = @{
+        "dispatch drafts" = 'create table public\.flight_dispatches'
+        "private dispatch registry" = 'create table private\.dispatch_draft_commands'
+        "owner idempotency" = 'primary key \(owner_id, idempotency_key\)'
+        "payload fingerprint" = 'extensions\.digest\('
+        "company derivation" = 'where companies\.owner_id = create_dispatch_draft\.owner_id'
+        "active account" = 'private\.account_is_active\(create_dispatch_draft\.owner_id\)'
+        "owned aircraft lock" = 'from public\.company_aircraft as aircraft_rows[\s\S]+aircraft_rows\.company_id = company\.id[\s\S]+for update'
+        "server draft state" = "state text not null default 'draft'"
+        "server timestamp" = 'created_at timestamptz not null default clock_timestamp\(\)'
+        "normalized ICAO" = 'normalized_departure := upper\(btrim\(departure_icao\)\)'
+        "distinct airports" = 'normalized_departure = normalized_arrival'
+        "one draft per aircraft" = 'constraint flight_dispatches_one_draft_per_aircraft unique \(aircraft_id\)'
+        "forced dispatch RLS" = 'alter table public\.flight_dispatches force row level security'
+        "service-only dispatch" = 'grant execute on function public\.create_dispatch_draft\(uuid, uuid, uuid, text, text\) to service_role'
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $dispatchRequirements.GetEnumerator()) {
+        Require-Text $dispatchMigration $entry.Value "Dispatch draft invariant missing: $($entry.Key)."
+    }
+    if ($dispatchMigration -match '(?i)grant\s+execute\s+on\s+function\s+public\.create_dispatch_draft\([^;]+\)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Dispatch creation must remain service-role-only.")
+    }
+    if ($dispatchMigration -match '(?i)grant\s+(insert|update|delete)[^;]*on\s+(table\s+)?public\.flight_dispatches\s+to\s+(anon|authenticated)') {
+        $issues.Add("Client roles must not gain direct dispatch mutation privileges.")
+    }
+    if ($dispatchMigration -match '(?i)create_dispatch_draft\([^)]*(company_id|state|created_at)[^)]*\)') {
+        $issues.Add("Dispatch creation must not accept client-controlled company, state or time.")
+    }
+
     $onboardingFunction = Get-Content -Raw -Encoding UTF8 $onboardingFunctionPath
     $onboardingFunctionEntry = Get-Content -Raw -Encoding UTF8 $onboardingFunctionEntryPath
     $onboardingFunctionTests = Get-Content -Raw -Encoding UTF8 $onboardingFunctionTestPath
@@ -527,7 +564,11 @@ function Get-BackendIssues {
         "`n" +
         (Get-Content -Raw -Encoding UTF8 $purchaseStructureTestPath) +
         "`n" +
-        (Get-Content -Raw -Encoding UTF8 $purchaseTestPath)
+        (Get-Content -Raw -Encoding UTF8 $purchaseTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $dispatchStructureTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $dispatchTestPath)
     )
     foreach ($marker in @(
         "set local role authenticated",
@@ -573,6 +614,16 @@ function Get-BackendIssues {
         "authenticated cannot forge an offer price",
         "deletion pending blocks aircraft purchase",
         "injected failure rolls back ownership, command, debit and offer state",
+        "authenticated cannot execute the dispatch command",
+        "authenticated cannot forge a dispatch",
+        "server normalizes airports and derives company and state",
+        "identical dispatch creation replays with the same response",
+        "dispatch idempotency payload collision is rejected",
+        "owner A cannot dispatch owner B aircraft",
+        "a second active draft for the same aircraft is rejected",
+        "owner B cannot read owner A dispatch",
+        "deletion pending blocks dispatch creation",
+        "injected failure rolls back dispatch and command",
         "rollback;"
     )) {
         if (-not $allTests.Contains($marker)) {
@@ -595,6 +646,8 @@ function Get-BackendIssues {
     Require-Text $types 'company_aircraft:' "Generated types do not expose company aircraft."
     Require-Text $types 'purchase_aircraft:' "Generated types do not expose authoritative purchase."
     Require-Text $types 'get_company_aircraft:' "Generated types do not expose owner aircraft reads."
+    Require-Text $types 'flight_dispatches:' "Generated types do not expose flight dispatches."
+    Require-Text $types 'create_dispatch_draft:' "Generated types do not expose authoritative dispatch creation."
 
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $typeScript 'Invoke-IsolatedSupabaseCli' "Type generation does not use the isolated local runtime."
@@ -618,6 +671,9 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'Aircraft balance concurrency passed' "Backend CI does not report the shared-balance race."
     Require-Text $ciBackend '"0\|1"' "Backend CI does not require exactly one distinct purchase to fail."
     Require-Text $ciBackend '"1\|1\|1\|5000000"' "Backend CI does not verify nonnegative balance after the race."
+    Require-Text $ciBackend 'Dispatch draft concurrency passed' "Backend CI does not report dispatch concurrency."
+    Require-Text $ciBackend 'Concurrent dispatch drafts did not preserve one active draft' "Backend CI does not verify one active dispatch under concurrency."
+    Require-Text $ciBackend '"1\|1\|0\|1"' "Backend CI does not require one dispatch, one command, draft-only state and one aircraft."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
     foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
         Require-Text $ciBackend "--schema $schema" "Backend CI backup scope is missing schema: $schema."
@@ -661,6 +717,7 @@ try {
         "supabase\migrations\20260731000300_immutable_financial_ledger.sql",
         "supabase\migrations\20260731000400_authoritative_company_onboarding.sql",
         "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql",
+        "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
@@ -674,6 +731,8 @@ try {
         "supabase\tests\database\company_onboarding.test.sql",
         "supabase\tests\database\aircraft_purchase_structure.test.sql",
         "supabase\tests\database\aircraft_purchase.test.sql",
+        "supabase\tests\database\dispatch_draft_structure.test.sql",
+        "supabase\tests\database\dispatch_draft.test.sql",
         "supabase\functions\company-onboarding\handler.ts",
         "supabase\functions\company-onboarding\economy-policy.json",
         "supabase\functions\company-onboarding\index.ts",
@@ -867,6 +926,37 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql") -Destination $purchaseMigrationCopy
+    $dispatchMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql"
+    $dispatchText = Get-Content -Raw -Encoding UTF8 $dispatchMigrationCopy
+    $dispatchText = $dispatchText.Replace(
+        "grant execute on function public.create_dispatch_draft(uuid, uuid, uuid, text, text) to service_role;",
+        "grant execute on function public.create_dispatch_draft(uuid, uuid, uuid, text, text) to authenticated;"
+    )
+    [System.IO.File]::WriteAllText($dispatchMigrationCopy, $dispatchText)
+    $unsafeDispatchIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unsafeDispatchIssues -match "service-role-only") -or
+        -not ($unsafeDispatchIssues -match "service-only dispatch")) {
+        Write-Error "Harness self-test failed to detect client-executable dispatch creation."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql") -Destination $dispatchMigrationCopy
+    $dispatchText = Get-Content -Raw -Encoding UTF8 $dispatchMigrationCopy
+    $dispatchText = $dispatchText.Replace(
+        "    arrival_icao text`r`n)",
+        "    arrival_icao text,`r`n    company_id uuid`r`n)"
+    ).Replace(
+        "    arrival_icao text`n)",
+        "    arrival_icao text,`n    company_id uuid`n)"
+    )
+    [System.IO.File]::WriteAllText($dispatchMigrationCopy, $dispatchText)
+    $clientDispatchAuthorityIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientDispatchAuthorityIssues -match "client-controlled company, state or time")) {
+        Write-Error "Harness self-test failed to detect client-controlled dispatch authority."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql") -Destination $dispatchMigrationCopy
     $onboardingFunctionCopy = Join-Path $temporaryRoot "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionText = Get-Content -Raw -Encoding UTF8 $onboardingFunctionCopy
     $onboardingFunctionText = $onboardingFunctionText.Replace(
@@ -975,4 +1065,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035 and T0040 repository plus 20 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035, T0040 and T0047 repository plus 22 mutation scenarios)."
