@@ -1,31 +1,18 @@
 # État actuel du dépôt
 
 Dernière revue documentaire : 3 août 2026 (audit de tous les tickets ouverts et
-réconciliation des livraisons T0043–T0044).
-Statut : T0009, T0012–T0031, T0033–T0044 sont `Done`. T0009 est clos par le
+réconciliation des livraisons T0043–T0048).
+Statut : T0009, T0012–T0031, T0033–T0048 sont `Done`. T0009 est clos par le
 smoke test console Windows du 3 août 2026. T0042 est livré dans `main` par la PR
 corrective #73 au commit `a4047a5`. T0043 et T0044 sont livrés ensemble dans
 `main` par la PR corrective #79 au commit `6c232c6`; Windows multi-stack,
-PostgreSQL 17 et audits/licences/SBOM sont réussis.
-T0045 est `Review` sur une branche empilée sur T0044 : la composition
-catalogue/achat est validée localement mais absente de `main`. La PR #76 a
-fusionné dans la branche T0044 pendant les checks, sans propager la pile vers
-`main`. La PR corrective documentaire #77 propage cette réconciliation vers
-T0044.
-T0046 est `Review` sur une branche empilée sur T0045 : la flotte propriétaire
-peut être chargée et relue après achat, mais T0045–T0046 restent absents de
-`main`. La PR #80 a fusionné dans T0045 avec ses trois checks verts.
-T0047 est `Review` sur une branche empilée sur T0046 : un brouillon de dispatch
-minimal peut être créé côté serveur pour un avion possédé, avec isolation,
-idempotence et exclusivité prouvées localement. T0045–T0047 restent absents de
-`main` et aucune frontière Edge ou consommation desktop du dispatch n'est
-livrée. La PR #81 a fusionné dans T0046 avec ses trois checks verts.
-T0048 est `Review` sur une branche empilée sur T0047 : l'Edge Function
-`dispatch-draft` vérifie une session non anonyme, dérive le propriétaire et
-appelle la commande T0047 avec le credential serveur. T0045–T0048 restent
-absents de `main`; aucun appel desktop, runtime Edge live ou SimBrief n'est
-livré. La PR #82 a fusionné dans T0047 avec ses trois checks verts. La PR
-corrective #83 est ouverte et prête de T0048 vers `main`.
+PostgreSQL 17 et audits/licences/SBOM sont réussis. T0045–T0048 sont livrés
+ensemble dans `main` par la PR corrective #83 au merge `d117690`; leurs commits
+`34f96bb`, `ad46315`, `0559a8e` et `175203c` sont dans l'ascendance de `main` et
+les trois checks sont verts. La composition catalogue/achat, la relecture de
+flotte, le brouillon de dispatch autoritaire et sa frontière Auth sont donc
+livrés. WebView live, runtime Edge live, SimBrief et cycle de vol restent hors
+périmètre de ces preuves.
 Les vérifications historiques T0007–T0008 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -83,8 +70,7 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   performance, packaging Windows, CI et supply chain.
 - Workflows dans `main` :
   `.github/workflows/ci.yml` et `.github/workflows/security.yml`.
-- Migrations Supabase append-only constatées : 7 sur la branche T0047 ; `main`
-  en contient 6.
+- Migrations Supabase append-only constatées : 7 dans `main`.
 - Variables/configurations relevées par nom seulement : `SUPABASE_URL`,
   `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`.
 - Politique économique T0028 présente dans `main` : source v1
@@ -630,8 +616,8 @@ propriétaire ou solde n'entre dans le payload d'achat. Le changement d'offre es
 bloqué pendant une commande, les retries conservent l'idempotence et un refus
 Auth efface la session. Les 149 tests frontend exécutés, la couverture, le build
 et les gates passent localement. La preuve reste injectée, empilée sur T0044,
-sans WebView live, cible distante, donnée réelle, flotte ou livraison dans
-`main`.
+sans WebView live, cible distante ni donnée réelle. Le commit est livré dans
+`main` par la PR #83.
 
 T0046 ajoute une lecture `GET` constante de `company_aircraft`, sans filtre de
 compagnie ou propriétaire fourni par le client. La RLS T0029 reste l'autorité ;
@@ -639,8 +625,8 @@ le corps borné et chaque ligne sont validés avant rendu. L'accueil ne charge
 rien implicitement et une flotte déjà ouverte est relue après achat, y compris
 si le signal arrive pendant une lecture en cours. Les 173 tests frontend
 exécutés, la couverture, le build et les gates passent localement. La preuve
-reste injectée, empilée sur T0045, sans WebView live, cible distante, donnée
-réelle, pagination ou livraison dans `main`.
+reste injectée, sans WebView live, cible distante, donnée réelle ou pagination.
+Le commit est livré dans `main` par la PR #83.
 
 T0047 ajoute `flight_dispatches`, un registre privé et la commande
 `create_dispatch_draft` réservée à `service_role`. La compagnie, l'état et le
@@ -648,8 +634,9 @@ temps sont dérivés côté serveur ; l'avion doit appartenir à cette compagnie
 les deux ICAO normalisés doivent être distincts. Deux resets puis 14 fichiers/270
 assertions pgTAP passent sur PostgreSQL 17, les types restent stables et une
 course intersession différente sur le même avion rend `0|1` avec l'état
-`1|1|0|1`. Cette tranche est empilée sur T0046 et ne livre ni endpoint Auth,
-desktop, SimBrief, transition de vol, cible distante ou donnée réelle.
+`1|1|0|1`. Cette tranche est livrée dans `main` par la PR #83 et ne livre ni
+desktop, SimBrief, transition de vol, cible distante ou donnée réelle. Sa
+frontière Auth est fournie séparément par T0048.
 
 T0048 ajoute l'Edge Function `dispatch-draft`, limitée à `POST`, à un bearer et
 à un corps de 4 Kio contenant seulement avion, deux ICAO et idempotence. Elle
@@ -657,8 +644,8 @@ normalise les ICAO, vérifie la session auprès d'Auth, dérive le propriétaire
 appelle `create_dispatch_draft` avec `service_role` sous timeout. La réponse est
 validée, recoupée, projetée sur sept champs publics et marquée `no-store`. Les
 46 tests de fonctions et le gate backend à 26 mutations passent ; la preuve
-reste injectée, empilée sur T0047, sans Edge Runtime live, desktop, SimBrief,
-cible distante ou donnée réelle.
+reste injectée, sans Edge Runtime live, desktop, SimBrief, cible distante ou
+donnée réelle. Le commit est livré dans `main` par la PR #83.
 
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
@@ -762,9 +749,7 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0043 et T0044 sont livrés. T0045 à T0048 attendent la fusion par Andy de la PR
-corrective #83 vers `main`; leurs fusions empilées seules ne suffisent pas à les
-livrer dans la branche distante par défaut. Le prochain ticket recommandé est
+T0043 à T0048 sont livrés dans `main`. Le prochain ticket recommandé est
 la preuve locale réelle Auth → Edge Runtime → `create_dispatch_draft`, avec
 identité, compagnie, avion et dispatch exclusivement synthétiques, sans encore
 composer le desktop, appeler SimBrief ni démarrer un vol. La location T0032 reste bloquée sur

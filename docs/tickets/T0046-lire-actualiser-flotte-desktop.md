@@ -1,6 +1,6 @@
 # T0046 — Lire et actualiser la flotte depuis le desktop
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0046-desktop-aircraft-fleet`
 Phase: 4
@@ -36,6 +36,9 @@ la branche T0045 et ne présente pas la pile comme livrée.
   #80 ouverte, base `feature/T0045-compose-aircraft-purchase`, head
   `feature/T0046-desktop-aircraft-fleet`, fusionnable ; les trois checks GitHub
   sont en cours lors de l'observation initiale.
+- 3 août 2026 — livraison : la PR #83 a intégré le commit `ad46315` dans `main`
+  via le merge `d117690`; les trois checks applicables sont verts. Le ticket
+  passe à `Done`.
 
 ## Dependencies
 
@@ -223,15 +226,11 @@ nouvelle n'est créée.
 
 La preuve reste jsdom/fetch injectée : aucun WebView live, CSP production,
 projet distant ou donnée réelle n'est validé. La limite de cinquante avions ne
-fournit pas encore de pagination. T0046 est empilé sur T0045, elle-même dépendante
-de T0043–T0044 absents de `main`; aucune livraison de la pile n'est revendiquée.
+fournit pas encore de pagination.
 Une WebView compromise peut encore lire le bearer en mémoire.
 
 ### Follow-ups
 
-- publier T0046 sur T0045 puis propager T0043–T0046 vers `main` dans l'ordre ;
-- cadrer ensuite le premier slice dispatch autoritaire sans anticiper la
-  location T0032 ;
 - traiter pagination, mutations de flotte et persistance dans des tickets
   séparés si le parcours les exige.
 
@@ -243,11 +242,10 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md`, `ARCHITECTURE.md`,
 ### Git status
 
 - branche : `feature/T0046-desktop-aircraft-fleet` ;
-- base : T0045 au commit `011f68c` ;
-- dépendances empilées : T0043–T0045 restent absents de `main` ;
+- base historique : T0045 au commit `011f68c` ;
 - commit d'implémentation : `ad46315` ;
 - commit de preuve avant publication : `d30732a` ;
-- branche poussée avec upstream exact ;
-- PR prête #80 : https://github.com/AndyD9/ThrustlineNG/pull/80, base T0045,
-  head T0046, état `OPEN` et `MERGEABLE` ; Windows multi-stack, PostgreSQL 17 et
-  supply-chain sont en cours lors de l'observation initiale.
+- PR historique #80 fusionnée dans la pile ;
+- livraison consolidée : PR #83 fusionnée dans `main`, merge `d117690` ;
+- checks de la PR #83 : `PostgreSQL 17`, `Supply-chain security` et
+  `Windows multi-stack` verts.

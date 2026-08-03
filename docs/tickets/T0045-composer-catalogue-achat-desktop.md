@@ -1,6 +1,6 @@
 # T0045 — Composer le catalogue avec l’achat desktop
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0045-compose-aircraft-purchase`
 Phase: 4
@@ -42,6 +42,9 @@ comme livrées dans la branche distante par défaut.
   propage ni T0043, ni T0044, ni T0045 dans `main`.
 - 3 août 2026 — réconciliation : commit documentaire `e643b89` poussé ; PR
   corrective #77 ouverte vers T0044 pour propager l'état exact de #76.
+- 3 août 2026 — livraison : la PR #83 a intégré le commit `34f96bb` dans `main`
+  via le merge `d117690`; les trois checks applicables sont verts. Le ticket
+  passe à `Done`.
 
 ## Dependencies
 
@@ -237,19 +240,13 @@ aggravé. Aucune dette, dépendance, règle ou exception de sécurité n'est cr�
 
 ### Risks and limitations
 
-T0045 reste empilé sur T0044/PR #74, elle-même empilée sur T0043/PR #72. Ces
-deux PR ont fusionné dans leurs branches parentes après la livraison T0042 et
-n'ont pas propagé T0043/T0044 dans `main`. La CSP de production reste fermée et
-la preuve est injectée : aucun WebView live, projet distant, donnée réelle,
+La CSP de production reste fermée et la preuve est injectée : aucun WebView
+live, projet distant, donnée réelle,
 actualisation de flotte ou solde post-achat n'est revendiqué. Une WebView
 compromise peut encore lire le bearer en mémoire.
 
 ### Follow-ups
 
-- publier T0045 sur T0044 puis propager T0043–T0045 vers `main` par des PR
-  correctives ordonnées ;
-- choisir ensuite un ticket phase 4 borné pour la flotte ou la reprise
-  post-achat, sans anticiper la location T0032 ;
 - traiter la persistance Windows dans un ticket de sécurité séparé.
 
 ### Documentation updated
@@ -260,12 +257,9 @@ T0042, ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md`, `ARCHITECTURE.md` e
 ### Git status
 
 - branche : `feature/T0045-compose-aircraft-purchase` ;
-- base : T0044 au commit `2a2de58`, PR #74 fusionnée dans T0043 ;
-- dépendances : T0043 et T0044 restent absents de `main` ;
+- base historique : T0044 au commit `2a2de58` ;
 - commit d'implémentation : `34f96bb` ;
-- PR #76 : fusionnée par Andy dans `feature/T0044-desktop-company-state`, head
-  `feature/T0045-compose-aircraft-purchase` ; PostgreSQL 17 et supply-chain sont
-  réussis, Windows multi-stack reste en cours lors de la dernière observation.
-  Cette fusion empilée ne livre pas T0045 dans `main`.
-- PR corrective #77 : ouverte vers T0044, strictement documentaire, pour
-  propager la réconciliation `e643b89`.
+- PR historiques #76 et #77 fusionnées dans la pile ;
+- livraison consolidée : PR #83 fusionnée dans `main`, merge `d117690` ;
+- checks de la PR #83 : `PostgreSQL 17`, `Supply-chain security` et
+  `Windows multi-stack` verts.
