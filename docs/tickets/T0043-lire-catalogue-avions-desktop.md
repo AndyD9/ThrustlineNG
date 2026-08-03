@@ -1,6 +1,6 @@
 # T0043 — Lire le catalogue d'avions depuis le desktop
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0043-desktop-aircraft-catalog`
 Phase: 4
@@ -18,7 +18,7 @@ réponse bornées, sans ouvrir de mutation Data API ni composer encore l'achat.
 T0029 accorde uniquement `select` à `authenticated` sur les offres disponibles
 et garde toute mutation derrière `aircraft-purchase`. T0037 fournit une commande
 d'achat qui attend encore une offre injectée. T0038–T0041 fournissent la session
-locale ; T0042/PR #71 compose l'onboarding mais reste non fusionné dans `main`.
+locale ; T0042 est livré dans `main` par la PR corrective #73.
 
 ## Workflow evidence
 
@@ -32,13 +32,16 @@ locale ; T0042/PR #71 compose l'onboarding mais reste non fusionné dans `main`.
 - 2 août 2026 — publication : commit `c792512` poussé ; PR brouillon #72 ouverte
   avec base `feature/T0042-desktop-company-onboarding` et les trois checks GitHub
   en cours lors de l'observation initiale.
+- 3 août 2026 — `Done` : la PR corrective #79 a livré `c792512` dans `main` au
+  commit de merge `6c232c6`; Windows multi-stack, PostgreSQL 17 et
+  audits/licences/SBOM sont tous réussis.
 
 ## Dependencies
 
 - T0029 — table d'offres, grants de lecture et RLS `available` ;
 - T0037 — contrat d'offre attendu par le futur panneau d'achat ;
 - T0038–T0041 — configuration locale et session en mémoire ;
-- T0042 / PR #71 — base documentaire et applicative empilée, non fusionnée.
+- T0042 — base documentaire et applicative livrée dans `main` par la PR #73.
 
 ## Allowed areas
 
@@ -211,15 +214,14 @@ sécurité n'est créée.
 
 ### Risks and limitations
 
-T0043 reste empilé sur T0042/PR #71. La CSP de production reste fermée et la
-preuve est injectée : aucun WebView live, projet distant ou donnée réelle n'est
-revendiqué. Le catalogue n'est pas routé, ne charge pas l'état de compagnie et
-ne compose pas l'achat T0037. Une WebView compromise peut lire le bearer mémoire.
+La CSP de production reste fermée et la preuve est injectée : aucun WebView
+live, projet distant ou donnée réelle n'est revendiqué. Le catalogue livré par
+T0043 seul ne compose pas l'achat T0037. Une WebView compromise peut lire le
+bearer mémoire.
 
 ### Follow-ups
 
-- après fusion de T0042, rebaser ou changer la base de T0043 vers `main` ;
-- charger l'état de compagnie existant avant de composer catalogue et achat ;
+- T0044 a livré la lecture d'état de compagnie et l'aiguillage associé ;
 - traiter la persistance Windows dans un ticket de sécurité séparé.
 
 ### Documentation updated
@@ -230,9 +232,8 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md`, `ARCHITECTURE.md` et
 ### Git status
 
 - branche : `feature/T0043-desktop-aircraft-catalog` ;
-- base : T0042 au commit `db5f557`, PR corrective #71 vers `main` ;
-- dépendance : T0042 doit fusionner avant rebase/changement de base ;
+- base historique : T0042 au commit `db5f557` ;
 - commit d'implémentation : `c792512` ;
-- PR #72 : brouillon, base `feature/T0042-desktop-company-onboarding`, head
-  `feature/T0043-desktop-aircraft-catalog`; les trois checks GitHub sont en cours
-  lors de l'observation initiale.
+- PR #72 : fusionnée dans la branche T0042 ;
+- PR corrective #79 : fusionnée dans `main` au commit `6c232c6`, avec Windows
+  multi-stack, PostgreSQL 17 et audits/licences/SBOM réussis.

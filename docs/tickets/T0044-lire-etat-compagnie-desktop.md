@@ -1,6 +1,6 @@
 # T0044 — Lire l’état de compagnie depuis le desktop
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0044-desktop-company-state`
 Phase: 4
@@ -35,13 +35,16 @@ nécessaire.
 - 3 août 2026 — publication : commit `f9594ec` poussé ; PR brouillon #74 ouverte
   avec base `feature/T0043-desktop-aircraft-catalog` et les trois checks GitHub
   en attente ou en cours lors de l'observation initiale.
+- 3 août 2026 — `Done` : la PR #74 a d'abord fusionné T0044 dans T0043, puis la
+  PR corrective #79 a livré `f9594ec` dans `main` au commit `6c232c6`; Windows
+  multi-stack, PostgreSQL 17 et audits/licences/SBOM sont tous réussis.
 
 ## Dependencies
 
 - T0012 et T0022 — table `companies`, unicité propriétaire, grant de lecture et
   RLS propriétaire ;
-- T0042 / PR #71 — onboarding desktop empilé, non fusionné dans `main` ;
-- T0043 / PR #72 — catalogue desktop empilé sur T0042.
+- T0042 — onboarding desktop livré dans `main` par la PR #73 ;
+- T0043 — catalogue desktop livré dans `main` par la PR #79.
 
 ## Allowed areas
 
@@ -211,15 +214,13 @@ aggravé. Aucune dépendance ou exception de sécurité n'est créée.
 
 ### Risks and limitations
 
-T0044 reste empilé sur T0043/PR #72, elle-même dépendante de T0042/PR #71. La
-CSP de production reste fermée et la preuve est injectée : aucun WebView live,
-projet distant ou donnée réelle n'est revendiqué. Le catalogue ne compose pas
-encore l'achat T0037 et une WebView compromise peut lire le bearer mémoire.
+La CSP de production reste fermée et la preuve est injectée : aucun WebView
+live, projet distant ou donnée réelle n'est revendiqué. Le catalogue ne compose
+pas encore l'achat T0037 dans le périmètre de T0044 et une WebView compromise
+peut lire le bearer mémoire.
 
 ### Follow-ups
 
-- publier une PR T0044 empilée sur T0043 puis rebaser ou changer sa base après
-  les fusions ordonnées de T0042 et T0043 ;
 - T0045 : composer la sélection catalogue avec l'achat T0037 ;
 - traiter la persistance Windows dans un ticket de sécurité séparé.
 
@@ -231,9 +232,8 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md`, `ARCHITECTURE.md` et
 ### Git status
 
 - branche : `feature/T0044-desktop-company-state` ;
-- base : T0043 au commit `340810c`, PR #72 vers T0042 ;
-- dépendances : T0042/PR #71 puis T0043/PR #72 doivent fusionner dans l'ordre ;
+- base historique : T0043 au commit `340810c` ;
 - commit d'implémentation : `f9594ec` ;
-- PR #74 : brouillon, base `feature/T0043-desktop-aircraft-catalog`, head
-  `feature/T0044-desktop-company-state` ; Windows multi-stack est en cours,
-  PostgreSQL 17 et supply-chain sont en attente lors de l'observation initiale.
+- PR #74 : fusionnée dans la branche T0043 ;
+- PR corrective #79 : fusionnée dans `main` au commit `6c232c6`, avec Windows
+  multi-stack, PostgreSQL 17 et audits/licences/SBOM réussis.
