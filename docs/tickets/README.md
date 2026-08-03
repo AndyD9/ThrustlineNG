@@ -62,7 +62,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Done |
 | T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Done |
 | T0048 | Exposer le brouillon de dispatch derrière une frontière authentifiée | 2–4 | T0023, T0024, T0047 | Done |
-| T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Review |
+| T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Done |
 | T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Ready |
 | T0051 | Clôturer un vol une seule fois, régler son revenu et sa réputation | 2 | T0020, T0028–T0029, T0047, T0050, T0057 | Draft |
 | T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Ready |
@@ -337,10 +337,11 @@ T0049 charge enfin cette frontière dans l'Edge Runtime local réel. Le 3 août
 publics avec `no-store`, rejeu convergent, refus sans bearer, champ interdit,
 ICAO malformés ou identiques, avion d'un autre propriétaire, avion inconnu,
 deuxième brouillon, état final `1|1|1|1` et bindings loopback inchangés. Le
-ticket est `Review` sur `chore/T0049-validate-dispatch-runtime` et n'ajoute
-aucune capacité produit : ni migration, ni handler, ni desktop, ni cible
-distante. La PR #87 cible `main`, elle est `OPEN` et `MERGEABLE`, et ses trois
-checks sont démarrés sans être encore réussis. Le nettoyage réel vient de la destruction de la pile jetable, parce que
+ticket n'ajoute aucune capacité produit : ni migration, ni handler, ni desktop,
+ni cible distante. La PR #87 est fusionnée dans `main` au merge `00ec05d` avec
+ses trois checks verts sur le commit `2685a2a`; T0049 est `Done`. Le commit
+`7e9a76d`, poussé après la fusion, est propagé séparément par
+`docs/T0049-record-merge`. Le nettoyage réel vient de la destruction de la pile jetable, parce que
 `companies_owner_id_fkey` refuse volontairement d'orphaner une compagnie en
 supprimant son propriétaire par l'Admin API.
 
