@@ -2,7 +2,7 @@
 
 Dernière revue documentaire : 3 août 2026 (audit de tous les tickets ouverts et
 réconciliation des livraisons T0043–T0048).
-Statut : T0009, T0012–T0031, T0033–T0048 sont `Done`. T0009 est clos par le
+Statut : T0009, T0012–T0031, T0033–T0049 sont `Done`. T0009 est clos par le
 smoke test console Windows du 3 août 2026. T0042 est livré dans `main` par la PR
 corrective #73 au commit `a4047a5`. T0043 et T0044 sont livrés ensemble dans
 `main` par la PR corrective #79 au commit `6c232c6`; Windows multi-stack,
@@ -12,10 +12,11 @@ ensemble dans `main` par la PR corrective #83 au merge `d117690`; leurs commits
 les trois checks sont verts. La composition catalogue/achat, la relecture de
 flotte, le brouillon de dispatch autoritaire et sa frontière Auth sont donc
 livrés. WebView live, SimBrief et cycle de vol restent hors périmètre de ces
-preuves. T0049 est `Review` sur `chore/T0049-validate-dispatch-runtime` et lève
-la seule réserve « runtime Edge live » du dispatch : le 3 août 2026, 48 contrôles
-locaux passent sans échec sur la pile T0021. Cette preuve reste locale et
-synthétique et ne livre aucune capacité produit nouvelle.
+preuves. T0049 lève la seule réserve « runtime Edge live » du dispatch : le
+3 août 2026, 48 contrôles locaux passent sans échec sur la pile T0021 et la PR
+#87 est fusionnée dans `main` au merge `00ec05d` avec ses trois checks verts.
+Cette preuve reste locale et synthétique et ne livre aucune capacité produit
+nouvelle.
 Les vérifications historiques T0007–T0008 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -785,8 +786,8 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0043 à T0048 sont livrés dans `main` et T0049 a produit la preuve locale réelle
-Auth → Edge Runtime → `create_dispatch_draft` sur une branche en revue. Le
+T0043 à T0049 sont livrés dans `main`, y compris la preuve locale réelle
+Auth → Edge Runtime → `create_dispatch_draft`. Le
 prochain ticket recommandé du flux backend est T0050, le démarrage d'un vol
 autoritaire depuis un brouillon, puis T0057 pour le référentiel d'aérodromes
 qu'exige la clôture T0051. Le flux desktop reste T0052, sans SimBrief. La
