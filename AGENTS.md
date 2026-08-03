@@ -236,6 +236,37 @@ livré au client.
   `.env`, header d'authentification ou jeton d'instance.
 - Ne jamais télécharger puis exécuter un script distant.
 
+## Versionnement de l'application
+
+Les versions publiées de Thrustline suivent Semantic Versioning 2.0.0 sous la
+forme `MAJOR.MINOR.PATCH`. Avant la première version stable, utiliser une version
+`0.x.y` et les préversions ordonnées `-alpha.N`, `-beta.N`, puis `-rc.N`, par
+exemple `0.1.0-alpha.1`, `0.1.0-beta.1` et `0.1.0-rc.1`. La version `1.0.0` est
+réservée à la première version publique stable dont les gates ont été acceptées
+par Andy.
+
+- Incrémenter `PATCH` pour une correction compatible, `MINOR` pour une capacité
+  compatible et `MAJOR` pour une rupture de compatibilité après `1.0.0`. Sous
+  `0.x.y`, tout changement incompatible doit au minimum incrémenter `MINOR` et
+  être signalé dans les notes de version.
+- Utiliser un tag Git `vMAJOR.MINOR.PATCH[-PRERELEASE]` et reprendre exactement
+  cette version dans le nom des artefacts, par exemple
+  `Thrustline-0.1.0-alpha.1-win-x64.exe`.
+- Garder le commit et la date comme traçabilité de build, jamais comme version
+  publique concaténée. Une build interne peut utiliser la métadonnée SemVer
+  `+YYYYMMDD.gSHORTSHA` et l'interface peut afficher le hash court entre
+  parenthèses ; cette métadonnée ne change pas l'ordre des versions.
+- Ne jamais publier une version opaque telle que `1.0aeb458345`, réutiliser un
+  numéro de version ou déplacer un tag publié.
+- Maintenir une source canonique unique de version produit. Le ticket qui
+  prépare la première alpha doit synchroniser et contrôler les versions du
+  frontend, de Tauri/Rust, du bridge .NET, de l'installateur, des artefacts et de
+  l'affichage applicatif. Les versions de schémas, contrats et outils restent
+  indépendantes de la version produit.
+- Une préversion, un tag ou un artefact ne prouve pas à lui seul qu'une release
+  est publiable : appliquer les gates, preuves et autorités de la roadmap et du
+  ticket de release.
+
 ## Validation proportionnée
 
 Le ticket définit les preuves attendues ; `docs/QUALITY.md` donne les commandes
