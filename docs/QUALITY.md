@@ -283,6 +283,33 @@ projection publique, rejeu et `no-store`. Cette preuve ne valide pas l'Edge
 Runtime live, un appel desktop, SimBrief, une cible distante ou une donnée réelle
 et reste empilée sur T0047.
 
+Preuve T0049 du 3 août 2026 : `scripts/validate-dispatch-draft-runtime.ps1`
+exécute 48 contrôles sans échec sur la pile T0021, avec Docker Desktop 29.6.2,
+Supabase CLI 2.109.1, PostgreSQL 17 et l'Edge Runtime/Deno local. Seuls
+54321–54323 sont publiés sur `127.0.0.1`, avant et après le parcours. Deux
+identités `.invalid` provisionnées par l'Admin API ouvrent leur compagnie par
+`company-onboarding`; la première achète l'offre seedée abordable puis obtient un
+brouillon par `dispatch-draft`. La réponse contient exactement `aircraftId,
+arrivalIcao, createdAt, departureIcao, dispatchId, schemaVersion, state`, avec
+`state: draft`, `schemaVersion: 1` et `Cache-Control: no-store`; le rejeu rend le
+même `dispatchId` et le même `createdAt`. Sans bearer l'appel rend HTTP 401 ; un
+champ supplémentaire rend HTTP 400 `invalid_request`; un ICAO malformé puis deux
+ICAO identiques rendent HTTP 400 `invalid_airports`; l'avion d'un autre
+propriétaire, un avion inconnu et un deuxième brouillon rendent HTTP 409
+`dispatch_rejected`. Chaque refus ne porte que `error.code` et `error.message` et
+ne contient ni compagnie, ni propriétaire, ni email, ni identifiant privilégié.
+Le refus de propriété est exercé avant toute création et l'état reste à zéro
+brouillon. L'état final est `1|1|1|1` : un brouillon, une commande, l'état
+`draft` et l'appartenance à la compagnie du sujet Auth. Après arrêt
+`--no-backup` et redémarrage, l'inspection rend `2|0|0|0|0`. Les gates backend
+(26 mutations), fonctions (46 tests), pgTAP (14 fichiers/270 tests sur base
+fraîche), types, autorité, données et maintenance passent. Cette preuve ne vaut
+ni parité cloud, cible distante, staging, charge, consommation desktop ou donnée
+réelle. Deux limites sont consignées : la suppression d'une identité déjà
+propriétaire est refusée par `companies_owner_id_fkey`, donc la destruction de la
+pile est le seul nettoyage ; et `pnpm backend:test` exige une base fraîchement
+réinitialisée.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme

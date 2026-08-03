@@ -11,8 +11,11 @@ ensemble dans `main` par la PR corrective #83 au merge `d117690`; leurs commits
 `34f96bb`, `ad46315`, `0559a8e` et `175203c` sont dans l'ascendance de `main` et
 les trois checks sont verts. La composition catalogue/achat, la relecture de
 flotte, le brouillon de dispatch autoritaire et sa frontière Auth sont donc
-livrés. WebView live, runtime Edge live, SimBrief et cycle de vol restent hors
-périmètre de ces preuves.
+livrés. WebView live, SimBrief et cycle de vol restent hors périmètre de ces
+preuves. T0049 est `Review` sur `chore/T0049-validate-dispatch-runtime` et lève
+la seule réserve « runtime Edge live » du dispatch : le 3 août 2026, 48 contrôles
+locaux passent sans échec sur la pile T0021. Cette preuve reste locale et
+synthétique et ne livre aucune capacité produit nouvelle.
 Les vérifications historiques T0007–T0008 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -647,6 +650,19 @@ validée, recoupée, projetée sur sept champs publics et marquée `no-store`. L
 reste injectée, sans Edge Runtime live, desktop, SimBrief, cible distante ou
 donnée réelle. Le commit est livré dans `main` par la PR #83.
 
+T0049 exécute cette frontière dans l'Edge Runtime local réel avec
+`scripts/validate-dispatch-draft-runtime.ps1`, qui n'ajoute ni migration, ni
+handler, ni contrat. Le 3 août 2026, ses 48 contrôles passent : bindings loopback
+inchangés, chaînage Auth → Edge → RPC pour un avion réellement acheté, sept
+champs publics `no-store`, rejeu convergent, cinq familles de refus redigés,
+état SQL `1|1|1|1` puis `2|0|0|0|0` après destruction et redémarrage de la pile.
+Le script ne consigne aucun secret, JWT, email ni détail SQL. Deux limites sont
+retenues : une identité déjà propriétaire ne peut pas être supprimée par
+l'Admin API, `companies_owner_id_fkey` refusant d'orphaner sa compagnie, donc le
+nettoyage vient de la destruction de la pile jetable ; et `pnpm backend:test`
+suppose une base fraîchement réinitialisée. Aucune parité cloud, cible distante,
+consommation desktop ou donnée réelle n'est prouvée.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -749,12 +765,13 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0043 à T0048 sont livrés dans `main`. Le prochain ticket recommandé est
-la preuve locale réelle Auth → Edge Runtime → `create_dispatch_draft`, avec
-identité, compagnie, avion et dispatch exclusivement synthétiques, sans encore
-composer le desktop, appeler SimBrief ni démarrer un vol. La location T0032 reste bloquée sur
-ses décisions produit et la persistance Windows reste un ticket de sécurité
-séparé avant tout stockage de refresh token.
+T0043 à T0048 sont livrés dans `main` et T0049 a produit la preuve locale réelle
+Auth → Edge Runtime → `create_dispatch_draft` sur une branche en revue. Le
+prochain ticket recommandé du flux backend est T0050, le démarrage d'un vol
+autoritaire depuis un brouillon, puis T0057 pour le référentiel d'aérodromes
+qu'exige la clôture T0051. Le flux desktop reste T0052, sans SimBrief. La
+location T0032 reste bloquée sur ses décisions produit et la persistance Windows
+reste un ticket de sécurité séparé avant tout stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et
