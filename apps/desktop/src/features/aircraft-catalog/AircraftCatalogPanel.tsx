@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
 import { type DesktopSessionManager, SessionError } from "@/features/auth/session";
@@ -8,6 +8,10 @@ import {
   loadAircraftCatalog,
   type LoadAircraftCatalogInput,
 } from "@/features/aircraft-catalog/aircraftCatalog";
+import {
+  AircraftPurchasePanel,
+  type AircraftPurchaseCommand,
+} from "@/features/aircraft-purchase/AircraftPurchasePanel";
 
 export type AircraftCatalogCommand = (
   input: LoadAircraftCatalogInput,
@@ -16,7 +20,9 @@ export type AircraftCatalogCommand = (
 export interface AircraftCatalogPanelProps {
   command?: AircraftCatalogCommand | undefined;
   config: DesktopConnectionConfig;
+  createPurchaseIdempotencyKey?: (() => string) | undefined;
   onAuthenticationRequired: () => void;
+  purchaseCommand?: AircraftPurchaseCommand | undefined;
   sessionManager: DesktopSessionManager;
 }
 
@@ -34,15 +40,22 @@ const euroFormatter = new Intl.NumberFormat("fr-FR", {
 export function AircraftCatalogPanel({
   command = loadAircraftCatalog,
   config,
+  createPurchaseIdempotencyKey,
   onAuthenticationRequired,
+  purchaseCommand,
   sessionManager,
 }: AircraftCatalogPanelProps) {
   const titleId = useId();
   const [state, setState] = useState<PanelState>({ kind: "ready" });
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+  const [purchasePending, setPurchasePending] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const pendingRef = useRef(false);
 
   useEffect(() => () => abortControllerRef.current?.abort(), []);
+  const handlePurchasePendingChange = useCallback((pending: boolean) => {
+    setPurchasePending(pending);
+  }, []);
 
   const load = async () => {
     if (pendingRef.current) {
@@ -51,6 +64,8 @@ export function AircraftCatalogPanel({
     pendingRef.current = true;
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
+    setSelectedOfferId(null);
+    setPurchasePending(false);
     setState({ kind: "pending" });
 
     try {
@@ -88,6 +103,10 @@ export function AircraftCatalogPanel({
     }
   };
 
+  const selectedOffer = state.kind === "loaded"
+    ? state.offers.find((offer) => offer.id === selectedOfferId)
+    : undefined;
+
   return (
     <section aria-labelledby={titleId}>
       <h2 id={titleId}>Catalogue d’avions</h2>
@@ -114,9 +133,29 @@ export function AircraftCatalogPanel({
               <strong>{offer.displayName}</strong>{" "}
               <span>{offer.aircraftTypeCode} · {offer.serialNumber}</span>{" "}
               <span>{euroFormatter.format(offer.priceMinor / 100)}</span>
+              <button
+                type="button"
+                disabled={purchasePending || selectedOfferId === offer.id}
+                onClick={() => setSelectedOfferId(offer.id)}
+              >
+                {selectedOfferId === offer.id
+                  ? "Offre sélectionnée"
+                  : `Choisir ${offer.displayName}`}
+              </button>
             </li>
           ))}
         </ul>
+      )}
+      {selectedOffer !== undefined && (
+        <AircraftPurchasePanel
+          command={purchaseCommand}
+          config={config}
+          createIdempotencyKey={createPurchaseIdempotencyKey}
+          offer={{ id: selectedOffer.id, label: selectedOffer.displayName }}
+          onAuthenticationRequired={onAuthenticationRequired}
+          onPendingChange={handlePurchasePendingChange}
+          sessionManager={sessionManager}
+        />
       )}
       {state.kind === "unavailable" && (
         <p role="alert">Le catalogue est indisponible. Réessayez dans quelques instants.</p>

@@ -220,7 +220,7 @@ concurrence, annule au démontage et efface la session sur refus Auth. Il ne
 persiste ni ne journalise token ou catalogue. L'allowlist canonique lie l'unique
 chemin source à l'unique ressource ; le gate refuse accès non déclaré, ressource
 divergente et entrée orpheline en plus des invariants d'autorité existants.
-Production reste fermée par CSP et l'achat T0037 n'est pas composé.
+Production reste fermée par CSP. T0045 compose l'achat sans élargir cette CSP.
 
 ## Lecture de présence de compagnie T0044
 
@@ -237,6 +237,22 @@ efface la session sur refus Auth. L'allowlist canonique lie le transport à
 `companies`, refuse les chemins dupliqués et ne relâche aucune mutation. La
 preuve reste locale et injectée ; elle n'ouvre ni cible distante, ni CSP de
 production, ni achat composé.
+
+## Composition catalogue et achat desktop T0045
+
+Seule une offre présente dans la réponse T0043 strictement validée peut être
+sélectionnée. Le panneau T0037 n'accepte plus un bearer brut comme prop : il
+obtient le bearer courant depuis l'unique gestionnaire de session au moment de
+la soumission, l'envoie exclusivement à l'Edge Function et efface la session sur
+refus Auth. Aucun token n'est copié dans l'état React, persisté, journalisé ou
+rendu.
+
+La commande conserve une clé d'idempotence stable pour les retries de la même
+offre, bloque les doubles soumissions et interdit un changement d'offre pendant
+une requête. Le payload reste fermé à `offerId` et `idempotencyKey`; prix,
+devise, compagnie, propriétaire et solde restent dérivés ou contrôlés côté
+serveur. La preuve est locale et injectée ; elle n'ouvre ni CSP de production,
+ni cible distante, flotte ou donnée réelle.
 
 ## Autorité globale du golden path T0024
 

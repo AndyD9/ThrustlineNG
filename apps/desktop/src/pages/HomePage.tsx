@@ -4,6 +4,7 @@ import {
   AircraftCatalogPanel,
   type AircraftCatalogCommand,
 } from "@/features/aircraft-catalog/AircraftCatalogPanel";
+import type { AircraftPurchaseCommand } from "@/features/aircraft-purchase/AircraftPurchasePanel";
 import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
 import type { DesktopSessionManager } from "@/features/auth/session";
 import {
@@ -18,6 +19,7 @@ import { StatusCard } from "@/shared/ui/StatusCard";
 
 export interface HomePageProps {
   aircraftCatalogCommand?: AircraftCatalogCommand | undefined;
+  aircraftPurchaseCommand?: AircraftPurchaseCommand | undefined;
   companyOnboardingCommand?: CompanyOnboardingCommand | undefined;
   companyPresenceCommand?: CompanyPresenceCommand | undefined;
   config: DesktopConnectionConfig;
@@ -28,6 +30,7 @@ export interface HomePageProps {
 
 export function HomePage({
   aircraftCatalogCommand,
+  aircraftPurchaseCommand,
   companyOnboardingCommand,
   companyPresenceCommand,
   config,
@@ -75,6 +78,7 @@ export function HomePage({
           command={aircraftCatalogCommand}
           config={config}
           onAuthenticationRequired={onAuthenticationRequired}
+          purchaseCommand={aircraftPurchaseCommand}
           sessionManager={sessionManager}
         />
       )}

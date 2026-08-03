@@ -1,19 +1,17 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 3 août 2026 (T0041 livré ; T0042–T0044 validés
+Dernière revue documentaire : 3 août 2026 (T0042 livré ; T0043–T0045 validés
 sur des branches empilées).
-Statut : T0012–T0031, T0033–T0041 sont `Done`. T0041 est livré dans `main` par
-la PR corrective #69 au commit `cb179e9`, avec ses trois checks verts.
-T0042 est `Review` : la PR #70 a fusionné ses commits dans la branche T0041
-déjà intégrée, pas dans `main`. Une PR corrective vers la branche distante par
-défaut #71 est ouverte prête ; aucune capacité d'onboarding desktop n'est
-revendiquée dans `main`.
-T0043 est `Review` sur une branche empilée sur T0042/PR #71 ; sa lecture de
-catalogue n'est pas présente dans `main`. Sa PR brouillon #72 cible la branche
-T0042.
+Statut : T0012–T0031, T0033–T0042 sont `Done`. T0042 est livré dans `main` par
+la PR corrective #73 au commit `a4047a5`, avec ses trois checks verts.
+T0043 est `Review` sur une branche empilée sur T0042 ; sa lecture de catalogue
+n'est pas présente dans `main`. La PR #72 a fusionné dans T0042 après la
+propagation de cette branche vers `main`.
 T0044 est `Review` sur une branche empilée sur T0043 : la reprise de compagnie
-et l'aiguillage onboarding/catalogue ne sont pas présents dans `main`. Sa PR
-brouillon #74 cible explicitement la branche T0043.
+et l'aiguillage onboarding/catalogue ne sont pas présents dans `main`. La PR
+#74 a fusionné dans la branche T0043.
+T0045 est `Review` sur une branche empilée sur T0044 : la composition
+catalogue/achat est validée localement mais absente de `main`.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -583,10 +581,9 @@ au moment de la soumission et efface la session si Auth la refuse. Un retry du
 même nom conserve la clé tandis qu'un changement crée une nouvelle intention.
 Les 104 tests frontend, la couverture, le build et les gates passent localement.
 Cette preuve jsdom/fetch injectée ne valide ni WebView live, CSP de production,
-cible distante ou donnée réelle. La PR #70 a fusionné avec trois checks verts
-dans la branche T0041 après son intégration à `main`; les commits T0042 restent
-absents de la branche par défaut. La PR corrective #71 est ouverte prête vers
-`main`.
+cible distante ou donnée réelle. La PR #70 a fusionné dans une branche déjà
+intégrée ; la PR corrective #73 livre T0042 dans `main` au commit `a4047a5` avec
+ses trois checks verts.
 
 T0043 ajoute un transport `GET` constant vers les offres d'achat disponibles,
 limité à vingt éléments et 32 Kio, ainsi qu'un panneau injecté sans réseau au
@@ -606,6 +603,16 @@ catalogue. Les 146 tests frontend, la couverture, le build et les gates passent
 localement ; le gate d'autorité couvre neuf mutations. Cette preuve reste
 jsdom/fetch injectée, locale, sans achat composé, WebView live, cible distante ou
 donnée réelle. T0044 est empilé sur T0043/PR #72.
+
+T0045 limite la sélection aux offres validées du catalogue et compose l'unique
+offre choisie avec la commande Edge T0037. Le bearer est obtenu depuis le
+gestionnaire de session à la soumission ; aucun prix, devise, compagnie,
+propriétaire ou solde n'entre dans le payload d'achat. Le changement d'offre est
+bloqué pendant une commande, les retries conservent l'idempotence et un refus
+Auth efface la session. Les 149 tests frontend exécutés, la couverture, le build
+et les gates passent localement. La preuve reste injectée, empilée sur T0044,
+sans WebView live, cible distante, donnée réelle, flotte ou livraison dans
+`main`.
 
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
@@ -707,12 +714,12 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0041 est livré. T0042 doit encore être propagé vers `main` par la PR corrective
-#71 ; T0043/PR #72 et T0044 restent empilés sur cette dépendance. Après
-publication et fusion ordonnée de cette pile, le prochain ticket recommandé est
-T0045, composition du catalogue T0043 avec la commande d'achat T0037 derrière
-l'aiguillage T0044. La persistance Windows reste un ticket de sécurité séparé
-avant tout stockage de refresh token.
+T0042 est livré. T0043, T0044 et T0045 doivent encore être propagés vers `main`
+par des PR correctives ordonnées ; leurs fusions empilées ne suffisent pas à les
+livrer dans la branche distante par défaut. Après cette propagation, le prochain
+ticket doit être choisi dans la phase 4 sans inventer la flotte ni la
+persistance. La persistance Windows reste un ticket de sécurité séparé avant
+tout stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
 d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et

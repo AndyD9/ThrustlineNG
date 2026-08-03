@@ -55,9 +55,10 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0039 | Acquérir une session locale par email et mot de passe | 4 | T0021, T0024, T0038, décision Andy | Done |
 | T0040 | Activer et valider Auth locale email/mot de passe | 4 | T0021, T0038–T0039 | Done |
 | T0041 | Rendre la connexion locale accessible par une route bornée | 4 | T0038–T0040 | Done |
-| T0042 | Composer l'onboarding de compagnie depuis le desktop | 4 | T0022–T0023, T0038–T0041 | Review |
+| T0042 | Composer l'onboarding de compagnie depuis le desktop | 4 | T0022–T0023, T0038–T0041 | Done |
 | T0043 | Lire le catalogue d'avions depuis le desktop | 4 | T0029, T0037–T0042 | Review |
 | T0044 | Lire l’état de compagnie depuis le desktop | 4 | T0012, T0022, T0042–T0043 | Review |
+| T0045 | Composer le catalogue avec l’achat desktop | 4 | T0037–T0038, T0043–T0044 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -244,19 +245,19 @@ login WebView live, persistance, onboarding, catalogue ou achat composé.
 T0042 compose l'Edge Function d'onboarding T0023 depuis l'accueil authentifié,
 avec une intention idempotente, un payload fermé et le bearer obtenu à la
 soumission depuis le gestionnaire T0038. Ses 104 tests frontend, couverture,
-build et gates passent localement. Il est `Review` sur une branche empilée sur
-T0041. La PR #70 a été fusionnée avec ses trois checks verts dans cette branche
-après son intégration à `main`; T0042 reste donc `Review` en attente d'une PR
-corrective #71 ouverte prête vers `main`, et exclut persistance, catalogue,
-achat et backend.
+build et gates passent localement. La PR #70 a été fusionnée avec ses trois
+checks verts dans la branche T0041 après son intégration à `main`; la PR
+corrective #73 livre finalement T0042 dans `main` au commit `a4047a5` avec ses
+trois checks verts. T0042 est `Done` et exclut persistance, catalogue, achat et
+backend.
 
 T0043 ajoute une lecture Data API locale explicitement allowlistée des offres
 `available`, limitée à vingt lignes et 32 Kio, ainsi qu'un panneau injecté sans
 réseau au rendu. Ses 125 tests frontend, couverture, build et gates passent
 localement ; le gate d'autorité couvre désormais huit mutations négatives. Le
-ticket est `Review` sur une branche empilée sur T0042/PR #71 et ne compose ni
-achat, ni flotte, ni cible distante. La PR brouillon #72 cible explicitement la
-branche T0042.
+ticket est `Review` sur une branche empilée sur T0042 et ne compose ni achat, ni
+flotte, ni cible distante. La PR #72 a fusionné dans la branche T0042 après sa
+propagation vers `main`; les commits T0043 restent donc absents de `main`.
 
 T0044 ajoute au-dessus de T0043 une lecture Data API locale de la présence de
 compagnie, projetée sur `id`, bornée à deux lignes puis réduite à un booléen.
@@ -264,8 +265,16 @@ L'accueil ne charge rien au rendu et aiguille explicitement une session vers
 l'onboarding ou le catalogue ; une création réussie bascule vers le catalogue.
 Les 146 tests frontend, la couverture, le build et les gates passent localement.
 T0044 est `Review` sur une branche empilée sur T0043/PR #72, sans achat composé,
-WebView live, cible distante ou donnée réelle. La PR brouillon #74 cible
-explicitement la branche T0043.
+WebView live, cible distante ou donnée réelle. La PR #74 a fusionné dans la
+branche T0043 sans propager T0043 ou T0044 vers `main`.
+
+T0045 compose sur une branche empilée la sélection d'une offre T0043 avec la
+commande d'achat T0037 derrière l'aiguillage T0044. Le bearer est acquis au clic
+depuis le gestionnaire de session, la sélection reste limitée au catalogue
+validé et aucun prix, propriétaire ou solde n'est envoyé comme autorité. Ses 149
+tests frontend exécutés, sa couverture, son build et ses gates passent
+localement ; le ticket est `Review`, sans WebView live, cible distante, donnée
+réelle ou livraison dans `main`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

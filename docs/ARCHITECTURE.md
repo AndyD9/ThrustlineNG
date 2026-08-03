@@ -115,7 +115,14 @@ divergente, chemin dupliqué ou entrée orpheline fait échouer le gate. Les req
 restent des `GET` à projection et limite constantes ; le catalogue ajoute filtre
 et ordre constants. La présence de compagnie est immédiatement réduite à un
 booléen avant la composition React. Ces lectures n'autorisent aucune mutation
-Data API et ne composent pas encore la commande d'achat T0037.
+Data API.
+
+T0045 compose le résultat validé du catalogue avec la commande Edge T0037 sans
+fusionner les transports : la sélection ne peut référencer qu'une offre chargée,
+et le panneau d'achat obtient le bearer depuis le gestionnaire de session à la
+soumission. Le payload serveur reste limité à l'offre et à l'idempotence ; prix,
+devise, compagnie, propriétaire et solde ne traversent pas cette frontière comme
+autorité cliente.
 
 ## Packaging Windows T0014
 
