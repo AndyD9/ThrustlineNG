@@ -264,7 +264,8 @@ L'accueil ne charge rien au rendu et aiguille explicitement une session vers
 l'onboarding ou le catalogue ; une création réussie bascule vers le catalogue.
 Les 146 tests frontend, la couverture, le build et les gates passent localement.
 T0044 est `Review` sur une branche empilée sur T0043/PR #72, sans achat composé,
-WebView live, cible distante ou donnée réelle.
+WebView live, cible distante ou donnée réelle. La PR brouillon #74 cible
+explicitement la branche T0043.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

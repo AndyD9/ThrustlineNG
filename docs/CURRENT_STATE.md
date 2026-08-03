@@ -11,9 +11,9 @@ revendiquée dans `main`.
 T0043 est `Review` sur une branche empilée sur T0042/PR #71 ; sa lecture de
 catalogue n'est pas présente dans `main`. Sa PR brouillon #72 cible la branche
 T0042.
-T0044 est `Review` sur une branche locale empilée sur T0043 : la reprise de
-compagnie et l'aiguillage onboarding/catalogue ne sont pas présents dans `main`
-et aucune PR T0044 n'est encore revendiquée.
+T0044 est `Review` sur une branche empilée sur T0043 : la reprise de compagnie
+et l'aiguillage onboarding/catalogue ne sont pas présents dans `main`. Sa PR
+brouillon #74 cible explicitement la branche T0043.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.

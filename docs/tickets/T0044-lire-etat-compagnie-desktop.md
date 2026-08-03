@@ -32,6 +32,9 @@ nécessaire.
 - 3 août 2026 — `Review` : transport, composition, allowlist, revue adversariale,
   vérification jsdom et validations automatisées terminés ; la branche reste
   empilée sur T0043/PR #72.
+- 3 août 2026 — publication : commit `f9594ec` poussé ; PR brouillon #74 ouverte
+  avec base `feature/T0043-desktop-aircraft-catalog` et les trois checks GitHub
+  en attente ou en cours lors de l'observation initiale.
 
 ## Dependencies
 
@@ -230,5 +233,7 @@ Ce ticket, l'index, `CURRENT_STATE.md`, `QUALITY.md`, `ARCHITECTURE.md` et
 - branche : `feature/T0044-desktop-company-state` ;
 - base : T0043 au commit `340810c`, PR #72 vers T0042 ;
 - dépendances : T0042/PR #71 puis T0043/PR #72 doivent fusionner dans l'ordre ;
-- commit : à créer ;
-- PR : à créer, base attendue `feature/T0043-desktop-aircraft-catalog`.
+- commit d'implémentation : `f9594ec` ;
+- PR #74 : brouillon, base `feature/T0043-desktop-aircraft-catalog`, head
+  `feature/T0044-desktop-company-state` ; Windows multi-stack est en cours,
+  PostgreSQL 17 et supply-chain sont en attente lors de l'observation initiale.
