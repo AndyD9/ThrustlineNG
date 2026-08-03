@@ -38,6 +38,11 @@ capacité produit et ne modifie ni la migration, ni le handler.
 - 3 août 2026 — `Review` : 48 contrôles runtime passent sans échec, la pile est
   détruite sans backup, le redémarrage prouve zéro identité T0049 et les gates
   applicables passent ; le diff est prêt pour revue.
+- 3 août 2026 — publication : commit `4e60c70` poussé sur
+  `chore/T0049-validate-dispatch-runtime`; PR #87 ouverte prête pour revue, base
+  `main`, head T0049, `OPEN` et `MERGEABLE`. Ses trois checks sont démarrés mais
+  encore `pending` lors de cette observation ; aucun n'est revendiqué comme
+  réussi.
 
 ## Dependencies
 
@@ -291,4 +296,9 @@ Ce ticket, `docs/tickets/README.md`, `docs/QUALITY.md` et
 
 - branche : `chore/T0049-validate-dispatch-runtime` ;
 - base : `main` / `origin/main` au commit `b57a2c5` ;
-- commit et Pull Request : renseignés à la publication.
+- commit de validation : `4e60c70` ;
+- PR #87 : `OPEN` et `MERGEABLE`, base `main`, head
+  `chore/T0049-validate-dispatch-runtime`, prête pour revue ;
+- checks GitHub : Windows multi-stack, Supabase PostgreSQL 17 et
+  audits/licences/SBOM déclenchés, `pending` lors de la dernière observation ;
+- fusion : réservée à Andy.

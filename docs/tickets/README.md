@@ -339,7 +339,8 @@ ICAO malformés ou identiques, avion d'un autre propriétaire, avion inconnu,
 deuxième brouillon, état final `1|1|1|1` et bindings loopback inchangés. Le
 ticket est `Review` sur `chore/T0049-validate-dispatch-runtime` et n'ajoute
 aucune capacité produit : ni migration, ni handler, ni desktop, ni cible
-distante. Le nettoyage réel vient de la destruction de la pile jetable, parce que
+distante. La PR #87 cible `main`, elle est `OPEN` et `MERGEABLE`, et ses trois
+checks sont démarrés sans être encore réussis. Le nettoyage réel vient de la destruction de la pile jetable, parce que
 `companies_owner_id_fkey` refuse volontairement d'orphaner une compagnie en
 supprimant son propriétaire par l'Admin API.
 
