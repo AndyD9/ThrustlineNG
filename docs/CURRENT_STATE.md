@@ -29,7 +29,8 @@ T0048 est `Review` sur une branche empilée sur T0047 : l'Edge Function
 `dispatch-draft` vérifie une session non anonyme, dérive le propriétaire et
 appelle la commande T0047 avec le credential serveur. T0043–T0048 restent
 absents de `main`; aucun appel desktop, runtime Edge live ou SimBrief n'est
-livré.
+livré. La PR prête #82 cible T0047 ; elle est `OPEN` et `MERGEABLE`, avec ses
+trois checks démarrés lors de l'observation initiale.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.

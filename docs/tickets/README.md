@@ -295,7 +295,8 @@ et appelle la RPC T0047 avec le credential serveur, puis projette uniquement la
 réponse publique versionnée. Les 46 tests de fonctions et les gates applicables
 passent. Le ticket est `Review`, empilé sur T0047, sans
 desktop, Edge Runtime live, SimBrief, cycle de vol, cible distante ou livraison
-dans `main`.
+dans `main`. La PR prête #82 cible T0047 ; elle est `OPEN` et `MERGEABLE`, avec
+ses trois checks démarrés lors de l'observation initiale.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

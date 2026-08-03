@@ -34,6 +34,9 @@ sur T0047 et ne présente pas cette pile comme une capacité livrée.
 - 3 août 2026 — `Review` : handler, 16 scénarios dispatch, quatre mutations du
   gate, inventaire, revue adversariale et documentation terminés ; validations
   locales applicables réussies, publication encore à effectuer sur T0047.
+- 3 août 2026 — publication : commit `175203c` poussé ; PR prête #82 ouverte,
+  base T0047, head T0048, état `OPEN` et `MERGEABLE`. Windows et supply-chain
+  sont en cours, PostgreSQL 17 est en file lors de l'observation initiale.
 
 ## Dependencies
 
@@ -238,4 +241,8 @@ réelle, SimBrief ou transition de vol.
 - branche : `feature/T0048-dispatch-draft-endpoint` ;
 - base : T0047 au commit `74d0421` ;
 - dépendances empilées : T0043–T0047 restent absents de `main` ;
-- commit, push et Pull Request : à effectuer.
+- commit d'implémentation : `175203c` ;
+- branche poussée avec upstream exact ;
+- PR prête #82 : https://github.com/AndyD9/ThrustlineNG/pull/82, base T0047,
+  head T0048, état `OPEN` et `MERGEABLE` ; Windows et supply-chain sont en cours,
+  PostgreSQL 17 est en file lors de l'observation initiale.
