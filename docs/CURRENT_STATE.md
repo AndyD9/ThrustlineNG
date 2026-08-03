@@ -13,7 +13,8 @@ et l'aiguillage onboarding/catalogue ne sont pas présents dans `main`. La PR
 T0045 est `Review` sur une branche empilée sur T0044 : la composition
 catalogue/achat est validée localement mais absente de `main`. La PR #76 a
 fusionné dans la branche T0044 pendant les checks, sans propager la pile vers
-`main`.
+`main`. La PR corrective documentaire #77 propage cette réconciliation vers
+T0044.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
