@@ -378,6 +378,16 @@ try {
         throw "Harness self-test failed to detect a divergent Data API resource."
     }
 
+    $duplicateReadRoot = New-AuthorityTestRoot
+    $temporaryRoots.Add($duplicateReadRoot)
+    $path = Join-Path $duplicateReadRoot "eng\authority-inventory.json"
+    $mutation = Get-Content -Raw -Encoding UTF8 $path | ConvertFrom-Json
+    $mutation.policy.clientDataApiReads += $mutation.policy.clientDataApiReads[0]
+    [System.IO.File]::WriteAllText($path, ($mutation | ConvertTo-Json -Depth 12), [System.Text.UTF8Encoding]::new($false))
+    if (-not (@(Get-AuthorityIssues -Root $duplicateReadRoot) -match "must be non-empty and have unique paths")) {
+        throw "Harness self-test failed to detect a duplicate Data API allowlist path."
+    }
+
     $orphanReadRoot = New-AuthorityTestRoot
     $temporaryRoots.Add($orphanReadRoot)
     $path = Join-Path $orphanReadRoot "eng\authority-inventory.json"
@@ -399,4 +409,4 @@ finally {
     }
 }
 
-Write-Output "Authority inventory checks passed (10 golden-path steps, 13 domains, 3 client surfaces, 8 mutation scenarios)."
+Write-Output "Authority inventory checks passed (10 golden-path steps, 13 domains, 3 client surfaces, 9 mutation scenarios)."

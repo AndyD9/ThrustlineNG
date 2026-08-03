@@ -222,6 +222,22 @@ chemin source à l'unique ressource ; le gate refuse accès non déclaré, resso
 divergente et entrée orpheline en plus des invariants d'autorité existants.
 Production reste fermée par CSP et l'achat T0037 n'est pas composé.
 
+## Lecture de présence de compagnie T0044
+
+Le desktop peut demander explicitement au plus deux lignes de `companies` via la
+Data API locale, avec une projection limitée à `id`. La clé anonyme publique et
+le bearer courant sont obtenus à l'action ; la RLS propriétaire reste l'autorité
+et l'absence, une ligne ou une violation d'unicité sont distinguées sans filtre
+ou propriétaire fourni par le client.
+
+Le corps est borné à 8 Kio et validé strictement, puis réduit à un booléen :
+aucun identifiant ou nom n'est conservé, rendu, persisté ou journalisé. Le
+panneau ne charge rien au rendu, bloque la concurrence, annule au démontage et
+efface la session sur refus Auth. L'allowlist canonique lie le transport à
+`companies`, refuse les chemins dupliqués et ne relâche aucune mutation. La
+preuve reste locale et injectée ; elle n'ouvre ni cible distante, ni CSP de
+production, ni achat composé.
+
 ## Autorité globale du golden path T0024
 
 L'inventaire canonique `eng/authority-inventory.json` couvre les dix étapes de

@@ -3,6 +3,7 @@ import { HashRouter } from "react-router";
 
 import { AppErrorBoundary } from "@/app/AppErrorBoundary";
 import { AppRoutes } from "@/app/routes";
+import type { AircraftCatalogCommand } from "@/features/aircraft-catalog/AircraftCatalogPanel";
 import {
   readBundledDesktopConnectionConfig,
   type DesktopConnectionConfig,
@@ -10,6 +11,7 @@ import {
 import type { SignInCommand } from "@/features/auth/PasswordSignInPanel";
 import { DesktopSessionManager } from "@/features/auth/session";
 import type { CompanyOnboardingCommand } from "@/features/company-onboarding/CompanyOnboardingPanel";
+import type { CompanyPresenceCommand } from "@/features/company-state/CompanyPresencePanel";
 
 export interface DesktopAuthRuntime {
   config: DesktopConnectionConfig;
@@ -17,8 +19,10 @@ export interface DesktopAuthRuntime {
 }
 
 export interface AppProps {
+  aircraftCatalogCommand?: AircraftCatalogCommand | undefined;
   authRuntime?: DesktopAuthRuntime;
   companyOnboardingCommand?: CompanyOnboardingCommand | undefined;
+  companyPresenceCommand?: CompanyPresenceCommand | undefined;
   signInCommand?: SignInCommand | undefined;
 }
 
@@ -27,7 +31,13 @@ function createBundledAuthRuntime(): DesktopAuthRuntime {
   return { config, sessionManager: new DesktopSessionManager(config) };
 }
 
-function AppContent({ authRuntime, companyOnboardingCommand, signInCommand }: AppProps) {
+function AppContent({
+  aircraftCatalogCommand,
+  authRuntime,
+  companyOnboardingCommand,
+  companyPresenceCommand,
+  signInCommand,
+}: AppProps) {
   const [runtime] = useState(() => authRuntime ?? createBundledAuthRuntime());
   const [authenticated, setAuthenticated] = useState(() => runtime.sessionManager.hasSession());
 
@@ -46,8 +56,10 @@ function AppContent({ authRuntime, companyOnboardingCommand, signInCommand }: Ap
           </span>
         </header>
         <AppRoutes
+          aircraftCatalogCommand={aircraftCatalogCommand}
           authenticated={authenticated}
           companyOnboardingCommand={companyOnboardingCommand}
+          companyPresenceCommand={companyPresenceCommand}
           config={runtime.config}
           onAuthenticated={() => setAuthenticated(runtime.sessionManager.hasSession())}
           onSignOut={signOut}
