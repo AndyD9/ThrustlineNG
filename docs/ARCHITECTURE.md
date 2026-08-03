@@ -133,15 +133,19 @@ il signale seulement au panneau déjà chargé de relire la source autoritaire.
 
 T0047 ouvre le domaine dispatch par une migration serveur append-only. La
 commande `create_dispatch_draft`, réservée à `service_role`, reçoit uniquement
-le propriétaire vérifié par une future frontière, une clé d'idempotence, un
+le propriétaire vérifié par la frontière T0048, une clé d'idempotence, un
 avion et deux codes ICAO. Elle verrouille la compagnie puis l'avion, dérive la
 compagnie depuis le propriétaire, vérifie l'appartenance et persiste dans une
 transaction un brouillon `draft` horodaté par PostgreSQL avec son registre privé.
 
 `flight_dispatches` force RLS et reste en lecture seule pour `authenticated`,
 filtrée par la compagnie du sujet Auth. Une contrainte et le verrou d'avion
-garantissent un seul brouillon actif par avion. Cette tranche ne fournit ni Edge
-Function, ni transport desktop, ni SimBrief, ni transition ou runtime de vol.
+garantissent un seul brouillon actif par avion. T0048 ajoute l'Edge Function
+`dispatch-draft` : elle borne le corps à 4 Kio, vérifie le bearer auprès d'Auth,
+dérive le propriétaire, normalise les ICAO puis appelle la RPC avec le credential
+`service_role` sous délai de cinq secondes. Elle projette uniquement la réponse
+publique versionnée et `no-store`. Aucun transport desktop, SimBrief, transition
+ou runtime de vol n'est fourni.
 
 ## Packaging Windows T0014
 

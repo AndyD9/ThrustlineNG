@@ -90,6 +90,10 @@ le serveur dérive la compagnie, valide la propriété, normalise les codes et c
 seul l'état initial `draft` ainsi que son horodatage. Un même avion ne peut pas
 porter deux brouillons actifs et une intention rejouée ne crée pas de doublon.
 
+La frontière applicative n'accepte du client que l'avion, les deux ICAO et
+l'idempotence. Elle dérive le propriétaire d'une session non anonyme vérifiée ;
+compagnie, état et horodatage restent exclusivement serveur.
+
 Cette tranche ne définit pas encore une route détaillée, un horaire, un appel
 SimBrief, un OFP, des passagers, du fret, un coût, un revenu ou le cycle de vie
 d'un vol. Ces données et transitions exigent des tickets séparés avant de

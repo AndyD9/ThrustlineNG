@@ -120,18 +120,21 @@
       "status": "server-authoritative",
       "coverage": "partial",
       "serverBoundaries": [
+        "supabase/functions/dispatch-draft/handler.ts",
         "public.create_dispatch_draft"
       ],
       "evidencePaths": [
+        "supabase/functions/dispatch-draft/handler.ts",
         "supabase/migrations/20260803000100_authoritative_dispatch_draft.sql",
         "supabase/tests/database/dispatch_draft.test.sql"
       ],
       "evidenceMarkers": [
+        "createDispatchDraftHandler",
         "create_dispatch_draft",
         "flight_dispatches",
         "owner A cannot dispatch owner B aircraft"
       ],
-      "limitations": ["Only a server-created, idempotent draft with an owned aircraft and two normalized ICAO codes is covered; no authenticated endpoint, desktop composition, SimBrief preparation, lifecycle transition, flight runtime or financial impact is implemented."]
+      "limitations": ["An authenticated bounded endpoint and the server-created idempotent draft are covered; no desktop composition, live Edge Runtime proof, remote deployment, SimBrief preparation, lifecycle transition, flight runtime or financial impact is implemented."]
     },
     {
       "id": "flight-runtime",

@@ -58,6 +58,10 @@ function Get-BackendIssues {
     $purchaseFunctionEntryPath = Join-Path $Root "supabase\functions\aircraft-purchase\index.ts"
     $purchaseFunctionTestPath = Join-Path $Root "supabase\functions\aircraft-purchase\handler.test.ts"
     $purchaseFunctionPackagePath = Join-Path $Root "supabase\functions\aircraft-purchase\package.json"
+    $dispatchFunctionPath = Join-Path $Root "supabase\functions\dispatch-draft\handler.ts"
+    $dispatchFunctionEntryPath = Join-Path $Root "supabase\functions\dispatch-draft\index.ts"
+    $dispatchFunctionTestPath = Join-Path $Root "supabase\functions\dispatch-draft\handler.test.ts"
+    $dispatchFunctionPackagePath = Join-Path $Root "supabase\functions\dispatch-draft\package.json"
     $typesPath = Join-Path $Root "packages\database\src\database.types.ts"
     $startScriptPath = Join-Path $Root "scripts\start-supabase-local.ps1"
     $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
@@ -102,6 +106,10 @@ function Get-BackendIssues {
         $purchaseFunctionEntryPath,
         $purchaseFunctionTestPath,
         $purchaseFunctionPackagePath,
+        $dispatchFunctionPath,
+        $dispatchFunctionEntryPath,
+        $dispatchFunctionTestPath,
+        $dispatchFunctionPackagePath,
         $typesPath,
         $startScriptPath,
         $invokeScriptPath,
@@ -531,7 +539,49 @@ function Get-BackendIssues {
             $issues.Add("Missing aircraft purchase endpoint test scenario: $marker")
         }
     }
-    Require-Text ([string]$package.scripts.'backend:functions:test') 'company-onboarding/handler\.test\.ts.+aircraft-purchase/handler\.test\.ts' "The functions test script must execute onboarding and aircraft purchase handlers."
+
+    $dispatchFunction = Get-Content -Raw -Encoding UTF8 $dispatchFunctionPath
+    $dispatchFunctionEntry = Get-Content -Raw -Encoding UTF8 $dispatchFunctionEntryPath
+    $dispatchFunctionTests = Get-Content -Raw -Encoding UTF8 $dispatchFunctionTestPath
+    $dispatchFunctionRequirements = @{
+        "bounded request body" = 'MAX_BODY_BYTES = 4_096'
+        "bounded upstream calls" = 'UPSTREAM_TIMEOUT_MILLISECONDS = 5_000'
+        "strict dispatch payload" = 'keys\.length !== 4'
+        "ICAO normalization" = 'trim\(\)\.toUpperCase\(\)'
+        "Auth session verification" = '/auth/v1/user'
+        "anonymous session rejection" = 'user\.is_anonymous !== false'
+        "service-role dispatch RPC" = '/rest/v1/rpc/create_dispatch_draft'
+        "owner derived from Auth" = 'owner_id: user\.id'
+        "service credential API key" = 'apikey: configuration\.serviceRoleKey'
+        "service credential bearer" = 'authorization: `Bearer \$\{configuration\.serviceRoleKey\}`'
+        "redacted dispatch failure" = 'dispatch_rejected'
+        "allowlisted public response" = 'aircraftId: value\.aircraftId[\s\S]+arrivalIcao: value\.arrivalIcao[\s\S]+createdAt: value\.createdAt[\s\S]+departureIcao: value\.departureIcao[\s\S]+dispatchId: value\.dispatchId'
+        "non-cacheable response" = 'headers\.set\("cache-control", "no-store"\)'
+    }
+    foreach ($entry in $dispatchFunctionRequirements.GetEnumerator()) {
+        Require-Text $dispatchFunction $entry.Value "Dispatch draft endpoint invariant missing: $($entry.Key)."
+    }
+    if ($dispatchFunction -match 'request\.(owner|company|state|created|route|simbrief)[A-Za-z]*') {
+        $issues.Add("Dispatch draft endpoint must not accept client-controlled owner, company, state, time, route or SimBrief data.")
+    }
+    Require-Text $config '\[functions\.dispatch-draft\][\s\S]+verify_jwt = true[\s\S]+entrypoint = "\./functions/dispatch-draft/index\.ts"' "Dispatch draft Edge function must verify JWTs and register its entrypoint."
+    Require-Text $dispatchFunctionEntry 'Deno\.serve\(createDispatchDraftHandler\(Deno\.env\.toObject\(\)\)\)' "Dispatch draft handler is not registered with the Edge runtime."
+    foreach ($marker in @(
+        "rejects owner, company, state, time, route, and other client-controlled fields",
+        "normalizes valid airports and rejects invalid or identical ICAO codes",
+        "rejects an invalid or anonymous Auth session",
+        "fails closed when Auth is unavailable",
+        "derives the owner from Auth and sends only the normalized RPC contract",
+        "does not disclose database rejection details",
+        "fails closed when the privileged RPC is unavailable",
+        "fails closed on a malformed or mismatched privileged response",
+        "returns only public fields from a privileged response"
+    )) {
+        if (-not $dispatchFunctionTests.Contains($marker)) {
+            $issues.Add("Missing dispatch draft endpoint test scenario: $marker")
+        }
+    }
+    Require-Text ([string]$package.scripts.'backend:functions:test') 'company-onboarding/handler\.test\.ts.+aircraft-purchase/handler\.test\.ts.+dispatch-draft/handler\.test\.ts' "The functions test script must execute onboarding, aircraft purchase and dispatch draft handlers."
 
     $seed = Get-Content -Raw -Encoding UTF8 $seedPath
     Require-Text $seed 'pilot-a@thrustline\.invalid' "Synthetic user A is missing."
@@ -742,6 +792,10 @@ try {
         "supabase\functions\aircraft-purchase\index.ts",
         "supabase\functions\aircraft-purchase\handler.test.ts",
         "supabase\functions\aircraft-purchase\package.json",
+        "supabase\functions\dispatch-draft\handler.ts",
+        "supabase\functions\dispatch-draft\index.ts",
+        "supabase\functions\dispatch-draft\handler.test.ts",
+        "supabase\functions\dispatch-draft\package.json",
         "packages\database\src\database.types.ts",
         "scripts\start-supabase-local.ps1",
         "scripts\invoke-supabase-local.ps1",
@@ -1025,6 +1079,61 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\aircraft-purchase\handler.ts") -Destination $purchaseFunctionCopy
+    $dispatchFunctionCopy = Join-Path $temporaryRoot "supabase\functions\dispatch-draft\handler.ts"
+    $dispatchFunctionText = Get-Content -Raw -Encoding UTF8 $dispatchFunctionCopy
+    $dispatchFunctionText = $dispatchFunctionText.Replace(
+        "owner_id: user.id,",
+        "owner_id: request.ownerId,"
+    )
+    [System.IO.File]::WriteAllText($dispatchFunctionCopy, $dispatchFunctionText)
+    $clientDispatchOwnerIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientDispatchOwnerIssues -match "owner derived from Auth") -or
+        -not ($clientDispatchOwnerIssues -match "client-controlled owner")) {
+        Write-Error "Harness self-test failed to detect a client-controlled dispatch owner."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\dispatch-draft\handler.ts") -Destination $dispatchFunctionCopy
+    $dispatchFunctionText = Get-Content -Raw -Encoding UTF8 $dispatchFunctionCopy
+    $dispatchFunctionText = $dispatchFunctionText.Replace(
+        "apikey: configuration.serviceRoleKey,",
+        "apikey: configuration.anonKey,"
+    )
+    [System.IO.File]::WriteAllText($dispatchFunctionCopy, $dispatchFunctionText)
+    $unprivilegedDispatchIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unprivilegedDispatchIssues -match "service credential API key")) {
+        Write-Error "Harness self-test failed to detect an unprivileged dispatch RPC call."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\dispatch-draft\handler.ts") -Destination $dispatchFunctionCopy
+    $dispatchFunctionText = Get-Content -Raw -Encoding UTF8 $dispatchFunctionCopy
+    $dispatchFunctionText = $dispatchFunctionText.Replace(
+        "arrival_icao: request.arrivalIcao,",
+        "arrival_icao: request.arrivalIcao,`r`n        state: request.state,"
+    )
+    [System.IO.File]::WriteAllText($dispatchFunctionCopy, $dispatchFunctionText)
+    $clientDispatchStateIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientDispatchStateIssues -match "client-controlled owner, company, state, time, route or SimBrief")) {
+        Write-Error "Harness self-test failed to detect client-controlled dispatch state."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\dispatch-draft\handler.ts") -Destination $dispatchFunctionCopy
+    $dispatchFunctionTestCopy = Join-Path $temporaryRoot "supabase\functions\dispatch-draft\handler.test.ts"
+    $dispatchFunctionTestText = Get-Content -Raw -Encoding UTF8 $dispatchFunctionTestCopy
+    $dispatchFunctionTestText = $dispatchFunctionTestText.Replace(
+        "returns only public fields from a privileged response",
+        "returns fields from a privileged response"
+    )
+    [System.IO.File]::WriteAllText($dispatchFunctionTestCopy, $dispatchFunctionTestText)
+    $incompleteDispatchTestsIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($incompleteDispatchTestsIssues -match "Missing dispatch draft endpoint test scenario")) {
+        Write-Error "Harness self-test failed to detect an incomplete dispatch endpoint contract."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\dispatch-draft\handler.test.ts") -Destination $dispatchFunctionTestCopy
     $economyPolicyCopy = Join-Path $temporaryRoot "eng\economy-policy.json"
     $economyPolicyText = Get-Content -Raw -Encoding UTF8 $economyPolicyCopy
     $economyPolicyText = $economyPolicyText.Replace('"schemaVersion": 1', '"schemaVersion": 2')
@@ -1065,4 +1174,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035, T0040 and T0047 repository plus 22 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035, T0040 and T0047-T0048 repository plus 26 mutation scenarios)."

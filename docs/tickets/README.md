@@ -61,6 +61,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0045 | Composer le catalogue avec l’achat desktop | 4 | T0037–T0038, T0043–T0044 | Review |
 | T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Review |
 | T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Review |
+| T0048 | Exposer le brouillon de dispatch derrière une frontière authentifiée | 2–4 | T0023, T0024, T0047 | Review |
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -287,6 +288,14 @@ PostgreSQL 17 avec 14 fichiers/270 assertions. Le ticket est `Review`, sans
 endpoint Auth, desktop, SimBrief, cycle de vol, cible distante ou livraison dans
 `main`. La PR prête #81 cible T0046 et ses trois checks sont en cours lors de
 l'observation initiale.
+
+T0048 ajoute sur T0047 une Edge Function `dispatch-draft` bornée à 4 Kio. Elle
+vérifie une session Auth non anonyme, dérive le propriétaire, normalise les ICAO
+et appelle la RPC T0047 avec le credential serveur, puis projette uniquement la
+réponse publique versionnée. Les 46 tests de fonctions et les gates applicables
+passent. Le ticket est `Review`, empilé sur T0047, sans
+desktop, Edge Runtime live, SimBrief, cycle de vol, cible distante ou livraison
+dans `main`.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

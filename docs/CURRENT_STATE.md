@@ -1,6 +1,6 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 3 août 2026 (T0042 livré ; T0043–T0047 validés
+Dernière revue documentaire : 3 août 2026 (T0042 livré ; T0043–T0048 validés
 sur des branches empilées).
 Statut : T0012–T0031, T0033–T0042 sont `Done`. T0042 est livré dans `main` par
 la PR corrective #73 au commit `a4047a5`, avec ses trois checks verts.
@@ -25,6 +25,11 @@ idempotence et exclusivité prouvées localement. T0043–T0047 restent absents 
 `main` et aucune frontière Edge ou consommation desktop du dispatch n'est
 livrée. La PR prête #81 cible T0046 et ses trois checks sont en cours lors de
 l'observation initiale.
+T0048 est `Review` sur une branche empilée sur T0047 : l'Edge Function
+`dispatch-draft` vérifie une session non anonyme, dérive le propriétaire et
+appelle la commande T0047 avec le credential serveur. T0043–T0048 restent
+absents de `main`; aucun appel desktop, runtime Edge live ou SimBrief n'est
+livré.
 Les vérifications historiques T0007–T0009 et T0011 restent `Verify`. Le cadrage
 T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
 interdiction de données utilisateur réelles.
@@ -105,8 +110,9 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   T0044 ajoute au-dessus une lecture explicite de présence de compagnie et
   aiguille l'accueil vers onboarding ou catalogue, sans achat composé.
   T0045 compose ensuite catalogue et achat, T0046 relit la flotte après achat,
-  puis T0047 ajoute sur sa branche un brouillon de dispatch serveur minimal sans
-  endpoint, desktop, SimBrief ou cycle de vol.
+  puis T0047 ajoute sur sa branche un brouillon de dispatch serveur minimal.
+  T0048 l'expose derrière une frontière Auth bornée, sans desktop, SimBrief ou
+  cycle de vol.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -649,6 +655,15 @@ course intersession différente sur le même avion rend `0|1` avec l'état
 `1|1|0|1`. Cette tranche est empilée sur T0046 et ne livre ni endpoint Auth,
 desktop, SimBrief, transition de vol, cible distante ou donnée réelle.
 
+T0048 ajoute l'Edge Function `dispatch-draft`, limitée à `POST`, à un bearer et
+à un corps de 4 Kio contenant seulement avion, deux ICAO et idempotence. Elle
+normalise les ICAO, vérifie la session auprès d'Auth, dérive le propriétaire et
+appelle `create_dispatch_draft` avec `service_role` sous timeout. La réponse est
+validée, recoupée, projetée sur sept champs publics et marquée `no-store`. Les
+46 tests de fonctions et le gate backend à 26 mutations passent ; la preuve
+reste injectée, empilée sur T0047, sans Edge Runtime live, desktop, SimBrief,
+cible distante ou donnée réelle.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -658,7 +673,8 @@ ni référence privilégiée, ni accès Data API.
 ## Autorité des mutations du golden path
 
 T0024 ajoute une source JSON versionnée couvrant exactement les dix étapes
-produit. T0047 classe désormais le dispatch comme tranche serveur partielle, en
+produit. T0048 classe désormais le dispatch comme tranche serveur partielle avec
+frontière Auth bornée, en
 plus de la compagnie, du cycle de compte, de la flotte, de la finance et de la
 continuité ; Supabase Auth est une autorité externe et six domaines restent
 `not-implemented`.
@@ -750,11 +766,12 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0042 est livré. T0043 à T0047 doivent encore être propagés vers `main`
+T0042 est livré. T0043 à T0048 doivent encore être propagés vers `main`
 par des PR correctives ordonnées ; leurs fusions empilées ne suffisent pas à les
 livrer dans la branche distante par défaut. Le prochain ticket recommandé est
-une frontière Edge authentifiée et bornée devant `create_dispatch_draft`, sans
-encore appeler SimBrief ni démarrer un vol. La location T0032 reste bloquée sur
+la preuve locale réelle Auth → Edge Runtime → `create_dispatch_draft`, avec
+identité, compagnie, avion et dispatch exclusivement synthétiques, sans encore
+composer le desktop, appeler SimBrief ni démarrer un vol. La location T0032 reste bloquée sur
 ses décisions produit et la persistance Windows reste un ticket de sécurité
 séparé avant tout stockage de refresh token.
 
