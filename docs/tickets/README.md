@@ -56,12 +56,47 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0040 | Activer et valider Auth locale email/mot de passe | 4 | T0021, T0038–T0039 | Done |
 | T0041 | Rendre la connexion locale accessible par une route bornée | 4 | T0038–T0040 | Done |
 | T0042 | Composer l'onboarding de compagnie depuis le desktop | 4 | T0022–T0023, T0038–T0041 | Done |
-| T0043 | Lire le catalogue d'avions depuis le desktop | 4 | T0029, T0037–T0042 | Done |
-| T0044 | Lire l’état de compagnie depuis le desktop | 4 | T0012, T0022, T0042–T0043 | Done |
-| T0045 | Composer le catalogue avec l’achat desktop | 4 | T0037–T0038, T0043–T0044 | Done |
-| T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Done |
-| T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Done |
-| T0048 | Exposer le brouillon de dispatch derrière une frontière authentifiée | 2–4 | T0023, T0024, T0047 | Done |
+| T0043 | Lire le catalogue d'avions depuis le desktop | 4 | T0029, T0037–T0042 | Review |
+| T0044 | Lire l’état de compagnie depuis le desktop | 4 | T0012, T0022, T0042–T0043 | Review |
+| T0045 | Composer le catalogue avec l’achat desktop | 4 | T0037–T0038, T0043–T0044 | Review |
+| T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Review |
+| T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Review |
+| T0048 | Exposer le brouillon de dispatch derrière une frontière authentifiée | 2–4 | T0023, T0024, T0047 | Review |
+| T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Ready |
+| T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Ready |
+| T0051 | Clôturer un vol une seule fois, régler son revenu et sa réputation | 2 | T0020, T0028–T0029, T0047, T0050, T0057 | Draft |
+| T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Ready |
+| T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Draft |
+| T0054 | Publier la télémétrie bornée du bridge sur le contrat local | 3 | T0010–T0011, T0015 | Ready |
+| T0055 | Fixer la source canonique de version produit et livrer l'alpha technique interne | 1–6 | T0006, T0014–T0015, T0043–T0048 | Ready |
+| T0056 | Clôturer les vérifications interactives T0007 à T0009 | 1 | T0007–T0009, T0015, décision Andy | Ready |
+| T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Ready |
+
+## Vague de tickets vers l'alpha interne
+
+T0049 à T0057 constituent la vague détaillée suivante, ordonnée par les trois flux
+du mode accéléré de `docs/ROADMAP.md`. Chaque flux ne porte qu'un ticket
+`In progress` à la fois, dans un worktree distinct, et chaque branche part du
+dernier `origin/main` en ciblant `main`.
+
+- flux moteur de vol et bridge : T0054, puis la détection déterministe des phases
+  et la reprise, encore au niveau roadmap ;
+- flux backend du golden path : T0049, T0050 et T0057, puis T0051 ;
+- flux desktop et parcours E2E : T0052 puis T0053 ;
+- transverses au jalon d'alpha technique : T0055 et T0056.
+
+Andy a tranché le 3 août 2026 les sept décisions de clôture de vol : revenu net
+unique dérivé du temps, de la distance et de la popularité des aérodromes, en
+`EUR`, avec un plancher pour un vol interrompu, un avion immédiatement
+redisponible et une réputation informative bornée. T0057 devient donc le prérequis
+technique de T0051, puisque distance et popularité exigent un référentiel
+d'aérodromes autoritaire.
+
+T0051 et T0053 restent `Draft` uniquement pour l'ordre d'intégration : T0051 attend
+la fusion de T0050 et T0057, T0053 celle de T0052, afin de ne pas rouvrir une pile
+de branches. La location T0032 reste hors du gate de l'alpha et conserve son statut
+`Draft`. T0011 reste `Verify` jusqu'aux essais MSFS 2024 réels et n'est pas couvert
+par T0056.
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
