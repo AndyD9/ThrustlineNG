@@ -173,7 +173,7 @@
         "flight_start_commands",
         "owner A cannot start owner B dispatch"
       ],
-      "limitations": ["Only the server transition from one owned draft to one server-timed active flight is covered. No Auth boundary, desktop caller, telemetry, flight phase, resume, closure or financial impact exists, and the replay adapter still emits samples without persisting flight state."]
+      "limitations": ["Only the server transition from one owned draft to one server-timed active flight is covered. No Auth boundary, desktop caller, flight phase, resume, closure or financial impact exists. T0054 broadcasts bounded replay telemetry on the local bridge contract to authenticated loopback subscribers only, without persisting flight state or linking any sample to a company, a flight or the ledger."]
     },
     {
       "id": "flight-finalization",

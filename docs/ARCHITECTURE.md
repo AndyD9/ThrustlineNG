@@ -296,8 +296,7 @@ applicatif ne les consomme encore.
 vol. Il émet des `FlightSample` validés et ne référence aucun type SDK.
 `NativeSimConnectAdapter` charge la DLL officielle à l'exécution, ouvre la
 connexion avec un handle d'événement et confine définitions, requête à 1 Hz,
-dispatch et fermeture dans une boucle dédiée. Il ne publie encore aucun
-échantillon sur REST ou SignalR.
+dispatch et fermeture dans une boucle dédiée.
 
 `ReplaySimConnectAdapter` lit le même domaine depuis un JSON Lines versionné :
 
@@ -308,6 +307,38 @@ en-tête format/schéma/source → échantillons à offsets monotones → Flight
 Les traces sont non fiables : schéma strict, UTF-8 strict, ligne limitée à
 16 Kio, valeurs bornées et contenu absent des erreurs. La trace livrée est
 synthétique ; elle caractérise le pipeline, pas la fidélité d'un avion réel.
+
+## Diffusion bornée de la télémétrie T0054
+
+T0054 relie cette source au contrat local sans l'élargir. La diffusion est un
+seul chemin, additif au health check et à `/hubs/v1/bridge` :
+
+```text
+ISimConnectAdapter → TelemetryPublisher → 1 slot par abonné → telemetry.v1
+```
+
+`TelemetryPublisher` est la seule autorité de publication. Il n'ouvre la source
+qu'à l'arrivée du premier abonné, valide chaque `FlightSample` avant diffusion,
+cadence la lecture à un échantillon par seconde au plus et n'écrit jamais dans un
+tampon non borné : chaque abonné possède un canal d'un seul élément en mode
+`DropOldest`, donc un abonné lent perd les échantillons intermédiaires au lieu de
+retarder la lecture ou les autres abonnés. Un envoi qui dépasse le délai borné
+abandonne l'abonné et annule sa connexion. Le nom de message `telemetry.v1` est
+versionné indépendamment du contrat `1`.
+
+La source est choisie par option explicite du processus, `replay` par défaut :
+
+```text
+--telemetry-source replay|native   --telemetry-trace <fichier JSONL>
+```
+
+Sans trace, l'état reste `idle` et rien n'est publié ; c'est le cas du lancement
+actuel par Tauri, qui ne passe que `--port`. La source `native` reste facultative
+et son absence de SDK devient l'état `unavailable` sans faire échouer le
+processus. Le health check expose `telemetrySource` et `telemetryState` comme
+champs additifs, sans chemin de fichier, version de SDK ni jeton. Aucun
+échantillon n'est persisté, relié à une compagnie, à un vol ou au grand livre, et
+la WebView n'a toujours aucun accès au canal.
 
 ## Contrat local T0010
 
