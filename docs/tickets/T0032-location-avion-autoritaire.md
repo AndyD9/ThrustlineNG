@@ -1,6 +1,6 @@
 # T0032 — Louer un avion sans double prélèvement ni usage hors contrat
 
-Status: In progress
+Status: Review
 Owner: Andy
 Branch: `feature/T0032-authoritative-aircraft-lease`
 Phase: 2
@@ -105,6 +105,17 @@ le schéma — et seule la commande temporelle la pilote. `defaulted`, `expired`
   **502 assertions réellement découvertes** au vert, types régénérés conformes.
   La fixture de concurrence du harnais CI est rejouée à la main contre la base
   locale, faute de runner Linux disponible.
+- 4 août 2026 — second rattrapage : `origin/main` avait avancé de trois commits
+  pendant l'implémentation, livrant la source de version produit T0055 par la
+  PR #104. Le merge est refait, le conflit de `CURRENT_STATE.md` résolu sur le
+  récit T0055 de `main`, et le paragraphe de preuve backend de `QUALITY.md`
+  corrigé de vingt fichiers/427 assertions vers les vingt-deux fichiers et
+  502 assertions réellement découvertes. Les gates, les deux resets, les pgTAP et
+  les types sont rejoués verts sur l'arbre fusionné ; les trois commits repris ne
+  touchent aucun fichier SQL.
+- 4 août 2026 — `Review` : branche poussée et PR #105 ouverte vers `main`. Les
+  trois checks GitHub, dont le harnais CI Linux et sa course concurrente de
+  location, restent à confirmer avant toute transition vers `Done`.
 
 ## Dependencies
 
