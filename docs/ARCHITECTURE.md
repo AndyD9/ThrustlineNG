@@ -212,6 +212,38 @@ temps ni route : ces valeurs restent dérivées par la frontière T0048 et la
 commande T0047. Aucune lecture durable des dispatchs, transition de vol ou effet
 financier n'est fourni.
 
+T0053 ajoute la lecture durable manquante en réappliquant le patron T0046 dans un
+module distinct du module de commande : la lecture est un `GET` unique vers
+`flight_dispatches` dont la projection, l'ordre `created_at.desc,id.desc` et la
+limite de cinquante lignes sont des constantes du client. Aucun filtre de
+compagnie, de propriétaire, d'avion ou d'état n'est jamais envoyé : la RLS
+`flight_dispatches_select_own` de T0047 reste l'unique autorité de sélection, et
+un test d'invariants vérifie que les seuls paramètres construits sont `select`,
+`order` et `limit`. La cible reste loopback `http:` sans identifiants, requête,
+fragment ni chemin, la requête est bornée à cinq secondes et la réponse lue à
+64 Kio en flux, avec annulation dès le dépassement.
+
+Chaque ligne est validée strictement avant tout rendu : jeu de clés exact, UUID
+canoniques pour le dispatch et l'avion, deux ICAO de quatre caractères ASCII
+majuscules et distincts, état appartenant à `draft` ou `active` — la liste connue
+depuis T0050 —, horodatage canonique et `schema_version` égal à `1`. La liste
+refuse un tableau plus long que la limite ainsi que tout doublon d'identifiant ou
+d'avion, ce dernier étant garanti unique par la contrainte
+`flight_dispatches_one_draft_per_aircraft`. Les échecs sont réduits à
+`authentication-required`, `invalid-response` et `unavailable`, sans détail
+serveur.
+
+Le panneau de lecture n'exécute aucun appel au rendu : il n'est composé que
+lorsque la compagnie est connue et sa première lecture reste déclenchée par
+l'utilisateur, comme la flotte T0046. Le bearer est obtenu du gestionnaire T0038
+au chargement et un refus Auth efface la session. Une création réussie incrémente
+un compteur d'actualisation porté par l'accueil ; le panneau relit alors la source
+autoritaire au lieu de construire localement le dispatch créé, et un signal reçu
+pendant une lecture en cours est rejoué à la fin de celle-ci plutôt que perdu.
+L'absence de dispatch, le chargement et l'échec sont rendus explicitement, et la
+requête est annulée au démontage. Aucune pagination, aucun tri ou filtre client,
+aucune transition de vol et aucun effet financier n'est fourni.
+
 ## Packaging Windows T0014
 
 Le package Windows est un installateur NSIS x64 en mode utilisateur courant.

@@ -378,6 +378,19 @@ reçoit `SQLSTATE 42501` sur `insert`, `update` et `delete`; `anon` reçoit
 desktop, ni cible distante, ni donnée réelle, et le harnais Linux `ci:backend`
 n'est pas exécutable depuis Windows.
 
+La PR #91 fusionne T0057 dans `main` au merge `df685b7`, sur le commit de tête
+`05ccffd`, avec ses trois checks verts : `Audits, licences and SBOM` en
+4 min 16 s, `Supabase PostgreSQL 17` en 3 min 15 s et `Windows multi-stack` en
+17 min 16 s. Le job Linux exécute le harnais qui manquait : deux resets appliquant
+la migration `20260803000300_bounded_airport_reference.sql`, la comparaison
+`Airport reference matches eng/airports.json: 103 aerodromes, schema version 1.`,
+les deux nouveaux fichiers pgTAP en `ok` avec `Result: PASS`, puis `Backend CI
+passed: 2 resets, 18 pgTAP files, airport reference matching its canonical source,
+concurrent idempotence, purchase, dispatch and flight start, isolated restore
+replay, authoritative onboarding, stable types, loopback ports.` La comparaison
+table ↔ source est donc prouvée par le harnais lui-même sur le runner Linux, et
+non plus seulement rejouée à la main sous Windows avec sa logique.
+
 Preuve T0052 du 4 août 2026 : typecheck, tests, couverture et build passent avec
 21 fichiers/241 tests frontend exécutés, dont 66 nouveaux pour le dispatch
 desktop et 2 pour l'exposition de la flotte déjà chargée ; 1 fichier/2 scénarios
@@ -417,6 +430,39 @@ branche propre. La cause amont est traitée séparément par la PR #93 : `.gitle
 étend le jeu de règles par défaut d'une exception unique à `matchCondition = "AND"`,
 exigeant à la fois le chemin d'un ticket et la forme UUID d'une valeur
 `"idempotencyKey"`, de sorte qu'un vrai secret dans le même fichier reste signalé.
+
+Preuve T0053 du 4 août 2026 : typecheck, tests, couverture et build passent avec
+24 fichiers/297 tests frontend exécutés, dont 56 nouveaux pour la lecture des
+dispatchs ; 1 fichier/2 scénarios runtime T0040 reste ignoré sans environnement
+explicite. Le domaine `features/flight-dispatch` passe de 4 fichiers/66 tests à
+7 fichiers/122 tests. La couverture globale atteint 94,46 % des statements,
+88,96 % des branches, 97,51 % des fonctions et 94,42 % des lignes, dont 98,01 %
+des statements et 93,27 % des branches sur `features/flight-dispatch`, et 98,87 %
+des statements sur le seul module de lecture ; les seules lignes non couvertes
+sont les gardes de réentrance et d'annulation du panneau et une branche de flux
+borné. Les tests du transport couvrent l'URL complète, la projection, l'ordre et
+la limite exacts, l'absence des paramètres `company_id`, `owner_id`,
+`aircraft_id`, `id` et `state`, les quatre headers et l'absence de corps, la
+liste vide, l'état `active`, la limite exacte de 50 puis 51 lignes refusées, les
+doublons d'identifiant et d'avion, treize lignes non conformes dont clé
+supplémentaire, clé manquante, UUID, ICAO, aéroports identiques, état inconnu,
+horodatage non canonique ou impossible et version inattendue, une enveloppe non
+tabulaire, un corps non JSON, une longueur déclarée hors borne, un corps
+surdimensionné détecté en flux, les statuts 401/403 puis 404/429/500/503, une
+panne réseau dont le message serveur n'est pas propagé, sept cibles refusées
+avant tout appel et trois valeurs de header refusées avant tout appel. Côté
+panneau : zéro lecture au rendu, liste vide explicite, chargement puis échec sans
+rendu partiel, refus Auth qui efface la session, actualisation sur changement de
+version, signal reçu pendant une lecture en cours et rejoué, absence de lecture
+implicite quand le signal précède toute ouverture, lectures concurrentes bloquées
+avec retry, annulation au démontage, et absence de token, d'identifiant de
+dispatch et d'identifiant d'avion dans le DOM. La composition d'accueil prouve
+que rien n'est appelé au rendu, que `globalThis.fetch` n'est jamais appelé et que
+la source autoritaire est relue après une création réussie. Les gates autorité,
+données et maintenance passent avec 9, 6 et 8 mutations, l'autorité déclarant
+désormais quatre lectures Data API clientes. Cette preuve jsdom/`fetch` injecté ne
+valide ni WebView live, ni CSP de production, ni RLS réelle, ni cible distante, ni
+donnée réelle.
 
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
