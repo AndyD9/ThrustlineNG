@@ -288,11 +288,11 @@ contre une RLS réelle et un Edge Runtime réel, n'est pas couverte ici.
 
 ### Follow-ups
 
-- T0052 est fusionné dans `main` mais son fichier de ticket y porte encore
-  `Status: Review` et la ligne correspondante de `docs/tickets/README.md` aussi ;
-  la clôture en `Done` appartient à T0052 et sort des `Allowed areas` de ce
-  ticket. À traiter dans un ticket de réconciliation dédié, comme cela a été fait
-  pour T0049 et T0050 ;
+- ~~T0052 reste `Review` alors qu'il est fusionné~~ — résolu hors de ce ticket :
+  la PR #95 `docs/T0052-record-merge` clôt T0052 en `Done` et est fusionnée dans
+  `main` pendant la revue de ce ticket. La branche a intégré `origin/main` par un
+  merge, sans force-push, et la résolution retient la version de `main` pour tout
+  ce qui concerne T0052 ;
 - candidat de mutualisation : `dispatchList.ts`, `aircraftFleet.ts`,
   `companyState.ts` et `aircraftCatalog.ts` répètent la garde de cible loopback,
   la lecture bornée et la validation d'horodatage canonique. La dette est déjà
@@ -307,13 +307,13 @@ contre une RLS réelle et un Edge Runtime réel, n'est pas couverte ici.
   validation stricte et composition du signal d'actualisation ;
 - `docs/QUALITY.md` : preuve T0053 datée avec compteurs, couverture et périmètre
   réellement observés ;
-- `docs/CURRENT_STATE.md` : tranche T0053, quatrième entrée `clientDataApiReads`
-  et réconciliation des fusions. Deux affirmations obsolètes du même fichier sont
-  corrigées avec preuve : T0052 y était décrit comme non fusionné alors que la
-  Pull Request #94 est fusionnée dans `main` par le merge `9ea2493`, et T0057 y
-  était décrit comme non fusionné dans deux passages alors que la Pull Request #91
-  est fusionnée par le merge `df685b7`. Ces corrections sont documentaires,
-  vérifiées contre `origin/main` et signalées ici plutôt que faites en silence ;
+- `docs/CURRENT_STATE.md` : tranche T0053 et quatrième entrée
+  `clientDataApiReads`. Le fichier décrivait aussi T0057 comme non fusionné dans
+  deux passages alors que la Pull Request #91 est fusionnée dans `main` par le
+  merge `df685b7` ; la correction est documentaire, vérifiée contre `origin/main`
+  et signalée ici plutôt que faite en silence. La correction équivalente pour
+  T0052 vient de `main` par la PR #95 et a été retenue telle quelle à la
+  résolution du merge ;
 - `docs/tickets/README.md` : statut T0053 et levée de sa condition d'ordre
   d'intégration ;
 - ce ticket : statut, condition de sortie et Completion Report.

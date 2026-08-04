@@ -730,8 +730,8 @@ couverture globale et 98,34 % des statements sur `features/flight-dispatch`;
 typecheck, build et les gates autorité, données et maintenance passent. Cette
 tranche n'ajoute ni lecture Data API, ni mutation cliente, ni lecture durable des
 dispatchs, ni transition de vol, ni effet financier, et sa preuve reste jsdom avec
-`fetch` injecté, sans WebView live ni Edge Runtime. Elle est fusionnée dans `main`
-depuis la Pull Request #94, merge `9ea2493` du 4 août 2026.
+`fetch` injecté, sans WebView live ni Edge Runtime. La PR #94 la fusionne dans
+`main` au merge `9ea2493` avec ses trois checks verts ; T0052 est `Done`.
 
 T0053 ajoute la lecture durable qui manquait, dans un module séparé du module de
 commande. La lecture est un `GET` unique vers `flight_dispatches` à projection,
@@ -869,14 +869,13 @@ version restent non validés et relèvent de la phase 6.
 T0043 à T0050 sont livrés dans `main`, y compris la preuve locale réelle
 Auth → Edge Runtime → `create_dispatch_draft` et le démarrage serveur d'un vol
 depuis un brouillon possédé. T0057 livre le référentiel d'aérodromes et est
-fusionné dans `main` depuis la Pull Request #91, merge `df685b7` du 4 août 2026.
-Le prochain ticket recommandé du flux backend est donc T0051, la clôture d'un vol
-avec son règlement et sa réputation, dont les deux conditions de sortie de `Draft`
-— la fusion de T0050 et celle de T0057 — sont désormais satisfaites ; l'endpoint
-authentifié du démarrage reste un ticket distinct. Le flux desktop a fusionné
-T0052 dans `main` par la Pull Request #94, merge `9ea2493` du 4 août 2026, et
-livre T0053, la lecture durable des dispatchs, sur sa propre branche non encore
-fusionnée, sans SimBrief. La
+fusionné dans `main` par la PR #91, merge `df685b7` du 4 août 2026. Le prochain
+ticket recommandé du flux backend est donc T0051, la clôture d'un vol avec son
+règlement et sa réputation, dont les deux conditions de sortie de `Draft` — la
+fusion de T0050 et celle de T0057 — sont désormais satisfaites ; l'endpoint
+authentifié du démarrage reste un ticket distinct. Le flux desktop a livré T0052
+dans `main` par la PR #94, merge `9ea2493`, et livre T0053, la lecture durable des
+dispatchs, sur sa propre branche non encore fusionnée, sans SimBrief. La
 location T0032 reste bloquée sur ses décisions produit et la persistance Windows
 reste un ticket de sécurité séparé avant tout stockage de refresh token.
 

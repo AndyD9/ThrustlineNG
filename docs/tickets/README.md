@@ -65,7 +65,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Done |
 | T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Done |
 | T0051 | Clôturer un vol une seule fois, régler son revenu et sa réputation | 2 | T0020, T0028–T0029, T0047, T0050, T0057 | Draft |
-| T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Review |
+| T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Done |
 | T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Review |
 | T0054 | Publier la télémétrie bornée du bridge sur le contrat local | 3 | T0010–T0011, T0015 | Ready |
 | T0055 | Fixer la source canonique de version produit et livrer l'alpha technique interne | 1–6 | T0006, T0014–T0015, T0043–T0048 | Ready |
@@ -94,9 +94,10 @@ d'aérodromes autoritaire.
 
 T0051 reste `Draft` uniquement pour l'ordre d'intégration : il attend la fusion de
 T0050 et T0057, afin de ne pas rouvrir une pile de branches. T0053 était soumis à
-la même règle et sa condition est levée depuis la fusion de T0052 dans `main` le
-4 août 2026 par la Pull Request #94, merge `9ea2493` ; il est donc implémenté sur
-une branche partie de ce `origin/main` et attend sa revue en `Review`. La location
+la même règle et sa condition est satisfaite depuis la fusion de T0052 dans `main`
+le 4 août 2026 par la PR #94, merge `9ea2493` ; son propre changement le sort de
+`Draft` et l'implémente sur une branche partie de ce `origin/main`, où il attend sa
+revue en `Review`. La location
 T0032 reste hors du gate de l'alpha et conserve son statut
 `Draft`. T0011 reste `Verify` jusqu'aux essais MSFS 2024 réels et n'est pas couvert
 par T0056.

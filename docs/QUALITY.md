@@ -404,6 +404,20 @@ maintenance passent avec 9, 6 et 8 mutations. Cette preuve jsdom/`fetch` inject�
 ne valide ni WebView live, ni CSP de production, ni Edge Runtime, ni cible
 distante, ni donnée réelle.
 
+La PR #94 fusionne T0052 dans `main` au merge `9ea2493`, sur le commit
+d'implémentation `c4c86f5`, avec ses trois checks verts : `Audits, licences and
+SBOM` en 3 min 41 s, `Supabase PostgreSQL 17` en 3 min 11 s et `Windows
+multi-stack` en 15 min 24 s. La première publication du même arbre, PR #92, avait
+échoué sur le seul `SECRET_SCAN` : la règle amont `generic-api-key` de Gitleaks
+8.24.3 mesure 3,62 d'entropie sur l'UUID d'idempotence cité dans la preuve
+manuelle du ticket et le signale comme secret, alors que la valeur est synthétique
+et sans système derrière elle. Comme l'action scanne toute la plage de commits
+d'une Pull Request et qu'un force-push est interdit, l'arbre a été republié sur une
+branche propre. La cause amont est traitée séparément par la PR #93 : `.gitleaks.toml`
+étend le jeu de règles par défaut d'une exception unique à `matchCondition = "AND"`,
+exigeant à la fois le chemin d'un ticket et la forme UUID d'une valeur
+`"idempotencyKey"`, de sorte qu'un vrai secret dans le même fichier reste signalé.
+
 Preuve T0053 du 4 août 2026 : typecheck, tests, couverture et build passent avec
 24 fichiers/297 tests frontend exécutés, dont 56 nouveaux pour la lecture des
 dispatchs ; 1 fichier/2 scénarios runtime T0040 reste ignoré sans environnement

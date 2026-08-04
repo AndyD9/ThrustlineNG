@@ -1,6 +1,6 @@
 # T0052 — Composer la préparation de dispatch depuis le desktop
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0052-dispatch-draft-composition`
 Phase: 2–4
@@ -198,6 +198,11 @@ au démontage. `HomePage` compose le panneau uniquement quand la compagnie est
 présente et la flotte non vide. L'inventaire d'autorité rattache les deux chemins
 desktop au domaine `dispatch` sans nouvelle lecture Data API ni mutation cliente.
 
+Andy a fusionné la PR #94 dans `main` le 4 août 2026 par le merge `9ea2493`, sur
+le commit d'implémentation `c4c86f5`. Le ticket est `Done` : critères satisfaits,
+validations et trois checks CI verts consignés, vérification manuelle réellement
+exécutée et documentation cohérente.
+
 ### Files changed
 
 - `apps/desktop/src/features/flight-dispatch/flightDispatch.ts` (nouveau) ;
@@ -258,6 +263,18 @@ Toutes les commandes sont exécutées le 4 août 2026 depuis
   ne pouvait pas reverdir cette branche et un force-push est interdit : le
   travail est republié sur `feature/T0052-dispatch-draft-composition`, la
   PR #92 est fermée et remplacée sans réécrire d'historique publié.
+- CI de la republication, PR #94 au commit `c4c86f5`, arbre identique : les trois
+  checks passent le 4 août 2026. `Audits, licences and SBOM` en 3 min 41 s, dont
+  `SECRET_SCAN` redevenu vert, `Supabase PostgreSQL 17` en 3 min 11 s et
+  `Windows multi-stack` en 15 min 24 s.
+- Andy a par ailleurs tranché la cause amont dans un changement séparé : la
+  PR #93, fusionnée juste avant la PR #94 au commit `e8ffb5e`, ajoute
+  `.gitleaks.toml` qui étend le jeu de règles par défaut d'une seule exception à
+  `matchCondition = "AND"`, exigeant à la fois le chemin
+  `docs/tickets/TXXXX-*.md` et la forme UUID d'une valeur `"idempotencyKey"`. Un
+  vrai secret dans le même fichier reste donc signalé. Cette exception appartient
+  à ce changement de gouvernance, pas à T0052, et la reformulation défensive de
+  la preuve ci-dessus est conservée.
 
 ### Manual verification result
 
@@ -309,7 +326,14 @@ propriétaire déjà chargée et n'est pas rendu comme texte.
 ### Follow-ups
 
 - T0053 reste responsable de la lecture et de l'actualisation durables des
-  dispatchs ; ce ticket n'affiche que la réponse de la création courante.
+  dispatchs ; ce ticket n'affiche que la réponse de la création courante. Sa seule
+  condition d'ordre d'intégration, la fusion de T0052, est désormais satisfaite :
+  son passage de `Draft` à `Ready` appartient à son propre changement.
+- La branche `feature/T0052-dispatch-draft-composition` porte un commit
+  `14199ab` poussé après la fusion et resté hors de `main`; son contenu, la trace
+  des trois checks verts, est repris ici. La branche fusionnée et la branche
+  abandonnée `feature/T0052-desktop-dispatch-draft` peuvent être supprimées côté
+  distant par Andy.
 - `docs/CURRENT_STATE.md` et `docs/tickets/README.md` décrivent encore T0057 comme
   non fusionné et `Review` alors que la PR #91 l'a fusionné dans `main` au commit
   `df685b7`. Cet écart appartient à la clôture de T0057 et n'est pas corrigé ici.
@@ -319,11 +343,17 @@ propriétaire déjà chargée et n'est pas rendu comme texte.
   globale avant une seconde : citer dans une preuve documentaire un littéral
   `"…Key":"<valeur à haute entropie>"` déclenche la règle `generic-api-key` de
   Gitleaks et fait échouer `SECRET_SCAN`, même pour une valeur synthétique.
-  Décrire les champs et tronquer la valeur suffit à conserver la preuve. Le
-  contournement d'allowlist n'est pas retenu : il affaiblirait une gate de
-  sécurité et exigerait l'accord explicite d'Andy.
+  Décrire les champs et tronquer la valeur suffit à conserver la preuve. Aucune
+  exception de sécurité n'a été créée depuis ce ticket ; l'exception bornée de
+  `.gitleaks.toml` a été décidée et livrée par Andy dans la PR #93, ce qui rend
+  les deux encodages complémentaires : la preuve reste défensive et la gate cesse
+  d'échouer sur ce faux positif connu.
+- Une seconde occurrence de ce faux positif, ou une exception élargie, devrait
+  déclencher le cycle de `docs/LEARNINGS.md` plutôt qu'un ajustement ponctuel.
 
 ### Documentation updated
 
 `docs/ARCHITECTURE.md`, `docs/QUALITY.md`, `docs/CURRENT_STATE.md`,
-`docs/tickets/README.md`, `eng/authority-inventory.json` et ce ticket.
+`docs/tickets/README.md`, `eng/authority-inventory.json` et ce ticket. La clôture
+après fusion, sur la branche `docs/T0052-record-merge`, met à jour ce ticket,
+l'index, `docs/QUALITY.md` et `docs/CURRENT_STATE.md` sans toucher au code livré.
