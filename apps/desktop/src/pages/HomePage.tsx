@@ -21,6 +21,10 @@ import {
   type CompanyPresenceCommand,
 } from "@/features/company-state/CompanyPresencePanel";
 import {
+  type DispatchListCommand,
+  DispatchListPanel,
+} from "@/features/flight-dispatch/DispatchListPanel";
+import {
   type DispatchDraftCommand,
   FlightDispatchPanel,
 } from "@/features/flight-dispatch/FlightDispatchPanel";
@@ -34,6 +38,7 @@ export interface HomePageProps {
   companyPresenceCommand?: CompanyPresenceCommand | undefined;
   config: DesktopConnectionConfig;
   dispatchDraftCommand?: DispatchDraftCommand | undefined;
+  dispatchListCommand?: DispatchListCommand | undefined;
   onAuthenticationRequired: () => void;
   onSignOut: () => void;
   sessionManager: DesktopSessionManager;
@@ -47,6 +52,7 @@ export function HomePage({
   companyPresenceCommand,
   config,
   dispatchDraftCommand,
+  dispatchListCommand,
   onAuthenticationRequired,
   onSignOut,
   sessionManager,
@@ -55,8 +61,13 @@ export function HomePage({
     "unchecked",
   );
   const [fleetRefreshVersion, setFleetRefreshVersion] = useState(0);
+  const [dispatchRefreshVersion, setDispatchRefreshVersion] = useState(0);
   const [fleet, setFleet] = useState<CompanyAircraft[]>([]);
   const handleFleetLoaded = useCallback((aircraft: CompanyAircraft[]) => setFleet(aircraft), []);
+  const handleDraftCreated = useCallback(
+    () => setDispatchRefreshVersion((version) => version + 1),
+    [],
+  );
 
   return (
     <main className="page" id="main-content">
@@ -105,9 +116,17 @@ export function HomePage({
               command={dispatchDraftCommand}
               config={config}
               onAuthenticationRequired={onAuthenticationRequired}
+              onDraftCreated={handleDraftCreated}
               sessionManager={sessionManager}
             />
           )}
+          <DispatchListPanel
+            command={dispatchListCommand}
+            config={config}
+            onAuthenticationRequired={onAuthenticationRequired}
+            refreshVersion={dispatchRefreshVersion}
+            sessionManager={sessionManager}
+          />
           <AircraftCatalogPanel
             command={aircraftCatalogCommand}
             config={config}

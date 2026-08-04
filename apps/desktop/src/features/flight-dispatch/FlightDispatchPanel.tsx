@@ -20,6 +20,7 @@ export interface FlightDispatchPanelProps {
   config: DesktopConnectionConfig;
   createIdempotencyKey?: (() => string) | undefined;
   onAuthenticationRequired: () => void;
+  onDraftCreated?: (() => void) | undefined;
   sessionManager: DesktopSessionManager;
 }
 
@@ -48,6 +49,7 @@ export function FlightDispatchPanel({
   config,
   createIdempotencyKey = defaultIdempotencyKeyFactory,
   onAuthenticationRequired,
+  onDraftCreated,
   sessionManager,
 }: FlightDispatchPanelProps) {
   const fieldId = useId();
@@ -116,6 +118,7 @@ export function FlightDispatchPanel({
       });
       if (!abortController.signal.aborted) {
         setState({ draft, intentionKey: toIntentionKey(intention), kind: "created" });
+        onDraftCreated?.();
       }
     } catch (error) {
       if (!abortController.signal.aborted) {
