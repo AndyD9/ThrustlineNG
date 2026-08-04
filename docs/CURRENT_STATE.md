@@ -1,8 +1,15 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 3 août 2026 (audit de tous les tickets ouverts et
-réconciliation des livraisons T0043–T0048).
-Statut : T0009, T0012–T0031, T0033–T0050 sont `Done`. T0050 est livré dans `main`
+Dernière revue documentaire : 4 août 2026 (réconciliation des livraisons T0053,
+T0054 et T0058 après leurs fusions dans `main`).
+Statut : T0009, T0012–T0031, T0033–T0050, T0052–T0054, T0057 et T0058 sont
+`Done`. T0053 est livré dans `main` par la PR #96 au merge `87c4eec`, T0054 par la
+PR #99 au merge `3a2c292` et T0058 par la PR #98 au merge `2a07113`, chacun avec
+ses trois checks verts. T0051 reste `Draft` alors que ses deux conditions d'ordre
+d'intégration sont satisfaites ; son passage à `Ready` appartient à son propre
+changement. T0055 et T0056 sont `Ready` et T0059 est `Draft` faute d'un MSFS 2024
+et d'un SDK SimConnect installés avec provenance vérifiable.
+T0050 est livré dans `main`
 par la PR #89 au merge `6577125`, où le job Linux `Supabase PostgreSQL 17`
 réussit ; le job `Windows multi-stack` du même run échoue sur la seule ligne
 d'index T0049 ramenée à `Review` par la résolution de conflit `09565ee`, corrigée
@@ -351,8 +358,10 @@ vide et aucun processus résiduel.
 Cette tranche ne détecte aucune phase de vol, ne persiste ni ne reprend un vol,
 n'envoie rien à Supabase ou au grand livre, n'est consommée ni par le desktop ni
 par la WebView, et ne prouve ni MSFS 2024 réel, ni le SDK installé : la source
-native reste non prouvée et `KI-009`, `KI-011` et `KI-015` restent ouverts. Elle
-n'est pas encore fusionnée dans `main`.
+native reste non prouvée et `KI-009`, `KI-011` et `KI-015` restent ouverts. La
+PR #99 la fusionne dans `main` au merge `3a2c292` avec ses trois checks verts ;
+T0054 est `Done`, et le ticket T0059 porte désormais la preuve réelle attendue par
+ces trois problèmes connus.
 
 ## Budgets stabilité et performance
 
@@ -799,8 +808,8 @@ reçu pendant une lecture en cours et annule sa requête au démontage. Le 4 ao�
 des statements sur `features/flight-dispatch`; typecheck, build et les gates
 autorité, données et maintenance passent. Cette tranche n'ajoute ni pagination,
 ni tri ou filtre client, ni transition de vol, ni effet financier, sa preuve reste
-jsdom avec `fetch` injecté, sans WebView live ni RLS réelle, et elle n'est pas
-encore fusionnée dans `main`.
+jsdom avec `fetch` injecté, sans WebView live ni RLS réelle. La PR #96 la fusionne
+dans `main` au merge `87c4eec` avec ses trois checks verts ; T0053 est `Done`.
 
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
@@ -920,10 +929,13 @@ Linux qui compare la table chargée à `eng/airports.json`. Le prochain ticket
 recommandé du flux backend est T0051, la clôture d'un vol avec son règlement et sa
 réputation, dont les deux conditions de sortie de `Draft` — la fusion de T0050 et
 celle de T0057 — sont désormais satisfaites ; l'endpoint authentifié du démarrage
-reste un ticket distinct. Le flux desktop a livré T0052
-dans `main` par la PR #94 ; son prochain ticket est T0053, la lecture durable des
-dispatchs, sans SimBrief, dont la seule condition d'ordre d'intégration est
-désormais satisfaite. La
+comme celui de la clôture restent des tickets distincts. Le flux desktop a livré
+T0052 dans `main` par la PR #94 puis T0053 par la PR #96 au merge `87c4eec` : la
+préparation et la relecture des dispatchs sont donc composées, sans SimBrief, et
+son prochain ticket n'est pas encore ouvert. Le flux moteur de vol et bridge a
+livré T0054 par la PR #99 au merge `3a2c292`; son prochain ticket est T0059, qui
+reste `Draft` faute du prérequis physique MSFS 2024 et SDK SimConnect installés
+avec provenance vérifiable. Les transverses T0055 et T0056 sont `Ready`. La
 location T0032 reste bloquée sur ses décisions produit et la persistance Windows
 reste un ticket de sécurité séparé avant tout stockage de refresh token.
 
