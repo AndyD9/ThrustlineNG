@@ -378,6 +378,19 @@ reçoit `SQLSTATE 42501` sur `insert`, `update` et `delete`; `anon` reçoit
 desktop, ni cible distante, ni donnée réelle, et le harnais Linux `ci:backend`
 n'est pas exécutable depuis Windows.
 
+La PR #91 fusionne T0057 dans `main` au merge `df685b7`, sur le commit de tête
+`05ccffd`, avec ses trois checks verts : `Audits, licences and SBOM` en
+4 min 16 s, `Supabase PostgreSQL 17` en 3 min 15 s et `Windows multi-stack` en
+17 min 16 s. Le job Linux exécute le harnais qui manquait : deux resets appliquant
+la migration `20260803000300_bounded_airport_reference.sql`, la comparaison
+`Airport reference matches eng/airports.json: 103 aerodromes, schema version 1.`,
+les deux nouveaux fichiers pgTAP en `ok` avec `Result: PASS`, puis `Backend CI
+passed: 2 resets, 18 pgTAP files, airport reference matching its canonical source,
+concurrent idempotence, purchase, dispatch and flight start, isolated restore
+replay, authoritative onboarding, stable types, loopback ports.` La comparaison
+table ↔ source est donc prouvée par le harnais lui-même sur le runner Linux, et
+non plus seulement rejouée à la main sous Windows avec sa logique.
+
 Preuve T0052 du 4 août 2026 : typecheck, tests, couverture et build passent avec
 21 fichiers/241 tests frontend exécutés, dont 66 nouveaux pour le dispatch
 desktop et 2 pour l'exposition de la flotte déjà chargée ; 1 fichier/2 scénarios

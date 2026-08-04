@@ -1,6 +1,6 @@
 # T0057 — Créer un référentiel d'aérodromes borné et autoritaire
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0057-airport-reference`
 Phase: 2
@@ -124,8 +124,8 @@ aux paliers appartiennent à la politique de clôture de T0051.
 
 Tous les gates exécutables localement passent : `backend:check`, `backend:test`,
 `backend:types:check`, `authority:check`, `data-policy:check` et
-`maintenance:check`. `ci:backend` reste réservé au runner Linux et sa preuve est
-attendue de la CI sur la Pull Request.
+`maintenance:check`. La réserve sur `ci:backend`, réservé au runner Linux, est
+levée : la CI de la PR #91 a exécuté le harnais et ses trois checks sont verts.
 
 ## Security review
 
@@ -219,6 +219,12 @@ textuelle, sur un chargement dissimulé dans un commentaire SQL et sur un second
 statement de chargement ; le harnais CI compare en plus la table réellement
 chargée à la source, ligne par ligne, avant d'exécuter les pgTAP.
 
+Andy a fusionné la PR #91 dans `main` le 3 août 2026 par le merge `df685b7`, sur
+le commit de tête `05ccffd`. Le ticket est `Done` : critères satisfaits,
+validations locales et trois checks CI verts consignés, comparaison table ↔ source
+enfin prouvée par le harnais Linux, vérification manuelle réellement exécutée et
+documentation cohérente.
+
 ### Files changed
 
 - `eng/airports.json` — nouvelle source canonique versionnée, 103 aérodromes,
@@ -264,7 +270,7 @@ les gates, Docker Desktop 29.6.2, Supabase CLI 2.109.1 isolée, PostgreSQL 17.
 | `pnpm data-policy:check` | Réussi — 6 mutations négatives |
 | `pnpm maintenance:check` | Réussi après fusion de la PR #90 — 8 mutations |
 | `git diff --check` | Réussi — aucun problème d'espaces |
-| `pnpm ci:backend` | Non exécuté — harnais réservé au runner Linux |
+| `pnpm ci:backend` | Non exécuté localement — harnais réservé au runner Linux, prouvé par la CI de la PR #91 |
 
 `maintenance:check` a d'abord échoué, et pour une raison étrangère à ce ticket :
 `origin/main` portait une dérive où le fichier T0049 déclarait `Done` alors que
@@ -283,6 +289,21 @@ Le gate ne l'avait pas vu, il exige désormais un saut de ligne avant la project
 et refuse un chargement précédé de `--` sur la même ligne. Le second échec venait
 de `backend:test` rejouant l'ancienne copie d'un fichier pgTAP : les sources ne
 sont copiées dans le runtime isolé qu'au `backend:start`.
+
+Preuve CI du 3 août 2026 : la PR #91 est fusionnée dans `main` au merge
+`df685b7`, sur le commit de tête `05ccffd`, et ses trois checks passent.
+`Audits, licences and SBOM` en 4 min 16 s, `Supabase PostgreSQL 17` en
+3 min 15 s et `Windows multi-stack` en 17 min 16 s. Le job Linux lève la seule
+réserve du ticket : il applique deux resets dont la migration
+`20260803000300_bounded_airport_reference.sql`, rend `Airport reference matches
+eng/airports.json: 103 aerodromes, schema version 1.`, exécute
+`airport_reference.test.sql` et `airport_reference_structure.test.sql` en `ok`
+avec `Result: PASS`, puis conclut par `Backend CI passed: 2 resets, 18 pgTAP
+files, airport reference matching its canonical source, concurrent idempotence,
+purchase, dispatch and flight start, isolated restore replay, authoritative
+onboarding, stable types, loopback ports.` La comparaison table ↔ source, non
+exécutable depuis Windows, est donc prouvée par le harnais lui-même et non plus
+seulement rejouée à la main avec sa logique.
 
 ### Manual verification result
 
@@ -338,16 +359,22 @@ Durée effective hors démarrage de la pile : environ 6 minutes, sous la cible d
   mode de défaillance est fermé, donc acceptable, mais il est consigné plutôt que
   contourné par un élargissement de la politique.
 - `pnpm ci:backend` n'est pas exécutable depuis Windows ; la comparaison
-  table ↔ source qu'il ajoute a été rejouée manuellement avec la même logique,
-  mais sa preuve dans le harnais Linux reste attendue de la CI.
+  table ↔ source qu'il ajoute a d'abord été rejouée manuellement avec la même
+  logique, et sa preuve dans le harnais Linux est désormais acquise sur la CI de
+  la PR #91. Cette vérification reste donc dépendante du runner et n'est pas
+  reproductible localement sous Windows.
 - Preuves locales et synthétiques : ni cible distante, ni consommateur desktop,
   ni donnée réelle ne sont validés.
 
 ### Follow-ups
 
-- T0051 peut sortir de `Draft` dès la fusion de cette branche, T0050 étant
-  désormais `Done` dans `main` ; il consommera les coordonnées pour la distance
-  et les paliers pour le multiplicateur.
+- T0051 voit ses deux conditions d'ordre d'intégration satisfaites : T0050 et
+  T0057 sont désormais `Done` dans `main`. Son passage de `Draft` à `Ready`
+  appartient à son propre changement ; il consommera les coordonnées pour la
+  distance et les paliers pour le multiplicateur.
+- La branche `feature/T0057-airport-reference` est entièrement contenue dans
+  `main` — aucun commit résiduel n'a été poussé après la fusion — et peut être
+  supprimée côté distant par Andy.
 - Candidat `LEARNINGS.md` : `backend:test`, `backend:reset` et
   `backend:types` s'exécutent sur les sources copiées dans le runtime isolé par
   `backend:start`. Toute modification de migration, de seed ou de fichier pgTAP
@@ -370,3 +397,7 @@ Durée effective hors démarrage de la pile : environ 6 minutes, sous la cible d
   d'autorité et prochain ticket recommandé ;
 - `eng/authority-inventory.json` — preuves et absence de consommateur client ;
 - `docs/tickets/README.md` — statut du ticket.
+
+La clôture après fusion, sur la branche `docs/T0057-record-merge`, met à jour ce
+ticket, l'index, `docs/QUALITY.md` et `docs/CURRENT_STATE.md` sans toucher au code
+livré.

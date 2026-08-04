@@ -104,9 +104,9 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   T0048 l'expose derrière une frontière Auth bornée et T0049 le valide sur
   l'Edge Runtime local réel. T0050 ajoute au-dessus le démarrage serveur d'un
   vol depuis ce brouillon, sans frontière Auth, desktop, SimBrief, télémétrie
-  ni clôture. T0057 ajoute sur sa propre branche, non fusionnée, un référentiel
-  d'aérodromes serveur en lecture seule dont tout brouillon doit désormais
-  référencer les deux codes, sans distance, revenu ni lecture desktop.
+  ni clôture. T0057 ajoute, livré dans `main` par la PR #91 au merge `df685b7`,
+  un référentiel d'aérodromes serveur en lecture seule dont tout brouillon doit
+  désormais référencer les deux codes, sans distance, revenu ni lecture desktop.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
@@ -868,14 +868,16 @@ version restent non validés et relèvent de la phase 6.
 
 T0043 à T0050 sont livrés dans `main`, y compris la preuve locale réelle
 Auth → Edge Runtime → `create_dispatch_draft` et le démarrage serveur d'un vol
-depuis un brouillon possédé. T0057 livre le référentiel d'aérodromes et est
-fusionné dans `main` par la PR #91, merge `df685b7` du 4 août 2026. Le prochain
-ticket recommandé du flux backend est donc T0051, la clôture d'un vol avec son
-règlement et sa réputation, dont les deux conditions de sortie de `Draft` — la
-fusion de T0050 et celle de T0057 — sont désormais satisfaites ; l'endpoint
-authentifié du démarrage reste un ticket distinct. Le flux desktop a livré T0052
-dans `main` par la PR #94, merge `9ea2493`, et livre T0053, la lecture durable des
-dispatchs, sur sa propre branche non encore fusionnée, sans SimBrief. La
+depuis un brouillon possédé. T0057 livre le référentiel d'aérodromes dans `main`
+par la PR #91 au merge `df685b7`, avec ses trois checks verts, dont le harnais
+Linux qui compare la table chargée à `eng/airports.json`. Le prochain ticket
+recommandé du flux backend est T0051, la clôture d'un vol avec son règlement et sa
+réputation, dont les deux conditions de sortie de `Draft` — la fusion de T0050 et
+celle de T0057 — sont désormais satisfaites ; l'endpoint authentifié du démarrage
+reste un ticket distinct. Le flux desktop a livré T0052
+dans `main` par la PR #94 ; son prochain ticket est T0053, la lecture durable des
+dispatchs, sans SimBrief, dont la seule condition d'ordre d'intégration est
+désormais satisfaite. La
 location T0032 reste bloquée sur ses décisions produit et la persistance Windows
 reste un ticket de sécurité séparé avant tout stockage de refresh token.
 
