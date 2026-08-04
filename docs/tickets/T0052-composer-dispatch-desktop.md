@@ -258,6 +258,10 @@ Toutes les commandes sont exécutées le 4 août 2026 depuis
   ne pouvait pas reverdir cette branche et un force-push est interdit : le
   travail est republié sur `feature/T0052-dispatch-draft-composition`, la
   PR #92 est fermée et remplacée sans réécrire d'historique publié.
+- CI de la republication, PR #94 au commit `c4c86f5`, arbre identique : les trois
+  checks passent. `Audits, licences and SBOM` en 3 min 41 s, dont `SECRET_SCAN`
+  redevenu vert, `Supabase PostgreSQL 17` en 3 min 11 s et `Windows multi-stack`
+  en 15 min 24 s.
 
 ### Manual verification result
 
