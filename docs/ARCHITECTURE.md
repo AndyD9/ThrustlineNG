@@ -192,6 +192,40 @@ mal formé, ce qui le rend indiscernable et empêche d'énumérer le référenti
 Aucune lecture desktop, aucun sélecteur d'aérodromes et aucun calcul de
 distance, de temps ou de revenu n'est fourni.
 
+T0051 ferme le cycle serveur par une quatrième migration append-only qui ne
+réécrit ni le grand livre T0020, ni l'achat T0029, ni le référentiel T0057. La
+liste fermée d'états de dispatch passe à quatre valeurs, `completed` et
+`interrupted` étant terminales et sans transition sortante, et une colonne
+`closed_at` n'existe que pour ces deux états. L'unicité globale par avion devient
+un index unique partiel limité à `draft` et `active` : un vol clôturé reste en
+place comme historique et l'avion redevient immédiatement dispatchable, ce que la
+validation de `create_dispatch_draft` suit désormais en ne regardant que les
+dispatchs ouverts. Le registre privé de brouillons perd son unicité par avion,
+devenue redondante avec cet index.
+
+`eng/flight-settlement-policy.json` est la source canonique du barème, de son
+plancher, de son plafond, des multiplicateurs de palier et des deltas de
+réputation. La migration en embarque une projection stricte dans
+`private.flight_settlement_policy()`, que `backend:check` reconstruit depuis la
+source et compare texte à texte ; aucune valeur monétaire ne vient d'une variable
+d'environnement ni d'un réglage de session. `private.airport_distance_nm` dérive
+la distance en milles nautiques par formule de grand cercle depuis les deux
+positions du référentiel et l'arrondit une seule fois, de sorte qu'une même paire
+règle toujours le même montant.
+
+`close_flight` écrit dans une seule transaction l'état terminal, un rapport
+versionné unique par dispatch dans `private.flight_reports`, une écriture nette
+positive `flight_settlement` dans le grand livre, un événement de réputation
+append-only et son registre d'idempotence `private.flight_close_commands`. Le
+rapport client ne porte qu'une nature de fin prise dans une liste fermée, un temps
+de bloc déclaré borné et deux mesures facultatives bornées ; le temps retenu est
+le minimum entre ce temps déclaré et le temps réellement écoulé côté serveur, et
+montant, devise, distance et multiplicateur sont recalculés. La réputation reste
+informative : `public.get_company_reputation` dérive la compagnie de `auth.uid()`
+et rend un score borné `0–100` qui n'autorise, ne refuse et ne module aucune
+capacité. Aucune frontière Auth, appelant desktop, annulation, télémétrie de
+clôture ni SimBrief n'est fourni.
+
 T0052 ajoute le premier appelant desktop du domaine dispatch en réappliquant le
 patron T0037/T0045 : un module de commande borné plus un panneau mince, sans
 nouvelle lecture Data API. Le module n'accepte qu'une cible loopback `http:` sans

@@ -109,11 +109,11 @@ Ubuntu, le cycle de reset tente sinon de recréer PostgreSQL alors que son port
 est encore occupé. Le chargement Deno réel reste une preuve Windows séparée.
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les dix-huit fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. Les 356 assertions couvrent le cycle de compte
+les vingt fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 427 assertions couvrent le cycle de compte
 T0018, le replay T0019, le grand livre T0020, l'onboarding T0022, l'achat
-T0029, le dispatch T0047, le démarrage de vol T0050 et le référentiel
-d'aérodromes T0057. `backend:test` s'exécute sur les sources copiées dans le
+T0029, le dispatch T0047, le démarrage de vol T0050, le référentiel
+d'aérodromes T0057 et la clôture de vol T0051. `backend:test` s'exécute sur les sources copiées dans le
 runtime isolé par `backend:start` : après avoir modifié une migration, un seed ou
 un fichier pgTAP, relancer `backend:start` avant de conclure, sinon la commande
 rejoue silencieusement la version précédente. Le job CI
@@ -344,6 +344,44 @@ merge `6577125`, où le job Linux `Supabase PostgreSQL 17` passe : deux resets,
 passed: 2 sessions, 1 active flight, 1 command, 1 server time` puis
 `Backend CI passed`. La course intersession du harnais CI, non exécutable
 localement sous Windows, est donc prouvée sur le runner Linux.
+
+Preuve T0051 du 4 août 2026, sous Windows 11, Docker Desktop 29.6.2 et
+PostgreSQL 17 : `backend:check` passe avec 42 mutations, dont sept nouvelles qui
+détectent un barème embarqué divergeant de `eng/flight-settlement-policy.json`, un
+delta de réputation inversé, un plancher de vol interrompu ramené à zéro, un
+montant de règlement fourni par l'appelant, une exclusivité par avion qui couvre
+encore les vols terminés, une table de réputation rendue lisible par un rôle
+client et un règlement qui fait confiance au temps de bloc déclaré. Deux resets
+appliquent les dix migrations append-only, puis 20 fichiers/427 assertions pgTAP
+concluent par `Result: PASS`. Les types régénérés n'ajoutent que `closed_at`,
+`close_flight` et `get_company_reputation` en 21 lignes, et `backend:types:check`
+les confirme stables ; `authority:check`, `data-policy:check` et
+`maintenance:check` passent.
+
+Les montants attendus de ces preuves ont été calculés hors de la base, avec Node,
+avant d'être écrits en clair dans les tests : `57694` pour 168,28 NM et
+75 minutes de bloc au palier standard, `48648` pour 18,44 NM et 75 minutes en
+`hub`/`major`, le plafond `2000000` pour un vol qui atteindrait `2103629`, et le
+plancher `5000` pour un vol interrompu. Le barème n'est donc pas validé contre
+lui-même. Deux limites subsistent : la distance de grand cercle est calculée en
+`double precision`, donc une plateforme différente pourrait déplacer la deuxième
+décimale et le montant d'une unité mineure ; et l'observation d'un temps de bloc
+non nul dans une transaction pgTAP exige de désactiver brièvement le trigger de
+`started_at` pour antidater le départ, ce que seul le propriétaire de la table peut
+faire.
+
+La vérification manuelle du même jour porte sur un état réellement commité, hors
+transaction annulée : un vol terminé de 168,28 NM avec 95 minutes déclarées règle
+`35194` unités mineures avec un temps retenu de `0`, ce qui prouve l'écrêtage par
+l'horloge serveur ; un vol interrompu règle `5000` ; le solde atteint `43040194`;
+la réputation vaut `48`; l'avion reprend un brouillon immédiatement et son vol
+clôturé reste en historique ; le rejeu de la même clé ne crée ni deuxième rapport,
+ni deuxième événement, ni deuxième écriture. Quatre refus — deuxième clôture,
+temps déclaré hors bornes, champ monétaire dans le rapport et clé réutilisée avec
+un autre payload — laissent le registre et le solde inchangés, et `service_role`
+n'a lui-même aucun `select` sur `flight_dispatches`. `ci:backend` reste réservé au
+runner Linux : la course de deux clôtures concurrentes qu'il ajoute n'est pas
+exécutable localement sous Windows et sa preuve est attendue de la CI.
 
 Preuve T0057 du 3 août 2026 : `backend:check` passe avec 35 mutations, dont cinq
 nouvelles qui détectent un seed divergeant de `eng/airports.json`, un chargement

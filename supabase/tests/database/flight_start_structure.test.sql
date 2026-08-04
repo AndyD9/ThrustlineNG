@@ -51,14 +51,14 @@ select ok(
     ),
     'a departure timestamp exists only for an active flight'
 );
+-- T0050 asserted this exclusivity as a table constraint covering every known
+-- state. T0051 opened two terminal states and replaced it with a partial unique
+-- index, so the same invariant is now asserted where it actually lives: one open
+-- dispatch per aircraft, history excluded.
 select ok(
-    exists (
-        select 1 from pg_constraint
-        where conrelid = 'public.flight_dispatches'::regclass
-          and conname = 'flight_dispatches_one_draft_per_aircraft'
-          and contype = 'u'
-    ),
-    'one dispatch per aircraft still covers every known state'
+    (select indisunique from pg_index
+     where indexrelid = 'public.flight_dispatches_one_open_per_aircraft'::regclass),
+    'one dispatch per aircraft still covers every open state'
 );
 select has_trigger(
     'public', 'flight_dispatches', 'flight_dispatches_server_started_at',

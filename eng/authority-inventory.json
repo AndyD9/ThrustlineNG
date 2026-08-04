@@ -4,6 +4,7 @@
     "clientTrust": "untrusted",
     "mutationRule": "server-command-only",
     "serviceOnlyCommands": [
+      "close_flight",
       "create_company_with_opening_balance",
       "create_dispatch_draft",
       "finalize_account_deletion",
@@ -173,15 +174,28 @@
         "flight_start_commands",
         "owner A cannot start owner B dispatch"
       ],
-      "limitations": ["Only the server transition from one owned draft to one server-timed active flight is covered. No Auth boundary, desktop caller, flight phase, resume, closure or financial impact exists. T0054 broadcasts bounded replay telemetry on the local bridge contract to authenticated loopback subscribers only, without persisting flight state or linking any sample to a company, a flight or the ledger."]
+      "limitations": ["Only the server transitions from one owned draft to one server-timed active flight, and from that flight to one of the two terminal states, are covered. No Auth boundary, desktop caller, flight phase detection or resume exists. T0054 broadcasts bounded replay telemetry on the local bridge contract to authenticated loopback subscribers only, without persisting flight state or linking any sample to a company, a flight or the ledger."]
     },
     {
       "id": "flight-finalization",
-      "status": "not-implemented",
-      "coverage": "none",
-      "serverBoundaries": [],
-      "evidencePaths": ["docs/CURRENT_STATE.md"],
-      "limitations": ["No versioned flight report or idempotent finalization command exists."]
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": [
+        "public.close_flight"
+      ],
+      "evidencePaths": [
+        "eng/flight-settlement-policy.json",
+        "supabase/migrations/20260804000100_authoritative_flight_settlement.sql",
+        "supabase/tests/database/flight_settlement.test.sql"
+      ],
+      "evidenceMarkers": [
+        "close_flight",
+        "flight_reports",
+        "flight_close_commands",
+        "alpha-flight-settlement",
+        "a second closure of the same flight is rejected"
+      ],
+      "limitations": ["Only the server closure of one owned active flight is covered: one terminal state, one bounded versioned report, one net credit and one reputation event in a single transaction. The report contract accepts a closed outcome, a bounded declared block time and optional bounded measurements only; the amount, the currency, the distance, the retained block time and the multiplier are recomputed or derived by the server. No Auth boundary, desktop caller, cancellation, SimBrief or telemetry-driven closure exists."]
     },
     {
       "id": "finance",
@@ -190,7 +204,8 @@
       "serverBoundaries": [
         "public.post_company_opening_balance",
         "supabase/functions/aircraft-purchase/handler.ts",
-        "public.purchase_aircraft"
+        "public.purchase_aircraft",
+        "public.close_flight"
       ],
       "evidencePaths": [
         "apps/desktop/src/features/aircraft-catalog/aircraftCatalog.ts",
@@ -200,18 +215,34 @@
         "supabase/tests/database/financial_ledger.test.sql",
         "supabase/functions/aircraft-purchase/handler.ts",
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
-        "supabase/tests/database/aircraft_purchase.test.sql"
+        "supabase/tests/database/aircraft_purchase.test.sql",
+        "eng/flight-settlement-policy.json",
+        "supabase/migrations/20260804000100_authoritative_flight_settlement.sql",
+        "supabase/tests/database/flight_settlement.test.sql"
       ],
-      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft"],
-      "limitations": ["Opening, bounded authenticated catalogue read and one-off aircraft purchase are covered as separate components; routed composition, live connectivity, recurring lease and other financial commands are not defined."]
+      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft", "flight_settlement", "alpha-flight-settlement"],
+      "limitations": ["Opening, bounded authenticated catalogue read, one-off aircraft purchase and the single net flight settlement are covered as separate components; routed composition, live connectivity, recurring lease and other financial commands are not defined. The settlement scale is an alpha decision protected by a floor and a per-flight cap, not a measured economic balance."]
     },
     {
       "id": "reputation-progression",
-      "status": "not-implemented",
-      "coverage": "none",
-      "serverBoundaries": [],
-      "evidencePaths": ["docs/CURRENT_STATE.md"],
-      "limitations": ["Reputation and progression mutations are not implemented."]
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": [
+        "public.close_flight",
+        "public.get_company_reputation"
+      ],
+      "evidencePaths": [
+        "eng/flight-settlement-policy.json",
+        "supabase/migrations/20260804000100_authoritative_flight_settlement.sql",
+        "supabase/tests/database/flight_settlement.test.sql"
+      ],
+      "evidenceMarkers": [
+        "company_reputation_events",
+        "get_company_reputation",
+        "a score above the policy maximum is clamped to 100",
+        "a reputation event can never be rewritten"
+      ],
+      "limitations": ["Only the informative reputation of a closed flight is covered: append-only deltas written inside the closure transaction and one owner-scoped bounded read. No client role can write an event, no capability is allowed, denied or modulated by the score, and no other progression mutation is implemented."]
     },
     {
       "id": "maintenance",

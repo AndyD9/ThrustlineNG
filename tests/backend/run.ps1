@@ -36,7 +36,9 @@ function Get-BackendIssues {
     $dispatchMigrationPath = Join-Path $Root "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql"
     $flightStartMigrationPath = Join-Path $Root "supabase\migrations\20260803000200_authoritative_flight_start.sql"
     $airportMigrationPath = Join-Path $Root "supabase\migrations\20260803000300_bounded_airport_reference.sql"
+    $settlementMigrationPath = Join-Path $Root "supabase\migrations\20260804000100_authoritative_flight_settlement.sql"
     $airportsPath = Join-Path $Root "eng\airports.json"
+    $settlementPolicyPath = Join-Path $Root "eng\flight-settlement-policy.json"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $structureTestPath = Join-Path $Root "supabase\tests\database\companies_structure.test.sql"
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
@@ -56,6 +58,8 @@ function Get-BackendIssues {
     $flightStartTestPath = Join-Path $Root "supabase\tests\database\flight_start.test.sql"
     $airportStructureTestPath = Join-Path $Root "supabase\tests\database\airport_reference_structure.test.sql"
     $airportTestPath = Join-Path $Root "supabase\tests\database\airport_reference.test.sql"
+    $settlementStructureTestPath = Join-Path $Root "supabase\tests\database\flight_settlement_structure.test.sql"
+    $settlementTestPath = Join-Path $Root "supabase\tests\database\flight_settlement.test.sql"
     $onboardingFunctionPath = Join-Path $Root "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionPolicyPath = Join-Path $Root "supabase\functions\company-onboarding\economy-policy.json"
     $onboardingFunctionEntryPath = Join-Path $Root "supabase\functions\company-onboarding\index.ts"
@@ -91,7 +95,9 @@ function Get-BackendIssues {
         $dispatchMigrationPath,
         $flightStartMigrationPath,
         $airportMigrationPath,
+        $settlementMigrationPath,
         $airportsPath,
+        $settlementPolicyPath,
         $seedPath,
         $structureTestPath,
         $rlsTestPath,
@@ -111,6 +117,8 @@ function Get-BackendIssues {
         $flightStartTestPath,
         $airportStructureTestPath,
         $airportTestPath,
+        $settlementStructureTestPath,
+        $settlementTestPath,
         $onboardingFunctionPath,
         $onboardingFunctionPolicyPath,
         $onboardingFunctionEntryPath,
@@ -675,6 +683,189 @@ function Get-BackendIssues {
         }
     }
 
+    $settlementPolicyText = Get-Content -Raw -Encoding UTF8 $settlementPolicyPath
+    $settlementProjection = $null
+    try {
+        $settlementPolicy = $settlementPolicyText | ConvertFrom-Json
+    }
+    catch {
+        $issues.Add("Flight settlement policy must be valid JSON.")
+        $settlementPolicy = $null
+    }
+    if ($null -ne $settlementPolicy) {
+        $settlementProperties = @($settlementPolicy.PSObject.Properties.Name | Sort-Object)
+        if (($settlementProperties -join ",") -ne (@(
+                "baseAmountMinor",
+                "currencyCode",
+                "interruptedFloorMinor",
+                "maximumBlockMinutes",
+                "origin",
+                "perBlockMinuteMinor",
+                "perFlightCapMinor",
+                "perNauticalMileMinor",
+                "popularityMultipliers",
+                "reputation",
+                "schemaVersion",
+                "scope"
+            ) -join ",") -or
+            $settlementPolicy.schemaVersion -ne 1 -or
+            $settlementPolicy.scope -ne "alpha-flight-settlement" -or
+            $settlementPolicy.currencyCode -cne "EUR") {
+            $issues.Add("Flight settlement policy must be schema v1 for an alpha-flight-settlement scale in EUR.")
+        }
+        if ($settlementPolicy.currencyCode -cne $economyPolicy.currencyCode) {
+            $issues.Add("Flight settlement currency must match the opening policy currency.")
+        }
+        $multiplierProperties = @($settlementPolicy.popularityMultipliers.PSObject.Properties.Name)
+        if (($multiplierProperties -join ",") -cne "regional,standard,major,hub") {
+            $issues.Add("Flight settlement multipliers must cover the four ordered popularity tiers.")
+        }
+        $reputationProperties = @($settlementPolicy.reputation.PSObject.Properties.Name | Sort-Object)
+        if (($reputationProperties -join ",") -ne "baseScore,completedDelta,interruptedDelta,maximumScore,minimumScore") {
+            $issues.Add("Flight settlement reputation must declare exactly base, bounds and the two deltas.")
+        }
+        elseif ($settlementPolicy.reputation.minimumScore -ge $settlementPolicy.reputation.baseScore -or
+            $settlementPolicy.reputation.baseScore -ge $settlementPolicy.reputation.maximumScore -or
+            $settlementPolicy.reputation.completedDelta -le 0 -or
+            $settlementPolicy.reputation.interruptedDelta -ge 0) {
+            $issues.Add("Flight settlement reputation must stay bounded with one positive and one negative delta.")
+        }
+        if ($settlementPolicy.interruptedFloorMinor -le 0 -or
+            $settlementPolicy.baseAmountMinor -le 0 -or
+            $settlementPolicy.perNauticalMileMinor -le 0 -or
+            $settlementPolicy.perBlockMinuteMinor -le 0 -or
+            $settlementPolicy.maximumBlockMinutes -ne 1440 -or
+            $settlementPolicy.perFlightCapMinor -le $settlementPolicy.interruptedFloorMinor -or
+            $settlementPolicy.interruptedFloorMinor -ge $settlementPolicy.baseAmountMinor) {
+            $issues.Add("Flight settlement scale must keep a positive floor below the base amount and a cap above it.")
+        }
+
+        $invariant = [System.Globalization.CultureInfo]::InvariantCulture
+        $settlementProjection = (
+            "    select jsonb_build_object(`n" +
+            "        'schemaVersion', 1,`n" +
+            ("        'currencyCode', '{0}',`n" -f [string]$settlementPolicy.currencyCode) +
+            ("        'baseAmountMinor', {0},`n" -f ([long]$settlementPolicy.baseAmountMinor).ToString($invariant)) +
+            ("        'perNauticalMileMinor', {0},`n" -f ([long]$settlementPolicy.perNauticalMileMinor).ToString($invariant)) +
+            ("        'perBlockMinuteMinor', {0},`n" -f ([long]$settlementPolicy.perBlockMinuteMinor).ToString($invariant)) +
+            ("        'interruptedFloorMinor', {0},`n" -f ([long]$settlementPolicy.interruptedFloorMinor).ToString($invariant)) +
+            ("        'perFlightCapMinor', {0},`n" -f ([long]$settlementPolicy.perFlightCapMinor).ToString($invariant)) +
+            ("        'maximumBlockMinutes', {0},`n" -f ([long]$settlementPolicy.maximumBlockMinutes).ToString($invariant)) +
+            ("        'multiplierRegional', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.regional).ToString($invariant)) +
+            ("        'multiplierStandard', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.standard).ToString($invariant)) +
+            ("        'multiplierMajor', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.major).ToString($invariant)) +
+            ("        'multiplierHub', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.hub).ToString($invariant)) +
+            ("        'reputationBaseScore', {0},`n" -f ([int]$settlementPolicy.reputation.baseScore).ToString($invariant)) +
+            ("        'reputationMinimumScore', {0},`n" -f ([int]$settlementPolicy.reputation.minimumScore).ToString($invariant)) +
+            ("        'reputationMaximumScore', {0},`n" -f ([int]$settlementPolicy.reputation.maximumScore).ToString($invariant)) +
+            ("        'reputationCompletedDelta', {0},`n" -f ([int]$settlementPolicy.reputation.completedDelta).ToString($invariant)) +
+            ("        'reputationInterruptedDelta', {0}`n" -f ([int]$settlementPolicy.reputation.interruptedDelta).ToString($invariant)) +
+            "    );"
+        )
+    }
+
+    $settlementMigration = Get-Content -Raw -Encoding UTF8 $settlementMigrationPath
+    $normalizedSettlementMigration = $settlementMigration.Replace("`r`n", "`n")
+    if ($null -ne $settlementProjection -and
+        -not $normalizedSettlementMigration.Contains($settlementProjection)) {
+        $issues.Add("Embedded flight settlement policy diverges from eng/flight-settlement-policy.json.")
+    }
+    $settlementRequirements = @{
+        "canonical policy projection" = 'create function private\.flight_settlement_policy'
+        "policy is not client callable" = 'revoke all on function private\.flight_settlement_policy\(\) from service_role'
+        "terminal states" = "constraint flight_dispatches_known_states[\s\S]*state in \('draft', 'active', 'completed', 'interrupted'\)"
+        "server closing time" = 'constraint flight_dispatches_closed_at_matches_state check'
+        "closing after departure" = 'constraint flight_dispatches_closed_after_start check'
+        "partial exclusivity" = "create unique index flight_dispatches_one_open_per_aircraft[\s\S]*where state in \('draft', 'active'\)"
+        "released global exclusivity" = 'drop constraint flight_dispatches_one_draft_per_aircraft'
+        "settlement entry type" = "check \(entry_type in \('opening_balance', 'aircraft_purchase', 'flight_settlement'\)\)"
+        "settlement is a credit" = 'constraint financial_ledger_entries_settlement_positive'
+        "bounded report table" = 'create table private\.flight_reports'
+        "one report per flight" = 'constraint flight_reports_dispatch unique \(dispatch_id\)'
+        "closed outcome list" = "constraint flight_reports_outcome check \(outcome in \('completed', 'interrupted'\)\)"
+        "bounded declared block time" = 'constraint flight_reports_declared_block check \([\s\S]*between 0 and 1440'
+        "append-only reputation" = 'create trigger company_reputation_events_reject_update_delete'
+        "truncate-proof reputation" = 'create trigger company_reputation_events_reject_truncate'
+        "closure command" = 'create function public\.close_flight\('
+        "service-only closure" = 'grant execute on function public\.close_flight\(uuid, uuid, uuid, jsonb\) to service_role'
+        "closure locks the company" = 'where companies\.owner_id = close_flight\.owner_id[\s\S]*for update'
+        "closure locks the dispatch" = 'where dispatches\.id = close_flight\.dispatch_id[\s\S]*for update'
+        "server distance" = 'create function private\.airport_distance_nm'
+        "server block time" = 'least\(declared_block_minutes, elapsed_minutes\)'
+        "server elapsed clock" = 'extract\(epoch from \(clock_timestamp\(\) - dispatch\.started_at\)\)'
+        "per-flight cap" = "least\([\s\S]*'perFlightCapMinor'\)::bigint"
+        "interrupted floor" = "outcome = 'interrupted' then[\s\S]*interruptedFloorMinor"
+        "opaque closure refusal" = "message = 'Dispatch is unavailable for closure\.'"
+        "strict report payload" = 'Flight report is invalid\.'
+        "owner-scoped reputation read" = 'create function public\.get_company_reputation'
+        "reputation derives the subject" = 'actor_id uuid := auth\.uid\(\)'
+        "clamped reputation" = "greatest\([\s\S]*reputationMinimumScore[\s\S]*least\([\s\S]*reputationMaximumScore"
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $settlementRequirements.GetEnumerator()) {
+        Require-Text $settlementMigration $entry.Value "Flight settlement invariant missing: $($entry.Key)."
+    }
+    if ($settlementMigration -match '(?i)close_flight\([^)]*(company_id|state|amount|currency|distance|closed_at|settled)[^)]*\)') {
+        $issues.Add("Flight closure must not accept a client-controlled company, state, amount, currency, distance or closing time.")
+    }
+    if ($settlementMigration -match "(?i)grant\s+(select|insert|update|delete|truncate|all)[^;]*on\s+(table\s+)?private\.(flight_reports|company_reputation_events|flight_close_commands)\s+to\s+(anon|authenticated|service_role)") {
+        $issues.Add("Client and API roles must not gain flight report or reputation privileges.")
+    }
+    foreach ($settlementTable in @("flight_reports", "company_reputation_events", "flight_close_commands")) {
+        Require-Text $settlementMigration "alter table private\.$settlementTable enable row level security" "Flight settlement table does not enable RLS: $settlementTable."
+        Require-Text $settlementMigration "alter table private\.$settlementTable force row level security" "Flight settlement table does not force RLS: $settlementTable."
+    }
+    if ($settlementMigration -match '(?i)current_setting\s*\(\s*''(?!request\.jwt)' -or
+        $settlementMigration -cmatch '(SETTLEMENT|REPUTATION|FLIGHT)_[A-Z]+_?(AMOUNT|MINOR|MULTIPLIER|DELTA)') {
+        $issues.Add("Flight settlement values must not come from an environment or session setting.")
+    }
+    if ($normalizedSettlementMigration -match '(?m)^alter table public\.airports' -or
+        $normalizedSettlementMigration -match 'create or replace function public\.post_company_opening_balance' -or
+        $normalizedSettlementMigration -match 'create or replace function public\.purchase_aircraft') {
+        $issues.Add("The flight settlement must not rewrite the opening policy, the purchase command or the airport reference.")
+    }
+    foreach ($existingMigration in @(
+        $migrationPath,
+        $lifecycleMigrationPath,
+        $restoreMigrationPath,
+        $ledgerMigrationPath,
+        $onboardingMigrationPath,
+        $purchaseMigrationPath,
+        $dispatchMigrationPath,
+        $flightStartMigrationPath,
+        $airportMigrationPath
+    )) {
+        if ((Get-Content -Raw -Encoding UTF8 $existingMigration) -match 'close_flight|flight_settlement_policy') {
+            $issues.Add("The flight settlement must arrive by a new append-only migration: $([System.IO.Path]::GetFileName($existingMigration))")
+        }
+    }
+
+    $settlementTests = (
+        (Get-Content -Raw -Encoding UTF8 $settlementStructureTestPath) + "`n" +
+        (Get-Content -Raw -Encoding UTF8 $settlementTestPath)
+    )
+    foreach ($marker in @(
+        "settles the exact scale amount",
+        "reduced to the server time",
+        "bounded by the cap",
+        "receives the policy floor",
+        "replays with the same response",
+        "reused with another payload is rejected",
+        "second closure of the same flight is rejected",
+        "cannot close owner B flight",
+        "draft that never departed cannot be closed",
+        "deletion pending blocks a flight closure",
+        "injected failure rolls back",
+        "aircraft receives a new draft",
+        "clamped to 100",
+        "clamped to 0",
+        "append-only"
+    )) {
+        if (-not $settlementTests.Contains($marker)) {
+            $issues.Add("Missing flight settlement test scenario: $marker")
+        }
+    }
+
     $onboardingFunction = Get-Content -Raw -Encoding UTF8 $onboardingFunctionPath
     $onboardingFunctionEntry = Get-Content -Raw -Encoding UTF8 $onboardingFunctionEntryPath
     $onboardingFunctionTests = Get-Content -Raw -Encoding UTF8 $onboardingFunctionTestPath
@@ -981,6 +1172,12 @@ function Get-BackendIssues {
     Require-Text $types 'start_flight_from_dispatch:' "Generated types do not expose the authoritative flight start."
     Require-Text $types 'airports:' "Generated types do not expose the airport reference."
     Require-Text $types 'popularity_tier: string' "Generated types do not expose the airport popularity tier."
+    Require-Text $types 'closed_at: string \| null' "Generated types do not expose the nullable server closing time."
+    Require-Text $types 'close_flight:' "Generated types do not expose the authoritative flight closure."
+    Require-Text $types 'get_company_reputation:' "Generated types do not expose the owner reputation read."
+    if ($types -match '(?m)^\s+(flight_reports|company_reputation_events|flight_close_commands):') {
+        $issues.Add("Generated types must not expose a private flight settlement table.")
+    }
 
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $typeScript 'Invoke-IsolatedSupabaseCli' "Type generation does not use the isolated local runtime."
@@ -1011,7 +1208,7 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'Concurrent flight starts did not reject exactly one command' "Backend CI does not verify that one concurrent flight start fails."
     Require-Text $ciBackend '"1\|1\|0\|1\|0"' "Backend CI does not require one active flight, one command, no draft, one server time and no missing time."
     Require-Text $ciBackend 'airport_reference_structure' "Backend CI does not prove the airport reference structure."
-    Require-Text $ciBackend 'eighteen files with Result: PASS' "Backend CI does not require all eighteen pgTAP files."
+    Require-Text $ciBackend 'twenty files with Result: PASS' "Backend CI does not require all twenty pgTAP files."
     Require-Text $ciBackend 'Airport reference matches eng/airports\.json' "Backend CI does not compare the loaded reference with its canonical source."
     Require-Text $ciBackend 'Loaded airport reference diverges from eng/airports\.json' "Backend CI does not fail on a divergent airport reference."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
@@ -1030,6 +1227,10 @@ function Get-BackendIssues {
     Require-Text $ciBackend '\\copy' "Backend CI does not export the replay journal through the unprivileged psql client."
     Require-Text $ciBackend 'replay_account_deletion_event' "Backend CI does not replay deletion events."
     Require-Text $ciBackend 'Isolated restore replay passed' "Backend CI does not report the restore replay proof."
+    Require-Text $ciBackend 'flight_settlement\\\.test\\\.sql' "Backend CI does not require the flight settlement pgTAP file."
+    Require-Text $ciBackend 'Flight closure concurrency passed' "Backend CI does not prove concurrent flight closures converge."
+    Require-Text $ciBackend 'Concurrent flight closures did not reject exactly one command' "Backend CI does not verify that one concurrent flight closure fails."
+    Require-Text $ciBackend '"1\|1\|1\|1\|1\|43035194"' "Backend CI does not require one terminal flight, report, reputation event, command and credit for an exact balance."
     Require-Text $ciBackend 'dropdb.+--if-exists' "Backend CI does not guarantee restored database cleanup."
 
     return $issues
@@ -1051,6 +1252,7 @@ try {
         "package.json",
         "eng\economy-policy.json",
         "eng\airports.json",
+        "eng\flight-settlement-policy.json",
         "supabase\config.toml",
         "supabase\migrations\20260728000100_create_companies.sql",
         "supabase\migrations\20260731000100_account_lifecycle.sql",
@@ -1061,6 +1263,7 @@ try {
         "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql",
         "supabase\migrations\20260803000200_authoritative_flight_start.sql",
         "supabase\migrations\20260803000300_bounded_airport_reference.sql",
+        "supabase\migrations\20260804000100_authoritative_flight_settlement.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
@@ -1080,6 +1283,8 @@ try {
         "supabase\tests\database\flight_start.test.sql",
         "supabase\tests\database\airport_reference_structure.test.sql",
         "supabase\tests\database\airport_reference.test.sql",
+        "supabase\tests\database\flight_settlement_structure.test.sql",
+        "supabase\tests\database\flight_settlement.test.sql",
         "supabase\functions\company-onboarding\handler.ts",
         "supabase\functions\company-onboarding\economy-policy.json",
         "supabase\functions\company-onboarding\index.ts",
@@ -1577,6 +1782,95 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\company-onboarding\economy-policy.json") -Destination $packagedEconomyPolicyCopy
+    $settlementPolicyCopy = Join-Path $temporaryRoot "eng\flight-settlement-policy.json"
+    $settlementPolicyCopyText = Get-Content -Raw -Encoding UTF8 $settlementPolicyCopy
+    [System.IO.File]::WriteAllText(
+        $settlementPolicyCopy,
+        $settlementPolicyCopyText.Replace('"baseAmountMinor": 15000', '"baseAmountMinor": 15001')
+    )
+    $divergentSettlementIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($divergentSettlementIssues -match "Embedded flight settlement policy diverges")) {
+        Write-Error "Harness self-test failed to detect a settlement scale that drifted from its canonical source."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $settlementPolicyCopy,
+        $settlementPolicyCopyText.Replace('"completedDelta": 1', '"completedDelta": -1')
+    )
+    $unboundedReputationIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unboundedReputationIssues -match "one positive and one negative delta")) {
+        Write-Error "Harness self-test failed to detect an inverted reputation delta."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $settlementPolicyCopy,
+        $settlementPolicyCopyText.Replace('"interruptedFloorMinor": 5000', '"interruptedFloorMinor": 0')
+    )
+    $zeroFloorIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($zeroFloorIssues -match "positive floor below the base amount")) {
+        Write-Error "Harness self-test failed to detect an interrupted flight settling at zero."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "eng\flight-settlement-policy.json") -Destination $settlementPolicyCopy
+    $settlementMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260804000100_authoritative_flight_settlement.sql"
+    $settlementMigrationText = Get-Content -Raw -Encoding UTF8 $settlementMigrationCopy
+    [System.IO.File]::WriteAllText(
+        $settlementMigrationCopy,
+        $settlementMigrationText.Replace(
+            "    report jsonb`r`n)",
+            "    report jsonb,`r`n    settled_amount_minor bigint`r`n)"
+        ).Replace(
+            "    report jsonb`n)",
+            "    report jsonb,`n    settled_amount_minor bigint`n)"
+        )
+    )
+    $clientSettlementAmountIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientSettlementAmountIssues -match "client-controlled company, state, amount")) {
+        Write-Error "Harness self-test failed to detect a client-controlled settlement amount."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $settlementMigrationCopy,
+        $settlementMigrationText.Replace(
+            "    where state in ('draft', 'active');",
+            "    where state is not null;"
+        )
+    )
+    $unboundedExclusivityIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unboundedExclusivityIssues -match "partial exclusivity")) {
+        Write-Error "Harness self-test failed to detect an aircraft exclusivity that covers terminal flights."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $settlementMigrationCopy,
+        $settlementMigrationText +
+            "`ngrant select on table private.company_reputation_events to authenticated;`n"
+    )
+    $readableReputationIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($readableReputationIssues -match "flight report or reputation privileges")) {
+        Write-Error "Harness self-test failed to detect a client-readable reputation table."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $settlementMigrationCopy,
+        $settlementMigrationText.Replace(
+            "least(declared_block_minutes, elapsed_minutes)",
+            "declared_block_minutes"
+        )
+    )
+    $declaredBlockTimeIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($declaredBlockTimeIssues -match "server block time")) {
+        Write-Error "Harness self-test failed to detect a settlement that trusts the declared block time."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260804000100_authoritative_flight_settlement.sql") -Destination $settlementMigrationCopy
     $runtimeText = Get-Content -Raw -Encoding UTF8 $runtimeCopy
     $runtimeText = $runtimeText.Replace(
         '"--env", "SUPABASE_TELEMETRY_DISABLED=1",',
@@ -1595,4 +1889,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035, T0040, T0047-T0050 and T0057 repository plus 35 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035, T0040, T0047-T0051 and T0057 repository plus 42 mutation scenarios)."
