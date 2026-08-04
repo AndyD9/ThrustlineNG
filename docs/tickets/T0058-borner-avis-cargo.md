@@ -46,6 +46,10 @@ aucune faille et ne modifie aucune dépendance.
   `a44946e`, worktree propre.
 - 4 août 2026 — `Review` : source, gate, harnais et câblage CI implémentés ; les
   validations ci-dessous passent sous PowerShell 7.6.4 et Windows PowerShell 5.1.
+- 4 août 2026 — publication : commit d'implémentation `f466c3f` poussé sur
+  `chore/T0058-borner-avertissements-cargo`; PR #98 ouverte prête pour revue,
+  base `main`, head T0058. Les checks GitHub restent à confirmer et la fusion
+  appartient à Andy.
 
 ## Dependencies
 
