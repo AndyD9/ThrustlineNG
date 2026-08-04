@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-08-04",
+  "revalidateBefore": "2026-11-04",
+  "lockfile": "apps/desktop/src-tauri/Cargo.lock",
+  "context": "T0058 borne les avertissements informatifs de cargo-audit 0.22.2 suivis par KI-019. Aucune vulnérabilité n'est tolérée : seules des entrées unmaintained ou unsound explicitement justifiées sont acceptées, et tout avertissement absent de cette liste échoue.",
+  "targetGraphEvidence": "cargo tree --manifest-path apps/desktop/src-tauri/Cargo.toml --locked -i <crate> le 4 août 2026 : la chaîne GTK3 et proc-macro-error n'apparaissent que sous --target all, les cinq crates unic-* apparaissent dans le graphe hôte via urlpattern 0.3.0 puis tauri-utils 2.9.3.",
+  "allowedAdvisories": [
+    {
+      "id": "RUSTSEC-2024-0411",
+      "crate": "gdkwayland-sys",
+      "version": "0.18.2",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": false,
+      "reason": "Liaison GTK3/Wayland de la pile Tauri, résolue par le lockfile multi-plateforme mais absente du graphe win-x64.",
+      "exitCondition": "Retirer dès que Tauri abandonne GTK3 ou que le lockfile cesse de résoudre cette crate."
+    },
+    {
+      "id": "RUSTSEC-2024-0412",
+      "crate": "gdk",
+      "version": "0.18.2",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": false,
+      "reason": "Liaison GTK3 de la pile Tauri, résolue par le lockfile multi-plateforme mais absente du graphe win-x64.",
+      "exitCondition": "Retirer dès que Tauri abandonne GTK3 ou que le lockfile cesse de résoudre cette crate."
+    },
+    {
+      "id": "RUSTSEC-2024-0413",
+      "crate": "atk",
+      "version": "0.18.2",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": false,
+      "reason": "Liaison GTK3 d'accessibilité de la pile Tauri, absente du graphe win-x64.",
+      "exitCondition": "Retirer dès que Tauri abandonne GTK3 ou que le lockfile cesse de résoudre cette crate."
+    },
+    {
+      "id": "RUSTSEC-2024-0415",
+      "crate": "gtk",
+      "version": "0.18.2",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": false,
+      "reason": "Liaison GTK3 tirée par tao, wry, muda et tauri-runtime uniquement hors Windows.",
+      "exitCondition": "Retirer dès que Tauri abandonne GTK3 ou que le lockfile cesse de résoudre cette crate."
+    },
+    {
+      "id": "RUSTSEC-2024-0416",
+      "crate": "atk-sys",
+      "version": "0.18.2",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": false,
+      "reason": "Liaison système GTK3 d'accessibilité, absente du graphe win-x64.",
+      "exitCondition": "Retirer dès que Tauri abandonne GTK3 ou que le lockfile cesse de résoudre cette crate."
+    },
+    {
+      "id": "RUSTSEC-2024-0418",
+      "crate": "gdk-sys",
+      "version": "0.18.2",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": false,
+      "reason": "Liaison système GTK3, absente du graphe win-x64.",
+      "exitCondition": "Retirer dès que Tauri abandonne GTK3 ou que le lockfile cesse de résoudre cette crate."
+    },
+    {
+      "id": "RUSTSEC-2024-0419",
+      "crate": "gtk3-macros",
+      "version": "0.18.2",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": false,
+      "reason": "Macros procédurales GTK3, compilées uniquement lorsque la chaîne GTK3 est résolue.",
+      "exitCondition": "Retirer dès que Tauri abandonne GTK3 ou que le lockfile cesse de résoudre cette crate."
+    },
+    {
+      "id": "RUSTSEC-2024-0420",
+      "crate": "gtk-sys",
+      "version": "0.18.2",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": false,
+      "reason": "Liaison système GTK3, absente du graphe win-x64.",
+      "exitCondition": "Retirer dès que Tauri abandonne GTK3 ou que le lockfile cesse de résoudre cette crate."
+    },
+    {
+      "id": "RUSTSEC-2024-0429",
+      "crate": "glib",
+      "version": "0.18.5",
+      "kind": "unsound",
+      "inWindowsTargetGraph": false,
+      "reason": "Unsoundness des itérateurs de glib::VariantStrIter. La crate n'entre pas dans le graphe win-x64 et aucun code Thrustline n'appelle cette API.",
+      "exitCondition": "Retirer dès que la chaîne GTK3 disparaît du lockfile ou que glib est mis à jour au-delà de 0.18.5 ; réévaluer immédiatement si une cible non Windows devient supportée."
+    },
+    {
+      "id": "RUSTSEC-2024-0370",
+      "crate": "proc-macro-error",
+      "version": "1.0.4",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": false,
+      "reason": "Dépendance de compilation tirée uniquement par glib-macros et gtk3-macros ; aucun code généré n'atteint le binaire Windows.",
+      "exitCondition": "Retirer dès que la chaîne GTK3 disparaît du lockfile."
+    },
+    {
+      "id": "RUSTSEC-2025-0075",
+      "crate": "unic-char-range",
+      "version": "0.9.0",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": true,
+      "reason": "Tirée par urlpattern 0.3.0 puis tauri-utils 2.9.3 ; présente dans le graphe win-x64. Crate purement algorithmique sur des plages de caractères Unicode, sans I/O, réseau ni unsafe signalé, et sans vulnérabilité connue.",
+      "exitCondition": "Retirer dès que tauri-utils abandonne urlpattern ou qu'urlpattern migre vers une pile Unicode maintenue ; réévaluer si une vulnérabilité est publiée."
+    },
+    {
+      "id": "RUSTSEC-2025-0080",
+      "crate": "unic-common",
+      "version": "0.9.0",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": true,
+      "reason": "Même chaîne urlpattern 0.3.0 → tauri-utils 2.9.3 ; constantes de version Unicode sans I/O ni vulnérabilité connue.",
+      "exitCondition": "Retirer dès que tauri-utils abandonne urlpattern ou qu'urlpattern migre vers une pile Unicode maintenue ; réévaluer si une vulnérabilité est publiée."
+    },
+    {
+      "id": "RUSTSEC-2025-0081",
+      "crate": "unic-char-property",
+      "version": "0.9.0",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": true,
+      "reason": "Même chaîne urlpattern 0.3.0 → tauri-utils 2.9.3 ; définitions de propriétés de caractères sans I/O ni vulnérabilité connue.",
+      "exitCondition": "Retirer dès que tauri-utils abandonne urlpattern ou qu'urlpattern migre vers une pile Unicode maintenue ; réévaluer si une vulnérabilité est publiée."
+    },
+    {
+      "id": "RUSTSEC-2025-0098",
+      "crate": "unic-ucd-version",
+      "version": "0.9.0",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": true,
+      "reason": "Même chaîne urlpattern 0.3.0 → tauri-utils 2.9.3 ; table de version UCD sans I/O ni vulnérabilité connue.",
+      "exitCondition": "Retirer dès que tauri-utils abandonne urlpattern ou qu'urlpattern migre vers une pile Unicode maintenue ; réévaluer si une vulnérabilité est publiée."
+    },
+    {
+      "id": "RUSTSEC-2025-0100",
+      "crate": "unic-ucd-ident",
+      "version": "0.9.0",
+      "kind": "unmaintained",
+      "inWindowsTargetGraph": true,
+      "reason": "Consommateur direct d'urlpattern 0.3.0 dans le graphe win-x64 ; tables d'identifiants Unicode sans I/O ni vulnérabilité connue.",
+      "exitCondition": "Retirer dès que tauri-utils abandonne urlpattern ou qu'urlpattern migre vers une pile Unicode maintenue ; réévaluer si une vulnérabilité est publiée."
+    }
+  ]
+}

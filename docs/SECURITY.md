@@ -472,6 +472,17 @@ lit le `Cargo.lock`. Gitleaks parcourt l'historique avec les commentaires et
 uploads propres à l'action désactivés ; il reçoit seulement le jeton GitHub
 éphémère en lecture.
 
+Un avertissement informatif de `cargo-audit` n'est pas une exception implicite.
+`cargo audit` seul ne fait échouer que les vulnérabilités : T0058 ajoute donc un
+gate qui compare le rapport à `eng/cargo-advisory-allowlist.json`. La règle est
+fail-closed dans les deux sens : toute vulnérabilité échoue, tout avertissement
+absent de la liste échoue, un avertissement qui change de crate, de version ou de
+nature échoue, une entrée qui n'est plus signalée échoue comme périmée, et la
+liste entière expire à sa date `revalidateBefore`. Chaque entrée porte une
+justification, sa présence ou non dans le graphe `win-x64` et sa condition de
+sortie. Cette liste ne couvre jamais une vulnérabilité et ne remplace pas une
+exception de sécurité, qui reste soumise à l'approbation explicite d'Andy.
+
 Le dépôt garde les sources NuGet désactivées par défaut. Le job Windows autorise
 uniquement `https://api.nuget.org/v3/index.json` pendant un `dotnet restore`
 explicite en mode verrouillé pour obtenir les runtime packs Microsoft

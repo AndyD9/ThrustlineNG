@@ -63,6 +63,10 @@ jobs:
         shell: pwsh
         run: pnpm maintenance:check
 
+      - name: Validate Cargo advisory allowlist
+        shell: pwsh
+        run: pnpm supply-chain:cargo:check
+
       - name: Validate frontend
         shell: pwsh
         run: |

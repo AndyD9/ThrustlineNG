@@ -109,6 +109,10 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   référencer les deux codes, sans distance, revenu ni lecture desktop.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
+- Gate d'avis Cargo T0058 sur sa propre branche, non fusionnée : source
+  `eng/cargo-advisory-allowlist.json` à 15 avis revus, harnais statique à huit
+  mutations négatives dans le job Windows et comparaison au rapport réel dans le
+  job supply-chain.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
   clientes dans `eng/authority-inventory.json`.
 
@@ -210,9 +214,14 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
   production et promotion restent absentes ; `KI-021` interdit les données
   réelles jusque-là.
 - Aucun pipeline complet de release signée ou d'updater avec rollback n'existe.
-- Cargo ne signale aucune vulnérabilité, mais plusieurs crates GTK3 non
-  maintenues et `glib` 0.18.5 unsound restent dans le lockfile multi-plateforme
-  (`KI-019`).
+- Cargo ne signale aucune vulnérabilité, mais 15 avis informatifs restent dans le
+  lockfile multi-plateforme. T0058 les borne par
+  `eng/cargo-advisory-allowlist.json` et un gate qui échoue sur tout avis non
+  revu, toute dérive et toute entrée périmée ; la liste expire le 4 novembre
+  2026. La chaîne GTK3, `glib` 0.18.5 unsound et `proc-macro-error` restent hors
+  du graphe `win-x64`, tandis que cinq crates `unic-*` non maintenues y sont
+  réellement présentes via `urlpattern` puis `tauri-utils`. `KI-019` est résolu
+  par ce contrôle, pas par la disparition des crates.
 
 ## Travail local à préserver
 

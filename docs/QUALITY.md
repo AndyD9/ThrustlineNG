@@ -569,6 +569,20 @@ La génération locale du rapport de licences exige les dépendances restaurées
 pnpm supply-chain:report
 ```
 
+Le gate d'avis Cargo T0058 se contrôle sans `cargo-audit` installé, avec le
+harnais statique et ses huit mutations négatives :
+
+```powershell
+pnpm supply-chain:cargo:check
+```
+
+La comparaison au vrai rapport exige `cargo-audit` 0.22.2. Elle s'exécute
+localement sur le lockfile, ou en CI sur le rapport JSON déjà produit :
+
+```powershell
+pnpm supply-chain:cargo
+```
+
 Le job backend Linux utilise `pnpm ci:backend`. Il masque la sortie de démarrage,
 inspecte les ports Docker réels, exige tous les fichiers pgTAP attendus et
 `Result: PASS`,
@@ -586,8 +600,11 @@ scanner échoue, puis un gate final agrège les résultats. T0013 a ainsi détec
 local du 29 juillet 2026 ne trouve plus de vulnérabilité connue ; la preuve
 GitHub `30440480513` confirme ensuite tous les gates supply-chain verts et résout
 `KI-018`. L'audit NuGet ne trouve aucun package vulnérable et Cargo ne trouve
-aucune vulnérabilité, mais signale des avertissements informatifs suivis par
-`KI-019`.
+aucune vulnérabilité, mais signale quinze avertissements informatifs. T0058 les
+borne : `eng/cargo-advisory-allowlist.json` justifie chacun d'eux et le gate
+échoue sur tout avertissement non revu, toute dérive de crate, version ou nature,
+toute entrée périmée et toute liste expirée. `KI-019` est résolu par ce contrôle,
+sans revendiquer la disparition des crates concernées.
 
 Les commandes locales ne prouvent pas l'interprétation YAML ni l'exécution des
 runners GitHub. Pour T0013, les jobs de la PR et les artefacts ont été inspectés
