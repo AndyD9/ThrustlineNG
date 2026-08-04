@@ -712,6 +712,26 @@ et `42501` pour toute mutation cliente comme pour la lecture anonyme. Cette
 tranche n'ajoute ni lecture desktop, ni sélecteur d'aérodromes, ni calcul de
 distance, de durée ou de revenu, et n'est pas encore fusionnée dans `main`.
 
+T0052 ajoute le premier appelant desktop de cette frontière : un module de
+commande borné à la cible loopback `http:` et un panneau mince injecté dans
+l'accueil authentifié. Le module normalise les ICAO en majuscules après trim,
+exige deux codes distincts de quatre caractères ASCII et des UUID canoniques
+avant tout appel réseau, borne la requête à cinq secondes et la réponse lue à
+16 Kio, puis valide les sept champs publics avec `state: draft` et
+`schemaVersion: 1` en recoupant avion et aérodromes avec la demande. Le panneau
+n'exécute aucun appel au rendu, ne propose que les avions réellement chargés par
+le transport T0046, obtient le bearer à la soumission, conserve une clé
+d'idempotence par intention, en crée une nouvelle si l'avion ou un ICAO change,
+bloque le double envoi, efface la session sur refus Auth et annule sa requête au
+démontage. Le 4 août 2026, 21 fichiers/241 tests frontend passent, dont 66
+nouveaux pour ce flux, avec 93,96 % des statements et 88,41 % des branches en
+couverture globale et 98,34 % des statements sur `features/flight-dispatch`;
+typecheck, build et les gates autorité, données et maintenance passent. Cette
+tranche n'ajoute ni lecture Data API, ni mutation cliente, ni lecture durable des
+dispatchs, ni transition de vol, ni effet financier, sa preuve reste jsdom avec
+`fetch` injecté, sans WebView live ni Edge Runtime, et elle n'est pas encore
+fusionnée dans `main`.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -729,7 +749,9 @@ continuité ; Supabase Auth est une autorité externe et cinq domaines restent
 `not-implemented`. T0057 rattache le référentiel d'aérodromes au domaine
 dispatch et classe explicitement son absence de consommateur client : la table
 est serveur, en lecture seule pour `authenticated`, et ne figure donc pas dans
-l'allowlist `clientDataApiReads`.
+l'allowlist `clientDataApiReads`. T0052 rattache au même domaine deux chemins
+desktop, le module de commande et son panneau, sans nouvelle entrée dans
+`clientDataApiReads` et sans mutation cliente.
 
 `pnpm authority:check` scanne React, Tauri et le bridge, refuse toute mutation
 Supabase/SQL directe, accès Data API non classé, credential ou commande
@@ -825,8 +847,9 @@ propre branche : il n'est pas encore fusionné et ne doit donc pas être présum
 présent dans `main`. Le prochain ticket recommandé du flux backend est T0051, la
 clôture d'un vol avec son règlement et sa réputation, dont la sortie de `Draft`
 exige la fusion de T0057 maintenant que T0050 est dans `main` ; l'endpoint
-authentifié du démarrage reste un ticket distinct. Le flux desktop reste T0052,
-sans SimBrief. La
+authentifié du démarrage reste un ticket distinct. Le flux desktop livre T0052
+sur sa propre branche, non fusionnée, et son prochain ticket est T0053, la
+lecture durable des dispatchs, sans SimBrief. La
 location T0032 reste bloquée sur ses décisions produit et la persistance Windows
 reste un ticket de sécurité séparé avant tout stockage de refresh token.
 

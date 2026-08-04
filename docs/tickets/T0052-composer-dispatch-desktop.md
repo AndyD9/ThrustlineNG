@@ -1,6 +1,6 @@
 # T0052 — Composer la préparation de dispatch depuis le desktop
 
-Status: Ready
+Status: Review
 Owner: Andy
 Branch: `feature/T0052-desktop-dispatch-draft`
 Phase: 2–4
@@ -109,16 +109,16 @@ accéléré.
 
 ## Acceptance criteria
 
-- [ ] Depuis une session avec compagnie et au moins un avion, une soumission
+- [x] Depuis une session avec compagnie et au moins un avion, une soumission
       explicite crée un brouillon et l'affiche depuis la réponse serveur.
-- [ ] Le payload envoyé contient exactement avion, deux ICAO normalisés et clé
+- [x] Le payload envoyé contient exactement avion, deux ICAO normalisés et clé
       d'idempotence ; aucun propriétaire, compagnie, état, temps ou route.
-- [ ] Cible non loopback, ICAO invalides ou identiques et avion hors flotte sont
+- [x] Cible non loopback, ICAO invalides ou identiques et avion hors flotte sont
       refusés avant tout appel réseau.
-- [ ] Un retry conserve la clé, un changement d'intention en crée une nouvelle et
+- [x] Un retry conserve la clé, un changement d'intention en crée une nouvelle et
       le double clic n'émet qu'un appel.
-- [ ] Un refus Auth efface la session et ramène vers la connexion.
-- [ ] Typecheck, tests frontend, couverture, build et gates applicables passent
+- [x] Un refus Auth efface la session et ramène vers la connexion.
+- [x] Typecheck, tests frontend, couverture, build et gates applicables passent
       avec leurs compteurs réellement observés.
 
 ## Security review
@@ -176,18 +176,133 @@ dans un ticket correctif ; aucune donnée serveur n'est créée par ce retrait.
 
 ## Completion Report
 
-À remplir après implémentation.
-
 ### Summary
+
+Le desktop appelle pour la première fois la frontière `dispatch-draft` de T0048.
+Un module de commande borné (`flightDispatch.ts`) n'accepte qu'une cible loopback
+`http:` sans identifiants, requête, fragment ni chemin, normalise les deux ICAO en
+majuscules après trim, exige quatre caractères ASCII alphanumériques, deux codes
+distincts et des UUID canoniques avant tout appel réseau, borne la requête à cinq
+secondes et la réponse lue à 16 Kio, puis valide les sept champs publics avec
+`state: draft` et `schemaVersion: 1` en recoupant avion et aérodromes avec la
+demande. Les échecs sont réduits à `authentication-required`, `rejected`,
+`invalid-response` et `unavailable`, sans détail serveur.
+
+Le panneau `FlightDispatchPanel` n'exécute aucun appel au rendu, limite la
+sélection aux avions réellement chargés par le transport T0046 — exposés par un
+nouveau rappel `onFleetLoaded` sans changer la requête, la projection, l'ordre ou
+la limite —, obtient le bearer du gestionnaire T0038 à la soumission, conserve une
+clé d'idempotence par intention, en crée une nouvelle si l'avion ou un ICAO change,
+bloque la double soumission, efface la session sur refus Auth et annule sa requête
+au démontage. `HomePage` compose le panneau uniquement quand la compagnie est
+présente et la flotte non vide. L'inventaire d'autorité rattache les deux chemins
+desktop au domaine `dispatch` sans nouvelle lecture Data API ni mutation cliente.
 
 ### Files changed
 
+- `apps/desktop/src/features/flight-dispatch/flightDispatch.ts` (nouveau) ;
+- `apps/desktop/src/features/flight-dispatch/flightDispatch.test.ts` (nouveau) ;
+- `apps/desktop/src/features/flight-dispatch/FlightDispatchPanel.tsx` (nouveau) ;
+- `apps/desktop/src/features/flight-dispatch/FlightDispatchPanel.test.tsx`
+  (nouveau) ;
+- `apps/desktop/src/features/flight-dispatch/flightDispatch.invariants.test.ts`
+  (nouveau) ;
+- `apps/desktop/src/features/flight-dispatch/homeComposition.test.tsx` (nouveau) ;
+- `apps/desktop/src/features/aircraft-fleet/AircraftFleetPanel.tsx` et son test :
+  rappel `onFleetLoaded` uniquement ;
+- `apps/desktop/src/pages/HomePage.tsx` : état de flotte et injection du panneau ;
+- `apps/desktop/src/styles/index.css` : styles du panneau et du sélecteur ;
+- `eng/authority-inventory.json` : chemins, marqueurs et limites du domaine
+  `dispatch` ;
+- `docs/ARCHITECTURE.md`, `docs/QUALITY.md`, `docs/CURRENT_STATE.md`,
+  `docs/tickets/README.md` et ce ticket.
+
 ### Commands and results
+
+Toutes les commandes sont exécutées le 4 août 2026 depuis
+`.worktrees/t0052` sous Windows 11, Node 24.18.0 et pnpm 11.17.0.
+
+- `pnpm.cmd frontend:typecheck` : réussi, aucune erreur `tsc`.
+- `pnpm.cmd frontend:test` : réussi, 21 fichiers/241 tests passés, 1 fichier/2
+  scénarios runtime T0040 ignorés faute d'environnement explicite. Le flux
+  T0052 apporte 66 tests dans `features/flight-dispatch` et 2 dans
+  `features/aircraft-fleet` ; la base était de 173 tests.
+- `pnpm.cmd frontend:coverage` : réussi, 93,96 % des statements (857/912),
+  88,41 % des branches (687/777), 97,18 % des fonctions (138/142) et 93,93 % des
+  lignes (837/891). `features/flight-dispatch` atteint 98,34 % des statements et
+  94,06 % des branches ; `flightDispatch.ts` est à 100 % des statements et des
+  lignes, `FlightDispatchPanel.tsx` à 96,55 %, les deux lignes non couvertes
+  étant les gardes de réentrance et d'annulation.
+- `pnpm.cmd frontend:build` : réussi, `dist/assets/index-DaikaJBL.js` 273,71 kB
+  (83,22 kB gzip) et `index-BsTWmy3G.css` 8,15 kB.
+- Inspection du bundle produit : ni JWT `eyJ…`, ni `private-user-token`, ni
+  `public-anon-key`, ni `service_role`, ni `SUPABASE_SERVICE_ROLE`, ni
+  `create_dispatch_draft` ; le seul chemin serveur présent est
+  `/functions/v1/dispatch-draft`.
+- `pnpm.cmd authority:check` : réussi, 10 étapes, 13 domaines, 3 surfaces
+  clientes et 9 scénarios de mutation.
+- `pnpm.cmd data-policy:check` : réussi, dépôt T0017–T0020 et 6 mutations.
+- `pnpm.cmd maintenance:check` : réussi, registre, index des tickets, marqueurs de
+  dette et 8 mutations.
+- `git diff --check` : aucun avertissement d'espaces.
 
 ### Manual verification result
 
+La vérification manuelle du 4 août 2026 est exécutée par une sonde jsdom
+temporaire qui rend `HomePage` avec session et flotte injectées, laisse le panneau
+utiliser le module de commande réel et espionne `globalThis.fetch` ; la sonde est
+supprimée après lecture et n'est pas livrée.
+
+1. Après rendu, vérification de compagnie et chargement de flotte : `0` appel
+   réseau émis par le panneau, qui n'apparaît qu'après une flotte non vide.
+2. Soumission explicite avec `lfpg`/`lfbo` : cible
+   `http://127.0.0.1:54321/functions/v1/dispatch-draft`, exactement quatre
+   headers `accept`, `apikey`, `authorization: Bearer …`, `content-type`, et
+   payload exactement
+   `{"aircraftId":"5a3f2d1e-…-abcd","departureIcao":"LFPG","arrivalIcao":"LFBO","idempotencyKey":"28a1e0f9-af1f-4040-ac76-96ff7cecdf9c"}`
+   — aucun propriétaire, compagnie, état, temps ou route.
+3. Après un 503, double clic sur `Réessayer` : un seul appel supplémentaire, soit
+   deux au total, avec la clé identique `28a1e0f9-…`; la réponse 200 affiche
+   « Brouillon créé pour LFPG → LFBO » depuis les champs serveur.
+4. Changement d'arrivée en `lfml` : nouvelle clé
+   `407c85ca-ff9e-4b7e-8358-5c07d575370e` et nouveau brouillon affiché.
+5. Réponse 401 : session effacée (`hasSession()` faux) et un unique retour vers la
+   connexion demandé.
+6. Inspection finale : le texte du DOM ne contient ni `private-user-access-token`,
+   ni `public-anon-key-value`, ni l'identifiant de dispatch, ni `Bearer`, et zéro
+   appel `console.debug/error/info/log/warn` n'a été émis.
+
+L'identifiant d'avion reste présent dans l'attribut `value` des options du
+sélecteur, ce qui est nécessaire à la sélection ; il provient de la flotte du
+propriétaire déjà chargée et n'est pas rendu comme texte.
+
 ### Risks and limitations
+
+- La preuve reste jsdom avec `fetch` injecté ou espionné : ni WebView Tauri live,
+  ni CSP de production, ni Edge Runtime réel, ni cible distante, ni donnée réelle.
+- Le champ ICAO est borné à quatre caractères par `maxLength`; un espace saisi
+  avant le code consomme donc une position et fait refuser l'intention avec le
+  message actionnable du panneau. Le trim reste appliqué par le module.
+- Le sélecteur d'avion porte `aria-required` sans `required` HTML, afin que
+  l'absence de sélection ou une sélection devenue absente de la flotte soit
+  refusée par la validation du code plutôt que par la validation native.
+- L'injection du panneau reste locale à `HomePage`; `App.tsx` et `routes.tsx` ne
+  transportent pas de commande de dispatch, ce qui laisse la valeur par défaut du
+  panneau en production et l'injection aux tests.
+- Le délai de cinq secondes est prouvé par un `AbortSignal` déjà annulé, pas par
+  une horloge réelle.
 
 ### Follow-ups
 
+- T0053 reste responsable de la lecture et de l'actualisation durables des
+  dispatchs ; ce ticket n'affiche que la réponse de la création courante.
+- `docs/CURRENT_STATE.md` et `docs/tickets/README.md` décrivent encore T0057 comme
+  non fusionné et `Review` alors que la PR #91 l'a fusionné dans `main` au commit
+  `df685b7`. Cet écart appartient à la clôture de T0057 et n'est pas corrigé ici.
+- Aucune preuve WebView live n'existe pour les appels desktop ; elle reste à
+  cadrer avec la livraison de l'alpha technique interne T0055.
+
 ### Documentation updated
+
+`docs/ARCHITECTURE.md`, `docs/QUALITY.md`, `docs/CURRENT_STATE.md`,
+`docs/tickets/README.md`, `eng/authority-inventory.json` et ce ticket.

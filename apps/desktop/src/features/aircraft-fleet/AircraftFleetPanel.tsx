@@ -17,6 +17,7 @@ export interface AircraftFleetPanelProps {
   command?: AircraftFleetCommand | undefined;
   config: DesktopConnectionConfig;
   onAuthenticationRequired: () => void;
+  onFleetLoaded?: ((aircraft: CompanyAircraft[]) => void) | undefined;
   refreshVersion?: number | undefined;
   sessionManager: DesktopSessionManager;
 }
@@ -31,6 +32,7 @@ export function AircraftFleetPanel({
   command = loadAircraftFleet,
   config,
   onAuthenticationRequired,
+  onFleetLoaded,
   refreshVersion = 0,
   sessionManager,
 }: AircraftFleetPanelProps) {
@@ -64,6 +66,7 @@ export function AircraftFleetPanel({
       if (!abortController.signal.aborted) {
         loadedOnceRef.current = true;
         setState({ aircraft, kind: "loaded" });
+        onFleetLoaded?.(aircraft);
       }
     } catch (error) {
       if (!abortController.signal.aborted) {
@@ -83,7 +86,14 @@ export function AircraftFleetPanel({
         pendingRef.current = false;
       }
     }
-  }, [command, config.anonKey, config.supabaseUrl, onAuthenticationRequired, sessionManager]);
+  }, [
+    command,
+    config.anonKey,
+    config.supabaseUrl,
+    onAuthenticationRequired,
+    onFleetLoaded,
+    sessionManager,
+  ]);
 
   useEffect(() => () => abortControllerRef.current?.abort(), []);
   useEffect(() => {
