@@ -1,13 +1,12 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 4 août 2026 (réconciliation des livraisons T0053,
-T0054 et T0058 après leurs fusions dans `main`).
-Statut : T0009, T0012–T0031, T0033–T0050, T0052–T0054, T0057 et T0058 sont
-`Done`. T0053 est livré dans `main` par la PR #96 au merge `87c4eec`, T0054 par la
-PR #99 au merge `3a2c292` et T0058 par la PR #98 au merge `2a07113`, chacun avec
-ses trois checks verts. T0051 est `Review` : ses deux conditions d'ordre
-d'intégration étaient satisfaites et son implémentation est complète sur
-`feature/T0051-authoritative-flight-settlement`, encore non fusionnée. T0055 et
+Dernière revue documentaire : 4 août 2026 (clôture de T0051 après sa fusion dans
+`main`, à la suite de celles de T0053, T0054 et T0058).
+Statut : T0009, T0012–T0031, T0033–T0054, T0057 et T0058 sont `Done`. T0053 est
+livré dans `main` par la PR #96 au merge `87c4eec`, T0054 par la PR #99 au merge
+`3a2c292`, T0058 par la PR #98 au merge `2a07113` et T0051 par la PR #102 au merge
+`c0972fa`, chacun avec ses trois checks verts. Le flux backend du golden path va
+donc désormais de la création de compagnie à la clôture d'un vol réglé. T0055 et
 T0056 sont `Ready` et T0059 est `Draft` faute d'un MSFS 2024 et d'un SDK
 SimConnect installés avec provenance vérifiable.
 T0050 est livré dans `main`
@@ -115,9 +114,9 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   ni clôture. T0057 ajoute, livré dans `main` par la PR #91 au merge `df685b7`,
   un référentiel d'aérodromes serveur en lecture seule dont tout brouillon doit
   désormais référencer les deux codes, sans distance, revenu ni lecture desktop.
-  T0051 ajoute sur sa propre branche, non fusionnée, la clôture unique d'un vol :
-  deux états terminaux, un rapport borné, un règlement net unique dans le grand
-  livre, une réputation informative bornée et un avion immédiatement
+  T0051 ajoute, livré dans `main` par la PR #102 au merge `c0972fa`, la clôture
+  unique d'un vol : deux états terminaux, un rapport borné, un règlement net unique
+  dans le grand livre, une réputation informative bornée et un avion immédiatement
   redisponible, sans frontière Auth ni appelant desktop.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
@@ -125,9 +124,10 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   `2a07113` : source `eng/cargo-advisory-allowlist.json` à 15 avis revus, harnais
   statique à huit mutations négatives dans le job Windows et comparaison au
   rapport réel dans le job supply-chain.
-- Politique de règlement de vol T0051 sur sa propre branche, non fusionnée :
-  source `eng/flight-settlement-policy.json`, projection embarquée comparée par le
-  gate backend, plancher `5000` et plafond `2000000` en `EUR`.
+- Politique de règlement de vol T0051 présente dans `main`, livrée par la PR #102
+  au merge `c0972fa` : source `eng/flight-settlement-policy.json`, projection
+  embarquée comparée texte à texte par le gate backend, plancher `5000` et plafond
+  `2000000` en `EUR`.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
   clientes dans `eng/authority-inventory.json`. T0051 fait passer
   `flight-finalization` et `reputation-progression` de `not-implemented` à
@@ -810,8 +810,18 @@ unités mineures pour un vol terminé de 168,28 NM, le plancher `5000` pour un v
 interrompu, un solde de `43040194`, une réputation de `48`, un avion
 immédiatement redispatchable et quatre refus sans écriture. Cette tranche
 n'ajoute ni frontière Auth, ni appelant desktop, ni annulation, ni télémétrie de
-clôture, ni SimBrief, ni cible distante, ni donnée réelle, et elle n'est pas
-encore fusionnée dans `main`.
+clôture, ni SimBrief, ni cible distante, ni donnée réelle.
+
+Elle est fusionnée dans `main` depuis la Pull Request #102, merge `c0972fa` du
+4 août 2026, avec ses trois checks verts. Le job Linux lève la seule réserve du
+ticket en exécutant `ci:backend`, non exécutable sous Windows : il rend `Flight
+closure concurrency passed: 2 sessions, 1 completed flight, 1 report, 1 reputation
+event, 1 credit of 35194 minor units.` puis `Backend CI passed: 2 resets, 20 pgTAP
+files, ... flight start and flight settlement, ...` La convergence de deux clôtures
+réellement concurrentes est donc prouvée par le harnais. La première publication
+avait échoué sur ce même job pour un défaut de portabilité du gate — `powershell`
+5.1 et `pwsh` 7 ne rendent pas le même type pour un nombre JSON — corrigé par le
+commit `8627fd3` et consigné dans `docs/QUALITY.md` comme règle pour tout gate.
 
 T0052 ajoute le premier appelant desktop de cette frontière : un module de
 commande borné à la cible loopback `http:` et un panneau mince injecté dans
@@ -971,12 +981,11 @@ Auth → Edge Runtime → `create_dispatch_draft` et le démarrage serveur d'un 
 depuis un brouillon possédé. T0057 livre le référentiel d'aérodromes dans `main`
 par la PR #91 au merge `df685b7`, avec ses trois checks verts, dont le harnais
 Linux qui compare la table chargée à `eng/airports.json`. Le flux backend a
-enchaîné sur T0051, la clôture d'un vol avec son règlement et sa réputation : ses
-deux conditions de sortie de `Draft` — la fusion de T0050 et celle de T0057 —
-étaient satisfaites, et son implémentation est `Review` sur
-`feature/T0051-authoritative-flight-settlement`, non fusionnée. Le prochain ticket
-de ce flux est l'endpoint authentifié de la clôture, encore à ouvrir, comme celui
-du démarrage. Le flux desktop a livré T0052 dans `main` par la PR #94 puis T0053
+enchaîné sur T0051, la clôture d'un vol avec son règlement et sa réputation, livrée
+dans `main` par la PR #102 au merge `c0972fa` avec ses trois checks verts. Le
+prochain ticket recommandé de ce flux est l'endpoint authentifié de la clôture,
+encore à ouvrir, comme celui du démarrage : ce sont les deux dernières commandes
+serveur du golden path sans frontière Auth. Le flux desktop a livré T0052 dans `main` par la PR #94 puis T0053
 par la PR #96 au merge `87c4eec` : la préparation et la relecture des dispatchs
 sont donc composées, sans SimBrief, et son prochain ticket n'est pas encore ouvert.
 Le flux moteur de vol et bridge a livré T0054 par la PR #99 au merge `3a2c292`;

@@ -64,7 +64,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0048 | Exposer le brouillon de dispatch derrière une frontière authentifiée | 2–4 | T0023, T0024, T0047 | Done |
 | T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Done |
 | T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Done |
-| T0051 | Clôturer un vol une seule fois, régler son revenu et sa réputation | 2 | T0020, T0028–T0029, T0047, T0050, T0057 | Review |
+| T0051 | Clôturer un vol une seule fois, régler son revenu et sa réputation | 2 | T0020, T0028–T0029, T0047, T0050, T0057 | Done |
 | T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Done |
 | T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Done |
 | T0054 | Publier la télémétrie bornée du bridge sur le contrat local | 3 | T0010–T0011, T0015 | Done |
@@ -101,11 +101,12 @@ rouvrir une pile de branches. Ces conditions sont toutes satisfaites : T0050 est
 dans `main` depuis la PR #89, T0057 depuis la fusion de la PR #91 le 3 août 2026
 au merge `df685b7`, et T0052 depuis la PR #94 le 4 août 2026. T0053 a suivi ce
 chemin jusqu'au bout et est `Done` depuis la fusion de la PR #96 au merge
-`87c4eec`. T0051 est implémenté et `Review` sur
-`feature/T0051-authoritative-flight-settlement`, créée depuis le `origin/main` au
-merge `2a07113`, sans branche empilée. La location T0032 reste hors du gate de
-l'alpha et conserve son statut `Draft`. T0011 reste `Verify` jusqu'aux essais
-MSFS 2024 réels, désormais portés par T0059, et n'est pas couvert par T0056.
+`87c4eec`. T0051 a suivi le même chemin et est `Done` depuis la fusion de la
+PR #102 dans `main` au merge `c0972fa`, avec ses trois checks verts : le flux
+backend du golden path va donc de la création de compagnie à la clôture d'un vol
+réglé. La location T0032 reste hors du gate de l'alpha et conserve son statut
+`Draft`. T0011 reste `Verify` jusqu'aux essais MSFS 2024 réels, désormais portés
+par T0059, et n'est pas couvert par T0056.
 
 T0054 est `Done` depuis la fusion de la PR #99 dans `main` au merge `3a2c292` le
 4 août 2026 : le flux moteur de vol et bridge publie la télémétrie bornée sur le

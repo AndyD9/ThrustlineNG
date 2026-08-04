@@ -16,17 +16,20 @@ Le dépôt est une alpha de reconstruction, pas une version publique stable.
   sont en place.
 - Phase 2 active : cycle de compte, grand livre immuable, onboarding autoritaire,
   politique d'ouverture à 430 000 EUR, achat d'un avion, référentiel
-  d'aérodromes, brouillon de dispatch et démarrage d'un vol sont implémentés côté
-  serveur.
+  d'aérodromes, brouillon de dispatch, démarrage d'un vol puis sa clôture avec un
+  règlement net unique et une réputation informative sont implémentés côté
+  serveur. Le golden path serveur va donc de la création de compagnie au vol
+  réglé.
 - Phase 4 amorcée : le desktop compose la connexion locale, l'onboarding, le
   catalogue, l'achat, la flotte, puis la préparation et la relecture des
   dispatchs, sans jamais porter l'autorité métier.
 - Phase 3 amorcée : le bridge publie une télémétrie bornée et versionnée sur le
   contrat local, alimentée par un replay synthétique.
-- Prochain domaine fonctionnel : clôture d'un vol avec son règlement et sa
-  réputation, ticket T0051. La location d'avion suit ; son ticket T0032 reste en
-  `Draft` jusqu'aux décisions produit sur contrat, échéances, défaut,
-  résiliation et autorité temporelle.
+- Prochain travail : exposer le démarrage et la clôture de vol derrière une
+  frontière authentifiée, les deux dernières commandes serveur du golden path qui
+  n'en ont pas. La location d'avion suit ; son ticket T0032 reste en `Draft`
+  jusqu'aux décisions produit sur contrat, échéances, défaut, résiliation et
+  autorité temporelle.
 
 Aucune donnée utilisateur réelle n'est autorisée. Le support MSFS 2024 réel,
 les environnements Supabase distants, la signature, l'updater et le rollback de
