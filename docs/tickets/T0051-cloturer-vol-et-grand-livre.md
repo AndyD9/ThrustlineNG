@@ -390,6 +390,27 @@ Les montants attendus ont été calculés hors de la base, avec Node, avant d'ê
 qui atteindrait `2103629` et le plancher `5000`. Le barème n'est donc pas validé
 contre lui-même.
 
+La première publication a échoué sur `Supabase PostgreSQL 17` en 25 secondes, à
+l'étape `Validate static backend invariants`, avec `Embedded flight settlement
+policy diverges from eng/flight-settlement-policy.json.` La cause est un défaut de
+portabilité de mon propre contrôle, invisible sous Windows : `package.json` lance
+le gate avec `powershell` 5.1, dont `ConvertFrom-Json` rend un `Decimal` et
+conserve l'échelle de `1.0`, tandis que le workflow le lance avec `pwsh` 7, dont
+`ConvertFrom-Json` rend un `Double` que `[decimal]` réduit à `1`. La projection
+reconstruite valait donc `'multiplierStandard', 1.0` en local et
+`'multiplierStandard', 1` sur le runner. Le gate a correctement échoué fermé : il a
+signalé une divergence réelle entre ce qu'il attendait et la migration.
+
+Le correctif rend la projection indépendante du parseur : les multiplicateurs sont
+formatés par `ToString("F2", InvariantCulture)`, stable depuis un `Decimal` comme
+depuis un `Double`, et la source comme la migration portent la même forme
+explicite à deux décimales — `0.90`, `1.00`, `1.15`, `1.30`. Le barème est
+inchangé : `(1.30 + 1.15) / 2` vaut toujours `1.225`. Après correction, le gate
+passe sous les deux hôtes — `pnpm.cmd backend:check` avec Windows PowerShell 5.1 et
+`pwsh -NoProfile -File ./tests/backend/run.ps1` comme le runner — et la pile a été
+redémarrée pour rejouer 20 fichiers/427 assertions en `Result: PASS` avec les types
+stables, puisque le texte de la migration avait changé.
+
 ### Manual verification result
 
 Vérification manuelle du 4 août 2026 sur la pile locale, en état réellement
@@ -466,7 +487,14 @@ La pile a été arrêtée sans sauvegarde. Durée effective hors démarrage : en
   d'états ;
 - candidat `LEARNINGS.md` : un contrôle de gate écrit avec `(?i)` sur des motifs
   de style `NOM_DE_VARIABLE` attrape aussi les identifiants SQL en minuscules.
-  Comparer les noms d'environnement avec `-cmatch`, jamais `-match`.
+  Comparer les noms d'environnement avec `-cmatch`, jamais `-match` ;
+- candidat `LEARNINGS.md`, à promouvoir en règle car reproduit de façon
+  déterministe : un gate qui reconstruit du texte depuis un JSON ne doit jamais
+  laisser le parseur choisir le rendu d'un nombre. `ConvertFrom-Json` rend un
+  `Decimal` sous Windows PowerShell 5.1 et un `Double` sous `pwsh` 7, si bien qu'un
+  contrôle vert en local échoue sur le runner. Formater explicitement, et exécuter
+  au moins une fois tout gate modifié avec `pwsh -NoProfile -File`, l'hôte réel de
+  la CI, en plus du script `pnpm` qui utilise `powershell` 5.1.
 
 ### Documentation updated
 

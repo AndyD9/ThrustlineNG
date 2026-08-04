@@ -370,6 +370,18 @@ non nul dans une transaction pgTAP exige de désactiver brièvement le trigger d
 `started_at` pour antidater le départ, ce que seul le propriétaire de la table peut
 faire.
 
+Les commandes `pnpm backend:check`, `authority:check`, `data-policy:check`,
+`maintenance:check` et `ci:check` sont lancées par `package.json` avec
+`powershell`, soit Windows PowerShell 5.1, alors que les workflows GitHub les
+lancent avec `pwsh`, soit PowerShell 7. Les deux hôtes ne se comportent pas
+identiquement : `ConvertFrom-Json` rend un `Decimal` conservant l'échelle sous 5.1
+et un `Double` sous 7, si bien qu'un gate reconstruisant du texte depuis un JSON
+peut passer en local et échouer sur le runner. T0051 a rencontré exactement cet
+écart. Tout gate modifié doit donc être exécuté au moins une fois avec
+`pwsh -NoProfile -File .\tests\<gate>\run.ps1` en plus de son script `pnpm`, et tout
+nombre reconstruit doit être formaté explicitement, jamais laissé au rendu par
+défaut du parseur.
+
 La vérification manuelle du même jour porte sur un état réellement commité, hors
 transaction annulée : un vol terminé de 168,28 NM avec 95 minutes déclarées règle
 `35194` unités mineures avec un temps retenu de `0`, ce qui prouve l'écrêtage par

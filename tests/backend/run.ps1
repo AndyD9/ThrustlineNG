@@ -751,10 +751,14 @@ function Get-BackendIssues {
             ("        'interruptedFloorMinor', {0},`n" -f ([long]$settlementPolicy.interruptedFloorMinor).ToString($invariant)) +
             ("        'perFlightCapMinor', {0},`n" -f ([long]$settlementPolicy.perFlightCapMinor).ToString($invariant)) +
             ("        'maximumBlockMinutes', {0},`n" -f ([long]$settlementPolicy.maximumBlockMinutes).ToString($invariant)) +
-            ("        'multiplierRegional', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.regional).ToString($invariant)) +
-            ("        'multiplierStandard', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.standard).ToString($invariant)) +
-            ("        'multiplierMajor', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.major).ToString($invariant)) +
-            ("        'multiplierHub', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.hub).ToString($invariant)) +
+            # Two explicit decimals, never the parser's own rendering: Windows
+            # PowerShell reads a JSON 1.0 as decimal and keeps its scale, while
+            # PowerShell 7 reads it as double and renders it as 1. Only a fixed
+            # format makes this projection identical on both hosts.
+            ("        'multiplierRegional', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.regional).ToString("F2", $invariant)) +
+            ("        'multiplierStandard', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.standard).ToString("F2", $invariant)) +
+            ("        'multiplierMajor', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.major).ToString("F2", $invariant)) +
+            ("        'multiplierHub', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.hub).ToString("F2", $invariant)) +
             ("        'reputationBaseScore', {0},`n" -f ([int]$settlementPolicy.reputation.baseScore).ToString($invariant)) +
             ("        'reputationMinimumScore', {0},`n" -f ([int]$settlementPolicy.reputation.minimumScore).ToString($invariant)) +
             ("        'reputationMaximumScore', {0},`n" -f ([int]$settlementPolicy.reputation.maximumScore).ToString($invariant)) +

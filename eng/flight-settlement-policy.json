@@ -10,10 +10,10 @@
   "perFlightCapMinor": 2000000,
   "maximumBlockMinutes": 1440,
   "popularityMultipliers": {
-    "regional": 0.9,
-    "standard": 1.0,
+    "regional": 0.90,
+    "standard": 1.00,
     "major": 1.15,
-    "hub": 1.3
+    "hub": 1.30
   },
   "reputation": {
     "baseScore": 50,
