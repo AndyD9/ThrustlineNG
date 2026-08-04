@@ -125,6 +125,8 @@
         "public.create_dispatch_draft"
       ],
       "evidencePaths": [
+        "apps/desktop/src/features/flight-dispatch/flightDispatch.ts",
+        "apps/desktop/src/features/flight-dispatch/FlightDispatchPanel.tsx",
         "supabase/functions/dispatch-draft/handler.ts",
         "supabase/migrations/20260803000100_authoritative_dispatch_draft.sql",
         "supabase/tests/database/dispatch_draft.test.sql",
@@ -133,6 +135,8 @@
         "supabase/tests/database/airport_reference.test.sql"
       ],
       "evidenceMarkers": [
+        "functions/v1/dispatch-draft",
+        "normalizeDispatchIntention",
         "createDispatchDraftHandler",
         "create_dispatch_draft",
         "flight_dispatches",
@@ -141,7 +145,7 @@
         "airports_select_reference",
         "an unknown departure aerodrome is rejected without naming the reference"
       ],
-      "limitations": ["An authenticated bounded endpoint and the server-created idempotent draft are covered; no desktop composition, live Edge Runtime proof, remote deployment, SimBrief preparation, lifecycle transition, flight runtime or financial impact is implemented.", "The bounded aerodrome reference is server-owned, read-only for authenticated and mutable by no client role. It has no client consumer yet, so it is deliberately absent from clientDataApiReads; the reference stays partial and carries no monetary value."]
+      "limitations": ["An authenticated bounded endpoint, the server-created idempotent draft and one bounded desktop caller behind an explicit submission are covered; the desktop declares no Data API read and no client mutation, and no live WebView proof, remote deployment, SimBrief preparation, lifecycle transition, flight runtime or financial impact is implemented.", "The bounded aerodrome reference is server-owned, read-only for authenticated and mutable by no client role. It has no client consumer yet, so it is deliberately absent from clientDataApiReads; the reference stays partial and carries no monetary value."]
     },
     {
       "id": "flight-runtime",

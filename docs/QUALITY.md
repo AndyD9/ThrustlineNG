@@ -378,6 +378,32 @@ reçoit `SQLSTATE 42501` sur `insert`, `update` et `delete`; `anon` reçoit
 desktop, ni cible distante, ni donnée réelle, et le harnais Linux `ci:backend`
 n'est pas exécutable depuis Windows.
 
+Preuve T0052 du 4 août 2026 : typecheck, tests, couverture et build passent avec
+21 fichiers/241 tests frontend exécutés, dont 66 nouveaux pour le dispatch
+desktop et 2 pour l'exposition de la flotte déjà chargée ; 1 fichier/2 scénarios
+runtime T0040 reste ignoré sans environnement explicite. La couverture globale
+atteint 93,96 % des statements, 88,41 % des branches, 97,18 % des fonctions et
+93,93 % des lignes, dont 98,34 % des statements et 94,06 % des branches sur
+`features/flight-dispatch`; les seules lignes non couvertes sont les gardes de
+réentrance et d'annulation du panneau. Les tests couvrent payload et headers
+fermés — quatre headers exactement —, normalisation ` lfpg ` → `LFPG`, cible
+distante, loopback en `https`, credentials, requête, fragment, chemin et URL
+illisible, UUID non canoniques, ICAO invalides ou identiques, HTTP
+400/401/403/409/422/429/500/503 sans lecture du corps, douze réponses non
+conformes dont état, version, champ supplémentaire, divergence d'avion ou d'ICAO
+et corps surdimensionné, panne réseau, annulation appelante et délai borné. Côté
+panneau : zéro appel au rendu, sélection limitée aux avions chargés, refus local
+sans bearer, double clic, retry à clé conservée, nouvelle clé par changement
+d'avion ou d'aérodrome, refus et indisponibilité sans détail technique, refus
+Auth qui efface la session, démontage, et absence de token, de clé anonyme et
+d'identifiant de dispatch dans le DOM. La composition d'accueil prouve que le panneau
+n'apparaît qu'après une flotte non vide et que `globalThis.fetch` n'est jamais
+appelé. Le bundle produit ne contient ni JWT, ni credential de test, ni marqueur
+`service_role`, ni nom de commande privilégiée. Les gates autorité, données et
+maintenance passent avec 9, 6 et 8 mutations. Cette preuve jsdom/`fetch` injecté
+ne valide ni WebView live, ni CSP de production, ni Edge Runtime, ni cible
+distante, ni donnée réelle.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme

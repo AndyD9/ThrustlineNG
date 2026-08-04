@@ -81,6 +81,47 @@ describe("AircraftFleetPanel", () => {
       .toBeInTheDocument();
   });
 
+  it("expose la flotte chargée sans la charger au rendu", async () => {
+    const user = userEvent.setup();
+    const onFleetLoaded = vi.fn();
+    render(
+      <AircraftFleetPanel
+        command={async () => [aircraft]}
+        config={config}
+        onAuthenticationRequired={vi.fn()}
+        onFleetLoaded={onFleetLoaded}
+        sessionManager={createSessionManager()}
+      />,
+    );
+
+    expect(onFleetLoaded).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Afficher ma flotte" }));
+
+    await screen.findByRole("list", { name: "Avions de la flotte" });
+    expect(onFleetLoaded).toHaveBeenCalledExactlyOnceWith([aircraft]);
+  });
+
+  it("n’expose aucune flotte quand la lecture échoue", async () => {
+    const user = userEvent.setup();
+    const onFleetLoaded = vi.fn();
+    render(
+      <AircraftFleetPanel
+        command={async () => {
+          throw new AircraftFleetError("unavailable");
+        }}
+        config={config}
+        onAuthenticationRequired={vi.fn()}
+        onFleetLoaded={onFleetLoaded}
+        sessionManager={createSessionManager()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Afficher ma flotte" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("indisponible");
+    expect(onFleetLoaded).not.toHaveBeenCalled();
+  });
+
   it("actualise une flotte déjà chargée quand la version change", async () => {
     const user = userEvent.setup();
     const command = vi.fn<AircraftFleetCommand>()
