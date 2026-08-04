@@ -1,6 +1,6 @@
 # T0054 — Publier la télémétrie bornée du bridge sur le contrat local
 
-Status: Ready
+Status: Review
 Owner: Andy
 Branch: `feature/T0054-bridge-telemetry-contract`
 Phase: 3
@@ -99,16 +99,16 @@ preuve automatisée.
 
 ## Acceptance criteria
 
-- [ ] Un abonné local authentifié par le jeton d'instance reçoit les échantillons
+- [x] Un abonné local authentifié par le jeton d'instance reçoit les échantillons
       validés du replay synthétique, dans l'ordre et jusqu'au dernier.
-- [ ] Une négociation sans jeton, avec un mauvais jeton ou hors loopback est
+- [x] Une négociation sans jeton, avec un mauvais jeton ou hors loopback est
       refusée.
-- [ ] La cadence est bornée, la file d'attente est bornée et un abonné lent ne
+- [x] La cadence est bornée, la file d'attente est bornée et un abonné lent ne
       retarde ni la lecture ni les autres abonnés.
-- [ ] La source native est optionnelle et son absence n'échoue jamais un test
+- [x] La source native est optionnelle et son absence n'échoue jamais un test
       automatisé.
-- [ ] L'annulation libère l'adaptateur sans tâche ni processus résiduel.
-- [ ] Le build sans avertissement, le harnais bridge et les budgets applicables
+- [x] L'annulation libère l'adaptateur sans tâche ni processus résiduel.
+- [x] Le build sans avertissement, le harnais bridge et les budgets applicables
       passent avec leurs compteurs réellement observés.
 
 ## Security review
@@ -170,18 +170,122 @@ option et retirer la diffusion dans un ticket correctif, sans modifier le contra
 
 ## Completion Report
 
-À remplir après implémentation.
+Branche : `feature/T0054-bridge-telemetry-contract`, créée depuis
+`origin/main` au commit `6bfab7a` (merge de la PR #97). Aucune branche empilée.
 
 ### Summary
 
+`TelemetryPublisher` devient l'unique autorité de publication du bridge. Il
+n'ouvre la source qu'à l'arrivée du premier abonné, revalide chaque
+`FlightSample` avant diffusion, borne la lecture à un échantillon par seconde au
+plus et ne conserve qu'un seul échantillon en attente par abonné, dans un canal
+`DropOldest` : un abonné lent perd les échantillons intermédiaires sans retarder
+la lecture ni les autres abonnés, et un envoi qui dépasse le délai borné
+abandonne l'abonné puis annule sa connexion.
+
+`BridgeHub` inscrit chaque connexion authentifiée comme abonné et publie le
+message versionné `telemetry.v1` sur `/hubs/v1/bridge`. Le health check garde
+`contractVersion` et `status`, et ajoute `telemetrySource` et `telemetryState`
+sans divulguer chemin de trace, version de SDK ni jeton. La source est choisie
+par `--telemetry-source replay|native` avec `--telemetry-trace <fichier>` ;
+`replay` reste le défaut et, sans trace, l'état reste `idle` sans rien publier,
+ce qui laisse inchangé le lancement actuel par Tauri avec `--port` seul. La
+cadence et le délai d'envoi ne sont pas configurables en ligne de commande.
+
 ### Files changed
+
+- `apps/bridge/Telemetry/BridgeTelemetryOptions.cs` — source, état, options
+  bornées et parsing des valeurs de source et de trace ;
+- `apps/bridge/Telemetry/ITelemetrySink.cs` — frontière d'envoi par abonné ;
+- `apps/bridge/Telemetry/TelemetryPublisher.cs` — cadence, validation, slot d'un
+  échantillon par abonné, abandon d'un abonné bloqué et libération de la source ;
+- `apps/bridge/Telemetry/TelemetryAdapterFactory.cs` — résolution de la source
+  replay ou native, sans source par défaut ;
+- `apps/bridge/Telemetry/SignalRTelemetrySink.cs` — envoi ciblé et annulation
+  d'une connexion abandonnée ;
+- `apps/bridge/Telemetry/TelemetryPublicationService.cs` — cycle de vie hôte ;
+- `apps/bridge/BridgeHub.cs` — inscription et retrait d'un abonné ;
+- `apps/bridge/BridgeContract.cs` — nom de message `telemetry.v1` ;
+- `apps/bridge/BridgeServer.cs` — enregistrement du publieur, protocole JSON
+  camelCase et champs additifs du health check ;
+- `apps/bridge/BridgeOptions.cs`, `apps/bridge/BridgeApplication.cs` — arguments
+  de télémétrie et usage ;
+- `apps/bridge/SimConnect/FlightSample.cs` — `IsWithinDomain()` réutilisé par la
+  fabrique et par la diffusion ;
+- `tests/bridge/Program.cs` — 12 nouveaux scénarios, `TimeProvider` manuel,
+  adaptateurs et puits de test, abonné WebSocket parlant le protocole JSON du hub ;
+- `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/QUALITY.md`,
+  `docs/CURRENT_STATE.md` — architecture, contrôles, preuves et état ;
+- `eng/authority-inventory.json` — limite `flight-runtime` rendue exacte, sans
+  changement de classification ;
+- ce ticket et `docs/tickets/README.md`.
 
 ### Commands and results
 
+Le 4 août 2026, sous Windows 11 Pro 26200, .NET SDK 10.0.201, depuis la racine :
+
+- `pnpm.cmd bridge:build` — réussi, 0 avertissement, 0 erreur ;
+- `pnpm.cmd bridge:test` — réussi, `25/25 tests passed`, trois exécutions
+  consécutives identiques ;
+- `pnpm.cmd bridge:health` — réussi, sortie `Healthy` ;
+- `pnpm.cmd bridge:publish` — réussi, publication self-contained `win-x64` ;
+- `pnpm.cmd performance:check:build` — réussi, `built artifact sizes` ;
+- `pnpm.cmd authority:check` — réussi, 10 étapes, 13 domaines, 3 surfaces,
+  9 scénarios de mutation ;
+- `pnpm.cmd maintenance:check` — réussi, registre, index, marqueurs de dette et
+  8 scénarios de mutation ;
+- `git diff --check` — aucune anomalie.
+
 ### Manual verification result
+
+Terminée le 4 août 2026 sur cette machine, sans MSFS, avec le bridge publié
+`apps/bridge/bin/Release/net10.0/win-x64/publish/Thrustline.Bridge.exe`, la
+trace synthétique et un processus parent qui réserve le port, génère le jeton et
+l'écrit sur stdin. Deux exécutions, la seconde lisant la trace entière :
+
+1. `BRIDGE_READY 1 52413` puis health
+   `{"contractVersion":"1","status":"healthy","telemetrySource":"replay","telemetryState":"idle"}` ;
+2. abonné sans jeton refusé — `The server returned status code '401' when status
+   code '101' was expected` ; abonné authentifié recevant les huit échantillons
+   dans l'ordre `0` à `7`, intervalles observés de 990, 1003, 1012, 1011, 1014,
+   1013 et 1013 ms, dernier échantillon au sol à 629 ft, état `completed` ;
+3. déconnexion brutale sans trame de fermeture — bridge vivant, health toujours
+   `healthy`, working set de 54 194 176 à 52 965 376 octets, et un nouvel abonné
+   négocie encore ; la première exécution, coupée après trois échantillons,
+   montre 53 055 488 à 53 350 400 octets pendant que la diffusion continue ;
+4. `Ctrl+C` sur le groupe console — code de sortie `0`, `stderr` vide et zéro
+   processus `Thrustline.Bridge` résiduel.
+
+Le harnais de vérification est un utilitaire jetable hors dépôt ; il n'ajoute
+aucun fichier au dépôt.
 
 ### Risks and limitations
 
+- la source native reste non prouvée : aucun essai MSFS 2024 réel n'a été
+  réalisé, `KI-009`, `KI-011` et `KI-015` restent ouverts ;
+- la preuve de cadence automatisée repose sur un `TimeProvider` manuel ; la
+  cadence réelle n'est observée qu'à la vérification manuelle ;
+- l'absence de croissance mémoire est observée sur quelques secondes, pas sur la
+  campagne de quatre heures encore `Not measured` de T0015 ;
+- la télémétrie n'est ni persistée, ni reprise après coupure, ni consommée par le
+  desktop ; aucun échantillon n'est relié à une compagnie, un vol ou le grand
+  livre ;
+- un abandon d'abonné n'est pas journalisé, par choix de confidentialité : il est
+  seulement observable par la fermeture de la connexion ;
+- la mémoire est bornée par abonné, mais le nombre d'abonnés simultanés n'est pas
+  plafonné par une option : il reste borné par le jeton d'instance, la liaison
+  loopback et les limites du serveur.
+
 ### Follow-ups
 
+- détection déterministe des phases de vol et reprise après coupure, vague
+  suivante du flux 1 ;
+- consommation de `telemetry.v1` par le desktop, hors périmètre ici ;
+- premier slice SimConnect réel et corpus de traces avec provenance, qui fermera
+  `KI-009` et lèvera la dette de la source native.
+
 ### Documentation updated
+
+`docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/QUALITY.md`,
+`docs/CURRENT_STATE.md`, `eng/authority-inventory.json`, ce ticket et
+`docs/tickets/README.md`.

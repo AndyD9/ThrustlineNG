@@ -24,20 +24,7 @@ public sealed record FlightSample(
         double verticalSpeedFeetPerMinute,
         bool onGround)
     {
-        if (sequence < 0
-            || capturedAt.Offset != TimeSpan.Zero
-            || !IsInRange(latitudeDegrees, -90, 90)
-            || !IsInRange(longitudeDegrees, -180, 180)
-            || !IsInRange(altitudeFeet, -2_000, 100_000)
-            || !IsInRange(groundSpeedKnots, 0, 2_000)
-            || !IsInRange(indicatedAirspeedKnots, 0, 1_500)
-            || !IsInRange(headingDegrees, 0, 360)
-            || !IsInRange(verticalSpeedFeetPerMinute, -20_000, 20_000))
-        {
-            throw new ArgumentOutOfRangeException(nameof(sequence), "Flight sample is outside the supported domain.");
-        }
-
-        return new FlightSample(
+        var sample = new FlightSample(
             sequence,
             capturedAt,
             latitudeDegrees,
@@ -48,7 +35,25 @@ public sealed record FlightSample(
             headingDegrees,
             verticalSpeedFeetPerMinute,
             onGround);
+
+        if (!sample.IsWithinDomain())
+        {
+            throw new ArgumentOutOfRangeException(nameof(sequence), "Flight sample is outside the supported domain.");
+        }
+
+        return sample;
     }
+
+    public bool IsWithinDomain() =>
+        Sequence >= 0
+        && CapturedAt.Offset == TimeSpan.Zero
+        && IsInRange(LatitudeDegrees, -90, 90)
+        && IsInRange(LongitudeDegrees, -180, 180)
+        && IsInRange(AltitudeFeet, -2_000, 100_000)
+        && IsInRange(GroundSpeedKnots, 0, 2_000)
+        && IsInRange(IndicatedAirspeedKnots, 0, 1_500)
+        && IsInRange(HeadingDegrees, 0, 360)
+        && IsInRange(VerticalSpeedFeetPerMinute, -20_000, 20_000);
 
     private static bool IsInRange(double value, double minimum, double maximum) =>
         double.IsFinite(value) && value >= minimum && value <= maximum;
