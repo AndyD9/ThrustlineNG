@@ -666,3 +666,22 @@ Les commandes locales ne prouvent pas l'interprétation YAML ni l'exécution des
 runners GitHub. Pour T0013, les jobs de la PR et les artefacts ont été inspectés
 avant fusion sans trouver de credential. Toute modification future des workflows
 doit répéter cette vérification avant promotion.
+
+La PR #98 fusionne T0058 dans `main` au merge `2a07113`, sur le commit de tête
+`52eb513`, avec ses trois checks verts : `Audits, licences and SBOM` en 4 min 5 s,
+`Supabase PostgreSQL 17` en 3 min 15 s et `Windows multi-stack` en 15 min 52 s.
+L'interprétation YAML des deux nouvelles étapes est donc prouvée par les runners :
+`Validate Cargo advisory allowlist` exécute le harnais statique dans le job
+Windows, et le job supply-chain compare le rapport réel de `cargo-audit` 0.22.2.
+
+La première publication du même arbre, au commit de merge `96a4072`, avait échoué
+sur `Windows multi-stack` à l'étape `Validate maintenance governance`, avec
+`Ticket T0057 status differs: index 'Review', file 'Done'.` La cause est étrangère
+à T0058 : ce commit fusionnait `main` dans la branche et a résolu la ligne T0057
+de `docs/tickets/README.md` du côté branche, réintroduisant `Review` alors que la
+PR #97 avait posé `Done` dans `main` et que le fichier du ticket porte
+`Status: Done`. Le gate de maintenance T0030 a détecté la divergence exactement
+comme prévu. Le correctif `52eb513` rétablit `Done` dans l'index ; le reste du
+merge n'avait rien perdu de `main`. Un merge de `main` vers une branche doit donc
+faire vérifier chaque statut ticket/index résolu, la résolution silencieuse du
+côté branche étant indétectable sans ce gate.

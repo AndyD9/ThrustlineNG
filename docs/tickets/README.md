@@ -71,7 +71,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0055 | Fixer la source canonique de version produit et livrer l'alpha technique interne | 1–6 | T0006, T0014–T0015, T0043–T0048 | Ready |
 | T0056 | Clôturer les vérifications interactives T0007 à T0009 | 1 | T0007–T0009, T0015, décision Andy | Ready |
 | T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Done |
-| T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Review |
+| T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Done |
 
 ## Vague de tickets vers l'alpha interne
 
