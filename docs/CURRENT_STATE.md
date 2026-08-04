@@ -728,9 +728,9 @@ nouveaux pour ce flux, avec 93,96 % des statements et 88,41 % des branches en
 couverture globale et 98,34 % des statements sur `features/flight-dispatch`;
 typecheck, build et les gates autorité, données et maintenance passent. Cette
 tranche n'ajoute ni lecture Data API, ni mutation cliente, ni lecture durable des
-dispatchs, ni transition de vol, ni effet financier, sa preuve reste jsdom avec
-`fetch` injecté, sans WebView live ni Edge Runtime, et elle n'est pas encore
-fusionnée dans `main`.
+dispatchs, ni transition de vol, ni effet financier, et sa preuve reste jsdom avec
+`fetch` injecté, sans WebView live ni Edge Runtime. La PR #94 la fusionne dans
+`main` au merge `9ea2493` avec ses trois checks verts ; T0052 est `Done`.
 
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
@@ -847,9 +847,10 @@ propre branche : il n'est pas encore fusionné et ne doit donc pas être présum
 présent dans `main`. Le prochain ticket recommandé du flux backend est T0051, la
 clôture d'un vol avec son règlement et sa réputation, dont la sortie de `Draft`
 exige la fusion de T0057 maintenant que T0050 est dans `main` ; l'endpoint
-authentifié du démarrage reste un ticket distinct. Le flux desktop livre T0052
-sur sa propre branche, non fusionnée, et son prochain ticket est T0053, la
-lecture durable des dispatchs, sans SimBrief. La
+authentifié du démarrage reste un ticket distinct. Le flux desktop a livré T0052
+dans `main` par la PR #94 ; son prochain ticket est T0053, la lecture durable des
+dispatchs, sans SimBrief, dont la seule condition d'ordre d'intégration est
+désormais satisfaite. La
 location T0032 reste bloquée sur ses décisions produit et la persistance Windows
 reste un ticket de sécurité séparé avant tout stockage de refresh token.
 
