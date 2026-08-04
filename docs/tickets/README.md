@@ -70,7 +70,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0054 | Publier la télémétrie bornée du bridge sur le contrat local | 3 | T0010–T0011, T0015 | Ready |
 | T0055 | Fixer la source canonique de version produit et livrer l'alpha technique interne | 1–6 | T0006, T0014–T0015, T0043–T0048 | Ready |
 | T0056 | Clôturer les vérifications interactives T0007 à T0009 | 1 | T0007–T0009, T0015, décision Andy | Ready |
-| T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Review |
+| T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Done |
 
 ## Vague de tickets vers l'alpha interne
 
@@ -94,11 +94,12 @@ d'aérodromes autoritaire.
 
 T0051 et T0053 restent `Draft` uniquement pour l'ordre d'intégration : T0051 attend
 la fusion de T0050 et T0057, T0053 celle de T0052, afin de ne pas rouvrir une pile
-de branches. La condition de T0053 est satisfaite depuis la fusion de T0052 dans
-`main` le 4 août 2026 par la PR #94 ; son passage à `Ready` appartient à son propre
-changement. La location T0032 reste hors du gate de l'alpha et conserve son statut
-`Draft`. T0011 reste `Verify` jusqu'aux essais MSFS 2024 réels et n'est pas couvert
-par T0056.
+de branches. Ces conditions sont désormais toutes satisfaites : T0050 est dans
+`main` depuis la PR #89, T0057 depuis la fusion de la PR #91 le 3 août 2026 au
+merge `df685b7`, et T0052 depuis la PR #94 le 4 août 2026 ; le passage de T0051 et
+de T0053 à `Ready` appartient à leurs propres changements. La location T0032 reste
+hors du gate de l'alpha et conserve son statut `Draft`. T0011 reste `Verify`
+jusqu'aux essais MSFS 2024 réels et n'est pas couvert par T0056.
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
