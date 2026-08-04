@@ -494,6 +494,16 @@ réponse REST versionnée et la négociation SignalR. Il couvre aussi les bornes
 l'annulation, un faux adaptateur et l'absence de types SDK dans les contrats
 publics. Les tests Rust vérifient les jetons et la sélection d'un port dynamique.
 
+Depuis T0054, il couvre en plus la diffusion `telemetry.v1` : arguments de source
+et de trace bornés, source close sans abonné, ordre et complétude des échantillons
+validés, rejet d'un échantillon hors bornes, cadence prouvée sur un `TimeProvider`
+manuel, conservation du seul dernier échantillon en attente, abandon d'un abonné
+qui cesse de drainer sans retarder les autres, libération de l'adaptateur à
+l'annulation, source native jamais requise, streaming de la trace synthétique à un
+abonné WebSocket authentifié et refus de toute adresse autre que `127.0.0.1`. Le
+harnais n'utilise aucun client SignalR tiers : il parle le protocole JSON du hub
+sur `ClientWebSocket`.
+
 Depuis la racine :
 
 ```powershell

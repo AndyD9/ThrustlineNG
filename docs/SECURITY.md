@@ -408,6 +408,32 @@ Les traces JSONL exigent UTF-8, format et schéma exacts, propriétés connues,
 offsets strictement croissants, valeurs finies/bornées et lignes de 16 Kio au
 maximum. Les erreurs indiquent seulement le numéro de ligne.
 
+## Canal de télémétrie local T0054
+
+La diffusion `telemetry.v1` reste sous les contrôles de la frontière locale
+T0010, sans nouvelle autorité :
+
+- le jeton d'instance est exigé sur la négociation comme sur l'upgrade WebSocket ;
+  une connexion sans jeton ou avec un mauvais jeton reçoit `401` et ne crée aucun
+  abonné ;
+- la liaison reste `127.0.0.1` : toute autre adresse de l'hôte, `::1` inclus, est
+  refusée par le socket, jamais par un filtre applicatif ;
+- seuls les champs bornés de `FlightSample` sont publiés, sans type SDK, sans
+  identifiant de compagnie ou de vol et sans champ métier ;
+- chaque échantillon est revalidé avant diffusion, y compris s'il provient d'un
+  adaptateur qui contourne la fabrique du domaine ;
+- la mémoire est bornée par construction : un seul échantillon en attente par
+  abonné, aucun tampon cumulatif, et un abonné qui cesse de drainer est
+  abandonné après un délai d'envoi borné ;
+- l'état publié se limite à `telemetrySource` et `telemetryState` ; ni chemin de
+  trace, ni version de SDK, ni jeton n'apparaît dans une réponse ou une erreur ;
+- aucun jeton, échantillon brut ni chemin utilisateur n'est journalisé : le
+  processus ne conserve aucun fournisseur de logs.
+
+La source native reste facultative. Son absence donne l'état `unavailable` et
+n'ouvre aucun chemin de secours : elle n'est jamais requise par la CI et
+n'accorde aucune capacité à la WebView.
+
 ## Frontière locale T0010
 
 Le bridge exige un port dynamique loopback et un jeton hexadécimal de 256 bits.

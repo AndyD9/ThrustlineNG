@@ -6,4 +6,5 @@ public static class BridgeContract
     public const string TokenHeader = "X-Thrustline-Instance";
     public const string HealthPath = "/api/v1/health";
     public const string HubPath = "/hubs/v1/bridge";
+    public const string TelemetryMessage = "telemetry.v1";
 }

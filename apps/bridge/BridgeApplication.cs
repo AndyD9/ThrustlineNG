@@ -23,14 +23,14 @@ public static class BridgeApplication
             return SuccessExitCode;
         }
 
-        if (!BridgeOptions.TryParse(arguments, out var port))
+        if (!BridgeOptions.TryParse(arguments, out var port, out var telemetry))
         {
             await WriteUsageErrorAsync(error).ConfigureAwait(false);
             return InvalidArgumentsExitCode;
         }
 
         var token = await input.ReadLineAsync(shutdownToken).ConfigureAwait(false);
-        if (!BridgeOptions.TryCreate(port, token, out var options))
+        if (!BridgeOptions.TryCreate(port, token, telemetry, out var options))
         {
             await WriteUsageErrorAsync(error).ConfigureAwait(false);
             return InvalidArgumentsExitCode;
@@ -39,7 +39,13 @@ public static class BridgeApplication
         return await BridgeServer.RunAsync(options, output, shutdownToken).ConfigureAwait(false);
     }
 
-    private static Task WriteUsageErrorAsync(TextWriter error) =>
-        error.WriteLineAsync(
-            "Usage: Thrustline.Bridge --port <49152-65535> | --health-check");
+    private static async Task WriteUsageErrorAsync(TextWriter error)
+    {
+        await error.WriteLineAsync(
+            "Usage: Thrustline.Bridge --port <49152-65535>").ConfigureAwait(false);
+        await error.WriteLineAsync(
+            "       [--telemetry-source replay|native] [--telemetry-trace <file>]").ConfigureAwait(false);
+        await error.WriteLineAsync(
+            "       | --health-check").ConfigureAwait(false);
+    }
 }

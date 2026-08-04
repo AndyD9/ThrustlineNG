@@ -317,6 +317,43 @@ décollage, montée, croisière, descente et retour au sol, mais ne prouve ni le
 installé, ni MSFS 2024 Store/Steam, ni un comportement d'avion réel. Aucun
 binaire de l'ancien build n'est copié.
 
+## Télémétrie bornée sur le contrat local
+
+T0054 relie cette source au contrat local T0010 sans l'élargir : `BridgeHub`
+publie le message versionné `telemetry.v1` sur `/hubs/v1/bridge`, et le health
+check expose les champs additifs `telemetrySource` et `telemetryState` sans
+divulguer chemin de trace, version de SDK ni jeton. La source est choisie par
+`--telemetry-source replay|native` avec `--telemetry-trace <fichier>` ; `replay`
+reste le défaut et, sans trace, l'état reste `idle` sans rien publier, ce qui est
+exactement le lancement actuel par Tauri avec `--port` seul. La cadence maximale
+d'un échantillon par seconde n'est pas configurable en ligne de commande.
+
+Le publieur n'ouvre la source qu'au premier abonné, revalide chaque échantillon
+avant diffusion, conserve au plus un échantillon en attente par abonné en mode
+`DropOldest` et abandonne un abonné qui dépasse le délai d'envoi borné, sans
+jamais retarder la lecture ni les autres abonnés. Le 4 août 2026, 25 scénarios
+bridge passent trois exécutions consécutives, dont la cadence prouvée sur un
+`TimeProvider` manuel, le rejet d'un échantillon hors bornes construit hors de la
+fabrique du domaine, l'abandon d'un abonné bloqué, la libération de l'adaptateur à
+l'annulation et le refus de `::1` comme de l'adresse IPv4 non-loopback de l'hôte.
+Le build .NET Release reste sans avertissement, `bridge:health` rend `Healthy`,
+la publication self-contained et `performance:check:build` respectent les budgets,
+et les gates autorité et maintenance passent.
+
+La vérification manuelle du 4 août 2026 lance le bridge publié avec la source
+replay, jeton transmis par stdin : `BRIDGE_READY 1 <port>`, health
+`replay`/`idle`, abonné anonyme refusé en `401`, huit échantillons reçus dans
+l'ordre `0` à `7` à des intervalles de 990 à 1014 ms, dernier échantillon au sol,
+état `completed`, working set stable après une déconnexion brutale sans trame de
+fermeture, nouvel abonné encore accepté, `Ctrl+C` rendant le code `0`, `stderr`
+vide et aucun processus résiduel.
+
+Cette tranche ne détecte aucune phase de vol, ne persiste ni ne reprend un vol,
+n'envoie rien à Supabase ou au grand livre, n'est consommée ni par le desktop ni
+par la WebView, et ne prouve ni MSFS 2024 réel, ni le SDK installé : la source
+native reste non prouvée et `KI-009`, `KI-011` et `KI-015` restent ouverts. Elle
+n'est pas encore fusionnée dans `main`.
+
 ## Budgets stabilité et performance
 
 T0015 ajoute une source JSON unique, un validateur fail-closed, cinq scénarios de
