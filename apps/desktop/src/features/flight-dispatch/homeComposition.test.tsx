@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CompanyAircraft } from "@/features/aircraft-fleet/aircraftFleet";
 import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
 import { DesktopSessionManager } from "@/features/auth/session";
+import type { DispatchListCommand } from "@/features/flight-dispatch/DispatchListPanel";
+import type { CompanyDispatch } from "@/features/flight-dispatch/dispatchList";
 import type {
   CreateDispatchDraftInput,
   DispatchDraft,
@@ -32,6 +34,16 @@ const draft: DispatchDraft = {
   createdAt: "2026-08-04T09:15:00Z",
   departureIcao: "LFPG",
   dispatchId,
+  schemaVersion: 1,
+  state: "draft",
+};
+
+const persistedDispatch: CompanyDispatch = {
+  aircraftId,
+  arrivalIcao: "LFBO",
+  createdAt: "2026-08-04T09:15:00Z",
+  departureIcao: "LFPG",
+  id: "94000000-0000-4000-8000-000000000001",
   schemaVersion: 1,
   state: "draft",
 };
@@ -120,5 +132,78 @@ describe("composition du dispatch sur l’accueil", () => {
       await screen.findByText("Votre flotte ne contient encore aucun avion."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Préparer un vol" })).not.toBeInTheDocument();
+  });
+
+  it("relit la source autoritaire après une création réussie, sans réseau au rendu", async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const dispatchListCommand = vi.fn<DispatchListCommand>()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([persistedDispatch]);
+    render(
+      <HomePage
+        aircraftFleetCommand={async () => fleet}
+        companyPresenceCommand={async () => true}
+        config={config}
+        dispatchDraftCommand={vi.fn(async (_input: CreateDispatchDraftInput) => draft)}
+        dispatchListCommand={dispatchListCommand}
+        onAuthenticationRequired={vi.fn()}
+        onSignOut={vi.fn()}
+        sessionManager={createSessionManager()}
+      />,
+    );
+
+    expect(screen.queryByRole("heading", { name: "Mes dispatchs" })).not.toBeInTheDocument();
+    expect(dispatchListCommand).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Vérifier ma compagnie" }));
+    expect(await screen.findByRole("heading", { name: "Mes dispatchs" })).toBeInTheDocument();
+    expect(dispatchListCommand).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Afficher ma flotte" }));
+    await user.click(await screen.findByRole("button", { name: "Afficher mes dispatchs" }));
+    expect(await screen.findByText("Aucun dispatch n’est encore préparé.")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Avion"), aircraftId);
+    await user.type(screen.getByLabelText("Aérodrome de départ (OACI)"), "lfpg");
+    await user.type(screen.getByLabelText("Aérodrome d’arrivée (OACI)"), "lfbo");
+    await user.click(screen.getByRole("button", { name: "Préparer le vol" }));
+
+    expect(await screen.findByRole("list", { name: "Dispatchs de la compagnie" }))
+      .toHaveTextContent("LFPG → LFBO");
+    expect(dispatchListCommand).toHaveBeenCalledTimes(2);
+    expect(dispatchListCommand.mock.calls[1]![0]).toMatchObject({
+      accessToken: "private-user-token",
+      anonKey: "public-anon-key",
+      supabaseUrl: "http://127.0.0.1:54321",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("n’actualise pas une liste jamais ouverte après une création réussie", async () => {
+    const user = userEvent.setup();
+    const dispatchListCommand = vi.fn<DispatchListCommand>(async () => [persistedDispatch]);
+    render(
+      <HomePage
+        aircraftFleetCommand={async () => fleet}
+        companyPresenceCommand={async () => true}
+        config={config}
+        dispatchDraftCommand={vi.fn(async (_input: CreateDispatchDraftInput) => draft)}
+        dispatchListCommand={dispatchListCommand}
+        onAuthenticationRequired={vi.fn()}
+        onSignOut={vi.fn()}
+        sessionManager={createSessionManager()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Vérifier ma compagnie" }));
+    await user.click(await screen.findByRole("button", { name: "Afficher ma flotte" }));
+    await user.selectOptions(await screen.findByLabelText("Avion"), aircraftId);
+    await user.type(screen.getByLabelText("Aérodrome de départ (OACI)"), "lfpg");
+    await user.type(screen.getByLabelText("Aérodrome d’arrivée (OACI)"), "lfbo");
+    await user.click(screen.getByRole("button", { name: "Préparer le vol" }));
+
+    expect(await screen.findByText(/Brouillon créé pour LFPG/)).toBeInTheDocument();
+    expect(dispatchListCommand).not.toHaveBeenCalled();
   });
 });
