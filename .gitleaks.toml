@@ -1,0 +1,19 @@
+# Configuration gitleaks de ThrustlineNG.
+#
+# Les regles amont sont conservees telles quelles ; seule une exception connue est
+# ajoutee. Les tickets consignent le payload litteral des requetes verifiees, dont
+# la cle `idempotencyKey` est un UUID v4. La regle amont `generic-api-key` mesure
+# une entropie de 3.62 sur ces UUID et les signale comme secrets.
+#
+# L'exception exige que le chemin ET la forme UUID correspondent (`matchCondition`
+# a `AND`), donc un vrai secret dans le meme fichier reste signale.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Cles d'idempotence UUID des payloads de dispatch documentes dans les tickets"
+matchCondition = "AND"
+paths = ['''^docs/tickets/T\d{4}-[a-z0-9-]+\.md$''']
+regexTarget = "line"
+regexes = ['''"idempotencyKey"\s*:\s*"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"''']
