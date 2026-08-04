@@ -1,6 +1,6 @@
 # T0053 — Lire et actualiser les dispatchs depuis le desktop
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0053-desktop-dispatch-read`
 Phase: 4
@@ -167,6 +167,14 @@ Avant fusion, abandonner la branche. Après fusion, retirer le panneau de lectur
 dans un ticket correctif ; aucune donnée serveur n'est modifiée.
 
 ## Completion Report
+
+Andy a fusionné la PR #96 dans `main` le 4 août 2026 par le merge `87c4eec`, sur
+le commit de tête `57fc036`, avec ses trois checks verts : `Audits, licences and
+SBOM` en 4 min 4 s, `Supabase PostgreSQL 17` en 2 min 57 s et `Windows
+multi-stack` en 15 min 43 s. Le ticket est `Done` : critères satisfaits,
+validations locales et CI consignées, vérification manuelle jsdom réellement
+exécutée et documentation cohérente. Les limites déjà consignées ne changent pas,
+en particulier l'absence de preuve en WebView live et contre une RLS réelle.
 
 ### Summary
 

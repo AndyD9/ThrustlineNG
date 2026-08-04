@@ -1,6 +1,6 @@
 # T0054 — Publier la télémétrie bornée du bridge sur le contrat local
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0054-bridge-telemetry-contract`
 Phase: 3
@@ -172,6 +172,15 @@ option et retirer la diffusion dans un ticket correctif, sans modifier le contra
 
 Branche : `feature/T0054-bridge-telemetry-contract`, créée depuis
 `origin/main` au commit `6bfab7a` (merge de la PR #97). Aucune branche empilée.
+
+Andy a fusionné la PR #99 dans `main` le 4 août 2026 par le merge `3a2c292`, sur
+le commit de tête `fd4716d`, avec ses trois checks verts : `Audits, licences and
+SBOM` en 4 min 1 s, `Supabase PostgreSQL 17` en 3 min 7 s et `Windows
+multi-stack` en 15 min 55 s. Le ticket est `Done` : critères satisfaits,
+validations automatisées et CI consignées, vérification manuelle réellement
+exécutée sur le bridge publié et documentation cohérente. Les limites déjà
+consignées ne changent pas : la source native reste non prouvée et `KI-009`,
+`KI-011` et `KI-015` restent ouverts, désormais suivis par le ticket T0059.
 
 ### Summary
 

@@ -723,3 +723,17 @@ comme prévu. Le correctif `52eb513` rétablit `Done` dans l'index ; le reste du
 merge n'avait rien perdu de `main`. Un merge de `main` vers une branche doit donc
 faire vérifier chaque statut ticket/index résolu, la résolution silencieuse du
 côté branche étant indétectable sans ce gate.
+
+Preuves CI des deux autres fusions du 4 août 2026, relevées pour lever la réserve
+« checks GitHub restant à confirmer » de leurs tickets :
+
+| PR | Ticket | Merge | Commit de tête | Audits, licences and SBOM | Supabase PostgreSQL 17 | Windows multi-stack |
+| --- | --- | --- | --- | --- | --- | --- |
+| #96 | T0053 | `87c4eec` | `57fc036` | 4 min 4 s | 2 min 57 s | 15 min 43 s |
+| #99 | T0054 | `3a2c292` | `fd4716d` | 4 min 1 s | 3 min 7 s | 15 min 55 s |
+
+Les six checks passent. Ces exécutions ne prouvent que ce que leurs jobs
+contiennent : le job Windows couvre le frontend, le desktop, le bridge, les
+budgets et le packaging non signé, et le job Linux la pile Supabase. Aucun des
+deux ne prouve une WebView live, un Edge Runtime réel, une session MSFS 2024 ni
+une cible distante.

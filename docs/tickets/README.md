@@ -66,12 +66,13 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Done |
 | T0051 | Clôturer un vol une seule fois, régler son revenu et sa réputation | 2 | T0020, T0028–T0029, T0047, T0050, T0057 | Review |
 | T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Done |
-| T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Review |
-| T0054 | Publier la télémétrie bornée du bridge sur le contrat local | 3 | T0010–T0011, T0015 | Review |
+| T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Done |
+| T0054 | Publier la télémétrie bornée du bridge sur le contrat local | 3 | T0010–T0011, T0015 | Done |
 | T0055 | Fixer la source canonique de version produit et livrer l'alpha technique interne | 1–6 | T0006, T0014–T0015, T0043–T0048 | Ready |
 | T0056 | Clôturer les vérifications interactives T0007 à T0009 | 1 | T0007–T0009, T0015, décision Andy | Ready |
 | T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Done |
 | T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Done |
+| T0059 | Prouver le premier slice SimConnect réel et capturer son corpus | 3 | T0011, T0014–T0015, T0054, ADR-0003, MSFS 2024 installé, décision Andy | Draft |
 
 ## Vague de tickets vers l'alpha interne
 
@@ -80,8 +81,9 @@ du mode accéléré de `docs/ROADMAP.md`. Chaque flux ne porte qu'un ticket
 `In progress` à la fois, dans un worktree distinct, et chaque branche part du
 dernier `origin/main` en ciblant `main`.
 
-- flux moteur de vol et bridge : T0054, puis la détection déterministe des phases
-  et la reprise, encore au niveau roadmap ;
+- flux moteur de vol et bridge : T0054, puis T0059 pour la source réelle et son
+  corpus, puis la détection déterministe des phases et la reprise, encore au
+  niveau roadmap ;
 - flux backend du golden path : T0049, T0050 et T0057, puis T0051 ;
 - flux desktop et parcours E2E : T0052 puis T0053 ;
 - transverses au jalon d'alpha technique : T0055 et T0056.
@@ -93,15 +95,25 @@ redisponible et une réputation informative bornée. T0057 devient donc le prér
 technique de T0051, puisque distance et popularité exigent un référentiel
 d'aérodromes autoritaire.
 
-T0051 et T0053 sont restés `Draft` uniquement pour l'ordre d'intégration : T0051
+T0051 et T0053 ont été `Draft` uniquement pour l'ordre d'intégration : T0051
 attendait la fusion de T0050 et T0057, T0053 celle de T0052, afin de ne pas
 rouvrir une pile de branches. Ces conditions sont toutes satisfaites : T0050 est
 dans `main` depuis la PR #89, T0057 depuis la fusion de la PR #91 le 3 août 2026
-au merge `df685b7`, et T0052 depuis la PR #94 le 4 août 2026. T0051 est donc
-implémenté et `Review` sur `feature/T0051-authoritative-flight-settlement`, créée
-depuis le `origin/main` au merge `2a07113`, sans branche empilée. La location
-T0032 reste hors du gate de l'alpha et conserve son statut `Draft`. T0011 reste
-`Verify` jusqu'aux essais MSFS 2024 réels et n'est pas couvert par T0056.
+au merge `df685b7`, et T0052 depuis la PR #94 le 4 août 2026. T0053 a suivi ce
+chemin jusqu'au bout et est `Done` depuis la fusion de la PR #96 au merge
+`87c4eec`. T0051 est implémenté et `Review` sur
+`feature/T0051-authoritative-flight-settlement`, créée depuis le `origin/main` au
+merge `2a07113`, sans branche empilée. La location T0032 reste hors du gate de
+l'alpha et conserve son statut `Draft`. T0011 reste `Verify` jusqu'aux essais
+MSFS 2024 réels, désormais portés par T0059, et n'est pas couvert par T0056.
+
+T0054 est `Done` depuis la fusion de la PR #99 dans `main` au merge `3a2c292` le
+4 août 2026 : le flux moteur de vol et bridge publie la télémétrie bornée sur le
+contrat local depuis le replay synthétique. Son prochain ticket est T0059, qui
+fournit la source réelle et son corpus ; il reste `Draft` parce que son prérequis
+physique — MSFS 2024 stable et le SDK SimConnect installés avec une provenance
+vérifiable — n'est pas satisfait sur la machine de validation, et aucune trace
+synthétique ne le contourne.
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
