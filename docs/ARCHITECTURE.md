@@ -192,6 +192,26 @@ mal formé, ce qui le rend indiscernable et empêche d'énumérer le référenti
 Aucune lecture desktop, aucun sélecteur d'aérodromes et aucun calcul de
 distance, de temps ou de revenu n'est fourni.
 
+T0052 ajoute le premier appelant desktop du domaine dispatch en réappliquant le
+patron T0037/T0045 : un module de commande borné plus un panneau mince, sans
+nouvelle lecture Data API. Le module n'accepte qu'une cible loopback `http:` sans
+identifiants, requête, fragment ni chemin, normalise les deux ICAO en majuscules
+après trim, exige des UUID canoniques et deux codes distincts avant tout appel,
+borne la requête à cinq secondes et la réponse lue à 16 Kio, puis valide les sept
+champs publics avec `state: draft` et `schemaVersion: 1` en recoupant avion et
+aérodromes avec la demande. Les échecs sont réduits à quatre catégories closes,
+sans détail serveur.
+
+Le panneau n'exécute aucun appel au rendu : la sélection est limitée aux avions
+réellement chargés par le transport T0046, exposés sans changer sa requête, et le
+bearer est obtenu du gestionnaire T0038 à la soumission. Une clé d'idempotence
+reste stable par intention — avion et deux ICAO normalisés — et n'est renouvelée
+que si l'intention change ; la double soumission est bloquée et la requête est
+annulée au démontage. Le payload ne porte jamais propriétaire, compagnie, état,
+temps ni route : ces valeurs restent dérivées par la frontière T0048 et la
+commande T0047. Aucune lecture durable des dispatchs, transition de vol ou effet
+financier n'est fourni.
+
 ## Packaging Windows T0014
 
 Le package Windows est un installateur NSIS x64 en mode utilisateur courant.
