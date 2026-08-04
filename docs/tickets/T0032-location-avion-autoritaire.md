@@ -1,6 +1,6 @@
 # T0032 — Louer un avion sans double prélèvement ni usage hors contrat
 
-Status: Draft
+Status: In progress
 Owner: Andy
 Branch: `feature/T0032-authoritative-aircraft-lease`
 Phase: 2
@@ -17,25 +17,27 @@ forgés par un client distribué ni produire un double prélèvement.
 
 T0029 implémente l'achat comptant d'une offre serveur et laisse explicitement la
 location à un ticket séparé. Andy a confirmé le 2 août 2026 que le MVP doit
-proposer achat puis location, mais aucune décision ne fixe encore la durée du
-contrat, la cadence et le montant des loyers, la grâce en cas d'impayé, ni les
-conditions de résiliation.
+proposer achat puis location. Les termes MVP ont été explicitement approuvés le
+3 août 2026 et sont consignés ci-dessous.
 
 La location introduit aussi une autorité temporelle absente du noyau actuel.
 Une heure ou une commande venant du desktop, du bridge ou de la WebView ne peut
 donc ni rendre une échéance exigible, ni déclarer un défaut, ni terminer un
 contrat. Le ticket doit borner cette autorité avant de passer en `Ready`.
 
-### Décisions requises d'Andy avant `Ready`
+### Décisions d'Andy approuvées le 3 août 2026
 
-- durée fixe du premier contrat MVP ;
-- cadence des loyers, instant du premier prélèvement et règle calendaire ;
-- montant du loyer et éventuel paiement ou dépôt initial ;
-- délai de grâce, état produit en cas d'impayé et nombre d'échecs avant défaut ;
-- résiliation volontaire : autorisée ou non, préavis et éventuelle pénalité ;
-- sort de l'avion à expiration, défaut et résiliation ;
-- autorité serveur chargée de matérialiser les échéances tant qu'aucun ordonnanceur
-  distant n'est livré.
+- durée fixe : 30 jours à partir de l'activation serveur ;
+- cadence : un loyer toutes les 24 heures, premier loyer prélevé à l'activation ;
+- montant : 0,5 % du prix d'achat de référence par loyer, arrondi au centime
+  supérieur ; aucun dépôt ni autre paiement initial ;
+- impayé : grâce unique de 48 heures à partir de l'échéance ; si le loyer reste
+  impayé à la fin de la grâce, le contrat passe en défaut ;
+- résiliation volontaire : immédiate, sans préavis, pénalité ni remboursement ;
+- usage : autorisé pendant la grâce, interdit dès expiration, défaut ou
+  résiliation ;
+- autorité temporelle MVP : commande de rattrapage réservée à `service_role`,
+  invoquée manuellement jusqu'à livraison d'un ordonnanceur distinct.
 
 ## Workflow evidence
 
@@ -49,6 +51,19 @@ contrat. Le ticket doit borner cette autorité avant de passer en `Ready`.
 - 2 août 2026 — réconciliation T0033 : la PR #59 a livré ce cadrage documentaire
   dans `main`. Le ticket reste `Draft` et aucune capacité de location n'est
   implémentée.
+- 3 août 2026 — `Ready` : Andy approuve explicitement les termes ci-dessus ; les
+  dépendances sont `Done` et le périmètre est exécutable.
+- 3 août 2026 — `In progress` : branche
+  `feature/T0032-authoritative-aircraft-lease` mise à niveau sur la branche
+  documentaire corrective `docs/reconcile-delivered-tickets` au commit
+  `a1e937c`; implémentation démarrée sans ordonnanceur distant.
+- 3 août 2026 — implémentation locale : migration, fixtures, types, inventaire,
+  gate à 28 mutations et 16 fichiers pgTAP ajoutés. Une révision intermédiaire
+  de la migration a passé un reset PostgreSQL 17. Le run découvrant réellement
+  les 16 fichiers a trouvé successivement une collision de fixture puis une
+  lecture directe interdite au rôle privilégié ; les deux causes sont corrigées.
+  La relance sur la révision finale est bloquée par le quota d'exécution Docker,
+  donc le ticket reste `In progress`.
 
 ## Dependencies
 
@@ -58,7 +73,7 @@ contrat. Le ticket doit borner cette autorité avant de passer en `Ready`.
 - T0028 — politique d'ouverture (`Done`, livrée dans `main` par la PR #54) ;
 - T0029 — achat autoritaire (`Done`, livré dans `main` par la chaîne de fusions
   empilées intégrée avec la PR #54) ;
-- décisions explicites d'Andy listées dans ce ticket.
+- décisions explicites d'Andy listées dans ce ticket, approuvées le 3 août 2026.
 
 ## Allowed areas
 
@@ -151,7 +166,7 @@ normatives qu'après leur consignation dans ce ticket et son passage en `Ready`.
 
 ## Acceptance criteria
 
-- [ ] Andy a validé et le ticket consigne durée, cadence, montants, grâce,
+- [x] Andy a validé et le ticket consigne durée, cadence, montants, grâce,
       défaut, résiliation, fin d'usage et autorité temporelle.
 - [ ] Une offre serveur et un contrat versionné sont créés atomiquement avec
       l'avion et toute écriture initiale applicable.
@@ -232,14 +247,56 @@ fermer les nouvelles offres sans réécrire l'historique.
 
 ### Summary
 
+Implémentation locale d'une location serveur de 30 jours avec premier loyer à
+l'activation, rattrapage quotidien ordonné, grâce, défaut, expiration,
+résiliation et retrait d'usage. Les contrats et événements sont conservés et
+détachés lors de la suppression d'une compagnie. Aucun ordonnanceur ni endpoint
+client n'est ajouté.
+
 ### Files changed
+
+- migration append-only T0032 et deux fixtures synthétiques ;
+- deux fichiers pgTAP structure/comportement ;
+- types de base, gate backend, course CI et inventaire d'autorité ;
+- documentation produit, architecture, sécurité, qualité et état courant.
 
 ### Commands and results
 
+- reset local PostgreSQL 17 sur une révision intermédiaire — PASS ;
+- premier run pgTAP après ajout des tests — non probant, seulement 14 fichiers
+  historiques découverts ;
+- run reconstruit, 16 fichiers — FAIL sur collision de fixture, corrigée ;
+- run reconstruit suivant, 16 fichiers/22 assertions T0032 atteintes — FAIL sur
+  lecture directe sous `service_role` dans la fixture, corrigée ;
+- relance finale, second reset, types générés et courses CI — non exécutés,
+  quota Docker de la plateforme atteint ;
+- `tests/backend/run.ps1` — PASS, 28 mutations ;
+- gates autorité, données et maintenance — PASS, 9/6/8 mutations ;
+- parse PowerShell CI et JSON d'autorité — PASS ;
+- `git diff --check` — PASS, avertissements LF/CRLF seulement.
+
 ### Manual verification result
+
+Non terminée. Les scénarios sont encodés dans pgTAP, mais leur run final et les
+courses concurrentes doivent être exécutés avant toute transition vers
+`Review` ou `Done`.
 
 ### Risks and limitations
 
+La révision finale de la migration, incluant le détachement à la suppression de
+compagnie et la correction stricte de fin de grâce, n'a pas encore été rejouée
+sur PostgreSQL 17. Les types ont été alignés localement mais pas comparés à une
+régénération. Aucun ordonnanceur ne garantit les échéances à l'heure réelle.
+
 ### Follow-ups
 
+- reconstruire la pile locale, effectuer deux resets, exécuter les 16 fichiers
+  pgTAP et vérifier le total attendu de 331 assertions ;
+- exécuter `backend:types:check` et la course CI création/rattrapage ;
+- seulement après ces preuves, effectuer la revue adversariale finale et passer
+  le ticket à `Review` ou `Verify` selon les résultats.
+
 ### Documentation updated
+
+`PRODUCT.md`, `ARCHITECTURE.md`, `SECURITY.md`, `QUALITY.md`,
+`CURRENT_STATE.md`, ce ticket et son index.

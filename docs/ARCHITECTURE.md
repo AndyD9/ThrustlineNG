@@ -252,3 +252,18 @@ page locale → API Tauri explicitement autorisée → processus Rust
 
 Le bridge est lancé par Tauri et son port reste inaccessible à la WebView.
 L'adaptateur T0011 n'élargit ni le contrat local, ni les capabilities.
+
+## Frontière temporelle de location T0032
+
+La migration T0032 ajoute des termes de location versionnés aux offres serveur,
+des contrats et échéances lisibles sous RLS, ainsi que des registres et événements
+privés. `lease_aircraft`, `process_aircraft_lease` et
+`terminate_aircraft_lease` sont des commandes `security definer` réservées à
+`service_role`. La création verrouille compagnie, sujet financier puis offre ;
+le rattrapage verrouille contrat puis sujet financier. Avion, contrat,
+obligation et grand livre restent dans une même transaction.
+
+`process_aircraft_lease` matérialise les échéances dans l'ordre du contrat. Son
+temps effectif est une autorité privilégiée fournie par l'appelant serveur ; il
+ne doit jamais être relayé depuis un client. Aucun cron, ordonnanceur distant,
+endpoint Edge, desktop ou bridge n'est ajouté par T0032.

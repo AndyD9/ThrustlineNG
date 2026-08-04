@@ -34,6 +34,7 @@ function Get-BackendIssues {
     $onboardingMigrationPath = Join-Path $Root "supabase\migrations\20260731000400_authoritative_company_onboarding.sql"
     $purchaseMigrationPath = Join-Path $Root "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql"
     $dispatchMigrationPath = Join-Path $Root "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql"
+    $leaseMigrationPath = Join-Path $Root "supabase\migrations\20260803000200_authoritative_aircraft_lease.sql"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $structureTestPath = Join-Path $Root "supabase\tests\database\companies_structure.test.sql"
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
@@ -49,6 +50,8 @@ function Get-BackendIssues {
     $purchaseTestPath = Join-Path $Root "supabase\tests\database\aircraft_purchase.test.sql"
     $dispatchStructureTestPath = Join-Path $Root "supabase\tests\database\dispatch_draft_structure.test.sql"
     $dispatchTestPath = Join-Path $Root "supabase\tests\database\dispatch_draft.test.sql"
+    $leaseStructureTestPath = Join-Path $Root "supabase\tests\database\aircraft_lease_structure.test.sql"
+    $leaseTestPath = Join-Path $Root "supabase\tests\database\aircraft_lease.test.sql"
     $onboardingFunctionPath = Join-Path $Root "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionPolicyPath = Join-Path $Root "supabase\functions\company-onboarding\economy-policy.json"
     $onboardingFunctionEntryPath = Join-Path $Root "supabase\functions\company-onboarding\index.ts"
@@ -82,6 +85,7 @@ function Get-BackendIssues {
         $onboardingMigrationPath,
         $purchaseMigrationPath,
         $dispatchMigrationPath,
+        $leaseMigrationPath,
         $seedPath,
         $structureTestPath,
         $rlsTestPath,
@@ -97,6 +101,8 @@ function Get-BackendIssues {
         $purchaseTestPath,
         $dispatchStructureTestPath,
         $dispatchTestPath,
+        $leaseStructureTestPath,
+        $leaseTestPath,
         $onboardingFunctionPath,
         $onboardingFunctionPolicyPath,
         $onboardingFunctionEntryPath,
@@ -458,6 +464,39 @@ function Get-BackendIssues {
         $issues.Add("Dispatch creation must not accept client-controlled company, state or time.")
     }
 
+    $leaseMigration = Get-Content -Raw -Encoding UTF8 $leaseMigrationPath
+    $leaseRequirements = @{
+        "versioned lease terms" = 'terms_version = 1[\s\S]+duration_days = 30[\s\S]+cadence_hours = 24'
+        "fixed rent" = 'rent_minor = \(price_minor \+ 199\) / 200'
+        "first rent" = 'initial_payment_minor = rent_minor'
+        "48-hour grace" = 'grace_hours = 48'
+        "grace usage" = 'usable_during_grace is true'
+        "lease contracts" = 'create table public\.aircraft_lease_contracts'
+        "deterministic installments" = 'constraint aircraft_lease_installment_identity unique \(contract_id, installment_number\)'
+        "immutable events" = 'aircraft_lease_events_reject_update_delete'
+        "company lock" = 'where companies\.owner_id = lease_aircraft\.owner_id for update'
+        "offer lock" = 'where id = lease_aircraft\.offer_id for update'
+        "service-only creation" = 'grant execute on function public\.lease_aircraft\(uuid, uuid, uuid\) to service_role'
+        "service-only time" = 'grant execute on function public\.process_aircraft_lease\(uuid, uuid, timestamptz\) to service_role'
+        "service-only termination" = 'grant execute on function public\.terminate_aircraft_lease\(uuid, uuid, uuid\) to service_role'
+        "ordered catch-up" = 'for installment_no in 2\.\.30 loop'
+        "server derived due date" = 'contract\.activated_at \+ make_interval\(hours => contract\.cadence_hours'
+        "usage revoked" = 'update public\.company_aircraft set is_usable = false'
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $leaseRequirements.GetEnumerator()) {
+        Require-Text $leaseMigration $entry.Value "Aircraft lease invariant missing: $($entry.Key)."
+    }
+    if ($leaseMigration -match '(?i)grant\s+execute\s+on\s+function\s+public\.(lease_aircraft|process_aircraft_lease|terminate_aircraft_lease)\([^;]+\)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Aircraft lease commands must remain service-role-only.")
+    }
+    if ($leaseMigration -match '(?i)grant\s+(insert|update|delete)[^;]*on\s+(table\s+)?public\.(aircraft_lease_contracts|aircraft_lease_installments|company_aircraft)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Client roles must not gain direct lease mutation privileges.")
+    }
+    if ($leaseMigration -match '(?i)lease_aircraft\([^)]*(price|currency|company|state|time|date|duration|cadence|rent|grace|penalty)[^)]*\)') {
+        $issues.Add("Lease creation must not accept client-controlled terms, state, company or time.")
+    }
+
     $onboardingFunction = Get-Content -Raw -Encoding UTF8 $onboardingFunctionPath
     $onboardingFunctionEntry = Get-Content -Raw -Encoding UTF8 $onboardingFunctionEntryPath
     $onboardingFunctionTests = Get-Content -Raw -Encoding UTF8 $onboardingFunctionTestPath
@@ -698,6 +737,11 @@ function Get-BackendIssues {
     Require-Text $types 'get_company_aircraft:' "Generated types do not expose owner aircraft reads."
     Require-Text $types 'flight_dispatches:' "Generated types do not expose flight dispatches."
     Require-Text $types 'create_dispatch_draft:' "Generated types do not expose authoritative dispatch creation."
+    Require-Text $types 'aircraft_lease_contracts:' "Generated types do not expose aircraft lease contracts."
+    Require-Text $types 'aircraft_lease_installments:' "Generated types do not expose aircraft lease installments."
+    Require-Text $types 'lease_aircraft:' "Generated types do not expose authoritative lease creation."
+    Require-Text $types 'process_aircraft_lease:' "Generated types do not expose authoritative lease catch-up."
+    Require-Text $types 'terminate_aircraft_lease:' "Generated types do not expose authoritative lease termination."
 
     $typeScript = Get-Content -Raw -Encoding UTF8 $typeScriptPath
     Require-Text $typeScript 'Invoke-IsolatedSupabaseCli' "Type generation does not use the isolated local runtime."
@@ -712,6 +756,9 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'Concurrent financial ledger commands did not converge' "Backend CI does not verify identical ledger command convergence."
     Require-Text $ciBackend 'Company onboarding concurrency passed' "Backend CI does not report onboarding concurrency."
     Require-Text $ciBackend 'Concurrent company onboarding commands did not converge' "Backend CI does not verify identical onboarding convergence."
+    Require-Text $ciBackend 'Aircraft lease concurrency passed' "Backend CI does not report lease creation and catch-up concurrency."
+    Require-Text $ciBackend 'Concurrent aircraft lease creations did not converge' "Backend CI does not verify lease creation convergence."
+    Require-Text $ciBackend 'Concurrent aircraft lease catch-up did not converge' "Backend CI does not verify temporal catch-up convergence."
     Require-Text $ciBackend 'pnpm backend:functions:test' "Backend CI does not execute all Edge handler tests on Linux."
     Require-Text $ciBackend 'realtime,storage-api,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor' "Backend CI must isolate PostgreSQL resets from the Edge Runtime port lifecycle."
     Require-Text $ciBackend '"1\|1"' "Backend CI does not verify one immutable concurrent ledger entry."
@@ -768,6 +815,7 @@ try {
         "supabase\migrations\20260731000400_authoritative_company_onboarding.sql",
         "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql",
         "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql",
+        "supabase\migrations\20260803000200_authoritative_aircraft_lease.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
@@ -783,6 +831,8 @@ try {
         "supabase\tests\database\aircraft_purchase.test.sql",
         "supabase\tests\database\dispatch_draft_structure.test.sql",
         "supabase\tests\database\dispatch_draft.test.sql",
+        "supabase\tests\database\aircraft_lease_structure.test.sql",
+        "supabase\tests\database\aircraft_lease.test.sql",
         "supabase\functions\company-onboarding\handler.ts",
         "supabase\functions\company-onboarding\economy-policy.json",
         "supabase\functions\company-onboarding\index.ts",
@@ -1011,6 +1061,33 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql") -Destination $dispatchMigrationCopy
+    $leaseMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260803000200_authoritative_aircraft_lease.sql"
+    $leaseText = Get-Content -Raw -Encoding UTF8 $leaseMigrationCopy
+    $leaseText = $leaseText.Replace(
+        "grant execute on function public.process_aircraft_lease(uuid, uuid, timestamptz) to service_role;",
+        "grant execute on function public.process_aircraft_lease(uuid, uuid, timestamptz) to authenticated;"
+    )
+    [System.IO.File]::WriteAllText($leaseMigrationCopy, $leaseText)
+    $unsafeLeaseTimeIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unsafeLeaseTimeIssues -match "service-role-only")) {
+        Write-Error "Harness self-test failed to detect client-executable lease temporal authority."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000200_authoritative_aircraft_lease.sql") -Destination $leaseMigrationCopy
+    $leaseText = Get-Content -Raw -Encoding UTF8 $leaseMigrationCopy
+    $leaseText = $leaseText.Replace(
+        "create function public.lease_aircraft(owner_id uuid, idempotency_key uuid, offer_id uuid)",
+        "create function public.lease_aircraft(owner_id uuid, idempotency_key uuid, offer_id uuid, price_minor bigint)"
+    )
+    [System.IO.File]::WriteAllText($leaseMigrationCopy, $leaseText)
+    $clientLeaseTermsIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientLeaseTermsIssues -match "client-controlled terms, state, company or time")) {
+        Write-Error "Harness self-test failed to detect client-controlled lease terms."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000200_authoritative_aircraft_lease.sql") -Destination $leaseMigrationCopy
     $onboardingFunctionCopy = Join-Path $temporaryRoot "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionText = Get-Content -Raw -Encoding UTF8 $onboardingFunctionCopy
     $onboardingFunctionText = $onboardingFunctionText.Replace(
@@ -1174,4 +1251,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0029, T0035, T0040 and T0047-T0048 repository plus 26 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040 and T0047-T0048 repository plus 28 mutation scenarios)."

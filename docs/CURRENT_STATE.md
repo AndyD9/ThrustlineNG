@@ -13,9 +13,11 @@ les trois checks sont verts. La composition catalogue/achat, la relecture de
 flotte, le brouillon de dispatch autoritaire et sa frontière Auth sont donc
 livrés. WebView live, runtime Edge live, SimBrief et cycle de vol restent hors
 périmètre de ces preuves.
-Les vérifications historiques T0007–T0008 et T0011 restent `Verify`. Le cadrage
-T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
-interdiction de données utilisateur réelles.
+Les vérifications historiques T0007–T0008 et T0011 restent `Verify`. T0032 est
+`In progress` après décision explicite d'Andy le 3 août 2026 : 30 jours, loyer
+quotidien de 0,5 %, premier prélèvement à l'activation, grâce de 48 heures,
+résiliation immédiate sans frais et retrait d'usage à toute fin. La phase 2
+reste sous interdiction de données utilisateur réelles.
 
 La fusion #41 (`06cece5`) est couverte par le run CI `30706049048`, réussi sur
 PostgreSQL 17 et Windows multi-stack, et par le run supply-chain `30706049088`,
@@ -492,8 +494,14 @@ restent stables. Deux connexions rejouant le même achat convergent vers
 `1|1|1|33000000`; deux offres de 10 000 000 face à 15 000 000 produisent un
 succès, un refus et `1|1|1|5000000`. La capacité est livrée dans `main`, sans
 endpoint desktop, déploiement distant ni donnée réelle.
-Andy a confirmé que la location suivra dans un ticket distinct avec contrat,
-échéances et autorité temporelle.
+T0032 implémente sur sa branche un contrat de location versionné, des échéances
+quotidiennes et des commandes `service_role` de création, rattrapage et
+résiliation. Une révision intermédiaire de la migration s'est appliquée sur
+PostgreSQL 17. Le run pgTAP ayant découvert les 16 fichiers a ensuite identifié
+deux défauts de fixture corrigés ; la révision finale et sa relance restent non
+exécutées après blocage du quota Docker. Aucun
+ordonnanceur, endpoint, desktop, déploiement distant ou donnée réelle n'est
+fourni.
 
 Sur le commit d'implémentation `1ede937`, l'exécution CI `30740977879` valide
 PostgreSQL 17 et Windows, et l'exécution supply-chain `30740977888` est verte.
@@ -752,13 +760,13 @@ version restent non validés et relèvent de la phase 6.
 T0043 à T0048 sont livrés dans `main`. Le prochain ticket recommandé est
 la preuve locale réelle Auth → Edge Runtime → `create_dispatch_draft`, avec
 identité, compagnie, avion et dispatch exclusivement synthétiques, sans encore
-composer le desktop, appeler SimBrief ni démarrer un vol. La location T0032 reste bloquée sur
-ses décisions produit et la persistance Windows reste un ticket de sécurité
+composer le desktop, appeler SimBrief ni démarrer un vol. T0032 est désormais en
+cours sur sa branche dédiée ; la persistance Windows reste un ticket de sécurité
 séparé avant tout stockage de refresh token.
 
-T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
-d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et
-autorité temporelle. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS
+T0032 consigne désormais la décision explicite d'Andy et reste `In progress`
+jusqu'à la relance complète des validations, des courses et des deux resets.
+T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS
 2024 exigés par ADR-0003. Les autres dettes ouvertes restent priorisées par
 sévérité dans `KNOWN_ISSUES.md`.
 

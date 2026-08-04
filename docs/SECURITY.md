@@ -460,3 +460,21 @@ updater restent hors de cette frontière.
 
 Le lancement authentifié et le contrat local de T0010 considèrent le processus
 desktop et le bridge comme mutuellement non fiables.
+
+## Location d'avion autoritaire T0032
+
+Les termes de location sont versionnés sur l'offre et recopiés dans le contrat :
+le client ne fournit ni prix, devise, compagnie, durée, cadence, grâce, date ou
+état. Création, rattrapage temporel et résiliation sont réservés à
+`service_role`, avec `search_path` vide et registres d'idempotence privés. Les
+échéances utilisent une identité stable par contrat et numéro ; une écriture
+`aircraft_lease_rent` immuable correspond à chaque échéance payée.
+
+Le contrat autorise l'usage pendant la grâce de 48 heures et le retire
+transactionnellement au défaut, à l'expiration ou à la résiliation. Les rôles
+client ne reçoivent que `SELECT` sous RLS sur leurs contrats et échéances ;
+`anon` ne lit rien et aucune mutation directe n'est accordée. La commande
+temporelle accepte une heure uniquement parce que son appelant `service_role`
+constitue l'autorité serveur ; toute future frontière doit refuser de reprendre
+une heure client. Sans ordonnanceur, l'exécution ponctuelle en production n'est
+pas garantie et aucune donnée réelle n'est admise.

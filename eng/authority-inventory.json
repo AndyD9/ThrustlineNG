@@ -7,9 +7,12 @@
       "create_company_with_opening_balance",
       "create_dispatch_draft",
       "finalize_account_deletion",
+      "lease_aircraft",
       "post_company_opening_balance",
+      "process_aircraft_lease",
       "purchase_aircraft",
-      "replay_account_deletion_event"
+      "replay_account_deletion_event",
+      "terminate_aircraft_lease"
     ],
     "clientDataApiReads": [
       {
@@ -102,7 +105,10 @@
       "coverage": "partial",
       "serverBoundaries": [
         "supabase/functions/aircraft-purchase/handler.ts",
-        "public.purchase_aircraft"
+        "public.lease_aircraft",
+        "public.process_aircraft_lease",
+        "public.purchase_aircraft",
+        "public.terminate_aircraft_lease"
       ],
       "evidencePaths": [
         "apps/desktop/src/features/aircraft-catalog/aircraftCatalog.ts",
@@ -110,10 +116,12 @@
         "apps/desktop/src/features/aircraft-purchase/aircraftPurchase.ts",
         "supabase/functions/aircraft-purchase/handler.ts",
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
-        "supabase/tests/database/aircraft_purchase.test.sql"
+        "supabase/tests/database/aircraft_purchase.test.sql",
+        "supabase/migrations/20260803000200_authoritative_aircraft_lease.sql",
+        "supabase/tests/database/aircraft_lease.test.sql"
       ],
-      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "rest/v1/company_aircraft", "functions/v1/aircraft-purchase", "createAircraftPurchaseHandler", "purchase_aircraft", "company_aircraft"],
-      "limitations": ["Bounded catalogue, purchase and owner-fleet reads are composed behind explicit user actions; live desktop connectivity and deployment are not provided, and lease or later fleet mutations are not implemented."]
+      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "rest/v1/company_aircraft", "functions/v1/aircraft-purchase", "createAircraftPurchaseHandler", "purchase_aircraft", "lease_aircraft", "process_aircraft_lease", "terminate_aircraft_lease", "company_aircraft"],
+      "limitations": ["Bounded catalogue, purchase and owner-fleet reads are composed behind explicit user actions. Lease creation, catch-up and termination are server commands only; no scheduler, endpoint, desktop lease composition, live connectivity or deployment is provided."]
     },
     {
       "id": "dispatch",
@@ -159,7 +167,10 @@
       "serverBoundaries": [
         "public.post_company_opening_balance",
         "supabase/functions/aircraft-purchase/handler.ts",
-        "public.purchase_aircraft"
+        "public.lease_aircraft",
+        "public.process_aircraft_lease",
+        "public.purchase_aircraft",
+        "public.terminate_aircraft_lease"
       ],
       "evidencePaths": [
         "apps/desktop/src/features/aircraft-catalog/aircraftCatalog.ts",
@@ -169,10 +180,12 @@
         "supabase/tests/database/financial_ledger.test.sql",
         "supabase/functions/aircraft-purchase/handler.ts",
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
-        "supabase/tests/database/aircraft_purchase.test.sql"
+        "supabase/tests/database/aircraft_purchase.test.sql",
+        "supabase/migrations/20260803000200_authoritative_aircraft_lease.sql",
+        "supabase/tests/database/aircraft_lease.test.sql"
       ],
-      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft"],
-      "limitations": ["Opening, bounded authenticated catalogue read and one-off aircraft purchase are covered as separate components; routed composition, live connectivity, recurring lease and other financial commands are not defined."]
+      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft", "aircraft_lease_rent", "process_aircraft_lease"],
+      "limitations": ["Opening, purchase and versioned lease rents are authoritative. Lease catch-up is manual service-role execution only; no scheduler, routed lease endpoint, live connectivity or other recurring financial command is provided."]
     },
     {
       "id": "reputation-progression",

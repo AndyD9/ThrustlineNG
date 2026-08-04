@@ -97,3 +97,21 @@ values
         50000000,
         'EUR'
     );
+
+insert into public.aircraft_purchase_offers (
+    id, aircraft_type_code, serial_number, display_name, price_minor,
+    currency_code, offer_kind, terms_version, duration_days, cadence_hours,
+    rent_minor, initial_payment_minor, grace_hours, voluntary_termination,
+    termination_penalty_minor, usable_during_grace
+)
+values
+    (
+        'ea000000-0000-4000-8000-000000000003', 'C172', 'SYN-C172-LEASE-0003',
+        'Synthetic Cessna 172 Lease', 10000000, 'EUR', 'lease', 1, 30, 24,
+        50000, 50000, 48, true, 0, true
+    ),
+    (
+        'eb000000-0000-4000-8000-000000000004', 'TBM9', 'SYN-TBM9-LEASE-0004',
+        'Synthetic TBM 930 Lease', 50000000, 'EUR', 'lease', 1, 30, 24,
+        250000, 250000, 48, true, 0, true
+    );

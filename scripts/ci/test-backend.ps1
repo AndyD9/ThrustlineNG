@@ -636,6 +636,145 @@ select
         $purchaseConcurrencyJobs | Remove-Job -Force -ErrorAction SilentlyContinue
     }
 
+    $leaseConcurrencyUserId = "88000000-0000-4000-8000-000000000008"
+    $leaseConcurrencyKey = "88100000-0000-4000-8000-000000000008"
+    $leaseConcurrencyOfferId = "88200000-0000-4000-8000-000000000008"
+    $leaseTemporalKey = "88300000-0000-4000-8000-000000000008"
+    $leaseSetupSql = @"
+insert into auth.users (id, email, raw_user_meta_data, is_anonymous)
+values ('$leaseConcurrencyUserId', 'lease-concurrency@thrustline.invalid', '{}', false);
+set local role service_role;
+select public.create_company_with_opening_balance(
+    '$leaseConcurrencyUserId', '88400000-0000-4000-8000-000000000008',
+    'Lease Concurrency Air', 1000, 'EUR'
+);
+reset role;
+insert into public.aircraft_purchase_offers (
+    id, aircraft_type_code, serial_number, display_name, price_minor, currency_code,
+    offer_kind, terms_version, duration_days, cadence_hours, rent_minor,
+    initial_payment_minor, grace_hours, voluntary_termination,
+    termination_penalty_minor, usable_during_grace
+) values (
+    '$leaseConcurrencyOfferId', 'C172', 'CI-C172-LEASE-4001',
+    'CI Lease Cessna', 10000, 'EUR', 'lease', 1, 30, 24, 50, 50, 48, true, 0, true
+);
+"@
+    $leaseFirstSql = @"
+begin;
+set local role service_role;
+select public.lease_aircraft(
+    '$leaseConcurrencyUserId', '$leaseConcurrencyKey', '$leaseConcurrencyOfferId'
+) ->> 'contractId';
+select pg_sleep(4);
+commit;
+"@
+    $leaseSecondSql = @"
+begin;
+set local role service_role;
+select public.lease_aircraft(
+    '$leaseConcurrencyUserId', '$leaseConcurrencyKey', '$leaseConcurrencyOfferId'
+) ->> 'contractId';
+commit;
+"@
+
+    & $dockerPath exec $databaseContainers[0] `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $leaseSetupSql
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the aircraft lease concurrency scenario."
+    }
+
+    $leaseConcurrencyJobs = @()
+    try {
+        foreach ($sql in @($leaseFirstSql, $leaseSecondSql)) {
+            if ($leaseConcurrencyJobs.Count -eq 1) {
+                Start-Sleep -Milliseconds 750
+            }
+            $leaseConcurrencyJobs += Start-Job -ScriptBlock {
+                param($DockerPath, $ContainerId, $Sql)
+                & $DockerPath exec $ContainerId `
+                    psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+                if ($LASTEXITCODE -ne 0) { throw "Concurrent aircraft lease creation failed." }
+            } -ArgumentList $dockerPath, $databaseContainers[0], $sql
+        }
+        $leaseConcurrencyJobs | Wait-Job | Out-Null
+        $leaseContractIds = @(
+            $leaseConcurrencyJobs | Receive-Job |
+                ForEach-Object { [string]$_ } |
+                Where-Object { $_ -match '^[0-9a-f-]{36}$' }
+        )
+        if ($leaseConcurrencyJobs.State -contains "Failed" -or
+            $leaseContractIds.Count -ne 2 -or
+            @($leaseContractIds | Select-Object -Unique).Count -ne 1) {
+            throw "Concurrent aircraft lease creations did not converge."
+        }
+        $leaseContractId = $leaseContractIds[0]
+    }
+    finally {
+        $leaseConcurrencyJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    }
+
+    $leaseTemporalSql = @"
+begin;
+select set_config(
+    't0032.lease_effective_at',
+    (select (activated_at + interval '24 hours')::text from public.aircraft_lease_contracts where id = '$leaseContractId'),
+    true
+);
+set local role service_role;
+select public.process_aircraft_lease(
+    '$leaseContractId', '$leaseTemporalKey',
+    current_setting('t0032.lease_effective_at')::timestamptz
+) ->> 'state';
+select pg_sleep(4);
+commit;
+"@
+    $leaseTemporalSecondSql = $leaseTemporalSql.Replace("select pg_sleep(4);", "")
+    $leaseTemporalJobs = @()
+    try {
+        $leaseTemporalJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) { throw "First concurrent lease catch-up failed." }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $leaseTemporalSql
+        Start-Sleep -Milliseconds 750
+        $leaseTemporalJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) { throw "Second concurrent lease catch-up failed." }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $leaseTemporalSecondSql
+        $leaseTemporalJobs | Wait-Job | Out-Null
+        $leaseTemporalStates = @(
+            $leaseTemporalJobs | Receive-Job |
+                ForEach-Object { ([string]$_).Trim() } |
+                Where-Object { $_ -eq 'active' }
+        )
+        if ($leaseTemporalJobs.State -contains "Failed" -or $leaseTemporalStates.Count -ne 2) {
+            throw "Concurrent aircraft lease catch-up did not converge."
+        }
+    }
+    finally {
+        $leaseTemporalJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    }
+
+    $leaseConvergenceSql = @"
+select
+    (select count(*) from public.company_aircraft where offer_id = '$leaseConcurrencyOfferId'),
+    (select count(*) from private.aircraft_lease_creation_commands where offer_id = '$leaseConcurrencyOfferId'),
+    (select count(*) from public.aircraft_lease_installments where contract_id = '$leaseContractId'),
+    (select count(*) from private.aircraft_lease_temporal_commands where contract_id = '$leaseContractId'),
+    (select count(*) from private.financial_ledger_entries entries
+     join public.aircraft_lease_installments installments on installments.ledger_entry_id = entries.id
+     where installments.contract_id = '$leaseContractId');
+"@
+    $leaseConvergence = @(
+        & $dockerPath exec $databaseContainers[0] `
+            psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres -c $leaseConvergenceSql
+    )
+    if ($LASTEXITCODE -ne 0 -or ($leaseConvergence -join "").Trim() -ne "1|1|2|1|2") {
+        throw "Concurrent lease state is not atomic and idempotent."
+    }
+    Write-Output "Aircraft lease concurrency passed: creation and temporal catch-up converge without duplicate debit."
+
     $balanceRaceUserId = "77000000-0000-4000-8000-000000000007"
     $balanceRaceOfferA = "77100000-0000-4000-8000-000000000007"
     $balanceRaceOfferB = "77200000-0000-4000-8000-000000000007"

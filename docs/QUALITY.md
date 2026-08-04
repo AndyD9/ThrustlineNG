@@ -458,3 +458,18 @@ Les commandes locales ne prouvent pas l'interprétation YAML ni l'exécution des
 runners GitHub. Pour T0013, les jobs de la PR et les artefacts ont été inspectés
 avant fusion sans trouver de credential. Toute modification future des workflows
 doit répéter cette vérification avant promotion.
+
+## Preuve de location T0032
+
+T0032 ajoute deux fichiers pgTAP. Ils doivent porter le total backend à 16
+fichiers et couvrir structure, ACL/RLS, termes 30 jours/24 heures/0,5 %, premier
+loyer, rejeu et collision, isolation A/B/anonyme, borne de grâce 48 heures,
+rattrapage ordonné, défaut, expiration, résiliation, rollback et historique
+immuable. Un run qui ne découvre que les 14 fichiers antérieurs n'est pas une
+preuve T0032.
+
+Le gate backend classe les trois commandes privilégiées et rejette tout grant
+client, toute mutation directe, ainsi que l'ajout de termes, compagnie, état ou
+temps à la création. Deux resets consécutifs, les types régénérés et une course
+concurrente doivent encore passer avant `Review`. La preuve locale ne remplace
+pas l'ordonnanceur distant, explicitement absent.

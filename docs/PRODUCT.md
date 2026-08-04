@@ -136,3 +136,17 @@ devenir des règles produit.
 - Reprise après coupure testée sur chaque parcours essentiel.
 - Temps de démarrage et consommation mémoire budgétés.
 - Mise à jour N-1 → N et rollback validés sur VM propre.
+
+## Location d'avion MVP
+
+Une offre serveur peut être un achat ou une location. La première location dure
+30 jours et prélève un loyer toutes les 24 heures, dont le premier à
+l'activation. Chaque loyer vaut 0,5 % du prix d'achat de référence, arrondi au
+centime supérieur ; il n'existe ni dépôt, ni autre paiement initial.
+
+Un impayé ouvre une grâce de 48 heures pendant laquelle l'avion reste utilisable.
+À la borne de grâce, l'impayé produit un défaut et retire l'usage. Expiration et
+résiliation volontaire retirent aussi l'usage ; la résiliation est immédiate,
+sans préavis, pénalité ou remboursement. Les termes, dates, états et montants
+sont serveur. Le MVP fournit une commande de rattrapage `service_role` manuelle,
+pas un ordonnanceur de production.
