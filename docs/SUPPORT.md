@@ -1,6 +1,7 @@
 # Plateformes prises en charge
 
-Dernière mise à jour : 24 juillet 2026
+Dernière mise à jour : 4 août 2026 (jalon d'alpha technique interne T0055 ; la
+matrice de support reste inchangée depuis le 24 juillet 2026)
 Décision acceptée : `ADR-0003`
 
 Thrustline cible une application desktop **Windows 11 x64** connectée localement
@@ -49,6 +50,24 @@ Thrustline.
 Aucune ligne n'est encore `Supported`, car T0004 est documentaire et n'a exécuté
 aucun vol réel. Les canaux Store et Steam doivent chacun réussir leur propre
 validation ; le résultat de l'un ne prouve pas l'autre.
+
+## Alpha technique interne
+
+T0055 fixe la version produit canonique `0.1.0-alpha.1`, canal `internal-alpha`,
+dans `eng/product-version.json`. Le jalon correspondant est une **alpha technique
+interne** :
+
+- l'installateur `Thrustline-0.1.0-alpha.1-win-x64.exe` est **non signé** et
+  déclenche SmartScreen ; il ne doit pas être distribué hors validation interne ;
+- il n'existe ni tag Git publié, ni canal de release, ni updater, ni rollback
+  N-1 ; ces capacités relèvent de la phase 6 ;
+- aucune donnée réelle n'est admise : le parcours d'alpha s'exécute sur la pile
+  Supabase locale et des données synthétiques ;
+- cette version ne promeut aucune ligne de la matrice ci-dessus vers
+  `Supported` et ne prouve aucun vol MSFS réel.
+
+L'interface affiche cette version produit ; ni chemin utilisateur, ni jeton, ni
+secret n'y apparaissent.
 
 ## Prérequis
 

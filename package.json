@@ -22,6 +22,7 @@
     "performance:measure:bridge": "pwsh -NoProfile -File ./scripts/measure-bridge.ps1 -OutputDirectory ./artifacts/t0015",
     "performance:check": "pwsh -NoProfile -File ./scripts/check-performance-budgets.ps1",
     "performance:check:build": "pwsh -NoProfile -File ./scripts/check-performance-budgets.ps1 -BuiltArtifacts",
+    "product-version:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/product-version/run.ps1",
     "windows:package:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/windows-package/run.ps1",
     "windows:package": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-windows-package.ps1 -OutputDirectory ./artifacts/t0014/package",
     "windows:package:test": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/test-windows-package.ps1 -PackageDirectory ./artifacts/t0014/package -ValidationDirectory ./artifacts/t0014/validation",

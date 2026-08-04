@@ -121,6 +121,18 @@ $expectedVersions = Get-Content -Raw -LiteralPath (
     Join-Path $repositoryRoot 'eng\versions.json'
 ) | ConvertFrom-Json
 
+$productVersionSource = Get-Content -Raw -LiteralPath (
+    Join-Path $repositoryRoot 'eng\product-version.json'
+) | ConvertFrom-Json
+$productVersion = [string]$productVersionSource.productVersion
+$productChannel = [string]$productVersionSource.channel
+$installerName = ([string]$productVersionSource.installerNameTemplate).Replace(
+    '{productVersion}', $productVersion
+)
+if ($installerName -match '[\\/:]' -or $installerName -notmatch '\.exe$') {
+    throw 'The product installer name must stay a bare .exe filename.'
+}
+
 $actualNode = (& node --version).TrimStart('v').Trim()
 $actualPnpm = (& pnpm.cmd --version).Trim()
 $actualDotnet = (& dotnet --version).Trim()
@@ -164,6 +176,10 @@ try {
         throw 'The complete self-contained bridge publication was not staged.'
     }
 
+    Invoke-Checked 'Validate product version consistency' {
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass `
+            -File .\tests\product-version\run.ps1
+    }
     Invoke-Checked 'Validate Windows package invariants' {
         & powershell.exe -NoProfile -ExecutionPolicy Bypass `
             -File .\tests\windows-package\run.ps1
@@ -185,6 +201,9 @@ $installers = @(
 if ($installers.Count -ne 1) {
     throw "Expected exactly one NSIS installer, found $($installers.Count)."
 }
+if ($installers[0].Name -notmatch ('_' + [regex]::Escape($productVersion) + '_')) {
+    throw "The bundled installer does not carry the product version $productVersion."
+}
 
 $desktopExecutable = Join-Path $repositoryRoot (
     'apps\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\thrustline-desktop.exe'
@@ -198,14 +217,14 @@ foreach ($requiredFile in @($desktopExecutable, $bridgeExecutable, $installers[0
     }
 }
 
-$installerDestination = Join-Path $output $installers[0].Name
+$installerDestination = Join-Path $output $installerName
 Copy-Item -LiteralPath $installers[0].FullName -Destination $installerDestination
 
 $bridgeFiles = @(Get-ChildItem -LiteralPath $bridgeStaging -File -Recurse)
 $manifestFiles = @(
     [pscustomobject]@{
         role = 'installer'
-        path = $installers[0].Name
+        path = $installerName
         bytes = (Get-Item -LiteralPath $installerDestination).Length
         sha256 = Get-Sha256Hex -Path $installerDestination
         authenticode = 'NotSigned'
@@ -227,7 +246,9 @@ $manifestFiles = @(
 )
 
 $manifest = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
+    productVersion = $productVersion
+    channel = $productChannel
     packageType = 'nsis'
     target = 'x86_64-pc-windows-msvc'
     installMode = 'currentUser'
@@ -240,5 +261,5 @@ $manifest = [ordered]@{
 $manifest | ConvertTo-Json -Depth 5 |
     Set-Content -LiteralPath (Join-Path $output 'package-manifest.json') -Encoding UTF8
 
-Write-Host "Unsigned NSIS package created: $($installers[0].Name)"
+Write-Host "Unsigned NSIS package created: $installerName ($productChannel)"
 Write-Host "Bridge files included: $($bridgeFiles.Count)"

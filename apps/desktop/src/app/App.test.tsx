@@ -13,6 +13,7 @@ import {
   type PurchaseAircraftInput,
 } from "@/features/aircraft-purchase/aircraftPurchase";
 import { CompanyOnboardingError } from "@/features/company-onboarding/companyOnboarding";
+import { PRODUCT_VERSION_LABEL } from "@/shared/product/productVersion";
 
 const config: DesktopConnectionConfig = {
   anonKey: "public-anon-key",
@@ -72,6 +73,22 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "Connexion à Thrustline" })).toBeInTheDocument();
     expect(screen.queryByText("Session locale active")).not.toBeInTheDocument();
     expect(window.location.hash).toBe("#/login");
+  });
+
+  it("affiche la version produit dans l’en-tête, connecté ou non", async () => {
+    const user = userEvent.setup();
+    const runtime = createRuntime();
+    const command = vi.fn(async (_input: PasswordSignInInput) => session);
+    render(<App authRuntime={runtime} signInCommand={command} />);
+    await screen.findByRole("heading", { name: "Connexion à Thrustline" });
+
+    expect(screen.getByRole("banner")).toHaveTextContent(PRODUCT_VERSION_LABEL);
+
+    await fillLogin(user);
+    await user.click(screen.getByRole("button", { name: "Se connecter" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Thrustline" })).toBeInTheDocument();
+    expect(screen.getByRole("banner")).toHaveTextContent(PRODUCT_VERSION_LABEL);
   });
 
   it("installe une connexion réussie avant d’afficher l’accueil protégé", async () => {
