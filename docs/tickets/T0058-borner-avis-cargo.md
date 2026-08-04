@@ -1,6 +1,6 @@
 # T0058 — Borner les avis Cargo informatifs par un gate déterministe
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `chore/T0058-borner-avertissements-cargo`
 Phase: Gouvernance
@@ -50,6 +50,16 @@ aucune faille et ne modifie aucune dépendance.
   `chore/T0058-borner-avertissements-cargo`; PR #98 ouverte prête pour revue,
   base `main`, head T0058. Les checks GitHub restent à confirmer et la fusion
   appartient à Andy.
+- 4 août 2026 — correction de publication : la PR #98 échouait sur
+  `Windows multi-stack` à l'étape `Validate maintenance governance`, pour une
+  cause étrangère à ce ticket. Le merge `96a4072` de `main` vers la branche avait
+  résolu la ligne T0057 de `docs/tickets/README.md` du côté branche et
+  réintroduit `Review` contre le `Done` posé par la PR #97. Le commit `52eb513`
+  rétablit `Done`; aucun fichier de T0058 n'est touché.
+- 4 août 2026 — `Done` : la PR #98 est fusionnée dans `main` au merge `2a07113`,
+  sur le commit de tête `52eb513`, avec ses trois checks verts. Les deux étapes
+  de workflow sont donc exécutées par les runners GitHub, et non seulement
+  validées localement.
 
 ## Dependencies
 
@@ -197,8 +207,17 @@ Le 4 août 2026, depuis la racine, sur Windows 11 x64 :
 - `cargo audit --file apps/desktop/src-tauri/Cargo.lock --json` : 0 vulnérabilité,
   15 avertissements (14 `unmaintained`, 1 `unsound`).
 
-Non exécuté : les gates frontend, desktop, bridge et backend, hors périmètre de
-ce ticket, ainsi que toute exécution GitHub, qui dépend de la Pull Request.
+Non exécuté localement : les gates frontend, desktop, bridge et backend, hors
+périmètre de ce ticket.
+
+La réserve sur l'exécution GitHub est levée. Sur le commit de tête `52eb513`, les
+trois checks de la PR #98 passent : `Audits, licences and SBOM` en 4 min 5 s,
+`Supabase PostgreSQL 17` en 3 min 15 s et `Windows multi-stack` en 15 min 52 s. Le
+job Windows exécute `Validate Cargo advisory allowlist` puis, cette fois jusqu'au
+bout, les gates frontend, desktop, bridge, les budgets de performance et le
+packaging Windows non signé, que l'échec de maintenance de la publication
+précédente empêchait d'atteindre. Le job supply-chain exécute la comparaison au
+rapport réel de `cargo-audit` 0.22.2 et son gate final l'agrège.
 
 ### Manual verification result
 

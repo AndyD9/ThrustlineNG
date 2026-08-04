@@ -109,10 +109,10 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   désormais référencer les deux codes, sans distance, revenu ni lecture desktop.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
-- Gate d'avis Cargo T0058 sur sa propre branche, non fusionnée : source
-  `eng/cargo-advisory-allowlist.json` à 15 avis revus, harnais statique à huit
-  mutations négatives dans le job Windows et comparaison au rapport réel dans le
-  job supply-chain.
+- Gate d'avis Cargo T0058 présent dans `main`, livré par la PR #98 au merge
+  `2a07113` : source `eng/cargo-advisory-allowlist.json` à 15 avis revus, harnais
+  statique à huit mutations négatives dans le job Windows et comparaison au
+  rapport réel dans le job supply-chain.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
   clientes dans `eng/authority-inventory.json`.
 
