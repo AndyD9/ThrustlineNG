@@ -180,7 +180,12 @@ déplacer une version déjà produite.
 ## Completion Report
 
 Status : `Verify` le 4 août 2026, branche `chore/T0055-product-version-source`
-partie du dernier `origin/main` (`c1bbfbe`).
+partie du dernier `origin/main` (`c1bbfbe`), commit `6b89181`, PR #104 ouverte
+vers `main` sans dépendance empilée. Ses trois checks sont verts : `Windows
+multi-stack` (run `30925080313`, 17 min 39 s), `Supabase PostgreSQL 17` (même
+run, 3 min 9 s) et `Audits, licences and SBOM` (run `30925079857`, 4 min 24 s).
+La PR n'est pas fusionnée : ni elle, ni ses checks ne suffisent à passer le
+ticket `Done`.
 
 ### Summary
 

@@ -113,7 +113,8 @@ T0055 est `Verify` depuis le 4 août 2026 sur
 `eng/product-version.json` porte `0.1.0-alpha.1`, ses cinq cibles sont alignées,
 son gate `pnpm product-version:check` passe avec six mutations négatives et le
 package NSIS non signé `Thrustline-0.1.0-alpha.1-win-x64.exe` s'installe, se
-lance et se désinstalle sans résidu. Seul le parcours interactif login →
+lance et se désinstalle sans résidu. La PR #104 est ouverte vers `main` avec ses
+trois checks verts, sans être fusionnée. Seul le parcours interactif login →
 compagnie → catalogue → achat dans l'application installée reste à confirmer par
 Andy. Aucun tag n'est créé.
 

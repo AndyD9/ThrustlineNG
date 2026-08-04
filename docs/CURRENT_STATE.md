@@ -1038,7 +1038,8 @@ sont donc composées, sans SimBrief, et son prochain ticket n'est pas encore ouv
 Le flux moteur de vol et bridge a livré T0054 par la PR #99 au merge `3a2c292`;
 son prochain ticket est T0059, qui reste `Draft` faute du prérequis physique
 MSFS 2024 et SDK SimConnect installés avec provenance vérifiable. Le transverse
-T0055 est `Verify` sur `chore/T0055-product-version-source` : la version produit
+T0055 est `Verify` sur `chore/T0055-product-version-source`, PR #104 ouverte vers
+`main` avec ses trois checks verts et non fusionnée : la version produit
 canonique, sa propagation, son gate et le package non signé nommé sont livrés, et
 seul le parcours interactif d'alpha reste à confirmer par Andy. T0056 est encore
 `Ready`. La location T0032 reste bloquée sur ses décisions
