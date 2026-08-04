@@ -45,7 +45,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0029 | Acquérir un premier avion sans double débit ni propriété partielle | 2 | T0020, T0022–T0024, T0028, décision Andy | Done |
 | T0030 | Empêcher les dettes techniques silencieuses | Gouvernance | T0027–T0028 | Done |
 | T0031 | Réconcilier l'index après les fusions T0029–T0030 | Gouvernance | T0029–T0030 | Done |
-| T0032 | Louer un avion sans double prélèvement ni usage hors contrat | 2 | T0020, T0022–T0024, T0028–T0029, décisions Andy | Draft |
+| T0032 | Louer un avion sans double prélèvement ni usage hors contrat | 2 | T0020, T0022–T0024, T0028–T0029, décisions Andy | Review |
 | T0033 | Réconcilier les livraisons récentes et le README | Gouvernance | T0027–T0032 | Done |
 | T0034 | Découpler la fixture du gate de maintenance | Gouvernance | T0030, T0033 | Done |
 | T0035 | Exposer l'achat d'avion derrière une frontière serveur authentifiée | 2 | T0023–T0024, T0029, T0034 | Done |

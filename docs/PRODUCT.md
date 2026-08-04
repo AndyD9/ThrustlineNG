@@ -194,3 +194,25 @@ ni maintenance, ni équipage, ni passagers, ni fret.
 - Reprise après coupure testée sur chaque parcours essentiel.
 - Temps de démarrage et consommation mémoire budgétés.
 - Mise à jour N-1 → N et rollback validés sur VM propre.
+
+## Location d'avion MVP
+
+Une offre serveur peut être un achat ou une location. La première location dure
+30 jours en intervalles de 24 heures UTC et prélève un loyer payé d'avance à
+chaque borne, dont le premier dans la transaction d'activation. Le loyer est
+autoré par offre et versionné, borné côté serveur entre 0,1 % et 0,5 % du prix
+d'achat de référence : 25 minor par jour pour le C172 de référence, 90 pour le
+TBM 930. L'activation prélève en plus des frais de mise en service **non
+remboursables** de dix loyers ; il n'existe aucun dépôt de garantie.
+
+Un impayé n'écrit rien et ne crée aucune dette : il ouvre une grâce de 72 heures
+pendant laquelle l'avion est **suspendu**. Solder les arriérés dans la grâce
+réactive le contrat et rend l'avion utilisable ; la grâce épuisée produit un
+défaut terminal. La résiliation volontaire est possible depuis un contrat actif,
+avec préavis jusqu'à la fin de la période déjà payée, sans prorata, et une
+pénalité de deux loyers plafonnée au loyer restant dû ; sans le solde, la
+commande est refusée. Expiration, défaut et prise d'effet du préavis retirent
+l'usage de l'avion, dont l'historique et les écritures restent immuables.
+
+Les termes, dates, états et montants sont serveur. Le MVP fournit une commande
+de rattrapage `service_role` manuelle, pas un ordonnanceur de production.

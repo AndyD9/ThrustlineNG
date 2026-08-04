@@ -31,9 +31,14 @@ preuves. T0049 lève la seule réserve « runtime Edge live » du dispatch : le
 #87 est fusionnée dans `main` au merge `00ec05d` avec ses trois checks verts.
 Cette preuve reste locale et synthétique et ne livre aucune capacité produit
 nouvelle.
-Les vérifications historiques T0007–T0008 et T0011 restent `Verify`. Le cadrage
-T0032 est `Draft` en attente de décisions produit. La phase 2 reste sous
-interdiction de données utilisateur réelles.
+Les vérifications historiques T0007–T0008 et T0011 restent `Verify`. T0032 est
+`In progress` après décision explicite d'Andy le 4 août 2026 : 30 jours, loyer
+toutes les 24 heures payé d'avance, premier loyer prélevé à l'activation, frais
+de mise en service non remboursables de dix loyers, grâce de 72 heures avec
+avion suspendu, résiliation volontaire avec préavis jusqu'à la fin de la période
+payée et pénalité de deux loyers plafonnée au loyer restant dû, retrait d'usage
+à toute fin. Aucune capacité de location n'est encore livrée dans `main`. La
+phase 2 reste sous interdiction de données utilisateur réelles.
 
 La fusion #41 (`06cece5`) est couverte par le run CI `30706049048`, réussi sur
 PostgreSQL 17 et Windows multi-stack, et par le run supply-chain `30706049088`,
@@ -573,8 +578,19 @@ restent stables. Deux connexions rejouant le même achat convergent vers
 `1|1|1|33000000`; deux offres de 10 000 000 face à 15 000 000 produisent un
 succès, un refus et `1|1|1|5000000`. La capacité est livrée dans `main`, sans
 endpoint desktop, déploiement distant ni donnée réelle.
-Andy a confirmé que la location suivra dans un ticket distinct avec contrat,
-échéances et autorité temporelle.
+T0032 implémente sur sa branche un contrat de location versionné, des échéances
+quotidiennes et des commandes `service_role` de création, rattrapage et
+résiliation, sur les termes qu'Andy a approuvés le 4 août 2026. La branche a
+d'abord rattrapé 49 commits de `main`, ce qui a révélé une collision
+d'horodatage de migration avec le départ de vol T0050 et une réécriture de
+contrainte qui aurait supprimé le crédit `flight_settlement` de T0051 ; les deux
+sont corrigées. Deux resets PostgreSQL 17 consécutifs, 22 fichiers pgTAP,
+502 assertions découvertes, les types régénérés et les quatre gates statiques
+passent. La convergence concurrente appartient au harnais CI Linux et reste à
+confirmer sur la PR. `company_aircraft.is_usable` est autoritaire mais lu par
+aucune commande de dispatch, donc la fin d'usage n'est pas encore opposable à un
+vol. Aucun ordonnanceur, endpoint, desktop, déploiement distant ou donnée réelle
+n'est fourni, et rien de tout cela n'est encore livré dans `main`.
 
 Sur le commit d'implémentation `1ede937`, l'exécution CI `30740977879` valide
 PostgreSQL 17 et Windows, et l'exécution supply-chain `30740977888` est verte.
@@ -1038,17 +1054,18 @@ sont donc composées, sans SimBrief, et son prochain ticket n'est pas encore ouv
 Le flux moteur de vol et bridge a livré T0054 par la PR #99 au merge `3a2c292`;
 son prochain ticket est T0059, qui reste `Draft` faute du prérequis physique
 MSFS 2024 et SDK SimConnect installés avec provenance vérifiable. Le transverse
-T0055 est `Verify` sur `chore/T0055-product-version-source`, PR #104 ouverte vers
-`main` avec ses trois checks verts et non fusionnée : la version produit
-canonique, sa propagation, son gate et le package non signé nommé sont livrés, et
-seul le parcours interactif d'alpha reste à confirmer par Andy. T0056 est encore
-`Ready`. La location T0032 reste bloquée sur ses décisions
-produit et la persistance Windows
+T0055 est livré dans `main` par la PR #104 : la version produit canonique, sa
+propagation, son gate et le package non signé nommé sont en place, et seul le
+parcours interactif d'alpha reste à confirmer par Andy. T0056 est encore
+`Ready`. La location T0032 a reçu ses décisions produit le 4 août 2026 et est en
+revue sur sa branche dédiée ; la persistance Windows
 reste un ticket de sécurité séparé avant tout stockage de refresh token.
 
-T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite
-d'Andy sur durée, cadence, montants, grâce, défaut, résiliation, fin d'usage et
-autorité temporelle. T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS
+T0032 consigne la décision explicite d'Andy du 4 août 2026 et passe en `Review` :
+les deux resets, les 502 assertions pgTAP, les types et les quatre gates statiques
+sont verts en local, et seules les courses concurrentes du harnais CI Linux
+restent à confirmer sur sa PR.
+T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS
 2024 exigés par ADR-0003. Les autres dettes ouvertes restent priorisées par
 sévérité dans `KNOWN_ISSUES.md`.
 

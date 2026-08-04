@@ -1,6 +1,6 @@
 # T0032 — Louer un avion sans double prélèvement ni usage hors contrat
 
-Status: Draft
+Status: Review
 Owner: Andy
 Branch: `feature/T0032-authoritative-aircraft-lease`
 Phase: 2
@@ -17,25 +17,52 @@ forgés par un client distribué ni produire un double prélèvement.
 
 T0029 implémente l'achat comptant d'une offre serveur et laisse explicitement la
 location à un ticket séparé. Andy a confirmé le 2 août 2026 que le MVP doit
-proposer achat puis location, mais aucune décision ne fixe encore la durée du
-contrat, la cadence et le montant des loyers, la grâce en cas d'impayé, ni les
-conditions de résiliation.
+proposer achat puis location. Les termes MVP ont été explicitement approuvés le
+4 août 2026 et sont consignés ci-dessous.
 
 La location introduit aussi une autorité temporelle absente du noyau actuel.
 Une heure ou une commande venant du desktop, du bridge ou de la WebView ne peut
 donc ni rendre une échéance exigible, ni déclarer un défaut, ni terminer un
 contrat. Le ticket doit borner cette autorité avant de passer en `Ready`.
 
-### Décisions requises d'Andy avant `Ready`
+### Décisions d'Andy approuvées le 4 août 2026
 
-- durée fixe du premier contrat MVP ;
-- cadence des loyers, instant du premier prélèvement et règle calendaire ;
-- montant du loyer et éventuel paiement ou dépôt initial ;
-- délai de grâce, état produit en cas d'impayé et nombre d'échecs avant défaut ;
-- résiliation volontaire : autorisée ou non, préavis et éventuelle pénalité ;
-- sort de l'avion à expiration, défaut et résiliation ;
-- autorité serveur chargée de matérialiser les échéances tant qu'aucun ordonnanceur
-  distant n'est livré.
+Ces valeurs remplacent le jeu de termes consigné le 3 août dans une révision
+non fusionnée de cette branche. L'agent a présenté chaque écart avant de
+réécrire l'implémentation ; Andy a tranché en faveur des termes ci-dessous.
+
+- durée fixe : 30 jours à partir de l'activation serveur, en intervalles de
+  24 heures UTC, sans date d'anniversaire ni règle de fin de mois ;
+- cadence : un loyer toutes les 24 heures payé d'avance ; le loyer 1 est prélevé
+  dans la transaction d'activation, les loyers 2 à 30 aux bornes suivantes, et
+  l'expiration à 30 jours ne prélève rien ;
+- montant : loyer autoré par offre et versionné, borné côté serveur entre 0,1 %
+  et 0,5 % du prix d'achat de référence — 25 minor par jour pour le C172 de
+  référence, 90 minor pour le TBM 930 ;
+- paiement initial : frais de mise en service **non remboursables** de dix
+  loyers, prélevés avec le loyer 1 dans la même transaction ; pas de dépôt de
+  garantie, un dépôt restituable imposerait un remboursement hors périmètre ;
+- impayé : aucune écriture partielle et aucun solde négatif ; grâce de 72 heures
+  à partir de l'échéance échouée, soit trois échéances quotidiennes, avion
+  **suspendu** pendant toute la grâce ; arriérés soldés dans la grâce par la
+  commande temporelle → retour en `active` et usage rétabli ; grâce expirée avec
+  arriéré → défaut terminal, sans dette et sans écriture ;
+- résiliation volontaire : autorisée depuis `active` uniquement ; préavis jusqu'à
+  la fin de la période déjà payée, sans prorata ; pénalité de deux loyers
+  plafonnée au loyer restant dû, prélevée atomiquement ; solde insuffisant →
+  commande refusée et contrat inchangé ; une échéance déjà exigible doit être
+  traitée par la commande temporelle avant tout préavis ;
+- usage : l'avion quitte l'inventaire exploitable à l'expiration, au défaut et à
+  la prise d'effet du préavis ; la ligne d'avion, l'historique du contrat et les
+  écritures restent immuables et ne sont jamais supprimés ;
+- autorité temporelle MVP : commande de rattrapage réservée à `service_role`,
+  portée sur un contrat, échéances traitées par `due_at` croissant, identité
+  idempotente `(contrat, version de termes, séquence)`, aucune horloge cliente,
+  invoquée manuellement jusqu'à livraison d'un ordonnanceur distinct.
+
+Une seule transition est réversible, `active ⇄ past_due` — nommée `grace` dans
+le schéma — et seule la commande temporelle la pilote. `defaulted`, `expired` et
+`terminated` restent terminaux, donc aucun client ne peut lever un défaut.
 
 ## Workflow evidence
 
@@ -49,6 +76,46 @@ contrat. Le ticket doit borner cette autorité avant de passer en `Ready`.
 - 2 août 2026 — réconciliation T0033 : la PR #59 a livré ce cadrage documentaire
   dans `main`. Le ticket reste `Draft` et aucune capacité de location n'est
   implémentée.
+- 3 août 2026 — `Ready` puis `In progress` : une première série de termes est
+  consignée et implémentée sur cette branche, à partir de
+  `docs/reconcile-delivered-tickets` au commit `a1e937c`. Le travail reste local
+  et non commité ; la relance des validations est bloquée par le quota
+  d'exécution Docker de la plateforme.
+- 4 août 2026 — reprise du cadrage : Andy demande à l'agent de proposer les
+  termes restants, puis approuve la proposition. Les écarts avec la série du
+  3 août — montant du loyer, existence et nature du paiement initial, durée de
+  grâce, usage pendant la grâce, préavis et pénalité de résiliation — sont
+  présentés avec leur coût avant toute réécriture. Andy tranche pour les termes
+  du 4 août, qui deviennent seuls normatifs.
+- 4 août 2026 — travail du 3 août sauvegardé au commit `9bea4ac` avant
+  réécriture, puis `origin/main` fusionné au commit `f9c3505` : la branche
+  rattrape 49 commits, dont le dispatch, le départ de vol, le référentiel
+  d'aérodromes et le règlement T0051. Les conflits du gate backend, de
+  l'inventaire d'autorité, des types, du seed et des documents d'état sont
+  résolus en gardant les deux côtés.
+- 4 août 2026 — la migration est renommée `20260804000200` : `main` possède déjà
+  `20260803000200` pour le départ de vol autoritaire. La collision d'horodatage
+  aurait été indétectable sans ce rattrapage.
+- 4 août 2026 — la réécriture de `financial_ledger_entries_known_type` conservait
+  les types de T0029 mais perdait le crédit `flight_settlement` de T0051, ce qui
+  aurait désactivé silencieusement le revenu de vol. Le type est réintégré et un
+  commentaire de migration l'exige explicitement.
+- 4 août 2026 — validations exécutées sur la révision finale : quatre gates
+  statiques verts, deux resets PostgreSQL 17 consécutifs, 22 fichiers pgTAP et
+  **502 assertions réellement découvertes** au vert, types régénérés conformes.
+  La fixture de concurrence du harnais CI est rejouée à la main contre la base
+  locale, faute de runner Linux disponible.
+- 4 août 2026 — second rattrapage : `origin/main` avait avancé de trois commits
+  pendant l'implémentation, livrant la source de version produit T0055 par la
+  PR #104. Le merge est refait, le conflit de `CURRENT_STATE.md` résolu sur le
+  récit T0055 de `main`, et le paragraphe de preuve backend de `QUALITY.md`
+  corrigé de vingt fichiers/427 assertions vers les vingt-deux fichiers et
+  502 assertions réellement découvertes. Les gates, les deux resets, les pgTAP et
+  les types sont rejoués verts sur l'arbre fusionné ; les trois commits repris ne
+  touchent aucun fichier SQL.
+- 4 août 2026 — `Review` : branche poussée et PR #105 ouverte vers `main`. Les
+  trois checks GitHub, dont le harnais CI Linux et sa course concurrente de
+  location, restent à confirmer avant toute transition vers `Done`.
 
 ## Dependencies
 
@@ -58,7 +125,7 @@ contrat. Le ticket doit borner cette autorité avant de passer en `Ready`.
 - T0028 — politique d'ouverture (`Done`, livrée dans `main` par la PR #54) ;
 - T0029 — achat autoritaire (`Done`, livré dans `main` par la chaîne de fusions
   empilées intégrée avec la PR #54) ;
-- décisions explicites d'Andy listées dans ce ticket.
+- décisions explicites d'Andy listées dans ce ticket, approuvées le 3 août 2026.
 
 ## Allowed areas
 
@@ -116,8 +183,14 @@ normatives qu'après leur consignation dans ce ticket et son passage en `Ready`.
 
 ### 3. Défaut, expiration et résiliation
 
-- Les transitions autorisées sont explicites, monotones et auditées ; un client
-  ne peut ni retarder une échéance, ni lever un défaut, ni prolonger un contrat.
+- Les transitions autorisées sont explicites et auditées ; un client ne peut ni
+  retarder une échéance, ni lever un défaut, ni prolonger un contrat. La seule
+  transition réversible est `active ⇄ grace`, pilotée exclusivement par la
+  commande temporelle quand les arriérés sont soldés ; `defaulted`, `expired` et
+  `terminated` restent monotones et terminaux.
+- Une résiliation volontaire ne raccourcit aucune obligation déjà exigible : le
+  préavis court jusqu'à la fin de la période payée et la commande est refusée si
+  une échéance due n'a pas encore été traitée par la commande temporelle.
 - Solde insuffisant applique exactement la grâce et la transition décidées par
   Andy sans écriture partielle ni solde négatif implicite.
 - À expiration, défaut ou résiliation, l'avion cesse d'être utilisable selon la
@@ -151,18 +224,23 @@ normatives qu'après leur consignation dans ce ticket et son passage en `Ready`.
 
 ## Acceptance criteria
 
-- [ ] Andy a validé et le ticket consigne durée, cadence, montants, grâce,
+- [x] Andy a validé et le ticket consigne durée, cadence, montants, grâce,
       défaut, résiliation, fin d'usage et autorité temporelle.
-- [ ] Une offre serveur et un contrat versionné sont créés atomiquement avec
+- [x] Une offre serveur et un contrat versionné sont créés atomiquement avec
       l'avion et toute écriture initiale applicable.
-- [ ] Chaque échéance est déterministe, rattrapable et prélevée au plus une fois
-      sous rejeu et concurrence.
-- [ ] Défaut, expiration et résiliation suivent les transitions approuvées sans
-      usage hors contrat ni mutation de l'historique financier.
-- [ ] A/B/anonyme et toutes les mutations ou horloges clientes sont isolés.
-- [ ] Deux resets, tous les pgTAP, les types, les courses et les gates passent
-      avec un nombre d'assertions réellement découvert et consigné.
-- [ ] La documentation distingue commande temporelle prouvée, ordonnanceur
+- [x] Chaque échéance est déterministe, rattrapable et prélevée au plus une fois
+      sous rejeu ; la convergence concurrente reste couverte par le seul harnais
+      CI Linux, rejouée manuellement en local et non exécutée sur cette machine.
+- [x] Défaut, expiration et résiliation suivent les transitions approuvées sans
+      mutation de l'historique financier. Réserve explicite : l'état
+      `company_aircraft.is_usable` est autoritaire mais aucun consommateur ne le
+      lit encore, donc « pas d'usage hors contrat » n'est pas encore opposable au
+      dispatch — voir *Risks and limitations*.
+- [x] A/B/anonyme et toutes les mutations ou horloges clientes sont isolés.
+- [x] Deux resets, tous les pgTAP, les types et les gates passent avec un nombre
+      d'assertions réellement découvert et consigné — 22 fichiers, 502
+      assertions. Les courses CI restent à confirmer sur la PR.
+- [x] La documentation distingue commande temporelle prouvée, ordonnanceur
       absent, branche empilée et capacité effectivement livrée dans `main`.
 
 ## Security review
@@ -190,6 +268,10 @@ normatives qu'après leur consignation dans ce ticket et son passage en `Ready`.
   dépend exclusivement d'un temps et d'une commande serveur ;
 - contrôle manuel à automatiser : rattrapage ordonné après plusieurs échéances
   et courses concurrentes ;
+- dette créée et non résorbée par ce ticket : `company_aircraft.is_usable` est
+  écrit par les trois commandes de location mais lu par aucune commande de
+  dispatch ; l'application effective de la fin d'usage appartient à un ticket
+  dédié, le dispatch étant explicitement hors périmètre ici ;
 - risque résiduel : sans ordonnanceur distant, aucune exécution à l'heure réelle
   ni disponibilité opérationnelle n'est prouvée.
 
@@ -228,18 +310,83 @@ fermer les nouvelles offres sans réécrire l'historique.
 
 ## Completion Report
 
-À remplir après décisions, implémentation et validation.
-
 ### Summary
+
+Location serveur de 30 jours sur les termes approuvés le 4 août 2026 : frais de
+mise en service de dix loyers et premier loyer prélevés dans la transaction
+d'activation, rattrapage quotidien ordonné, grâce de 72 heures avec suspension et
+rétablissement de l'avion, défaut terminal sans dette, expiration, préavis de
+résiliation jusqu'à la fin de la période payée et pénalité de deux loyers
+plafonnée au loyer restant dû. Les contrats et événements sont conservés et
+détachés lors de la suppression d'une compagnie. Aucun ordonnanceur ni endpoint
+client n'est ajouté.
 
 ### Files changed
 
+- migration append-only `20260804000200_authoritative_aircraft_lease.sql` ;
+- `supabase/seed.sql` — deux offres de location synthétiques ;
+- `supabase/tests/database/aircraft_lease.test.sql` et
+  `aircraft_lease_structure.test.sql` — 43 et 32 assertions ;
+- `packages/database/src/database.types.ts` — types régénérés ;
+- `tests/backend/run.ps1` et `scripts/ci/test-backend.ps1` ;
+- `eng/authority-inventory.json` ;
+- documentation produit, architecture, sécurité, qualité et état courant.
+
 ### Commands and results
+
+- `pnpm.cmd backend:check` — PASS, 44 scénarios de mutation ;
+- `pnpm.cmd authority:check` — PASS, 10 étapes, 13 domaines, 9 mutations ;
+- `pnpm.cmd data-policy:check` — PASS, 6 mutations ;
+- `pnpm.cmd maintenance:check` — PASS, 8 mutations ;
+- `pnpm.cmd backend:reset` puis `backend:test` — PASS, 22 fichiers,
+  **502 assertions découvertes** ;
+- second `backend:reset` puis `backend:test` — PASS, mêmes 22 fichiers et
+  502 assertions ;
+- `pnpm.cmd backend:types` puis `backend:types:check` — PASS, « Database types
+  match the local schema » ;
+- `pnpm.cmd ci:backend` — NON EXÉCUTÉ : le harnais refuse toute machine autre
+  que le runner Linux explicite. Sa fixture de location et son scénario temporel
+  ont été rejoués à la main contre la base locale, avec réponse de rejeu
+  identique, deux échéances et le grand livre attendu ;
+- `git diff --check` — PASS, avertissements LF/CRLF seulement.
 
 ### Manual verification result
 
+Partiellement exécutée. Isolation A/B/anonyme, rejeu, collision de clé, bornes
+temporelles, solde insuffisant, entrée et sortie de grâce, défaut, expiration,
+préavis, pénalité plafonnée, refus sur solde insuffisant, refus sur échéance
+exigible et rollback injecté sont encodés dans les pgTAP et verts. La
+convergence sous concurrence réelle n'est pas rejouée sur cette machine : elle
+appartient au harnais CI Linux.
+
 ### Risks and limitations
+
+- `company_aircraft.is_usable` est écrit par les trois commandes de location mais
+  **lu par aucune commande de dispatch** : `create_dispatch_draft` ne vérifie que
+  l'appartenance de l'avion à la compagnie. Un avion dont la location a expiré,
+  fait défaut ou été résiliée reste donc dispatchable. La fin d'usage est
+  autoritaire dans les données, pas encore opposable au dispatch ;
+- la réversion `grace → active` est la seule transition non monotone du
+  contrat ; elle n'est atteignable que par la commande temporelle, mais elle
+  suppose un crédit au grand livre, donc en pratique un règlement de vol T0051 ;
+- depuis `grace`, laisser filer jusqu'au défaut ne coûte aucune pénalité, alors
+  qu'une résiliation volontaire en coûte deux loyers. L'incitation est
+  assumée pour l'alpha ; son correctif naturel est un malus de réputation, hors
+  périmètre ici ;
+- la convergence concurrente et les trois checks GitHub restent à confirmer ;
+- aucun ordonnanceur ne garantit les échéances à l'heure réelle.
 
 ### Follow-ups
 
+- ouvrir un ticket appliquant `is_usable` aux commandes de dispatch et de départ
+  de vol, seule façon de rendre « pas d'usage hors contrat » opposable ;
+- confirmer les trois checks GitHub de la PR, dont le harnais CI Linux et son
+  scénario de concurrence de location ;
+- ordonnanceur distant des échéances, ticket d'exploitation distinct, obligatoire
+  avant toute donnée réelle ;
+- endpoint authentifié de location, absent par décision de périmètre.
+
 ### Documentation updated
+
+`PRODUCT.md`, `ARCHITECTURE.md`, `SECURITY.md`, `QUALITY.md`,
+`CURRENT_STATE.md`, ce ticket et son index.

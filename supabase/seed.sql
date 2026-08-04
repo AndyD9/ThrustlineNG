@@ -98,6 +98,29 @@ values
         'EUR'
     );
 
+-- Synthetic lease offers carrying the terms Andy approved on 4 August 2026:
+-- 30 days, one rent every 24 hours paid in advance, a non-refundable set-up fee
+-- of ten rents, 72 hours of grace with the aircraft suspended, and voluntary
+-- termination penalised by two rents capped at the rent still due. The rent is
+-- authored per offer inside the band the migration enforces.
+insert into public.aircraft_purchase_offers (
+    id, aircraft_type_code, serial_number, display_name, price_minor,
+    currency_code, offer_kind, terms_version, duration_days, cadence_hours,
+    rent_minor, initial_payment_minor, grace_hours, voluntary_termination,
+    termination_penalty_minor, usable_during_grace
+)
+values
+    (
+        'ea000000-0000-4000-8000-000000000003', 'C172', 'SYN-C172-LEASE-0003',
+        'Synthetic Cessna 172 Lease', 10000000, 'EUR', 'lease', 1, 30, 24,
+        25000, 250000, 72, true, 50000, false
+    ),
+    (
+        'eb000000-0000-4000-8000-000000000004', 'TBM9', 'SYN-TBM9-LEASE-0004',
+        'Synthetic TBM 930 Lease', 50000000, 'EUR', 'lease', 1, 30, 24,
+        90000, 900000, 72, true, 180000, false
+    );
+
 -- Bounded aerodrome reference, projected verbatim from eng/airports.json, which
 -- stays the canonical source. The load is idempotent so a repeated reset cannot
 -- duplicate or drift from the source. No identity and no personal data.
