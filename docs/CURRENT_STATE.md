@@ -1,8 +1,19 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 3 août 2026 (audit de tous les tickets ouverts et
-réconciliation des livraisons T0043–T0048).
-Statut : T0009, T0012–T0031, T0033–T0048 sont `Done`. T0009 est clos par le
+Dernière revue documentaire : 4 août 2026 (clôture de T0051 après sa fusion dans
+`main`, à la suite de celles de T0053, T0054 et T0058).
+Statut : T0009, T0012–T0031, T0033–T0054, T0057 et T0058 sont `Done`. T0053 est
+livré dans `main` par la PR #96 au merge `87c4eec`, T0054 par la PR #99 au merge
+`3a2c292`, T0058 par la PR #98 au merge `2a07113` et T0051 par la PR #102 au merge
+`c0972fa`, chacun avec ses trois checks verts. Le flux backend du golden path va
+donc désormais de la création de compagnie à la clôture d'un vol réglé. T0055 et
+T0056 sont `Ready` et T0059 est `Draft` faute d'un MSFS 2024 et d'un SDK
+SimConnect installés avec provenance vérifiable.
+T0050 est livré dans `main`
+par la PR #89 au merge `6577125`, où le job Linux `Supabase PostgreSQL 17`
+réussit ; le job `Windows multi-stack` du même run échoue sur la seule ligne
+d'index T0049 ramenée à `Review` par la résolution de conflit `09565ee`, corrigée
+par la PR de réconciliation `docs/T0050-record-merge`. T0009 est clos par le
 smoke test console Windows du 3 août 2026. T0042 est livré dans `main` par la PR
 corrective #73 au commit `a4047a5`. T0043 et T0044 sont livrés ensemble dans
 `main` par la PR corrective #79 au commit `6c232c6`; Windows multi-stack,
@@ -11,13 +22,20 @@ ensemble dans `main` par la PR corrective #83 au merge `d117690`; leurs commits
 `34f96bb`, `ad46315`, `0559a8e` et `175203c` sont dans l'ascendance de `main` et
 les trois checks sont verts. La composition catalogue/achat, la relecture de
 flotte, le brouillon de dispatch autoritaire et sa frontière Auth sont donc
-livrés. WebView live, runtime Edge live, SimBrief et cycle de vol restent hors
-périmètre de ces preuves.
+livrés. WebView live, SimBrief et cycle de vol restent hors périmètre de ces
+preuves. T0049 lève la seule réserve « runtime Edge live » du dispatch : le
+3 août 2026, 48 contrôles locaux passent sans échec sur la pile T0021 et la PR
+#87 est fusionnée dans `main` au merge `00ec05d` avec ses trois checks verts.
+Cette preuve reste locale et synthétique et ne livre aucune capacité produit
+nouvelle.
 Les vérifications historiques T0007–T0008 et T0011 restent `Verify`. T0032 est
-`In progress` après décision explicite d'Andy le 3 août 2026 : 30 jours, loyer
-quotidien de 0,5 %, premier prélèvement à l'activation, grâce de 48 heures,
-résiliation immédiate sans frais et retrait d'usage à toute fin. La phase 2
-reste sous interdiction de données utilisateur réelles.
+`In progress` après décision explicite d'Andy le 4 août 2026 : 30 jours, loyer
+toutes les 24 heures payé d'avance, premier loyer prélevé à l'activation, frais
+de mise en service non remboursables de dix loyers, grâce de 72 heures avec
+avion suspendu, résiliation volontaire avec préavis jusqu'à la fin de la période
+payée et pénalité de deux loyers plafonnée au loyer restant dû, retrait d'usage
+à toute fin. Aucune capacité de location n'est encore livrée dans `main`. La
+phase 2 reste sous interdiction de données utilisateur réelles.
 
 La fusion #41 (`06cece5`) est couverte par le run CI `30706049048`, réussi sur
 PostgreSQL 17 et Windows multi-stack, et par le run supply-chain `30706049088`,
@@ -95,12 +113,31 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   aiguille l'accueil vers onboarding ou catalogue, sans achat composé.
   T0045 compose ensuite catalogue et achat, T0046 relit la flotte après achat,
   puis T0047 ajoute sur sa branche un brouillon de dispatch serveur minimal.
-  T0048 l'expose derrière une frontière Auth bornée, sans desktop, SimBrief ou
-  cycle de vol.
+  T0048 l'expose derrière une frontière Auth bornée et T0049 le valide sur
+  l'Edge Runtime local réel. T0050 ajoute au-dessus le démarrage serveur d'un
+  vol depuis ce brouillon, sans frontière Auth, desktop, SimBrief, télémétrie
+  ni clôture. T0057 ajoute, livré dans `main` par la PR #91 au merge `df685b7`,
+  un référentiel d'aérodromes serveur en lecture seule dont tout brouillon doit
+  désormais référencer les deux codes, sans distance, revenu ni lecture desktop.
+  T0051 ajoute, livré dans `main` par la PR #102 au merge `c0972fa`, la clôture
+  unique d'un vol : deux états terminaux, un rapport borné, un règlement net unique
+  dans le grand livre, une réputation informative bornée et un avion immédiatement
+  redisponible, sans frontière Auth ni appelant desktop.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
+- Gate d'avis Cargo T0058 présent dans `main`, livré par la PR #98 au merge
+  `2a07113` : source `eng/cargo-advisory-allowlist.json` à 15 avis revus, harnais
+  statique à huit mutations négatives dans le job Windows et comparaison au
+  rapport réel dans le job supply-chain.
+- Politique de règlement de vol T0051 présente dans `main`, livrée par la PR #102
+  au merge `c0972fa` : source `eng/flight-settlement-policy.json`, projection
+  embarquée comparée texte à texte par le gate backend, plancher `5000` et plafond
+  `2000000` en `EUR`.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
-  clientes dans `eng/authority-inventory.json`.
+  clientes dans `eng/authority-inventory.json`. T0051 fait passer
+  `flight-finalization` et `reputation-progression` de `not-implemented` à
+  `server-authoritative` partiel, sans ajouter d'entrée dans
+  `clientDataApiReads`.
 
 ## Procédure vérifiée depuis un clone propre
 
@@ -200,9 +237,14 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
   production et promotion restent absentes ; `KI-021` interdit les données
   réelles jusque-là.
 - Aucun pipeline complet de release signée ou d'updater avec rollback n'existe.
-- Cargo ne signale aucune vulnérabilité, mais plusieurs crates GTK3 non
-  maintenues et `glib` 0.18.5 unsound restent dans le lockfile multi-plateforme
-  (`KI-019`).
+- Cargo ne signale aucune vulnérabilité, mais 15 avis informatifs restent dans le
+  lockfile multi-plateforme. T0058 les borne par
+  `eng/cargo-advisory-allowlist.json` et un gate qui échoue sur tout avis non
+  revu, toute dérive et toute entrée périmée ; la liste expire le 4 novembre
+  2026. La chaîne GTK3, `glib` 0.18.5 unsound et `proc-macro-error` restent hors
+  du graphe `win-x64`, tandis que cinq crates `unic-*` non maintenues y sont
+  réellement présentes via `urlpattern` puis `tauri-utils`. `KI-019` est résolu
+  par ce contrôle, pas par la disparition des crates.
 
 ## Travail local à préserver
 
@@ -297,6 +339,45 @@ Une trace synthétique de huit points se rejoue sans MSFS. Elle couvre sol,
 décollage, montée, croisière, descente et retour au sol, mais ne prouve ni le SDK
 installé, ni MSFS 2024 Store/Steam, ni un comportement d'avion réel. Aucun
 binaire de l'ancien build n'est copié.
+
+## Télémétrie bornée sur le contrat local
+
+T0054 relie cette source au contrat local T0010 sans l'élargir : `BridgeHub`
+publie le message versionné `telemetry.v1` sur `/hubs/v1/bridge`, et le health
+check expose les champs additifs `telemetrySource` et `telemetryState` sans
+divulguer chemin de trace, version de SDK ni jeton. La source est choisie par
+`--telemetry-source replay|native` avec `--telemetry-trace <fichier>` ; `replay`
+reste le défaut et, sans trace, l'état reste `idle` sans rien publier, ce qui est
+exactement le lancement actuel par Tauri avec `--port` seul. La cadence maximale
+d'un échantillon par seconde n'est pas configurable en ligne de commande.
+
+Le publieur n'ouvre la source qu'au premier abonné, revalide chaque échantillon
+avant diffusion, conserve au plus un échantillon en attente par abonné en mode
+`DropOldest` et abandonne un abonné qui dépasse le délai d'envoi borné, sans
+jamais retarder la lecture ni les autres abonnés. Le 4 août 2026, 25 scénarios
+bridge passent trois exécutions consécutives, dont la cadence prouvée sur un
+`TimeProvider` manuel, le rejet d'un échantillon hors bornes construit hors de la
+fabrique du domaine, l'abandon d'un abonné bloqué, la libération de l'adaptateur à
+l'annulation et le refus de `::1` comme de l'adresse IPv4 non-loopback de l'hôte.
+Le build .NET Release reste sans avertissement, `bridge:health` rend `Healthy`,
+la publication self-contained et `performance:check:build` respectent les budgets,
+et les gates autorité et maintenance passent.
+
+La vérification manuelle du 4 août 2026 lance le bridge publié avec la source
+replay, jeton transmis par stdin : `BRIDGE_READY 1 <port>`, health
+`replay`/`idle`, abonné anonyme refusé en `401`, huit échantillons reçus dans
+l'ordre `0` à `7` à des intervalles de 990 à 1014 ms, dernier échantillon au sol,
+état `completed`, working set stable après une déconnexion brutale sans trame de
+fermeture, nouvel abonné encore accepté, `Ctrl+C` rendant le code `0`, `stderr`
+vide et aucun processus résiduel.
+
+Cette tranche ne détecte aucune phase de vol, ne persiste ni ne reprend un vol,
+n'envoie rien à Supabase ou au grand livre, n'est consommée ni par le desktop ni
+par la WebView, et ne prouve ni MSFS 2024 réel, ni le SDK installé : la source
+native reste non prouvée et `KI-009`, `KI-011` et `KI-015` restent ouverts. La
+PR #99 la fusionne dans `main` au merge `3a2c292` avec ses trois checks verts ;
+T0054 est `Done`, et le ticket T0059 porte désormais la preuve réelle attendue par
+ces trois problèmes connus.
 
 ## Budgets stabilité et performance
 
@@ -655,6 +736,147 @@ validée, recoupée, projetée sur sept champs publics et marquée `no-store`. L
 reste injectée, sans Edge Runtime live, desktop, SimBrief, cible distante ou
 donnée réelle. Le commit est livré dans `main` par la PR #83.
 
+T0049 exécute cette frontière dans l'Edge Runtime local réel avec
+`scripts/validate-dispatch-draft-runtime.ps1`, qui n'ajoute ni migration, ni
+handler, ni contrat. Le 3 août 2026, ses 48 contrôles passent : bindings loopback
+inchangés, chaînage Auth → Edge → RPC pour un avion réellement acheté, sept
+champs publics `no-store`, rejeu convergent, cinq familles de refus redigés,
+état SQL `1|1|1|1` puis `2|0|0|0|0` après destruction et redémarrage de la pile.
+Le script ne consigne aucun secret, JWT, email ni détail SQL. Deux limites sont
+retenues : une identité déjà propriétaire ne peut pas être supprimée par
+l'Admin API, `companies_owner_id_fkey` refusant d'orphaner sa compagnie, donc le
+nettoyage vient de la destruction de la pile jetable ; et `pnpm backend:test`
+suppose une base fraîchement réinitialisée. Aucune parité cloud, cible distante,
+consommation desktop ou donnée réelle n'est prouvée.
+
+T0050 ouvre le domaine `flight-runtime` par une huitième migration append-only
+qui ne réécrit pas T0047. L'état de dispatch devient une liste fermée de `draft`
+et `active`, un horodatage `started_at` n'existe que pour un vol actif et un
+trigger le dérive de `clock_timestamp()`; la contrainte d'unicité par avion
+couvre désormais les deux états. La commande `start_flight_from_dispatch`,
+réservée à `service_role`, accepte seulement propriétaire vérifié, clé
+d'idempotence et dispatch, verrouille la compagnie puis le dispatch, dérive
+compagnie et avion, refuse un compte en suppression et n'autorise que la
+transition `draft` → `active`. Un dispatch inconnu, étranger ou déjà actif rend
+le même refus opaque, et le registre privé `flight_start_commands` n'admet qu'un
+démarrage par dispatch. Deux resets puis 16 fichiers/312 assertions pgTAP
+passent, les types restent stables, la vérification manuelle rend `1|2|1|1` sans
+écriture financière et deux sessions concurrentes sur le même dispatch rendent
+`0|1` avec l'état `1|1|0|1|0`. Cette tranche n'ajoute ni frontière Auth,
+endpoint, appelant desktop, télémétrie, clôture, annulation, cible distante ou
+donnée réelle.
+
+T0057 ajoute une neuvième migration append-only qui n'en réécrit aucune. La table
+`public.airports` porte un code ICAO en clé primaire, un nom borné, une position
+en `numeric` à quatre décimales contrainte à `[-90, 90]` et `[-180, 180]`, un
+palier de popularité pris dans la liste fermée ordonnée `regional`, `standard`,
+`major`, `hub`, et une `schema_version` contrainte. Elle force RLS, n'accorde que
+`select` à `authenticated` par une politique unique et ne donne aucune mutation à
+`anon`, `authenticated` ou `service_role`. La source canonique
+`eng/airports.json` déclare 103 aérodromes écrits à la main, sans import d'un jeu
+de données tiers ni téléchargement à l'exécution ; `supabase/seed.sql` en charge
+une projection idempotente, `backend:check` échoue sur toute divergence textuelle
+et le harnais CI compare la table réellement chargée à la source.
+
+La même migration remplace `create_dispatch_draft` par `create or replace` en
+conservant signature, contrat public, idempotence et verrous : les deux codes
+normalisés doivent désormais exister dans le référentiel, et un code inconnu rend
+exactement le refus d'un code mal formé. Deux resets puis 18 fichiers/356
+assertions pgTAP passent, les types n'ajoutent que la table `airports`, la
+comparaison table ↔ source rend 103 lignes identiques et la vérification manuelle
+confirme `103|103|4|0|1`, un rejeu de contrat inchangé, trois refus indiscernables
+et `42501` pour toute mutation cliente comme pour la lecture anonyme. Cette
+tranche n'ajoute ni lecture desktop, ni sélecteur d'aérodromes, ni calcul de
+distance, de durée ou de revenu. Elle est fusionnée dans `main` depuis la Pull
+Request #91, merge `df685b7` du 4 août 2026.
+
+T0051 ajoute une dixième migration append-only qui n'en réécrit aucune et ferme le
+cycle serveur du vol. La liste d'états de dispatch passe à quatre valeurs fermées,
+`completed` et `interrupted` étant terminales et portant une colonne `closed_at`
+dérivée de PostgreSQL ; l'unicité globale par avion devient un index unique
+partiel limité à `draft` et `active`, si bien qu'un avion redevient immédiatement
+dispatchable tandis que son vol clôturé reste comme historique. La source
+canonique `eng/flight-settlement-policy.json` déclare le barème
+`(15000 + 120 × distance_nm + 300 × block_minutes) × multiplicateur`, un plancher
+de `5000`, un plafond de `2000000`, les quatre multiplicateurs de palier et les
+deltas de réputation ; la migration en embarque une projection que `backend:check`
+reconstruit depuis la source et compare texte à texte.
+
+`close_flight`, réservée à `service_role`, accepte un propriétaire vérifié, une
+clé d'idempotence, un dispatch et un rapport dont le jeu de clés est strictement
+validé. Elle verrouille compagnie, sujet financier puis dispatch, retient
+`min(temps déclaré, temps écoulé serveur)`, dérive la distance de grand cercle du
+référentiel T0057, recalcule le montant, l'écrête au plafond puis applique le
+plancher à une fin interrompue, et écrit dans une seule transaction l'état
+terminal, le rapport, l'écriture nette `flight_settlement`, l'événement de
+réputation et son registre d'idempotence. La réputation reste informative :
+`get_company_reputation` dérive la compagnie de `auth.uid()` et rend un score
+borné `0–100` qui ne module aucune capacité.
+
+Le 4 août 2026, deux resets puis 20 fichiers/427 assertions pgTAP passent avec
+`Result: PASS`, les types n'ajoutent que `closed_at`, `close_flight` et
+`get_company_reputation`, et le gate backend passe avec 42 mutations négatives. La
+vérification manuelle sur état réellement commité rend un règlement de `35194`
+unités mineures pour un vol terminé de 168,28 NM, le plancher `5000` pour un vol
+interrompu, un solde de `43040194`, une réputation de `48`, un avion
+immédiatement redispatchable et quatre refus sans écriture. Cette tranche
+n'ajoute ni frontière Auth, ni appelant desktop, ni annulation, ni télémétrie de
+clôture, ni SimBrief, ni cible distante, ni donnée réelle.
+
+Elle est fusionnée dans `main` depuis la Pull Request #102, merge `c0972fa` du
+4 août 2026, avec ses trois checks verts. Le job Linux lève la seule réserve du
+ticket en exécutant `ci:backend`, non exécutable sous Windows : il rend `Flight
+closure concurrency passed: 2 sessions, 1 completed flight, 1 report, 1 reputation
+event, 1 credit of 35194 minor units.` puis `Backend CI passed: 2 resets, 20 pgTAP
+files, ... flight start and flight settlement, ...` La convergence de deux clôtures
+réellement concurrentes est donc prouvée par le harnais. La première publication
+avait échoué sur ce même job pour un défaut de portabilité du gate — `powershell`
+5.1 et `pwsh` 7 ne rendent pas le même type pour un nombre JSON — corrigé par le
+commit `8627fd3` et consigné dans `docs/QUALITY.md` comme règle pour tout gate.
+
+T0052 ajoute le premier appelant desktop de cette frontière : un module de
+commande borné à la cible loopback `http:` et un panneau mince injecté dans
+l'accueil authentifié. Le module normalise les ICAO en majuscules après trim,
+exige deux codes distincts de quatre caractères ASCII et des UUID canoniques
+avant tout appel réseau, borne la requête à cinq secondes et la réponse lue à
+16 Kio, puis valide les sept champs publics avec `state: draft` et
+`schemaVersion: 1` en recoupant avion et aérodromes avec la demande. Le panneau
+n'exécute aucun appel au rendu, ne propose que les avions réellement chargés par
+le transport T0046, obtient le bearer à la soumission, conserve une clé
+d'idempotence par intention, en crée une nouvelle si l'avion ou un ICAO change,
+bloque le double envoi, efface la session sur refus Auth et annule sa requête au
+démontage. Le 4 août 2026, 21 fichiers/241 tests frontend passent, dont 66
+nouveaux pour ce flux, avec 93,96 % des statements et 88,41 % des branches en
+couverture globale et 98,34 % des statements sur `features/flight-dispatch`;
+typecheck, build et les gates autorité, données et maintenance passent. Cette
+tranche n'ajoute ni lecture Data API, ni mutation cliente, ni lecture durable des
+dispatchs, ni transition de vol, ni effet financier, et sa preuve reste jsdom avec
+`fetch` injecté, sans WebView live ni Edge Runtime. La PR #94 la fusionne dans
+`main` au merge `9ea2493` avec ses trois checks verts ; T0052 est `Done`.
+
+T0053 ajoute la lecture durable qui manquait, dans un module séparé du module de
+commande. La lecture est un `GET` unique vers `flight_dispatches` à projection,
+ordre `created_at.desc,id.desc` et limite de cinquante lignes constants, sans
+aucun filtre de compagnie, de propriétaire, d'avion ou d'état : la RLS
+`flight_dispatches_select_own` reste l'unique autorité de sélection. La cible
+reste loopback `http:` sans identifiants, requête, fragment ni chemin, la requête
+est bornée à cinq secondes et la réponse lue à 64 Kio en flux. Chaque ligne est
+validée avant tout rendu — jeu de clés exact, UUID canoniques, deux ICAO
+distincts, état `draft` ou `active`, horodatage canonique et `schema_version` à
+`1` — et la liste refuse tout dépassement de limite comme tout doublon
+d'identifiant ou d'avion. Le panneau ne lit rien au rendu, obtient le bearer du
+gestionnaire T0038 au chargement, efface la session sur refus Auth, rend
+explicitement liste vide, chargement et échec, relit la source autoritaire après
+une création réussie sans construire localement le dispatch créé, rejoue un signal
+reçu pendant une lecture en cours et annule sa requête au démontage. Le 4 août
+2026, 24 fichiers/297 tests frontend passent, dont 56 nouveaux pour ce flux, avec
+94,46 % des statements et 88,96 % des branches en couverture globale et 98,01 %
+des statements sur `features/flight-dispatch`; typecheck, build et les gates
+autorité, données et maintenance passent. Cette tranche n'ajoute ni pagination,
+ni tri ou filtre client, ni transition de vol, ni effet financier, sa preuve reste
+jsdom avec `fetch` injecté, sans WebView live ni RLS réelle. La PR #96 la fusionne
+dans `main` au merge `87c4eec` avec ses trois checks verts ; T0053 est `Done`.
+
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
@@ -664,11 +886,19 @@ ni référence privilégiée, ni accès Data API.
 ## Autorité des mutations du golden path
 
 T0024 ajoute une source JSON versionnée couvrant exactement les dix étapes
-produit. T0048 classe désormais le dispatch comme tranche serveur partielle avec
-frontière Auth bornée, en
+produit. T0048 classe le dispatch comme tranche serveur partielle avec
+frontière Auth bornée et T0050 classe `flight-runtime` comme tranche serveur
+partielle limitée au démarrage d'un vol, en
 plus de la compagnie, du cycle de compte, de la flotte, de la finance et de la
-continuité ; Supabase Auth est une autorité externe et six domaines restent
-`not-implemented`.
+continuité ; Supabase Auth est une autorité externe et cinq domaines restent
+`not-implemented`. T0057 rattache le référentiel d'aérodromes au domaine
+dispatch et classe explicitement son absence de consommateur client : la table
+est serveur, en lecture seule pour `authenticated`, et ne figure donc pas dans
+l'allowlist `clientDataApiReads`. T0052 rattache au même domaine deux chemins
+desktop, le module de commande et son panneau, sans nouvelle entrée dans
+`clientDataApiReads` et sans mutation cliente. T0053 y ajoute le module de lecture
+et son panneau, ainsi que la quatrième et dernière entrée de
+`clientDataApiReads`, `flight_dispatches`, toujours sans mutation cliente.
 
 `pnpm authority:check` scanne React, Tauri et le bridge, refuse toute mutation
 Supabase/SQL directe, accès Data API non classé, credential ou commande
@@ -757,12 +987,24 @@ version restent non validés et relèvent de la phase 6.
 
 ## Prochain ticket recommandé
 
-T0043 à T0048 sont livrés dans `main`. Le prochain ticket recommandé est
-la preuve locale réelle Auth → Edge Runtime → `create_dispatch_draft`, avec
-identité, compagnie, avion et dispatch exclusivement synthétiques, sans encore
-composer le desktop, appeler SimBrief ni démarrer un vol. T0032 est désormais en
-cours sur sa branche dédiée ; la persistance Windows reste un ticket de sécurité
-séparé avant tout stockage de refresh token.
+T0043 à T0050 sont livrés dans `main`, y compris la preuve locale réelle
+Auth → Edge Runtime → `create_dispatch_draft` et le démarrage serveur d'un vol
+depuis un brouillon possédé. T0057 livre le référentiel d'aérodromes dans `main`
+par la PR #91 au merge `df685b7`, avec ses trois checks verts, dont le harnais
+Linux qui compare la table chargée à `eng/airports.json`. Le flux backend a
+enchaîné sur T0051, la clôture d'un vol avec son règlement et sa réputation, livrée
+dans `main` par la PR #102 au merge `c0972fa` avec ses trois checks verts. Le
+prochain ticket recommandé de ce flux est l'endpoint authentifié de la clôture,
+encore à ouvrir, comme celui du démarrage : ce sont les deux dernières commandes
+serveur du golden path sans frontière Auth. Le flux desktop a livré T0052 dans `main` par la PR #94 puis T0053
+par la PR #96 au merge `87c4eec` : la préparation et la relecture des dispatchs
+sont donc composées, sans SimBrief, et son prochain ticket n'est pas encore ouvert.
+Le flux moteur de vol et bridge a livré T0054 par la PR #99 au merge `3a2c292`;
+son prochain ticket est T0059, qui reste `Draft` faute du prérequis physique
+MSFS 2024 et SDK SimConnect installés avec provenance vérifiable. Les transverses
+T0055 et T0056 sont `Ready`. La location T0032 a reçu ses décisions produit le
+4 août 2026 et est `In progress` sur sa branche dédiée ; la persistance Windows
+reste un ticket de sécurité séparé avant tout stockage de refresh token.
 
 T0032 consigne désormais la décision explicite d'Andy et reste `In progress`
 jusqu'à la relance complète des validations, des courses et des deux resets.

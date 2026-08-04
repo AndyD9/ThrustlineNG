@@ -62,6 +62,59 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0046 | Lire et actualiser la flotte depuis le desktop | 4 | T0029, T0038, T0044–T0045 | Done |
 | T0047 | Créer un brouillon de dispatch autoritaire et idempotent | 2–4 | T0012, T0018, T0024, T0029, T0046 | Done |
 | T0048 | Exposer le brouillon de dispatch derrière une frontière authentifiée | 2–4 | T0023, T0024, T0047 | Done |
+| T0049 | Valider le brouillon de dispatch sur le runtime local réel | 2 | T0021, T0036, T0040, T0047–T0048 | Done |
+| T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Done |
+| T0051 | Clôturer un vol une seule fois, régler son revenu et sa réputation | 2 | T0020, T0028–T0029, T0047, T0050, T0057 | Done |
+| T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Done |
+| T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Done |
+| T0054 | Publier la télémétrie bornée du bridge sur le contrat local | 3 | T0010–T0011, T0015 | Done |
+| T0055 | Fixer la source canonique de version produit et livrer l'alpha technique interne | 1–6 | T0006, T0014–T0015, T0043–T0048 | Ready |
+| T0056 | Clôturer les vérifications interactives T0007 à T0009 | 1 | T0007–T0009, T0015, décision Andy | Ready |
+| T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Done |
+| T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Done |
+| T0059 | Prouver le premier slice SimConnect réel et capturer son corpus | 3 | T0011, T0014–T0015, T0054, ADR-0003, MSFS 2024 installé, décision Andy | Draft |
+
+## Vague de tickets vers l'alpha interne
+
+T0049 à T0057 constituent la vague détaillée suivante, ordonnée par les trois flux
+du mode accéléré de `docs/ROADMAP.md`. Chaque flux ne porte qu'un ticket
+`In progress` à la fois, dans un worktree distinct, et chaque branche part du
+dernier `origin/main` en ciblant `main`.
+
+- flux moteur de vol et bridge : T0054, puis T0059 pour la source réelle et son
+  corpus, puis la détection déterministe des phases et la reprise, encore au
+  niveau roadmap ;
+- flux backend du golden path : T0049, T0050 et T0057, puis T0051 ;
+- flux desktop et parcours E2E : T0052 puis T0053 ;
+- transverses au jalon d'alpha technique : T0055 et T0056.
+
+Andy a tranché le 3 août 2026 les sept décisions de clôture de vol : revenu net
+unique dérivé du temps, de la distance et de la popularité des aérodromes, en
+`EUR`, avec un plancher pour un vol interrompu, un avion immédiatement
+redisponible et une réputation informative bornée. T0057 devient donc le prérequis
+technique de T0051, puisque distance et popularité exigent un référentiel
+d'aérodromes autoritaire.
+
+T0051 et T0053 ont été `Draft` uniquement pour l'ordre d'intégration : T0051
+attendait la fusion de T0050 et T0057, T0053 celle de T0052, afin de ne pas
+rouvrir une pile de branches. Ces conditions sont toutes satisfaites : T0050 est
+dans `main` depuis la PR #89, T0057 depuis la fusion de la PR #91 le 3 août 2026
+au merge `df685b7`, et T0052 depuis la PR #94 le 4 août 2026. T0053 a suivi ce
+chemin jusqu'au bout et est `Done` depuis la fusion de la PR #96 au merge
+`87c4eec`. T0051 a suivi le même chemin et est `Done` depuis la fusion de la
+PR #102 dans `main` au merge `c0972fa`, avec ses trois checks verts : le flux
+backend du golden path va donc de la création de compagnie à la clôture d'un vol
+réglé. La location T0032 reste hors du gate de l'alpha et conserve son statut
+`Draft`. T0011 reste `Verify` jusqu'aux essais MSFS 2024 réels, désormais portés
+par T0059, et n'est pas couvert par T0056.
+
+T0054 est `Done` depuis la fusion de la PR #99 dans `main` au merge `3a2c292` le
+4 août 2026 : le flux moteur de vol et bridge publie la télémétrie bornée sur le
+contrat local depuis le replay synthétique. Son prochain ticket est T0059, qui
+fournit la source réelle et son corpus ; il reste `Draft` parce que son prérequis
+physique — MSFS 2024 stable et le SDK SimConnect installés avec une provenance
+vérifiable — n'est pas satisfait sur la machine de validation, et aucune trace
+synthétique ne le contourne.
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -296,6 +349,47 @@ réponse publique versionnée. Les 46 tests de fonctions et les gates applicable
 passent. Le ticket est `Done` et son commit `175203c` est livré dans `main` par
 la PR #83, sans desktop, Edge Runtime live, SimBrief, cycle de vol ou cible
 distante au-delà de son périmètre.
+
+T0049 charge enfin cette frontière dans l'Edge Runtime local réel. Le 3 août
+2026, 48 contrôles passent sans échec : chaînage Auth → Edge → RPC, sept champs
+publics avec `no-store`, rejeu convergent, refus sans bearer, champ interdit,
+ICAO malformés ou identiques, avion d'un autre propriétaire, avion inconnu,
+deuxième brouillon, état final `1|1|1|1` et bindings loopback inchangés. Le
+ticket n'ajoute aucune capacité produit : ni migration, ni handler, ni desktop,
+ni cible distante. La PR #87 est fusionnée dans `main` au merge `00ec05d` avec
+ses trois checks verts sur le commit `2685a2a`; T0049 est `Done`. Le commit
+`7e9a76d`, poussé après la fusion, est propagé séparément par
+`docs/T0049-record-merge`. Le nettoyage réel vient de la destruction de la pile jetable, parce que
+`companies_owner_id_fkey` refuse volontairement d'orphaner une compagnie en
+supprimant son propriétaire par l'Admin API.
+
+T0050 ajoute au-dessus de T0049 le démarrage serveur d'un vol depuis un
+brouillon possédé. Une huitième migration append-only ouvre une liste fermée de
+deux états, ajoute un horodatage de départ dérivé de PostgreSQL et réserve
+`start_flight_from_dispatch` à `service_role`. Compagnie, avion, état et temps
+restent serveur ; rejeu, collision, dispatch étranger, dispatch déjà actif,
+compte en suppression, rollback injecté et concurrence sont prouvés sur
+PostgreSQL 17 avec 16 fichiers/312 assertions, et la vérification manuelle
+confirme un vol actif unique sans écriture financière. T0050 est `Done` : son
+commit `3e798db` est livré dans `main` par la PR #89 au merge `6577125`, et le
+job Linux `Supabase PostgreSQL 17` y passe avec 16 fichiers pgTAP, `Result: PASS`
+et `Flight start concurrency passed: 2 sessions, 1 active flight, 1 command,
+1 server time`. Le ticket n'ajoute ni frontière Auth, endpoint, desktop,
+SimBrief, télémétrie, clôture ni cible distante.
+
+La fusion de T0050 a rejoué la dérive d'index déjà connue : le merge `09565ee`
+de `main` dans la branche a résolu le conflit de cette table en écartant la PR
+#88, ramenant la ligne T0049 à `Review` alors que son fichier restait `Done`, ce
+qui a laissé `pnpm maintenance:check` et le job `Windows multi-stack` rouges sur
+`main` au commit `6577125`. Aucune autre ligne de la PR #88 n'est perdue. Cette
+entrée restaure la ligne T0049 à `Done` et consigne la clôture de T0050 ; aucun
+statut substantiel n'est inventé.
+
+T0049 réconcilie aussi l'index avec les fichiers de tickets : la fusion #86 avait
+ramené les six lignes T0043–T0048 à `Review` alors que leurs fichiers étaient
+déjà `Done`, ce qui laissait `pnpm maintenance:check` rouge sur `main`. Les
+statuts substantiels ne changent pas ; seule la table revient à l'état déjà
+prouvé par la PR #85.
 
 La dépendance T0014 est bornée aux implémentations desktop et bridge
 T0007–T0010 présentes dans `main`, ainsi qu'à la CI T0013 terminée. Ses quatre

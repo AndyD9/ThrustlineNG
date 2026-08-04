@@ -147,6 +147,137 @@ dérive le propriétaire, normalise les ICAO puis appelle la RPC avec le credent
 publique versionnée et `no-store`. Aucun transport desktop, SimBrief, transition
 ou runtime de vol n'est fourni.
 
+T0050 ouvre le domaine `flight-runtime` par une seconde migration append-only qui
+ne réécrit pas T0047. Elle remplace la contrainte `draft` unique par une liste
+fermée de deux états connus, `draft` et `active`, et ajoute un horodatage de
+départ `started_at` lié par contrainte au seul état `active`. La contrainte
+`flight_dispatches_one_draft_per_aircraft` couvre désormais les deux états : un
+avion n'a jamais plus d'un dispatch, brouillon ou vol. Un trigger `before insert
+or update` dérive `started_at` de `clock_timestamp()` au passage à `active`, le
+conserve ensuite et le remet à null pour un brouillon, de sorte qu'aucun appelant
+ne peut fournir ni remplacer ce temps.
+
+La commande `start_flight_from_dispatch`, réservée à `service_role`, reçoit
+uniquement le propriétaire vérifié en amont, une clé d'idempotence et un
+dispatch. Elle verrouille la compagnie du propriétaire puis le dispatch, dérive
+la compagnie et l'avion du serveur, refuse un compte en suppression et n'accepte
+que la transition `draft` → `active` dans une seule transaction. Un dispatch
+inconnu, étranger ou déjà actif rend le même refus opaque. Le registre privé
+`private.flight_start_commands` lie `(owner_id, idempotency_key)` à l'empreinte
+du payload et n'admet qu'un démarrage par dispatch ; un rejeu identique rend la
+même réponse versionnée à cinq champs. Aucune frontière Auth, appelant desktop,
+télémétrie, clôture ni écriture financière n'est fournie.
+
+T0057 ajoute un référentiel d'aérodromes borné par une troisième migration
+append-only qui ne réécrit ni T0047 ni T0050. `public.airports` porte un code
+ICAO en clé primaire, un nom borné, une latitude et une longitude en
+`numeric` à quatre décimales contraintes à `[-90, 90]` et `[-180, 180]`, un
+palier de popularité pris dans une liste fermée de quatre valeurs ordonnées
+— `regional`, `standard`, `major`, `hub` — et une `schema_version` contrainte.
+La table force RLS, n'accorde que `select` à `authenticated` par une politique
+unique et ne donne aucune mutation à `anon`, `authenticated` ou `service_role`.
+
+La source canonique est `eng/airports.json` ; `supabase/seed.sql` en charge une
+projection idempotente et le référentiel ne porte aucun montant ni
+multiplicateur, la tarification restant à la politique de clôture qui le lira.
+`backend:check` rejoue la projection depuis la source et échoue sur toute
+divergence textuelle ; le harnais CI compare en plus la table réellement
+chargée à la source, ligne par ligne.
+
+La même migration remplace `create_dispatch_draft` par `create or replace` en
+conservant sa signature, son contrat public, son idempotence et ses verrous : la
+validation bornée exige désormais que les deux codes normalisés existent dans le
+référentiel. Un code inconnu réutilise exactement le message de refus d'un code
+mal formé, ce qui le rend indiscernable et empêche d'énumérer le référentiel.
+Aucune lecture desktop, aucun sélecteur d'aérodromes et aucun calcul de
+distance, de temps ou de revenu n'est fourni.
+
+T0051 ferme le cycle serveur par une quatrième migration append-only qui ne
+réécrit ni le grand livre T0020, ni l'achat T0029, ni le référentiel T0057. La
+liste fermée d'états de dispatch passe à quatre valeurs, `completed` et
+`interrupted` étant terminales et sans transition sortante, et une colonne
+`closed_at` n'existe que pour ces deux états. L'unicité globale par avion devient
+un index unique partiel limité à `draft` et `active` : un vol clôturé reste en
+place comme historique et l'avion redevient immédiatement dispatchable, ce que la
+validation de `create_dispatch_draft` suit désormais en ne regardant que les
+dispatchs ouverts. Le registre privé de brouillons perd son unicité par avion,
+devenue redondante avec cet index.
+
+`eng/flight-settlement-policy.json` est la source canonique du barème, de son
+plancher, de son plafond, des multiplicateurs de palier et des deltas de
+réputation. La migration en embarque une projection stricte dans
+`private.flight_settlement_policy()`, que `backend:check` reconstruit depuis la
+source et compare texte à texte ; aucune valeur monétaire ne vient d'une variable
+d'environnement ni d'un réglage de session. `private.airport_distance_nm` dérive
+la distance en milles nautiques par formule de grand cercle depuis les deux
+positions du référentiel et l'arrondit une seule fois, de sorte qu'une même paire
+règle toujours le même montant.
+
+`close_flight` écrit dans une seule transaction l'état terminal, un rapport
+versionné unique par dispatch dans `private.flight_reports`, une écriture nette
+positive `flight_settlement` dans le grand livre, un événement de réputation
+append-only et son registre d'idempotence `private.flight_close_commands`. Le
+rapport client ne porte qu'une nature de fin prise dans une liste fermée, un temps
+de bloc déclaré borné et deux mesures facultatives bornées ; le temps retenu est
+le minimum entre ce temps déclaré et le temps réellement écoulé côté serveur, et
+montant, devise, distance et multiplicateur sont recalculés. La réputation reste
+informative : `public.get_company_reputation` dérive la compagnie de `auth.uid()`
+et rend un score borné `0–100` qui n'autorise, ne refuse et ne module aucune
+capacité. Aucune frontière Auth, appelant desktop, annulation, télémétrie de
+clôture ni SimBrief n'est fourni.
+
+T0052 ajoute le premier appelant desktop du domaine dispatch en réappliquant le
+patron T0037/T0045 : un module de commande borné plus un panneau mince, sans
+nouvelle lecture Data API. Le module n'accepte qu'une cible loopback `http:` sans
+identifiants, requête, fragment ni chemin, normalise les deux ICAO en majuscules
+après trim, exige des UUID canoniques et deux codes distincts avant tout appel,
+borne la requête à cinq secondes et la réponse lue à 16 Kio, puis valide les sept
+champs publics avec `state: draft` et `schemaVersion: 1` en recoupant avion et
+aérodromes avec la demande. Les échecs sont réduits à quatre catégories closes,
+sans détail serveur.
+
+Le panneau n'exécute aucun appel au rendu : la sélection est limitée aux avions
+réellement chargés par le transport T0046, exposés sans changer sa requête, et le
+bearer est obtenu du gestionnaire T0038 à la soumission. Une clé d'idempotence
+reste stable par intention — avion et deux ICAO normalisés — et n'est renouvelée
+que si l'intention change ; la double soumission est bloquée et la requête est
+annulée au démontage. Le payload ne porte jamais propriétaire, compagnie, état,
+temps ni route : ces valeurs restent dérivées par la frontière T0048 et la
+commande T0047. Aucune lecture durable des dispatchs, transition de vol ou effet
+financier n'est fourni.
+
+T0053 ajoute la lecture durable manquante en réappliquant le patron T0046 dans un
+module distinct du module de commande : la lecture est un `GET` unique vers
+`flight_dispatches` dont la projection, l'ordre `created_at.desc,id.desc` et la
+limite de cinquante lignes sont des constantes du client. Aucun filtre de
+compagnie, de propriétaire, d'avion ou d'état n'est jamais envoyé : la RLS
+`flight_dispatches_select_own` de T0047 reste l'unique autorité de sélection, et
+un test d'invariants vérifie que les seuls paramètres construits sont `select`,
+`order` et `limit`. La cible reste loopback `http:` sans identifiants, requête,
+fragment ni chemin, la requête est bornée à cinq secondes et la réponse lue à
+64 Kio en flux, avec annulation dès le dépassement.
+
+Chaque ligne est validée strictement avant tout rendu : jeu de clés exact, UUID
+canoniques pour le dispatch et l'avion, deux ICAO de quatre caractères ASCII
+majuscules et distincts, état appartenant à `draft` ou `active` — la liste connue
+depuis T0050 —, horodatage canonique et `schema_version` égal à `1`. La liste
+refuse un tableau plus long que la limite ainsi que tout doublon d'identifiant ou
+d'avion, ce dernier étant garanti unique par la contrainte
+`flight_dispatches_one_draft_per_aircraft`. Les échecs sont réduits à
+`authentication-required`, `invalid-response` et `unavailable`, sans détail
+serveur.
+
+Le panneau de lecture n'exécute aucun appel au rendu : il n'est composé que
+lorsque la compagnie est connue et sa première lecture reste déclenchée par
+l'utilisateur, comme la flotte T0046. Le bearer est obtenu du gestionnaire T0038
+au chargement et un refus Auth efface la session. Une création réussie incrémente
+un compteur d'actualisation porté par l'accueil ; le panneau relit alors la source
+autoritaire au lieu de construire localement le dispatch créé, et un signal reçu
+pendant une lecture en cours est rejoué à la fin de celle-ci plutôt que perdu.
+L'absence de dispatch, le chargement et l'échec sont rendus explicitement, et la
+requête est annulée au démontage. Aucune pagination, aucun tri ou filtre client,
+aucune transition de vol et aucun effet financier n'est fourni.
+
 ## Packaging Windows T0014
 
 Le package Windows est un installateur NSIS x64 en mode utilisateur courant.
@@ -199,8 +330,7 @@ applicatif ne les consomme encore.
 vol. Il émet des `FlightSample` validés et ne référence aucun type SDK.
 `NativeSimConnectAdapter` charge la DLL officielle à l'exécution, ouvre la
 connexion avec un handle d'événement et confine définitions, requête à 1 Hz,
-dispatch et fermeture dans une boucle dédiée. Il ne publie encore aucun
-échantillon sur REST ou SignalR.
+dispatch et fermeture dans une boucle dédiée.
 
 `ReplaySimConnectAdapter` lit le même domaine depuis un JSON Lines versionné :
 
@@ -211,6 +341,38 @@ en-tête format/schéma/source → échantillons à offsets monotones → Flight
 Les traces sont non fiables : schéma strict, UTF-8 strict, ligne limitée à
 16 Kio, valeurs bornées et contenu absent des erreurs. La trace livrée est
 synthétique ; elle caractérise le pipeline, pas la fidélité d'un avion réel.
+
+## Diffusion bornée de la télémétrie T0054
+
+T0054 relie cette source au contrat local sans l'élargir. La diffusion est un
+seul chemin, additif au health check et à `/hubs/v1/bridge` :
+
+```text
+ISimConnectAdapter → TelemetryPublisher → 1 slot par abonné → telemetry.v1
+```
+
+`TelemetryPublisher` est la seule autorité de publication. Il n'ouvre la source
+qu'à l'arrivée du premier abonné, valide chaque `FlightSample` avant diffusion,
+cadence la lecture à un échantillon par seconde au plus et n'écrit jamais dans un
+tampon non borné : chaque abonné possède un canal d'un seul élément en mode
+`DropOldest`, donc un abonné lent perd les échantillons intermédiaires au lieu de
+retarder la lecture ou les autres abonnés. Un envoi qui dépasse le délai borné
+abandonne l'abonné et annule sa connexion. Le nom de message `telemetry.v1` est
+versionné indépendamment du contrat `1`.
+
+La source est choisie par option explicite du processus, `replay` par défaut :
+
+```text
+--telemetry-source replay|native   --telemetry-trace <fichier JSONL>
+```
+
+Sans trace, l'état reste `idle` et rien n'est publié ; c'est le cas du lancement
+actuel par Tauri, qui ne passe que `--port`. La source `native` reste facultative
+et son absence de SDK devient l'état `unavailable` sans faire échouer le
+processus. Le health check expose `telemetrySource` et `telemetryState` comme
+champs additifs, sans chemin de fichier, version de SDK ni jeton. Aucun
+échantillon n'est persisté, relié à une compagnie, à un vol ou au grand livre, et
+la WebView n'a toujours aucun accès au canal.
 
 ## Contrat local T0010
 

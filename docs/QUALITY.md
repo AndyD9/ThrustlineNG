@@ -109,10 +109,14 @@ Ubuntu, le cycle de reset tente sinon de recréer PostgreSQL alors que son port
 est encore occupé. Le chargement Deno réel reste une preuve Windows séparée.
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les douze fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. Les 234 assertions couvrent le cycle de compte
-T0018, le replay T0019, le grand livre T0020, l'onboarding T0022 et l'achat
-T0029. Le job CI
+les vingt fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 427 assertions couvrent le cycle de compte
+T0018, le replay T0019, le grand livre T0020, l'onboarding T0022, l'achat
+T0029, le dispatch T0047, le démarrage de vol T0050, le référentiel
+d'aérodromes T0057 et la clôture de vol T0051. `backend:test` s'exécute sur les sources copiées dans le
+runtime isolé par `backend:start` : après avoir modifié une migration, un seed ou
+un fichier pgTAP, relancer `backend:start` avant de conclure, sinon la commande
+rejoue silencieusement la version précédente. Le job CI
 lance deux sessions PostgreSQL concurrentes pour les cycles sensibles et exige
 notamment une compagnie, une commande et une ouverture uniques pour deux appels
 T0022 identiques. Il restaure aussi un dump synthétique pris
@@ -283,6 +287,233 @@ projection publique, rejeu et `no-store`. Cette preuve ne valide pas l'Edge
 Runtime live, un appel desktop, SimBrief, une cible distante ou une donnée réelle
 et reste empilée sur T0047.
 
+Preuve T0049 du 3 août 2026 : `scripts/validate-dispatch-draft-runtime.ps1`
+exécute 48 contrôles sans échec sur la pile T0021, avec Docker Desktop 29.6.2,
+Supabase CLI 2.109.1, PostgreSQL 17 et l'Edge Runtime/Deno local. Seuls
+54321–54323 sont publiés sur `127.0.0.1`, avant et après le parcours. Deux
+identités `.invalid` provisionnées par l'Admin API ouvrent leur compagnie par
+`company-onboarding`; la première achète l'offre seedée abordable puis obtient un
+brouillon par `dispatch-draft`. La réponse contient exactement `aircraftId,
+arrivalIcao, createdAt, departureIcao, dispatchId, schemaVersion, state`, avec
+`state: draft`, `schemaVersion: 1` et `Cache-Control: no-store`; le rejeu rend le
+même `dispatchId` et le même `createdAt`. Sans bearer l'appel rend HTTP 401 ; un
+champ supplémentaire rend HTTP 400 `invalid_request`; un ICAO malformé puis deux
+ICAO identiques rendent HTTP 400 `invalid_airports`; l'avion d'un autre
+propriétaire, un avion inconnu et un deuxième brouillon rendent HTTP 409
+`dispatch_rejected`. Chaque refus ne porte que `error.code` et `error.message` et
+ne contient ni compagnie, ni propriétaire, ni email, ni identifiant privilégié.
+Le refus de propriété est exercé avant toute création et l'état reste à zéro
+brouillon. L'état final est `1|1|1|1` : un brouillon, une commande, l'état
+`draft` et l'appartenance à la compagnie du sujet Auth. Après arrêt
+`--no-backup` et redémarrage, l'inspection rend `2|0|0|0|0`. Les gates backend
+(26 mutations), fonctions (46 tests), pgTAP (14 fichiers/270 tests sur base
+fraîche), types, autorité, données et maintenance passent. Cette preuve ne vaut
+ni parité cloud, cible distante, staging, charge, consommation desktop ou donnée
+réelle. Deux limites sont consignées : la suppression d'une identité déjà
+propriétaire est refusée par `companies_owner_id_fkey`, donc la destruction de la
+pile est le seul nettoyage ; et `pnpm backend:test` exige une base fraîchement
+réinitialisée.
+
+Preuve T0050 du 3 août 2026 : `backend:check` passe avec 30 mutations, dont
+quatre nouvelles qui détectent un démarrage exécutable par un client, un
+troisième état de vol, un horodatage de départ fourni par l'appelant et la
+réécriture d'une migration déjà livrée. Sous Docker Desktop 29.6.2 et
+PostgreSQL 17, deux resets appliquent les huit migrations append-only puis 16
+fichiers/312 assertions pgTAP concluent par `Result: PASS`; les types régénérés
+n'exposent que `started_at: string | null` et `start_flight_from_dispatch`, et
+`backend:types:check` les confirme stables. Les gates autorité, données et
+maintenance passent avec 9, 6 et 8 mutations.
+
+Les pgTAP couvrent ACL/grants, RLS forcée, isolation A/B/anonyme, dérivation de
+compagnie et d'avion, rejeu identique, collision de clé, deuxième démarrage,
+dispatch étranger, dispatch inexistant, compte en suppression, rollback injecté,
+refus d'un état hors liste, refus d'un horodatage forgé sur un vol actif et refus
+d'un horodatage sur un brouillon. La vérification manuelle du 3 août 2026
+confirme sur la pile locale : un brouillon possédé devient un vol `active`
+horodaté `2026-08-03T15:21:05.001358+00:00`, le rejeu de la même clé rend la même
+réponse au même horodatage, et seconde identité, collision, dispatch déjà actif
+et dispatch inconnu échouent fermés. L'état SQL rend `1|2|1|1` : un vol actif,
+deux brouillons restants, une commande et un horodatage serveur. Aucune écriture
+financière n'apparaît, `authenticated` et `anon` reçoivent `permission denied`
+sur la commande comme sur la table, et deux sessions concurrentes sur le même
+dispatch rendent les codes `0|1` avec l'état `1|1|0|1|0`. Cette preuve locale
+synthétique ne valide ni frontière Auth, endpoint, appelant desktop, télémétrie,
+clôture, cible distante ou donnée réelle. La PR #89 fusionne T0050 dans `main` au
+merge `6577125`, où le job Linux `Supabase PostgreSQL 17` passe : deux resets,
+16 fichiers/312 assertions pgTAP avec `Result: PASS`, `Flight start concurrency
+passed: 2 sessions, 1 active flight, 1 command, 1 server time` puis
+`Backend CI passed`. La course intersession du harnais CI, non exécutable
+localement sous Windows, est donc prouvée sur le runner Linux.
+
+Preuve T0051 du 4 août 2026, sous Windows 11, Docker Desktop 29.6.2 et
+PostgreSQL 17 : `backend:check` passe avec 42 mutations, dont sept nouvelles qui
+détectent un barème embarqué divergeant de `eng/flight-settlement-policy.json`, un
+delta de réputation inversé, un plancher de vol interrompu ramené à zéro, un
+montant de règlement fourni par l'appelant, une exclusivité par avion qui couvre
+encore les vols terminés, une table de réputation rendue lisible par un rôle
+client et un règlement qui fait confiance au temps de bloc déclaré. Deux resets
+appliquent les dix migrations append-only, puis 20 fichiers/427 assertions pgTAP
+concluent par `Result: PASS`. Les types régénérés n'ajoutent que `closed_at`,
+`close_flight` et `get_company_reputation` en 21 lignes, et `backend:types:check`
+les confirme stables ; `authority:check`, `data-policy:check` et
+`maintenance:check` passent.
+
+Les montants attendus de ces preuves ont été calculés hors de la base, avec Node,
+avant d'être écrits en clair dans les tests : `57694` pour 168,28 NM et
+75 minutes de bloc au palier standard, `48648` pour 18,44 NM et 75 minutes en
+`hub`/`major`, le plafond `2000000` pour un vol qui atteindrait `2103629`, et le
+plancher `5000` pour un vol interrompu. Le barème n'est donc pas validé contre
+lui-même. Deux limites subsistent : la distance de grand cercle est calculée en
+`double precision`, donc une plateforme différente pourrait déplacer la deuxième
+décimale et le montant d'une unité mineure ; et l'observation d'un temps de bloc
+non nul dans une transaction pgTAP exige de désactiver brièvement le trigger de
+`started_at` pour antidater le départ, ce que seul le propriétaire de la table peut
+faire.
+
+Les commandes `pnpm backend:check`, `authority:check`, `data-policy:check`,
+`maintenance:check` et `ci:check` sont lancées par `package.json` avec
+`powershell`, soit Windows PowerShell 5.1, alors que les workflows GitHub les
+lancent avec `pwsh`, soit PowerShell 7. Les deux hôtes ne se comportent pas
+identiquement : `ConvertFrom-Json` rend un `Decimal` conservant l'échelle sous 5.1
+et un `Double` sous 7, si bien qu'un gate reconstruisant du texte depuis un JSON
+peut passer en local et échouer sur le runner. T0051 a rencontré exactement cet
+écart. Tout gate modifié doit donc être exécuté au moins une fois avec
+`pwsh -NoProfile -File .\tests\<gate>\run.ps1` en plus de son script `pnpm`, et tout
+nombre reconstruit doit être formaté explicitement, jamais laissé au rendu par
+défaut du parseur.
+
+La vérification manuelle du même jour porte sur un état réellement commité, hors
+transaction annulée : un vol terminé de 168,28 NM avec 95 minutes déclarées règle
+`35194` unités mineures avec un temps retenu de `0`, ce qui prouve l'écrêtage par
+l'horloge serveur ; un vol interrompu règle `5000` ; le solde atteint `43040194`;
+la réputation vaut `48`; l'avion reprend un brouillon immédiatement et son vol
+clôturé reste en historique ; le rejeu de la même clé ne crée ni deuxième rapport,
+ni deuxième événement, ni deuxième écriture. Quatre refus — deuxième clôture,
+temps déclaré hors bornes, champ monétaire dans le rapport et clé réutilisée avec
+un autre payload — laissent le registre et le solde inchangés, et `service_role`
+n'a lui-même aucun `select` sur `flight_dispatches`. `ci:backend` reste réservé au
+runner Linux : la course de deux clôtures concurrentes qu'il ajoute n'est pas
+exécutable localement sous Windows et sa preuve est attendue de la CI.
+
+Preuve T0057 du 3 août 2026 : `backend:check` passe avec 35 mutations, dont cinq
+nouvelles qui détectent un seed divergeant de `eng/airports.json`, un chargement
+du référentiel caché dans un commentaire SQL, une coordonnée hors bornes dans la
+source, un référentiel rendu mutable par un rôle client et une commande de
+dispatch qui n'interroge plus le référentiel. Sous Docker Desktop 29.6.2 et
+PostgreSQL 17, deux resets appliquent les neuf migrations append-only, puis 18
+fichiers/356 assertions pgTAP concluent par `Result: PASS`. Les types régénérés
+n'ajoutent que la table `airports` en 27 lignes, sans toucher
+`create_dispatch_draft`, et `backend:types:check` les confirme stables. Les gates
+autorité et données passent avec 9 et 6 mutations.
+
+La comparaison table ↔ source est rejouée localement avec la logique ajoutée au
+harnais CI : 103 aérodromes attendus, 103 chargés, égalité exacte sur code, nom,
+latitude, longitude et palier. Le référentiel rend `103|103|4|0|1` — 103 lignes,
+103 codes uniques, quatre paliers, aucune coordonnée hors bornes et une seule
+`schema_version`. Les apostrophes échappées de la projection reviennent intactes,
+par exemple `Chicago O'Hare` et `Nice Cote d'Azur`.
+
+La vérification manuelle du 3 août 2026 confirme sur la pile locale :
+` lfpg `/`lfml` sont normalisés en `LFPG`/`LFML` et créent un seul brouillon
+`cc9c4506-defc-4efc-8fab-d3968ebb81cc` horodaté
+`2026-08-03T16:54:40.654855+00:00`; le rejeu de la même clé rend exactement la
+même réponse à sept champs, donc le contrat T0047 est inchangé. Un départ
+inconnu `ZZZZ`, une arrivée inconnue `ZZZZ` et un code mal formé `ABC` rendent
+tous trois `SQLSTATE 22023` avec le message identique « Departure and arrival
+must be distinct four-character ICAO codes. », ce qui rend un aérodrome inconnu
+indiscernable d'un code invalide et interdit d'énumérer le référentiel ; aucun
+brouillon n'est créé pour l'avion refusé. `authenticated` lit 103 aérodromes et
+reçoit `SQLSTATE 42501` sur `insert`, `update` et `delete`; `anon` reçoit
+`42501` en lecture. Cette preuve locale synthétique ne valide ni consommateur
+desktop, ni cible distante, ni donnée réelle, et le harnais Linux `ci:backend`
+n'est pas exécutable depuis Windows.
+
+La PR #91 fusionne T0057 dans `main` au merge `df685b7`, sur le commit de tête
+`05ccffd`, avec ses trois checks verts : `Audits, licences and SBOM` en
+4 min 16 s, `Supabase PostgreSQL 17` en 3 min 15 s et `Windows multi-stack` en
+17 min 16 s. Le job Linux exécute le harnais qui manquait : deux resets appliquant
+la migration `20260803000300_bounded_airport_reference.sql`, la comparaison
+`Airport reference matches eng/airports.json: 103 aerodromes, schema version 1.`,
+les deux nouveaux fichiers pgTAP en `ok` avec `Result: PASS`, puis `Backend CI
+passed: 2 resets, 18 pgTAP files, airport reference matching its canonical source,
+concurrent idempotence, purchase, dispatch and flight start, isolated restore
+replay, authoritative onboarding, stable types, loopback ports.` La comparaison
+table ↔ source est donc prouvée par le harnais lui-même sur le runner Linux, et
+non plus seulement rejouée à la main sous Windows avec sa logique.
+
+Preuve T0052 du 4 août 2026 : typecheck, tests, couverture et build passent avec
+21 fichiers/241 tests frontend exécutés, dont 66 nouveaux pour le dispatch
+desktop et 2 pour l'exposition de la flotte déjà chargée ; 1 fichier/2 scénarios
+runtime T0040 reste ignoré sans environnement explicite. La couverture globale
+atteint 93,96 % des statements, 88,41 % des branches, 97,18 % des fonctions et
+93,93 % des lignes, dont 98,34 % des statements et 94,06 % des branches sur
+`features/flight-dispatch`; les seules lignes non couvertes sont les gardes de
+réentrance et d'annulation du panneau. Les tests couvrent payload et headers
+fermés — quatre headers exactement —, normalisation ` lfpg ` → `LFPG`, cible
+distante, loopback en `https`, credentials, requête, fragment, chemin et URL
+illisible, UUID non canoniques, ICAO invalides ou identiques, HTTP
+400/401/403/409/422/429/500/503 sans lecture du corps, douze réponses non
+conformes dont état, version, champ supplémentaire, divergence d'avion ou d'ICAO
+et corps surdimensionné, panne réseau, annulation appelante et délai borné. Côté
+panneau : zéro appel au rendu, sélection limitée aux avions chargés, refus local
+sans bearer, double clic, retry à clé conservée, nouvelle clé par changement
+d'avion ou d'aérodrome, refus et indisponibilité sans détail technique, refus
+Auth qui efface la session, démontage, et absence de token, de clé anonyme et
+d'identifiant de dispatch dans le DOM. La composition d'accueil prouve que le panneau
+n'apparaît qu'après une flotte non vide et que `globalThis.fetch` n'est jamais
+appelé. Le bundle produit ne contient ni JWT, ni credential de test, ni marqueur
+`service_role`, ni nom de commande privilégiée. Les gates autorité, données et
+maintenance passent avec 9, 6 et 8 mutations. Cette preuve jsdom/`fetch` injecté
+ne valide ni WebView live, ni CSP de production, ni Edge Runtime, ni cible
+distante, ni donnée réelle.
+
+La PR #94 fusionne T0052 dans `main` au merge `9ea2493`, sur le commit
+d'implémentation `c4c86f5`, avec ses trois checks verts : `Audits, licences and
+SBOM` en 3 min 41 s, `Supabase PostgreSQL 17` en 3 min 11 s et `Windows
+multi-stack` en 15 min 24 s. La première publication du même arbre, PR #92, avait
+échoué sur le seul `SECRET_SCAN` : la règle amont `generic-api-key` de Gitleaks
+8.24.3 mesure 3,62 d'entropie sur l'UUID d'idempotence cité dans la preuve
+manuelle du ticket et le signale comme secret, alors que la valeur est synthétique
+et sans système derrière elle. Comme l'action scanne toute la plage de commits
+d'une Pull Request et qu'un force-push est interdit, l'arbre a été republié sur une
+branche propre. La cause amont est traitée séparément par la PR #93 : `.gitleaks.toml`
+étend le jeu de règles par défaut d'une exception unique à `matchCondition = "AND"`,
+exigeant à la fois le chemin d'un ticket et la forme UUID d'une valeur
+`"idempotencyKey"`, de sorte qu'un vrai secret dans le même fichier reste signalé.
+
+Preuve T0053 du 4 août 2026 : typecheck, tests, couverture et build passent avec
+24 fichiers/297 tests frontend exécutés, dont 56 nouveaux pour la lecture des
+dispatchs ; 1 fichier/2 scénarios runtime T0040 reste ignoré sans environnement
+explicite. Le domaine `features/flight-dispatch` passe de 4 fichiers/66 tests à
+7 fichiers/122 tests. La couverture globale atteint 94,46 % des statements,
+88,96 % des branches, 97,51 % des fonctions et 94,42 % des lignes, dont 98,01 %
+des statements et 93,27 % des branches sur `features/flight-dispatch`, et 98,87 %
+des statements sur le seul module de lecture ; les seules lignes non couvertes
+sont les gardes de réentrance et d'annulation du panneau et une branche de flux
+borné. Les tests du transport couvrent l'URL complète, la projection, l'ordre et
+la limite exacts, l'absence des paramètres `company_id`, `owner_id`,
+`aircraft_id`, `id` et `state`, les quatre headers et l'absence de corps, la
+liste vide, l'état `active`, la limite exacte de 50 puis 51 lignes refusées, les
+doublons d'identifiant et d'avion, treize lignes non conformes dont clé
+supplémentaire, clé manquante, UUID, ICAO, aéroports identiques, état inconnu,
+horodatage non canonique ou impossible et version inattendue, une enveloppe non
+tabulaire, un corps non JSON, une longueur déclarée hors borne, un corps
+surdimensionné détecté en flux, les statuts 401/403 puis 404/429/500/503, une
+panne réseau dont le message serveur n'est pas propagé, sept cibles refusées
+avant tout appel et trois valeurs de header refusées avant tout appel. Côté
+panneau : zéro lecture au rendu, liste vide explicite, chargement puis échec sans
+rendu partiel, refus Auth qui efface la session, actualisation sur changement de
+version, signal reçu pendant une lecture en cours et rejoué, absence de lecture
+implicite quand le signal précède toute ouverture, lectures concurrentes bloquées
+avec retry, annulation au démontage, et absence de token, d'identifiant de
+dispatch et d'identifiant d'avion dans le DOM. La composition d'accueil prouve
+que rien n'est appelé au rendu, que `globalThis.fetch` n'est jamais appelé et que
+la source autoritaire est relue après une création réussie. Les gates autorité,
+données et maintenance passent avec 9, 6 et 8 mutations, l'autorité déclarant
+désormais quatre lectures Data API clientes. Cette preuve jsdom/`fetch` injecté ne
+valide ni WebView live, ni CSP de production, ni RLS réelle, ni cible distante, ni
+donnée réelle.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme
@@ -312,6 +543,16 @@ réponse REST versionnée et la négociation SignalR. Il couvre aussi les bornes
 échantillons, le replay synthétique, les offsets, les lignes surdimensionnées,
 l'annulation, un faux adaptateur et l'absence de types SDK dans les contrats
 publics. Les tests Rust vérifient les jetons et la sélection d'un port dynamique.
+
+Depuis T0054, il couvre en plus la diffusion `telemetry.v1` : arguments de source
+et de trace bornés, source close sans abonné, ordre et complétude des échantillons
+validés, rejet d'un échantillon hors bornes, cadence prouvée sur un `TimeProvider`
+manuel, conservation du seul dernier échantillon en attente, abandon d'un abonné
+qui cesse de drainer sans retarder les autres, libération de l'adaptateur à
+l'annulation, source native jamais requise, streaming de la trace synthétique à un
+abonné WebSocket authentifié et refus de toute adresse autre que `127.0.0.1`. Le
+harnais n'utilise aucun client SignalR tiers : il parle le protocole JSON du hub
+sur `ClientWebSocket`.
 
 Depuis la racine :
 
@@ -434,6 +675,20 @@ La génération locale du rapport de licences exige les dépendances restaurées
 pnpm supply-chain:report
 ```
 
+Le gate d'avis Cargo T0058 se contrôle sans `cargo-audit` installé, avec le
+harnais statique et ses huit mutations négatives :
+
+```powershell
+pnpm supply-chain:cargo:check
+```
+
+La comparaison au vrai rapport exige `cargo-audit` 0.22.2. Elle s'exécute
+localement sur le lockfile, ou en CI sur le rapport JSON déjà produit :
+
+```powershell
+pnpm supply-chain:cargo
+```
+
 Le job backend Linux utilise `pnpm ci:backend`. Il masque la sortie de démarrage,
 inspecte les ports Docker réels, exige tous les fichiers pgTAP attendus et
 `Result: PASS`,
@@ -451,22 +706,61 @@ scanner échoue, puis un gate final agrège les résultats. T0013 a ainsi détec
 local du 29 juillet 2026 ne trouve plus de vulnérabilité connue ; la preuve
 GitHub `30440480513` confirme ensuite tous les gates supply-chain verts et résout
 `KI-018`. L'audit NuGet ne trouve aucun package vulnérable et Cargo ne trouve
-aucune vulnérabilité, mais signale des avertissements informatifs suivis par
-`KI-019`.
+aucune vulnérabilité, mais signale quinze avertissements informatifs. T0058 les
+borne : `eng/cargo-advisory-allowlist.json` justifie chacun d'eux et le gate
+échoue sur tout avertissement non revu, toute dérive de crate, version ou nature,
+toute entrée périmée et toute liste expirée. `KI-019` est résolu par ce contrôle,
+sans revendiquer la disparition des crates concernées.
 
 Les commandes locales ne prouvent pas l'interprétation YAML ni l'exécution des
 runners GitHub. Pour T0013, les jobs de la PR et les artefacts ont été inspectés
 avant fusion sans trouver de credential. Toute modification future des workflows
 doit répéter cette vérification avant promotion.
 
+La PR #98 fusionne T0058 dans `main` au merge `2a07113`, sur le commit de tête
+`52eb513`, avec ses trois checks verts : `Audits, licences and SBOM` en 4 min 5 s,
+`Supabase PostgreSQL 17` en 3 min 15 s et `Windows multi-stack` en 15 min 52 s.
+L'interprétation YAML des deux nouvelles étapes est donc prouvée par les runners :
+`Validate Cargo advisory allowlist` exécute le harnais statique dans le job
+Windows, et le job supply-chain compare le rapport réel de `cargo-audit` 0.22.2.
+
+La première publication du même arbre, au commit de merge `96a4072`, avait échoué
+sur `Windows multi-stack` à l'étape `Validate maintenance governance`, avec
+`Ticket T0057 status differs: index 'Review', file 'Done'.` La cause est étrangère
+à T0058 : ce commit fusionnait `main` dans la branche et a résolu la ligne T0057
+de `docs/tickets/README.md` du côté branche, réintroduisant `Review` alors que la
+PR #97 avait posé `Done` dans `main` et que le fichier du ticket porte
+`Status: Done`. Le gate de maintenance T0030 a détecté la divergence exactement
+comme prévu. Le correctif `52eb513` rétablit `Done` dans l'index ; le reste du
+merge n'avait rien perdu de `main`. Un merge de `main` vers une branche doit donc
+faire vérifier chaque statut ticket/index résolu, la résolution silencieuse du
+côté branche étant indétectable sans ce gate.
+
+Preuves CI des deux autres fusions du 4 août 2026, relevées pour lever la réserve
+« checks GitHub restant à confirmer » de leurs tickets :
+
+| PR | Ticket | Merge | Commit de tête | Audits, licences and SBOM | Supabase PostgreSQL 17 | Windows multi-stack |
+| --- | --- | --- | --- | --- | --- | --- |
+| #96 | T0053 | `87c4eec` | `57fc036` | 4 min 4 s | 2 min 57 s | 15 min 43 s |
+| #99 | T0054 | `3a2c292` | `fd4716d` | 4 min 1 s | 3 min 7 s | 15 min 55 s |
+
+Les six checks passent. Ces exécutions ne prouvent que ce que leurs jobs
+contiennent : le job Windows couvre le frontend, le desktop, le bridge, les
+budgets et le packaging non signé, et le job Linux la pile Supabase. Aucun des
+deux ne prouve une WebView live, un Edge Runtime réel, une session MSFS 2024 ni
+une cible distante.
+
 ## Preuve de location T0032
 
-T0032 ajoute deux fichiers pgTAP. Ils doivent porter le total backend à 16
-fichiers et couvrir structure, ACL/RLS, termes 30 jours/24 heures/0,5 %, premier
-loyer, rejeu et collision, isolation A/B/anonyme, borne de grâce 48 heures,
-rattrapage ordonné, défaut, expiration, résiliation, rollback et historique
-immuable. Un run qui ne découvre que les 14 fichiers antérieurs n'est pas une
-preuve T0032.
+T0032 ajoute deux fichiers pgTAP. Ils doivent porter le total backend à 22
+fichiers et couvrir structure, ACL/RLS, termes 30 jours/24 heures, loyer autoré
+dans sa bande, frais de mise en service de dix loyers, premier loyer à
+l'activation, rejeu et collision, isolation A/B/anonyme, borne de grâce
+72 heures, suspension de l'avion pendant la grâce et rétablissement après
+rattrapage, rattrapage ordonné, défaut, expiration, préavis et pénalité de
+résiliation plafonnée, refus sur solde insuffisant, rollback injecté et
+historique immuable. Un run qui ne découvre que les 20 fichiers antérieurs n'est
+pas une preuve T0032.
 
 Le gate backend classe les trois commandes privilégiées et rejette tout grant
 client, toute mutation directe, ainsi que l'ajout de termes, compagnie, état ou

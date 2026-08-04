@@ -1,0 +1,153 @@
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+
+import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
+import { type DesktopSessionManager, SessionError } from "@/features/auth/session";
+import {
+  type CompanyDispatch,
+  type DispatchState,
+  DispatchListError,
+  loadDispatchList,
+  type LoadDispatchListInput,
+} from "@/features/flight-dispatch/dispatchList";
+
+export type DispatchListCommand = (
+  input: LoadDispatchListInput,
+) => Promise<CompanyDispatch[]>;
+
+export interface DispatchListPanelProps {
+  command?: DispatchListCommand | undefined;
+  config: DesktopConnectionConfig;
+  onAuthenticationRequired: () => void;
+  refreshVersion?: number | undefined;
+  sessionManager: DesktopSessionManager;
+}
+
+type PanelState =
+  | { kind: "ready" }
+  | { kind: "pending" }
+  | { dispatches: CompanyDispatch[]; kind: "loaded" }
+  | { kind: "unavailable" };
+
+const stateLabels: Record<DispatchState, string> = {
+  active: "En vol",
+  draft: "Brouillon",
+};
+
+const createdAtFormatter = new Intl.DateTimeFormat("fr-FR", {
+  dateStyle: "short",
+  timeStyle: "short",
+  timeZone: "UTC",
+});
+
+export function DispatchListPanel({
+  command = loadDispatchList,
+  config,
+  onAuthenticationRequired,
+  refreshVersion = 0,
+  sessionManager,
+}: DispatchListPanelProps) {
+  const titleId = useId();
+  const [state, setState] = useState<PanelState>({ kind: "ready" });
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const handledRefreshVersionRef = useRef(0);
+  const loadedOnceRef = useRef(false);
+  const pendingRef = useRef(false);
+
+  const load = useCallback(async () => {
+    if (pendingRef.current) {
+      return;
+    }
+    pendingRef.current = true;
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    setState({ kind: "pending" });
+
+    try {
+      const accessToken = await sessionManager.getAccessToken();
+      if (abortController.signal.aborted) {
+        return;
+      }
+      const dispatches = await command({
+        accessToken,
+        anonKey: config.anonKey,
+        signal: abortController.signal,
+        supabaseUrl: config.supabaseUrl,
+      });
+      if (!abortController.signal.aborted) {
+        loadedOnceRef.current = true;
+        setState({ dispatches, kind: "loaded" });
+      }
+    } catch (error) {
+      if (!abortController.signal.aborted) {
+        if (
+          (error instanceof SessionError && error.failure === "authentication-required") ||
+          (error instanceof DispatchListError && error.failure === "authentication-required")
+        ) {
+          sessionManager.clear();
+          onAuthenticationRequired();
+        } else {
+          setState({ kind: "unavailable" });
+        }
+      }
+    } finally {
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current = null;
+        pendingRef.current = false;
+      }
+    }
+  }, [command, config.anonKey, config.supabaseUrl, onAuthenticationRequired, sessionManager]);
+
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
+  useEffect(() => {
+    if (
+      refreshVersion > handledRefreshVersionRef.current &&
+      loadedOnceRef.current &&
+      !pendingRef.current
+    ) {
+      handledRefreshVersionRef.current = refreshVersion;
+      void load();
+    }
+  }, [load, refreshVersion, state.kind]);
+
+  return (
+    <section aria-labelledby={titleId}>
+      <h2 id={titleId}>Mes dispatchs</h2>
+      <button type="button" disabled={state.kind === "pending"} onClick={() => void load()}>
+        {state.kind === "pending"
+          ? "Actualisation…"
+          : state.kind === "unavailable"
+            ? "Réessayer"
+            : state.kind === "loaded"
+              ? "Actualiser les dispatchs"
+              : "Afficher mes dispatchs"}
+      </button>
+
+      <div aria-live="polite" aria-atomic="true">
+        {state.kind === "ready" && <p>Chargez vos dispatchs lorsque vous êtes prêt.</p>}
+        {state.kind === "pending" && <p>Chargement sécurisé des dispatchs.</p>}
+        {state.kind === "loaded" && state.dispatches.length === 0 && (
+          <p>Aucun dispatch n’est encore préparé.</p>
+        )}
+      </div>
+
+      {state.kind === "loaded" && state.dispatches.length > 0 && (
+        <ul aria-label="Dispatchs de la compagnie">
+          {state.dispatches.map((dispatch) => (
+            <li key={dispatch.id}>
+              <strong>
+                {dispatch.departureIcao} → {dispatch.arrivalIcao}
+              </strong>{" "}
+              <span>
+                {stateLabels[dispatch.state]} ·{" "}
+                {createdAtFormatter.format(new Date(dispatch.createdAt))} UTC
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {state.kind === "unavailable" && (
+        <p role="alert">Les dispatchs sont indisponibles. Réessayez dans quelques instants.</p>
+      )}
+    </section>
+  );
+}

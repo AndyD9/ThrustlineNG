@@ -99,6 +99,62 @@ SimBrief, un OFP, des passagers, du fret, un coût, un revenu ou le cycle de vie
 d'un vol. Ces données et transitions exigent des tickets séparés avant de
 devenir des règles produit.
 
+## Référentiel d'aérodromes borné
+
+Les deux codes d'un dispatch ne sont plus n'importe quelle chaîne de quatre
+caractères : ils doivent désigner deux aérodromes distincts d'un référentiel
+serveur versionné. Ce référentiel porte pour chaque aérodrome un code ICAO
+unique, un nom borné, une position et un palier de popularité choisi parmi
+quatre valeurs ordonnées, de `regional` à `hub`.
+
+Le référentiel est une donnée de jeu, pas une base aéronautique : il couvre au
+plus 200 aérodromes écrits dans le dépôt, sans import d'un jeu de données tiers
+ni téléchargement à l'exécution. Ses paliers sont un choix de cadrage de
+l'alpha, pas une mesure du trafic réel, et il devra être élargi ou remplacé par
+une source maintenue avant toute ouverture externe.
+
+Il est en lecture seule pour un joueur authentifié et aucun rôle client ne peut
+le modifier, car un référentiel modifiable permettrait plus tard de gonfler le
+revenu d'un vol. Il ne porte lui-même ni montant, ni multiplicateur, ni devise :
+un code inconnu est refusé exactement comme un code mal formé, sans révéler le
+contenu du référentiel. Cette tranche n'expose pas de sélecteur d'aérodromes au
+desktop et ne calcule ni distance, ni durée, ni revenu.
+
+## Clôture d'un vol et règlement du MVP
+
+Un vol actif se clôture **exactement une fois**, dans l'un de deux états
+terminaux : terminé ou interrompu. La clôture règle un **revenu net unique**, pas
+un couple revenu/coût séparé, en `EUR` comme l'ouverture. Le montant est dérivé du
+temps de bloc, de la distance entre les deux aérodromes et de la popularité de ces
+aérodromes :
+
+```text
+net = (15000 + 120 × distance_nm + 300 × block_minutes) × multiplicateur de palier
+plancher d'un vol interrompu : 5 000 unités mineures, soit 50 EUR
+plafond par vol              : 2 000 000 unités mineures, soit 20 000 EUR
+paliers                      : 0,90 / 1,00 / 1,15 / 1,30, moyennés sur départ et arrivée
+```
+
+`eng/flight-settlement-policy.json` est la source normative de ce barème. Un vol
+de 150 NM en 75 minutes entre deux aérodromes de palier standard règle environ
+555 EUR. Un vol interrompu ou en crash reste clôturable et reçoit le revenu
+minimum : jamais zéro, jamais le barème complet.
+
+Le joueur ne déclare qu'une nature de fin de vol, un temps de bloc et quelques
+mesures indicatives. Le temps retenu est le plus petit du temps déclaré et du
+temps réellement écoulé côté serveur, et le montant est toujours recalculé : un
+temps ou une distance gonflés ne créent pas d'argent. L'avion redevient
+**immédiatement** disponible pour un nouveau dispatch dès la clôture, et le vol
+clôturé reste comme historique.
+
+La compagnie porte enfin une **réputation informative** : un score borné de 0 à
+100 qui part de 50, gagne 1 point par vol terminé et perd 3 points par vol
+interrompu. Dans l'alpha, ce score ne débloque, ne bloque et ne module rien — ni
+revenu, ni dispatch, ni achat. Le barème est volontairement simple et devra être
+revu avant toute ouverture externe ; le plafond protège l'économie sans remplacer
+un équilibrage mesuré. Cette tranche ne définit ni annulation d'un vol, ni usure,
+ni maintenance, ni équipage, ni passagers, ni fret.
+
 ## Hors MVP
 
 - Réseau social, marketplace communautaire et mods.
@@ -133,6 +189,8 @@ devenir des règles produit.
   compagnie est dérivée de la session vérifiée par la frontière serveur.
 - Zéro brouillon de dispatch pour un avion hors compagnie ou déjà engagé dans
   un brouillon actif ; un rejeu identique conserve le même dispatch.
+- Zéro brouillon de dispatch portant un aérodrome absent du référentiel serveur,
+  et zéro mutation de ce référentiel par un rôle client.
 - Reprise après coupure testée sur chaque parcours essentiel.
 - Temps de démarrage et consommation mémoire budgétés.
 - Mise à jour N-1 → N et rollback validés sur VM propre.

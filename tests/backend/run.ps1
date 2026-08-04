@@ -34,7 +34,12 @@ function Get-BackendIssues {
     $onboardingMigrationPath = Join-Path $Root "supabase\migrations\20260731000400_authoritative_company_onboarding.sql"
     $purchaseMigrationPath = Join-Path $Root "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql"
     $dispatchMigrationPath = Join-Path $Root "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql"
-    $leaseMigrationPath = Join-Path $Root "supabase\migrations\20260803000200_authoritative_aircraft_lease.sql"
+    $flightStartMigrationPath = Join-Path $Root "supabase\migrations\20260803000200_authoritative_flight_start.sql"
+    $airportMigrationPath = Join-Path $Root "supabase\migrations\20260803000300_bounded_airport_reference.sql"
+    $settlementMigrationPath = Join-Path $Root "supabase\migrations\20260804000100_authoritative_flight_settlement.sql"
+    $leaseMigrationPath = Join-Path $Root "supabase\migrations\20260804000200_authoritative_aircraft_lease.sql"
+    $airportsPath = Join-Path $Root "eng\airports.json"
+    $settlementPolicyPath = Join-Path $Root "eng\flight-settlement-policy.json"
     $seedPath = Join-Path $Root "supabase\seed.sql"
     $structureTestPath = Join-Path $Root "supabase\tests\database\companies_structure.test.sql"
     $rlsTestPath = Join-Path $Root "supabase\tests\database\companies_rls.test.sql"
@@ -50,6 +55,12 @@ function Get-BackendIssues {
     $purchaseTestPath = Join-Path $Root "supabase\tests\database\aircraft_purchase.test.sql"
     $dispatchStructureTestPath = Join-Path $Root "supabase\tests\database\dispatch_draft_structure.test.sql"
     $dispatchTestPath = Join-Path $Root "supabase\tests\database\dispatch_draft.test.sql"
+    $flightStartStructureTestPath = Join-Path $Root "supabase\tests\database\flight_start_structure.test.sql"
+    $flightStartTestPath = Join-Path $Root "supabase\tests\database\flight_start.test.sql"
+    $airportStructureTestPath = Join-Path $Root "supabase\tests\database\airport_reference_structure.test.sql"
+    $airportTestPath = Join-Path $Root "supabase\tests\database\airport_reference.test.sql"
+    $settlementStructureTestPath = Join-Path $Root "supabase\tests\database\flight_settlement_structure.test.sql"
+    $settlementTestPath = Join-Path $Root "supabase\tests\database\flight_settlement.test.sql"
     $leaseStructureTestPath = Join-Path $Root "supabase\tests\database\aircraft_lease_structure.test.sql"
     $leaseTestPath = Join-Path $Root "supabase\tests\database\aircraft_lease.test.sql"
     $onboardingFunctionPath = Join-Path $Root "supabase\functions\company-onboarding\handler.ts"
@@ -85,7 +96,12 @@ function Get-BackendIssues {
         $onboardingMigrationPath,
         $purchaseMigrationPath,
         $dispatchMigrationPath,
+        $flightStartMigrationPath,
+        $airportMigrationPath,
+        $settlementMigrationPath,
         $leaseMigrationPath,
+        $airportsPath,
+        $settlementPolicyPath,
         $seedPath,
         $structureTestPath,
         $rlsTestPath,
@@ -101,6 +117,12 @@ function Get-BackendIssues {
         $purchaseTestPath,
         $dispatchStructureTestPath,
         $dispatchTestPath,
+        $flightStartStructureTestPath,
+        $flightStartTestPath,
+        $airportStructureTestPath,
+        $airportTestPath,
+        $settlementStructureTestPath,
+        $settlementTestPath,
         $leaseStructureTestPath,
         $leaseTestPath,
         $onboardingFunctionPath,
@@ -464,6 +486,396 @@ function Get-BackendIssues {
         $issues.Add("Dispatch creation must not accept client-controlled company, state or time.")
     }
 
+    $flightStartMigration = Get-Content -Raw -Encoding UTF8 $flightStartMigrationPath
+    $flightStartRequirements = @{
+        "closed state list" = "add constraint flight_dispatches_known_states check \(state in \('draft', 'active'\)\)"
+        "replaced draft-only constraint" = 'drop constraint flight_dispatches_draft_only'
+        "departure timestamp column" = 'add column started_at timestamptz'
+        "timestamp bound to the active state" = "\(state = 'draft' and started_at is null\)[\s\S]+\(state = 'active' and started_at is not null\)"
+        "server departure time" = 'new\.started_at := clock_timestamp\(\)'
+        "server time trigger" = 'create trigger flight_dispatches_server_started_at[\s\S]+before insert or update on public\.flight_dispatches'
+        "private flight start registry" = 'create table private\.flight_start_commands'
+        "owner idempotency" = 'primary key \(owner_id, idempotency_key\)'
+        "one start per dispatch" = 'constraint flight_start_commands_dispatch unique \(dispatch_id\)'
+        "payload fingerprint" = 'extensions\.digest\('
+        "forced registry RLS" = 'alter table private\.flight_start_commands force row level security'
+        "no registry API grants" = 'revoke all on table private\.flight_start_commands from authenticated'
+        "authoritative flight start command" = 'create function public\.start_flight_from_dispatch\('
+        "company lock" = 'from public\.companies as companies[\s\S]+for update'
+        "company derivation" = 'where companies\.owner_id = start_flight_from_dispatch\.owner_id'
+        "active account" = 'private\.account_is_active\(start_flight_from_dispatch\.owner_id\)'
+        "owned dispatch lock" = 'from public\.flight_dispatches as dispatches[\s\S]+dispatches\.company_id = company\.id[\s\S]+for update'
+        "draft-only transition" = "dispatch\.state <> 'draft'"
+        "opaque dispatch rejection" = "message = 'Dispatch is unavailable for flight start\.'"
+        "service-only flight start" = 'grant execute on function public\.start_flight_from_dispatch\(uuid, uuid, uuid\) to service_role'
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $flightStartRequirements.GetEnumerator()) {
+        Require-Text $flightStartMigration $entry.Value "Flight start invariant missing: $($entry.Key)."
+    }
+    if ($flightStartMigration -match '(?i)grant\s+execute\s+on\s+function\s+public\.start_flight_from_dispatch\([^;]+\)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Flight start must remain service-role-only.")
+    }
+    if ($flightStartMigration -match '(?i)grant\s+(insert|update|delete)[^;]*on\s+(table\s+)?public\.flight_dispatches\s+to\s+(anon|authenticated)') {
+        $issues.Add("Client roles must not gain direct flight state mutation privileges.")
+    }
+    if ($flightStartMigration -match '(?i)start_flight_from_dispatch\([^)]*(company_id|aircraft_id|state|started_at)[^)]*\)') {
+        $issues.Add("Flight start must not accept a client-controlled company, aircraft, state or departure time.")
+    }
+    $openedStates = @(
+        [regex]::Matches($flightStartMigration, "state in \(([^)]*)\)") |
+            ForEach-Object { $_.Groups[1].Value }
+    )
+    if ($openedStates.Count -ne 1 -or $openedStates[0] -ne "'draft', 'active'") {
+        $issues.Add("The flight state list must stay closed to exactly draft and active.")
+    }
+    foreach ($existingMigration in @(
+        $migrationPath,
+        $lifecycleMigrationPath,
+        $restoreMigrationPath,
+        $ledgerMigrationPath,
+        $onboardingMigrationPath,
+        $purchaseMigrationPath,
+        $dispatchMigrationPath
+    )) {
+        if ((Get-Content -Raw -Encoding UTF8 $existingMigration) -match 'start_flight_from_dispatch') {
+            $issues.Add("The flight start must arrive by a new append-only migration: $([System.IO.Path]::GetFileName($existingMigration))")
+        }
+    }
+
+    $airportsText = Get-Content -Raw -Encoding UTF8 $airportsPath
+    $seedProjection = $null
+    try {
+        $airports = $airportsText | ConvertFrom-Json
+    }
+    catch {
+        $issues.Add("Airport reference must be valid JSON.")
+        $airports = $null
+    }
+    if ($null -ne $airports) {
+        $airportProperties = @($airports.PSObject.Properties.Name | Sort-Object)
+        if (($airportProperties -join ",") -ne "airports,coordinatePrecision,origin,popularityTiers,schemaVersion,scope" -or
+            $airports.schemaVersion -ne 1 -or
+            $airports.scope -ne "alpha-airport-reference" -or
+            $airports.coordinatePrecision -ne 4 -or
+            (@($airports.popularityTiers) -join ",") -cne "regional,standard,major,hub") {
+            $issues.Add("Airport reference must be schema v1 with exactly four ordered popularity tiers.")
+        }
+        if ([string]$airports.origin -notmatch 'No third-party dataset is imported') {
+            $issues.Add("Airport reference must record the origin of its values.")
+        }
+        $airportEntries = @($airports.airports)
+        if ($airportEntries.Count -lt 1 -or $airportEntries.Count -gt 200) {
+            $issues.Add("Airport reference must declare between 1 and 200 aerodromes.")
+        }
+        $airportCodes = @($airportEntries | ForEach-Object { [string]$_.icaoCode })
+        if ($airportCodes.Count -ne @($airportCodes | Sort-Object -Unique).Count) {
+            $issues.Add("Airport reference contains a duplicate ICAO code.")
+        }
+        if (($airportCodes -join ",") -cne (@($airportCodes | Sort-Object) -join ",")) {
+            $issues.Add("Airport reference must stay sorted by ICAO code.")
+        }
+        $declaredTiers = @($airports.popularityTiers | ForEach-Object { [string]$_ })
+        $invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
+        foreach ($entry in $airportEntries) {
+            $code = [string]$entry.icaoCode
+            $entryProperties = @($entry.PSObject.Properties.Name | Sort-Object)
+            if (($entryProperties -join ",") -ne "icaoCode,latitude,longitude,name,popularityTier") {
+                $issues.Add("Airport reference entry has unexpected fields: $code")
+                continue
+            }
+            $name = [string]$entry.name
+            $latitude = [decimal]$entry.latitude
+            $longitude = [decimal]$entry.longitude
+            if ($code -cnotmatch '^[A-Z0-9]{4}$') {
+                $issues.Add("Airport reference contains a malformed ICAO code: $code")
+            }
+            if ($name -cne $name.Trim() -or
+                $name.Length -lt 1 -or
+                $name.Length -gt 64 -or
+                $name -cnotmatch "^[A-Za-z0-9 '-]+$") {
+                $issues.Add("Airport reference contains an unbounded or non-ASCII name: $code")
+            }
+            if ($latitude -lt -90 -or $latitude -gt 90 -or
+                $longitude -lt -180 -or $longitude -gt 180) {
+                $issues.Add("Airport reference contains an out-of-bounds coordinate: $code")
+            }
+            if ([decimal]::Round($latitude, 4) -ne $latitude -or
+                [decimal]::Round($longitude, 4) -ne $longitude) {
+                $issues.Add("Airport reference coordinate exceeds four decimals: $code")
+            }
+            if ([string]$entry.popularityTier -notin $declaredTiers) {
+                $issues.Add("Airport reference contains an unknown popularity tier: $code")
+            }
+        }
+        if (@($airportEntries | ForEach-Object { [string]$_.popularityTier } | Sort-Object -Unique).Count -ne 4) {
+            $issues.Add("Airport reference must use all four popularity tiers.")
+        }
+        if ($airportsText -match '(?i)(multiplier|amount_minor|priceMinor|currencyCode|revenue)') {
+            $issues.Add("Airport reference must not carry a monetary value.")
+        }
+
+        $projectedRows = @(
+            $airportEntries |
+                Sort-Object -Property { [string]$_.icaoCode } |
+                ForEach-Object {
+                    "    ('{0}', '{1}', {2}, {3}, '{4}')" -f
+                        ([string]$_.icaoCode),
+                        ([string]$_.name).Replace("'", "''"),
+                        ([decimal]$_.latitude).ToString("F4", $invariantCulture),
+                        ([decimal]$_.longitude).ToString("F4", $invariantCulture),
+                        ([string]$_.popularityTier)
+                }
+        )
+        $seedProjection = (
+            "insert into public.airports (icao_code, name, latitude, longitude, popularity_tier)`n" +
+            "values`n" +
+            ($projectedRows -join ",`n") +
+            "`non conflict (icao_code) do update`n" +
+            "set name = excluded.name,`n" +
+            "    latitude = excluded.latitude,`n" +
+            "    longitude = excluded.longitude,`n" +
+            "    popularity_tier = excluded.popularity_tier;`n"
+        )
+    }
+
+    $airportMigration = Get-Content -Raw -Encoding UTF8 $airportMigrationPath
+    $airportRequirements = @{
+        "reference table" = 'create table public\.airports'
+        "ICAO identity" = 'icao_code text primary key'
+        "ICAO format" = "constraint airports_icao_code_format check \(icao_code ~ '\^\[A-Z0-9\]\{4\}\$'\)"
+        "bounded name" = 'constraint airports_name_bounded check'
+        "latitude bounds" = 'constraint airports_latitude_bounds check \(latitude >= -90 and latitude <= 90\)'
+        "longitude bounds" = 'constraint airports_longitude_bounds check \(longitude >= -180 and longitude <= 180\)'
+        "closed tier list" = "constraint airports_popularity_tier check \([\s\S]*popularity_tier in \('regional', 'standard', 'major', 'hub'\)"
+        "schema version" = 'constraint airports_schema_version check \(schema_version = 1\)'
+        "RLS enabled" = 'alter table public\.airports enable row level security'
+        "RLS forced" = 'alter table public\.airports force row level security'
+        "anonymous revoked" = 'revoke all on table public\.airports from anon'
+        "service revoked" = 'revoke all on table public\.airports from service_role'
+        "read-only grant" = 'grant select on table public\.airports to authenticated'
+        "read policy" = 'create policy airports_select_reference'
+        "dispatch revalidation" = 'create or replace function public\.create_dispatch_draft'
+        "departure lookup" = 'where airports\.icao_code = normalized_departure'
+        "arrival lookup" = 'where airports\.icao_code = normalized_arrival'
+        "opaque unknown airport" = "message = 'Departure and arrival must be distinct four-character ICAO codes\.'"
+        "service-only dispatch" = 'grant execute on function public\.create_dispatch_draft\(uuid, uuid, uuid, text, text\) to service_role'
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $airportRequirements.GetEnumerator()) {
+        Require-Text $airportMigration $entry.Value "Airport reference invariant missing: $($entry.Key)."
+    }
+    if ($airportMigration -match '(?i)grant\s+(insert|update|delete|truncate|all)[^;]*on\s+(table\s+)?public\.airports\s+to\s+(anon|authenticated|service_role)') {
+        $issues.Add("Client roles must not gain airport reference mutation privileges.")
+    }
+    if (($airportMigration -replace '(?m)--.*$', '') -match '(?i)(multiplier|amount_minor|price_minor|currency_code)') {
+        $issues.Add("The airport reference must not carry a monetary value or multiplier.")
+    }
+    if ($airportMigration -match '(?i)create_dispatch_draft\([^)]*(company_id|state|created_at)[^)]*\)') {
+        $issues.Add("Airport revalidation must not accept client-controlled company, state or time.")
+    }
+    foreach ($existingMigration in @(
+        $migrationPath,
+        $lifecycleMigrationPath,
+        $restoreMigrationPath,
+        $ledgerMigrationPath,
+        $onboardingMigrationPath,
+        $purchaseMigrationPath,
+        $dispatchMigrationPath,
+        $flightStartMigrationPath
+    )) {
+        if ((Get-Content -Raw -Encoding UTF8 $existingMigration) -match 'public\.airports') {
+            $issues.Add("The airport reference must arrive by a new append-only migration: $([System.IO.Path]::GetFileName($existingMigration))")
+        }
+    }
+
+    $settlementPolicyText = Get-Content -Raw -Encoding UTF8 $settlementPolicyPath
+    $settlementProjection = $null
+    try {
+        $settlementPolicy = $settlementPolicyText | ConvertFrom-Json
+    }
+    catch {
+        $issues.Add("Flight settlement policy must be valid JSON.")
+        $settlementPolicy = $null
+    }
+    if ($null -ne $settlementPolicy) {
+        $settlementProperties = @($settlementPolicy.PSObject.Properties.Name | Sort-Object)
+        if (($settlementProperties -join ",") -ne (@(
+                "baseAmountMinor",
+                "currencyCode",
+                "interruptedFloorMinor",
+                "maximumBlockMinutes",
+                "origin",
+                "perBlockMinuteMinor",
+                "perFlightCapMinor",
+                "perNauticalMileMinor",
+                "popularityMultipliers",
+                "reputation",
+                "schemaVersion",
+                "scope"
+            ) -join ",") -or
+            $settlementPolicy.schemaVersion -ne 1 -or
+            $settlementPolicy.scope -ne "alpha-flight-settlement" -or
+            $settlementPolicy.currencyCode -cne "EUR") {
+            $issues.Add("Flight settlement policy must be schema v1 for an alpha-flight-settlement scale in EUR.")
+        }
+        if ($settlementPolicy.currencyCode -cne $economyPolicy.currencyCode) {
+            $issues.Add("Flight settlement currency must match the opening policy currency.")
+        }
+        $multiplierProperties = @($settlementPolicy.popularityMultipliers.PSObject.Properties.Name)
+        if (($multiplierProperties -join ",") -cne "regional,standard,major,hub") {
+            $issues.Add("Flight settlement multipliers must cover the four ordered popularity tiers.")
+        }
+        $reputationProperties = @($settlementPolicy.reputation.PSObject.Properties.Name | Sort-Object)
+        if (($reputationProperties -join ",") -ne "baseScore,completedDelta,interruptedDelta,maximumScore,minimumScore") {
+            $issues.Add("Flight settlement reputation must declare exactly base, bounds and the two deltas.")
+        }
+        elseif ($settlementPolicy.reputation.minimumScore -ge $settlementPolicy.reputation.baseScore -or
+            $settlementPolicy.reputation.baseScore -ge $settlementPolicy.reputation.maximumScore -or
+            $settlementPolicy.reputation.completedDelta -le 0 -or
+            $settlementPolicy.reputation.interruptedDelta -ge 0) {
+            $issues.Add("Flight settlement reputation must stay bounded with one positive and one negative delta.")
+        }
+        if ($settlementPolicy.interruptedFloorMinor -le 0 -or
+            $settlementPolicy.baseAmountMinor -le 0 -or
+            $settlementPolicy.perNauticalMileMinor -le 0 -or
+            $settlementPolicy.perBlockMinuteMinor -le 0 -or
+            $settlementPolicy.maximumBlockMinutes -ne 1440 -or
+            $settlementPolicy.perFlightCapMinor -le $settlementPolicy.interruptedFloorMinor -or
+            $settlementPolicy.interruptedFloorMinor -ge $settlementPolicy.baseAmountMinor) {
+            $issues.Add("Flight settlement scale must keep a positive floor below the base amount and a cap above it.")
+        }
+
+        $invariant = [System.Globalization.CultureInfo]::InvariantCulture
+        $settlementProjection = (
+            "    select jsonb_build_object(`n" +
+            "        'schemaVersion', 1,`n" +
+            ("        'currencyCode', '{0}',`n" -f [string]$settlementPolicy.currencyCode) +
+            ("        'baseAmountMinor', {0},`n" -f ([long]$settlementPolicy.baseAmountMinor).ToString($invariant)) +
+            ("        'perNauticalMileMinor', {0},`n" -f ([long]$settlementPolicy.perNauticalMileMinor).ToString($invariant)) +
+            ("        'perBlockMinuteMinor', {0},`n" -f ([long]$settlementPolicy.perBlockMinuteMinor).ToString($invariant)) +
+            ("        'interruptedFloorMinor', {0},`n" -f ([long]$settlementPolicy.interruptedFloorMinor).ToString($invariant)) +
+            ("        'perFlightCapMinor', {0},`n" -f ([long]$settlementPolicy.perFlightCapMinor).ToString($invariant)) +
+            ("        'maximumBlockMinutes', {0},`n" -f ([long]$settlementPolicy.maximumBlockMinutes).ToString($invariant)) +
+            # Two explicit decimals, never the parser's own rendering: Windows
+            # PowerShell reads a JSON 1.0 as decimal and keeps its scale, while
+            # PowerShell 7 reads it as double and renders it as 1. Only a fixed
+            # format makes this projection identical on both hosts.
+            ("        'multiplierRegional', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.regional).ToString("F2", $invariant)) +
+            ("        'multiplierStandard', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.standard).ToString("F2", $invariant)) +
+            ("        'multiplierMajor', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.major).ToString("F2", $invariant)) +
+            ("        'multiplierHub', {0},`n" -f ([decimal]$settlementPolicy.popularityMultipliers.hub).ToString("F2", $invariant)) +
+            ("        'reputationBaseScore', {0},`n" -f ([int]$settlementPolicy.reputation.baseScore).ToString($invariant)) +
+            ("        'reputationMinimumScore', {0},`n" -f ([int]$settlementPolicy.reputation.minimumScore).ToString($invariant)) +
+            ("        'reputationMaximumScore', {0},`n" -f ([int]$settlementPolicy.reputation.maximumScore).ToString($invariant)) +
+            ("        'reputationCompletedDelta', {0},`n" -f ([int]$settlementPolicy.reputation.completedDelta).ToString($invariant)) +
+            ("        'reputationInterruptedDelta', {0}`n" -f ([int]$settlementPolicy.reputation.interruptedDelta).ToString($invariant)) +
+            "    );"
+        )
+    }
+
+    $settlementMigration = Get-Content -Raw -Encoding UTF8 $settlementMigrationPath
+    $normalizedSettlementMigration = $settlementMigration.Replace("`r`n", "`n")
+    if ($null -ne $settlementProjection -and
+        -not $normalizedSettlementMigration.Contains($settlementProjection)) {
+        $issues.Add("Embedded flight settlement policy diverges from eng/flight-settlement-policy.json.")
+    }
+    $settlementRequirements = @{
+        "canonical policy projection" = 'create function private\.flight_settlement_policy'
+        "policy is not client callable" = 'revoke all on function private\.flight_settlement_policy\(\) from service_role'
+        "terminal states" = "constraint flight_dispatches_known_states[\s\S]*state in \('draft', 'active', 'completed', 'interrupted'\)"
+        "server closing time" = 'constraint flight_dispatches_closed_at_matches_state check'
+        "closing after departure" = 'constraint flight_dispatches_closed_after_start check'
+        "partial exclusivity" = "create unique index flight_dispatches_one_open_per_aircraft[\s\S]*where state in \('draft', 'active'\)"
+        "released global exclusivity" = 'drop constraint flight_dispatches_one_draft_per_aircraft'
+        "settlement entry type" = "check \(entry_type in \('opening_balance', 'aircraft_purchase', 'flight_settlement'\)\)"
+        "settlement is a credit" = 'constraint financial_ledger_entries_settlement_positive'
+        "bounded report table" = 'create table private\.flight_reports'
+        "one report per flight" = 'constraint flight_reports_dispatch unique \(dispatch_id\)'
+        "closed outcome list" = "constraint flight_reports_outcome check \(outcome in \('completed', 'interrupted'\)\)"
+        "bounded declared block time" = 'constraint flight_reports_declared_block check \([\s\S]*between 0 and 1440'
+        "append-only reputation" = 'create trigger company_reputation_events_reject_update_delete'
+        "truncate-proof reputation" = 'create trigger company_reputation_events_reject_truncate'
+        "closure command" = 'create function public\.close_flight\('
+        "service-only closure" = 'grant execute on function public\.close_flight\(uuid, uuid, uuid, jsonb\) to service_role'
+        "closure locks the company" = 'where companies\.owner_id = close_flight\.owner_id[\s\S]*for update'
+        "closure locks the dispatch" = 'where dispatches\.id = close_flight\.dispatch_id[\s\S]*for update'
+        "server distance" = 'create function private\.airport_distance_nm'
+        "server block time" = 'least\(declared_block_minutes, elapsed_minutes\)'
+        "server elapsed clock" = 'extract\(epoch from \(clock_timestamp\(\) - dispatch\.started_at\)\)'
+        "per-flight cap" = "least\([\s\S]*'perFlightCapMinor'\)::bigint"
+        "interrupted floor" = "outcome = 'interrupted' then[\s\S]*interruptedFloorMinor"
+        "opaque closure refusal" = "message = 'Dispatch is unavailable for closure\.'"
+        "strict report payload" = 'Flight report is invalid\.'
+        "owner-scoped reputation read" = 'create function public\.get_company_reputation'
+        "reputation derives the subject" = 'actor_id uuid := auth\.uid\(\)'
+        "clamped reputation" = "greatest\([\s\S]*reputationMinimumScore[\s\S]*least\([\s\S]*reputationMaximumScore"
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $settlementRequirements.GetEnumerator()) {
+        Require-Text $settlementMigration $entry.Value "Flight settlement invariant missing: $($entry.Key)."
+    }
+    if ($settlementMigration -match '(?i)close_flight\([^)]*(company_id|state|amount|currency|distance|closed_at|settled)[^)]*\)') {
+        $issues.Add("Flight closure must not accept a client-controlled company, state, amount, currency, distance or closing time.")
+    }
+    if ($settlementMigration -match "(?i)grant\s+(select|insert|update|delete|truncate|all)[^;]*on\s+(table\s+)?private\.(flight_reports|company_reputation_events|flight_close_commands)\s+to\s+(anon|authenticated|service_role)") {
+        $issues.Add("Client and API roles must not gain flight report or reputation privileges.")
+    }
+    foreach ($settlementTable in @("flight_reports", "company_reputation_events", "flight_close_commands")) {
+        Require-Text $settlementMigration "alter table private\.$settlementTable enable row level security" "Flight settlement table does not enable RLS: $settlementTable."
+        Require-Text $settlementMigration "alter table private\.$settlementTable force row level security" "Flight settlement table does not force RLS: $settlementTable."
+    }
+    if ($settlementMigration -match '(?i)current_setting\s*\(\s*''(?!request\.jwt)' -or
+        $settlementMigration -cmatch '(SETTLEMENT|REPUTATION|FLIGHT)_[A-Z]+_?(AMOUNT|MINOR|MULTIPLIER|DELTA)') {
+        $issues.Add("Flight settlement values must not come from an environment or session setting.")
+    }
+    if ($normalizedSettlementMigration -match '(?m)^alter table public\.airports' -or
+        $normalizedSettlementMigration -match 'create or replace function public\.post_company_opening_balance' -or
+        $normalizedSettlementMigration -match 'create or replace function public\.purchase_aircraft') {
+        $issues.Add("The flight settlement must not rewrite the opening policy, the purchase command or the airport reference.")
+    }
+    foreach ($existingMigration in @(
+        $migrationPath,
+        $lifecycleMigrationPath,
+        $restoreMigrationPath,
+        $ledgerMigrationPath,
+        $onboardingMigrationPath,
+        $purchaseMigrationPath,
+        $dispatchMigrationPath,
+        $flightStartMigrationPath,
+        $airportMigrationPath
+    )) {
+        if ((Get-Content -Raw -Encoding UTF8 $existingMigration) -match 'close_flight|flight_settlement_policy') {
+            $issues.Add("The flight settlement must arrive by a new append-only migration: $([System.IO.Path]::GetFileName($existingMigration))")
+        }
+    }
+
+    $settlementTests = (
+        (Get-Content -Raw -Encoding UTF8 $settlementStructureTestPath) + "`n" +
+        (Get-Content -Raw -Encoding UTF8 $settlementTestPath)
+    )
+    foreach ($marker in @(
+        "settles the exact scale amount",
+        "reduced to the server time",
+        "bounded by the cap",
+        "receives the policy floor",
+        "replays with the same response",
+        "reused with another payload is rejected",
+        "second closure of the same flight is rejected",
+        "cannot close owner B flight",
+        "draft that never departed cannot be closed",
+        "deletion pending blocks a flight closure",
+        "injected failure rolls back",
+        "aircraft receives a new draft",
+        "clamped to 100",
+        "clamped to 0",
+        "append-only"
+    )) {
+        if (-not $settlementTests.Contains($marker)) {
+            $issues.Add("Missing flight settlement test scenario: $marker")
+        }
+    }
+
     $leaseMigration = Get-Content -Raw -Encoding UTF8 $leaseMigrationPath
     $leaseRequirements = @{
         "versioned lease terms" = 'terms_version = 1[\s\S]+duration_days = 30[\s\S]+cadence_hours = 24'
@@ -629,6 +1041,16 @@ function Get-BackendIssues {
     if ($seed -match '(?i)@(gmail|outlook|hotmail|yahoo)\.' -or $seed -match '(?i)(password|secret|token)\s*=') {
         $issues.Add("Seed may contain a real identity or secret-like assignment.")
     }
+    if ($null -ne $seedProjection -and
+        -not ($seed.Replace("`r`n", "`n")).Contains("`n" + $seedProjection)) {
+        $issues.Add("Seeded airport reference diverges from eng/airports.json.")
+    }
+    if (($seed.Replace("`r`n", "`n")) -match '(?m)^[^\r\n]*--[^\r\n]*\binsert into public\.airports\b') {
+        $issues.Add("The airport reference load must not sit inside a SQL comment.")
+    }
+    if (($seed.Replace("`r`n", "`n")) -match '(?m)^insert into public\.airports\b[\s\S]*?;[\s\S]*^insert into public\.airports\b') {
+        $issues.Add("The airport reference must be loaded by exactly one seed statement.")
+    }
 
     $allTests = (
         (Get-Content -Raw -Encoding UTF8 $structureTestPath) +
@@ -657,7 +1079,15 @@ function Get-BackendIssues {
         "`n" +
         (Get-Content -Raw -Encoding UTF8 $dispatchStructureTestPath) +
         "`n" +
-        (Get-Content -Raw -Encoding UTF8 $dispatchTestPath)
+        (Get-Content -Raw -Encoding UTF8 $dispatchTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $flightStartStructureTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $flightStartTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $airportStructureTestPath) +
+        "`n" +
+        (Get-Content -Raw -Encoding UTF8 $airportTestPath)
     )
     foreach ($marker in @(
         "set local role authenticated",
@@ -713,6 +1143,50 @@ function Get-BackendIssues {
         "owner B cannot read owner A dispatch",
         "deletion pending blocks dispatch creation",
         "injected failure rolls back dispatch and command",
+        "authenticated cannot execute the flight start command",
+        "authenticated cannot forge a flight state or departure time",
+        "exactly one owned draft becomes one server-timed active flight",
+        "identical flight start replays with the same response",
+        "flight start idempotency payload collision is rejected",
+        "owner A cannot start owner B dispatch",
+        "a second start of the same dispatch is rejected",
+        "an unknown dispatch fails closed with the same message",
+        "owner B cannot read owner A active flight",
+        "anonymous cannot read a flight state",
+        "no state outside draft and active is accepted",
+        "a forged departure time cannot replace the recorded server time",
+        "a draft cannot carry a departure time",
+        "deletion pending blocks a flight start",
+        "injected failure rolls back the flight state, its time and the command",
+        "the whole scenario leaves exactly one active flight",
+        "authenticated can only read the reference",
+        "the reference exposes only its read policy",
+        "the reference constrains code, bounds, tier and schema version",
+        "the dispatch command keeps its signature",
+        "the loaded reference stays inside its declared bounds",
+        "every popularity tier belongs to the closed list",
+        "ICAO codes are unique in the loaded reference",
+        "the reference uses exactly four ordered tiers",
+        "A can read the aerodrome reference",
+        "B can read the same aerodrome reference",
+        "anonymous cannot read the aerodrome reference",
+        "authenticated cannot insert an aerodrome",
+        "authenticated cannot update an aerodrome",
+        "authenticated cannot delete an aerodrome",
+        "service role cannot mutate the reference directly",
+        "a duplicate ICAO code is rejected",
+        "an out-of-bounds latitude is rejected",
+        "an out-of-bounds longitude is rejected",
+        "an unknown popularity tier is rejected",
+        "replaying the seed load does not duplicate an aerodrome",
+        "the replayed seed load converges on the canonical row",
+        "two known aerodromes create one draft",
+        "a lowercase known aerodrome is normalized and accepted",
+        "an unknown departure aerodrome is rejected without naming the reference",
+        "an unknown arrival aerodrome is rejected identically",
+        "a malformed code and an unknown code fail identically",
+        "a rejected aerodrome leaves no dispatch",
+        "the T0047 replay contract is unchanged",
         "rollback;"
     )) {
         if (-not $allTests.Contains($marker)) {
@@ -737,6 +1211,16 @@ function Get-BackendIssues {
     Require-Text $types 'get_company_aircraft:' "Generated types do not expose owner aircraft reads."
     Require-Text $types 'flight_dispatches:' "Generated types do not expose flight dispatches."
     Require-Text $types 'create_dispatch_draft:' "Generated types do not expose authoritative dispatch creation."
+    Require-Text $types 'started_at: string \| null' "Generated types do not expose the nullable server departure time."
+    Require-Text $types 'start_flight_from_dispatch:' "Generated types do not expose the authoritative flight start."
+    Require-Text $types 'airports:' "Generated types do not expose the airport reference."
+    Require-Text $types 'popularity_tier: string' "Generated types do not expose the airport popularity tier."
+    Require-Text $types 'closed_at: string \| null' "Generated types do not expose the nullable server closing time."
+    Require-Text $types 'close_flight:' "Generated types do not expose the authoritative flight closure."
+    Require-Text $types 'get_company_reputation:' "Generated types do not expose the owner reputation read."
+    if ($types -match '(?m)^\s+(flight_reports|company_reputation_events|flight_close_commands):') {
+        $issues.Add("Generated types must not expose a private flight settlement table.")
+    }
     Require-Text $types 'aircraft_lease_contracts:' "Generated types do not expose aircraft lease contracts."
     Require-Text $types 'aircraft_lease_installments:' "Generated types do not expose aircraft lease installments."
     Require-Text $types 'lease_aircraft:' "Generated types do not expose authoritative lease creation."
@@ -771,6 +1255,13 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'Dispatch draft concurrency passed' "Backend CI does not report dispatch concurrency."
     Require-Text $ciBackend 'Concurrent dispatch drafts did not preserve one active draft' "Backend CI does not verify one active dispatch under concurrency."
     Require-Text $ciBackend '"1\|1\|0\|1"' "Backend CI does not require one dispatch, one command, draft-only state and one aircraft."
+    Require-Text $ciBackend 'Flight start concurrency passed' "Backend CI does not report flight start concurrency."
+    Require-Text $ciBackend 'Concurrent flight starts did not reject exactly one command' "Backend CI does not verify that one concurrent flight start fails."
+    Require-Text $ciBackend '"1\|1\|0\|1\|0"' "Backend CI does not require one active flight, one command, no draft, one server time and no missing time."
+    Require-Text $ciBackend 'airport_reference_structure' "Backend CI does not prove the airport reference structure."
+    Require-Text $ciBackend 'twenty files with Result: PASS' "Backend CI does not require all twenty pgTAP files."
+    Require-Text $ciBackend 'Airport reference matches eng/airports\.json' "Backend CI does not compare the loaded reference with its canonical source."
+    Require-Text $ciBackend 'Loaded airport reference diverges from eng/airports\.json' "Backend CI does not fail on a divergent airport reference."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
     foreach ($schema in @("auth", "public", "private", "extensions", "supabase_migrations")) {
         Require-Text $ciBackend "--schema $schema" "Backend CI backup scope is missing schema: $schema."
@@ -787,6 +1278,10 @@ function Get-BackendIssues {
     Require-Text $ciBackend '\\copy' "Backend CI does not export the replay journal through the unprivileged psql client."
     Require-Text $ciBackend 'replay_account_deletion_event' "Backend CI does not replay deletion events."
     Require-Text $ciBackend 'Isolated restore replay passed' "Backend CI does not report the restore replay proof."
+    Require-Text $ciBackend 'flight_settlement\\\.test\\\.sql' "Backend CI does not require the flight settlement pgTAP file."
+    Require-Text $ciBackend 'Flight closure concurrency passed' "Backend CI does not prove concurrent flight closures converge."
+    Require-Text $ciBackend 'Concurrent flight closures did not reject exactly one command' "Backend CI does not verify that one concurrent flight closure fails."
+    Require-Text $ciBackend '"1\|1\|1\|1\|1\|43035194"' "Backend CI does not require one terminal flight, report, reputation event, command and credit for an exact balance."
     Require-Text $ciBackend 'dropdb.+--if-exists' "Backend CI does not guarantee restored database cleanup."
 
     return $issues
@@ -807,6 +1302,8 @@ try {
     foreach ($relativePath in @(
         "package.json",
         "eng\economy-policy.json",
+        "eng\airports.json",
+        "eng\flight-settlement-policy.json",
         "supabase\config.toml",
         "supabase\migrations\20260728000100_create_companies.sql",
         "supabase\migrations\20260731000100_account_lifecycle.sql",
@@ -815,7 +1312,10 @@ try {
         "supabase\migrations\20260731000400_authoritative_company_onboarding.sql",
         "supabase\migrations\20260802000100_authoritative_aircraft_purchase.sql",
         "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql",
-        "supabase\migrations\20260803000200_authoritative_aircraft_lease.sql",
+        "supabase\migrations\20260803000200_authoritative_flight_start.sql",
+        "supabase\migrations\20260803000300_bounded_airport_reference.sql",
+        "supabase\migrations\20260804000100_authoritative_flight_settlement.sql",
+        "supabase\migrations\20260804000200_authoritative_aircraft_lease.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
@@ -831,6 +1331,12 @@ try {
         "supabase\tests\database\aircraft_purchase.test.sql",
         "supabase\tests\database\dispatch_draft_structure.test.sql",
         "supabase\tests\database\dispatch_draft.test.sql",
+        "supabase\tests\database\flight_start_structure.test.sql",
+        "supabase\tests\database\flight_start.test.sql",
+        "supabase\tests\database\airport_reference_structure.test.sql",
+        "supabase\tests\database\airport_reference.test.sql",
+        "supabase\tests\database\flight_settlement_structure.test.sql",
+        "supabase\tests\database\flight_settlement.test.sql",
         "supabase\tests\database\aircraft_lease_structure.test.sql",
         "supabase\tests\database\aircraft_lease.test.sql",
         "supabase\functions\company-onboarding\handler.ts",
@@ -1061,7 +1567,131 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql") -Destination $dispatchMigrationCopy
-    $leaseMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260803000200_authoritative_aircraft_lease.sql"
+    $flightStartMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260803000200_authoritative_flight_start.sql"
+    $flightStartText = Get-Content -Raw -Encoding UTF8 $flightStartMigrationCopy
+    $flightStartText = $flightStartText.Replace(
+        "grant execute on function public.start_flight_from_dispatch(uuid, uuid, uuid) to service_role;",
+        "grant execute on function public.start_flight_from_dispatch(uuid, uuid, uuid) to authenticated;"
+    )
+    [System.IO.File]::WriteAllText($flightStartMigrationCopy, $flightStartText)
+    $unsafeFlightStartIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unsafeFlightStartIssues -match "service-role-only") -or
+        -not ($unsafeFlightStartIssues -match "service-only flight start")) {
+        Write-Error "Harness self-test failed to detect a client-executable flight start."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000200_authoritative_flight_start.sql") -Destination $flightStartMigrationCopy
+    $flightStartText = Get-Content -Raw -Encoding UTF8 $flightStartMigrationCopy
+    $flightStartText = $flightStartText.Replace(
+        "check (state in ('draft', 'active'))",
+        "check (state in ('draft', 'active', 'completed'))"
+    )
+    [System.IO.File]::WriteAllText($flightStartMigrationCopy, $flightStartText)
+    $openStateIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($openStateIssues -match "must stay closed to exactly draft and active")) {
+        Write-Error "Harness self-test failed to detect an undeclared flight state."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000200_authoritative_flight_start.sql") -Destination $flightStartMigrationCopy
+    $flightStartText = Get-Content -Raw -Encoding UTF8 $flightStartMigrationCopy
+    $flightStartText = $flightStartText.Replace(
+        "    dispatch_id uuid`r`n)",
+        "    dispatch_id uuid,`r`n    started_at timestamptz`r`n)"
+    ).Replace(
+        "    dispatch_id uuid`n)",
+        "    dispatch_id uuid,`n    started_at timestamptz`n)"
+    )
+    [System.IO.File]::WriteAllText($flightStartMigrationCopy, $flightStartText)
+    $clientFlightTimeIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientFlightTimeIssues -match "client-controlled company, aircraft, state or departure time")) {
+        Write-Error "Harness self-test failed to detect a client-controlled departure time."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000200_authoritative_flight_start.sql") -Destination $flightStartMigrationCopy
+    $dispatchText = Get-Content -Raw -Encoding UTF8 $dispatchMigrationCopy
+    [System.IO.File]::WriteAllText(
+        $dispatchMigrationCopy,
+        ($dispatchText + "`n-- start_flight_from_dispatch rewritten in place`n")
+    )
+    $rewrittenMigrationIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($rewrittenMigrationIssues -match "must arrive by a new append-only migration")) {
+        Write-Error "Harness self-test failed to detect a rewritten delivered migration."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000100_authoritative_dispatch_draft.sql") -Destination $dispatchMigrationCopy
+    $airportsCopy = Join-Path $temporaryRoot "eng\airports.json"
+    $airportsCopyText = Get-Content -Raw -Encoding UTF8 $airportsCopy
+    [System.IO.File]::WriteAllText(
+        $airportsCopy,
+        $airportsCopyText.Replace('"latitude": 43.6777', '"latitude": 43.6778')
+    )
+    $divergentReferenceIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($divergentReferenceIssues -match "Seeded airport reference diverges")) {
+        Write-Error "Harness self-test failed to detect a seed that diverges from the airport reference."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $airportsCopy,
+        $airportsCopyText.Replace('"latitude": 43.6777', '"latitude": 95.0000')
+    )
+    $unboundedReferenceIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unboundedReferenceIssues -match "out-of-bounds coordinate")) {
+        Write-Error "Harness self-test failed to detect an out-of-bounds aerodrome coordinate."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "eng\airports.json") -Destination $airportsCopy
+    $seedCopy = Join-Path $temporaryRoot "supabase\seed.sql"
+    $seedCopyText = Get-Content -Raw -Encoding UTF8 $seedCopy
+    [System.IO.File]::WriteAllText(
+        $seedCopy,
+        $seedCopyText.Replace(
+            "personal data.`r`ninsert into public.airports",
+            "personal data.insert into public.airports"
+        ).Replace(
+            "personal data.`ninsert into public.airports",
+            "personal data.insert into public.airports"
+        )
+    )
+    $commentedReferenceIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($commentedReferenceIssues -match "must not sit inside a SQL comment")) {
+        Write-Error "Harness self-test failed to detect an airport reference load hidden in a comment."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\seed.sql") -Destination $seedCopy
+    $airportMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260803000300_bounded_airport_reference.sql"
+    $airportMigrationText = Get-Content -Raw -Encoding UTF8 $airportMigrationCopy
+    [System.IO.File]::WriteAllText(
+        $airportMigrationCopy,
+        $airportMigrationText + "`ngrant insert on table public.airports to authenticated;`n"
+    )
+    $mutableReferenceIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($mutableReferenceIssues -match "airport reference mutation privileges")) {
+        Write-Error "Harness self-test failed to detect a client-mutable airport reference."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $airportMigrationCopy,
+        $airportMigrationText.Replace(
+            "where airports.icao_code = normalized_departure",
+            "where airports.icao_code is not null"
+        )
+    )
+    $unvalidatedDispatchIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unvalidatedDispatchIssues -match "departure lookup")) {
+        Write-Error "Harness self-test failed to detect a dispatch command that ignores the airport reference."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000300_bounded_airport_reference.sql") -Destination $airportMigrationCopy
+    $leaseMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260804000200_authoritative_aircraft_lease.sql"
     $leaseText = Get-Content -Raw -Encoding UTF8 $leaseMigrationCopy
     $leaseText = $leaseText.Replace(
         "grant execute on function public.process_aircraft_lease(uuid, uuid, timestamptz) to service_role;",
@@ -1074,7 +1704,7 @@ try {
         exit 1
     }
 
-    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000200_authoritative_aircraft_lease.sql") -Destination $leaseMigrationCopy
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260804000200_authoritative_aircraft_lease.sql") -Destination $leaseMigrationCopy
     $leaseText = Get-Content -Raw -Encoding UTF8 $leaseMigrationCopy
     $leaseText = $leaseText.Replace(
         "create function public.lease_aircraft(owner_id uuid, idempotency_key uuid, offer_id uuid)",
@@ -1087,7 +1717,7 @@ try {
         exit 1
     }
 
-    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260803000200_authoritative_aircraft_lease.sql") -Destination $leaseMigrationCopy
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260804000200_authoritative_aircraft_lease.sql") -Destination $leaseMigrationCopy
     $onboardingFunctionCopy = Join-Path $temporaryRoot "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionText = Get-Content -Raw -Encoding UTF8 $onboardingFunctionCopy
     $onboardingFunctionText = $onboardingFunctionText.Replace(
@@ -1233,6 +1863,95 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\company-onboarding\economy-policy.json") -Destination $packagedEconomyPolicyCopy
+    $settlementPolicyCopy = Join-Path $temporaryRoot "eng\flight-settlement-policy.json"
+    $settlementPolicyCopyText = Get-Content -Raw -Encoding UTF8 $settlementPolicyCopy
+    [System.IO.File]::WriteAllText(
+        $settlementPolicyCopy,
+        $settlementPolicyCopyText.Replace('"baseAmountMinor": 15000', '"baseAmountMinor": 15001')
+    )
+    $divergentSettlementIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($divergentSettlementIssues -match "Embedded flight settlement policy diverges")) {
+        Write-Error "Harness self-test failed to detect a settlement scale that drifted from its canonical source."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $settlementPolicyCopy,
+        $settlementPolicyCopyText.Replace('"completedDelta": 1', '"completedDelta": -1')
+    )
+    $unboundedReputationIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unboundedReputationIssues -match "one positive and one negative delta")) {
+        Write-Error "Harness self-test failed to detect an inverted reputation delta."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $settlementPolicyCopy,
+        $settlementPolicyCopyText.Replace('"interruptedFloorMinor": 5000', '"interruptedFloorMinor": 0')
+    )
+    $zeroFloorIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($zeroFloorIssues -match "positive floor below the base amount")) {
+        Write-Error "Harness self-test failed to detect an interrupted flight settling at zero."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "eng\flight-settlement-policy.json") -Destination $settlementPolicyCopy
+    $settlementMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260804000100_authoritative_flight_settlement.sql"
+    $settlementMigrationText = Get-Content -Raw -Encoding UTF8 $settlementMigrationCopy
+    [System.IO.File]::WriteAllText(
+        $settlementMigrationCopy,
+        $settlementMigrationText.Replace(
+            "    report jsonb`r`n)",
+            "    report jsonb,`r`n    settled_amount_minor bigint`r`n)"
+        ).Replace(
+            "    report jsonb`n)",
+            "    report jsonb,`n    settled_amount_minor bigint`n)"
+        )
+    )
+    $clientSettlementAmountIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientSettlementAmountIssues -match "client-controlled company, state, amount")) {
+        Write-Error "Harness self-test failed to detect a client-controlled settlement amount."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $settlementMigrationCopy,
+        $settlementMigrationText.Replace(
+            "    where state in ('draft', 'active');",
+            "    where state is not null;"
+        )
+    )
+    $unboundedExclusivityIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unboundedExclusivityIssues -match "partial exclusivity")) {
+        Write-Error "Harness self-test failed to detect an aircraft exclusivity that covers terminal flights."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $settlementMigrationCopy,
+        $settlementMigrationText +
+            "`ngrant select on table private.company_reputation_events to authenticated;`n"
+    )
+    $readableReputationIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($readableReputationIssues -match "flight report or reputation privileges")) {
+        Write-Error "Harness self-test failed to detect a client-readable reputation table."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $settlementMigrationCopy,
+        $settlementMigrationText.Replace(
+            "least(declared_block_minutes, elapsed_minutes)",
+            "declared_block_minutes"
+        )
+    )
+    $declaredBlockTimeIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($declaredBlockTimeIssues -match "server block time")) {
+        Write-Error "Harness self-test failed to detect a settlement that trusts the declared block time."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260804000100_authoritative_flight_settlement.sql") -Destination $settlementMigrationCopy
     $runtimeText = Get-Content -Raw -Encoding UTF8 $runtimeCopy
     $runtimeText = $runtimeText.Replace(
         '"--env", "SUPABASE_TELEMETRY_DISABLED=1",',
@@ -1251,4 +1970,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040 and T0047-T0048 repository plus 28 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040, T0047-T0051 and T0057 repository plus 44 mutation scenarios)."

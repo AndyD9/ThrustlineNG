@@ -4,6 +4,7 @@
     "clientTrust": "untrusted",
     "mutationRule": "server-command-only",
     "serviceOnlyCommands": [
+      "close_flight",
       "create_company_with_opening_balance",
       "create_dispatch_draft",
       "finalize_account_deletion",
@@ -12,6 +13,7 @@
       "process_aircraft_lease",
       "purchase_aircraft",
       "replay_account_deletion_event",
+      "start_flight_from_dispatch",
       "terminate_aircraft_lease"
     ],
     "clientDataApiReads": [
@@ -26,6 +28,10 @@
       {
         "path": "apps/desktop/src/features/aircraft-fleet/aircraftFleet.ts",
         "resource": "company_aircraft"
+      },
+      {
+        "path": "apps/desktop/src/features/flight-dispatch/dispatchList.ts",
+        "resource": "flight_dispatches"
       }
     ]
   },
@@ -117,7 +123,7 @@
         "supabase/functions/aircraft-purchase/handler.ts",
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql",
-        "supabase/migrations/20260803000200_authoritative_aircraft_lease.sql",
+        "supabase/migrations/20260804000200_authoritative_aircraft_lease.sql",
         "supabase/tests/database/aircraft_lease.test.sql"
       ],
       "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "rest/v1/company_aircraft", "functions/v1/aircraft-purchase", "createAircraftPurchaseHandler", "purchase_aircraft", "lease_aircraft", "process_aircraft_lease", "terminate_aircraft_lease", "company_aircraft"],
@@ -132,33 +138,72 @@
         "public.create_dispatch_draft"
       ],
       "evidencePaths": [
+        "apps/desktop/src/features/flight-dispatch/flightDispatch.ts",
+        "apps/desktop/src/features/flight-dispatch/FlightDispatchPanel.tsx",
+        "apps/desktop/src/features/flight-dispatch/dispatchList.ts",
+        "apps/desktop/src/features/flight-dispatch/DispatchListPanel.tsx",
         "supabase/functions/dispatch-draft/handler.ts",
         "supabase/migrations/20260803000100_authoritative_dispatch_draft.sql",
-        "supabase/tests/database/dispatch_draft.test.sql"
+        "supabase/tests/database/dispatch_draft.test.sql",
+        "eng/airports.json",
+        "supabase/migrations/20260803000300_bounded_airport_reference.sql",
+        "supabase/tests/database/airport_reference.test.sql"
       ],
       "evidenceMarkers": [
+        "functions/v1/dispatch-draft",
+        "normalizeDispatchIntention",
+        "rest/v1/flight_dispatches",
+        "loadDispatchList",
+        "flight_dispatches_select_own",
         "createDispatchDraftHandler",
         "create_dispatch_draft",
         "flight_dispatches",
-        "owner A cannot dispatch owner B aircraft"
+        "owner A cannot dispatch owner B aircraft",
+        "alpha-airport-reference",
+        "airports_select_reference",
+        "an unknown departure aerodrome is rejected without naming the reference"
       ],
-      "limitations": ["An authenticated bounded endpoint and the server-created idempotent draft are covered; no desktop composition, live Edge Runtime proof, remote deployment, SimBrief preparation, lifecycle transition, flight runtime or financial impact is implemented."]
+      "limitations": ["An authenticated bounded endpoint, the server-created idempotent draft, one bounded desktop caller behind an explicit submission and one constant owner-scoped Data API read refreshed after a creation are covered; the desktop declares no client mutation and no ownership filter, RLS flight_dispatches_select_own stays the only selection authority, and no live WebView proof, remote deployment, SimBrief preparation, lifecycle transition, flight runtime or financial impact is implemented.", "The bounded aerodrome reference is server-owned, read-only for authenticated and mutable by no client role. It has no client consumer yet, so it is deliberately absent from clientDataApiReads; the reference stays partial and carries no monetary value."]
     },
     {
       "id": "flight-runtime",
-      "status": "not-implemented",
-      "coverage": "none",
-      "serverBoundaries": [],
-      "evidencePaths": ["docs/CURRENT_STATE.md"],
-      "limitations": ["The replay adapter emits samples but no flight state is persisted or mutated."]
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": [
+        "public.start_flight_from_dispatch"
+      ],
+      "evidencePaths": [
+        "supabase/migrations/20260803000200_authoritative_flight_start.sql",
+        "supabase/tests/database/flight_start.test.sql"
+      ],
+      "evidenceMarkers": [
+        "start_flight_from_dispatch",
+        "flight_dispatches_known_states",
+        "flight_start_commands",
+        "owner A cannot start owner B dispatch"
+      ],
+      "limitations": ["Only the server transitions from one owned draft to one server-timed active flight, and from that flight to one of the two terminal states, are covered. No Auth boundary, desktop caller, flight phase detection or resume exists. T0054 broadcasts bounded replay telemetry on the local bridge contract to authenticated loopback subscribers only, without persisting flight state or linking any sample to a company, a flight or the ledger."]
     },
     {
       "id": "flight-finalization",
-      "status": "not-implemented",
-      "coverage": "none",
-      "serverBoundaries": [],
-      "evidencePaths": ["docs/CURRENT_STATE.md"],
-      "limitations": ["No versioned flight report or idempotent finalization command exists."]
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": [
+        "public.close_flight"
+      ],
+      "evidencePaths": [
+        "eng/flight-settlement-policy.json",
+        "supabase/migrations/20260804000100_authoritative_flight_settlement.sql",
+        "supabase/tests/database/flight_settlement.test.sql"
+      ],
+      "evidenceMarkers": [
+        "close_flight",
+        "flight_reports",
+        "flight_close_commands",
+        "alpha-flight-settlement",
+        "a second closure of the same flight is rejected"
+      ],
+      "limitations": ["Only the server closure of one owned active flight is covered: one terminal state, one bounded versioned report, one net credit and one reputation event in a single transaction. The report contract accepts a closed outcome, a bounded declared block time and optional bounded measurements only; the amount, the currency, the distance, the retained block time and the multiplier are recomputed or derived by the server. No Auth boundary, desktop caller, cancellation, SimBrief or telemetry-driven closure exists."]
     },
     {
       "id": "finance",
@@ -167,9 +212,10 @@
       "serverBoundaries": [
         "public.post_company_opening_balance",
         "supabase/functions/aircraft-purchase/handler.ts",
+        "public.purchase_aircraft",
+        "public.close_flight",
         "public.lease_aircraft",
         "public.process_aircraft_lease",
-        "public.purchase_aircraft",
         "public.terminate_aircraft_lease"
       ],
       "evidencePaths": [
@@ -181,19 +227,35 @@
         "supabase/functions/aircraft-purchase/handler.ts",
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql",
-        "supabase/migrations/20260803000200_authoritative_aircraft_lease.sql",
+        "eng/flight-settlement-policy.json",
+        "supabase/migrations/20260804000100_authoritative_flight_settlement.sql",
+        "supabase/tests/database/flight_settlement.test.sql",
+        "supabase/migrations/20260804000200_authoritative_aircraft_lease.sql",
         "supabase/tests/database/aircraft_lease.test.sql"
       ],
-      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft", "aircraft_lease_rent", "process_aircraft_lease"],
-      "limitations": ["Opening, purchase and versioned lease rents are authoritative. Lease catch-up is manual service-role execution only; no scheduler, routed lease endpoint, live connectivity or other recurring financial command is provided."]
+      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft", "flight_settlement", "alpha-flight-settlement", "aircraft_lease_rent", "process_aircraft_lease"],
+      "limitations": ["Opening, bounded authenticated catalogue read, one-off aircraft purchase, the single net flight settlement and the versioned lease rents are covered as separate components; routed composition, live connectivity and other financial commands are not defined. The settlement scale is an alpha decision protected by a floor and a per-flight cap, not a measured economic balance. Lease catch-up is manual service-role execution only; no scheduler and no routed lease endpoint exist."]
     },
     {
       "id": "reputation-progression",
-      "status": "not-implemented",
-      "coverage": "none",
-      "serverBoundaries": [],
-      "evidencePaths": ["docs/CURRENT_STATE.md"],
-      "limitations": ["Reputation and progression mutations are not implemented."]
+      "status": "server-authoritative",
+      "coverage": "partial",
+      "serverBoundaries": [
+        "public.close_flight",
+        "public.get_company_reputation"
+      ],
+      "evidencePaths": [
+        "eng/flight-settlement-policy.json",
+        "supabase/migrations/20260804000100_authoritative_flight_settlement.sql",
+        "supabase/tests/database/flight_settlement.test.sql"
+      ],
+      "evidenceMarkers": [
+        "company_reputation_events",
+        "get_company_reputation",
+        "a score above the policy maximum is clamped to 100",
+        "a reputation event can never be rewritten"
+      ],
+      "limitations": ["Only the informative reputation of a closed flight is covered: append-only deltas written inside the closure transaction and one owner-scoped bounded read. No client role can write an event, no capability is allowed, denied or modulated by the score, and no other progression mutation is implemented."]
     },
     {
       "id": "maintenance",

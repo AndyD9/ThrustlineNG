@@ -153,6 +153,77 @@ les rejets Auth, transport et SQL sont redigés. La preuve Edge reste injectée 
 synthétique : aucun runtime live, desktop, SimBrief, cycle de vol, cible distante
 ou donnée réelle n'est couvert.
 
+## Démarrage de vol autoritaire T0050
+
+`start_flight_from_dispatch` est une fonction `security definer` à `search_path`
+vide exécutable uniquement par `service_role`. Elle accepte exactement un
+propriétaire vérifié en amont, une clé UUID et un dispatch. Compagnie, avion,
+état et horodatage de départ ne traversent jamais la frontière comme autorité
+cliente : ils sont dérivés du serveur. L'état de vol reste une liste fermée de
+deux valeurs et `started_at` vient d'un trigger `clock_timestamp()` qu'aucun
+appelant ne peut fournir, remplacer ni antidater, y compris par une écriture
+directe sur la table.
+
+La commande verrouille la compagnie du propriétaire puis le dispatch, refuse un
+compte en suppression via `private.account_is_active` et n'autorise que la
+transition `draft` → `active`. Un dispatch inconnu, appartenant à une autre
+compagnie ou déjà actif rend le même message opaque, sans révéler son existence,
+son propriétaire ni son état. Aucun identifiant Auth, message SQL ou donnée
+personnelle n'est exposé à un appelant.
+
+Le registre `private.flight_start_commands` force RLS, n'accorde aucun privilège
+API, lie `(owner_id, idempotency_key)` à l'empreinte SHA-256 du payload et
+n'admet qu'un démarrage par dispatch. Un rejeu identique rend la même réponse ;
+une collision de clé échoue ; deux sessions concurrentes sur le même dispatch
+convergent vers un seul vol actif, une seule commande et un seul horodatage.
+`authenticated` conserve une lecture seule filtrée par la compagnie du sujet Auth
+et ne reçoit aucun `execute`. Aucune frontière Auth, appelant desktop,
+télémétrie, clôture, écriture financière, annulation ou preuve Edge runtime n'est
+couverte par ce ticket.
+
+## Clôture de vol et règlement autoritaires T0051
+
+`close_flight` est une fonction `security definer` à `search_path` vide
+exécutable uniquement par `service_role`. Elle accepte un propriétaire vérifié en
+amont, une clé UUID, un dispatch et un rapport `jsonb` dont le jeu de clés est
+validé strictement : `outcome` et `blockMinutes` sont obligatoires,
+`landingVerticalSpeedFpm` et `fuelUsedKg` sont facultatifs, toute clé
+supplémentaire est refusée. Aucun montant, aucune devise, aucune distance, aucune
+compagnie, aucun état et aucun horodatage de clôture ne franchit la frontière
+comme autorité cliente.
+
+La règle de sécurité ajoutée est explicite : aucune valeur monétaire, distance ou
+durée facturable ne franchit une frontière cliente sans être recalculée ou bornée
+par le serveur. Le temps de bloc retenu est `min(temps déclaré, temps réellement
+écoulé depuis l'horodatage de départ serveur)`, la distance vient du référentiel
+T0057, le multiplicateur des paliers de ce même référentiel, et le montant est
+recalculé puis borné par le plafond de la politique. Une fin interrompue reçoit le
+plancher de la politique, jamais zéro et jamais le barème complet. Le barème
+lui-même vient d'une source canonique versionnée dont la copie embarquée est
+comparée texte à texte par le gate backend ; il n'est ni lisible ni surchargeable
+par une variable d'environnement, et `private.flight_settlement_policy()`
+n'accorde `execute` à aucun rôle d'API.
+
+La commande verrouille la compagnie, puis le sujet financier, puis le dispatch, et
+refuse un compte en suppression via `private.account_is_active`. Un dispatch
+inconnu, appartenant à une autre compagnie, déjà clôturé ou encore en brouillon
+rend le même message opaque. Les trois tables ajoutées — rapports, événements de
+réputation et registre de clôture — vivent dans `private`, forcent RLS et
+n'accordent aucun privilège à `anon`, `authenticated` ou `service_role`. Les
+événements de réputation sont append-only par trigger, comme les écritures du
+grand livre : ni `update`, ni `delete`, ni `truncate`. La seule lecture cliente est
+`public.get_company_reputation`, qui exige une session `authenticated` non
+anonyme, dérive la compagnie de `auth.uid()` et rend un score borné `0–100` sans
+identifiant, sans montant et sans effet sur une capacité.
+
+Un rejeu identique rend la même réponse et n'écrit rien de plus ; une clé réutilisée
+avec un autre payload échoue ; deux sessions concurrentes sur le même vol
+convergent vers un état terminal, un rapport, un événement de réputation et un
+seul crédit. Une panne injectée sur le registre annule l'état, le rapport, la
+réputation et l'argent ensemble. Aucune frontière Auth, appelant desktop,
+annulation, télémétrie de clôture, cible distante ni donnée réelle n'est couverte
+par ce ticket.
+
 ## Configuration et session desktop T0038
 
 Le bundle n'accepte que deux paramètres explicitement publics : URL Supabase et
@@ -380,6 +451,32 @@ Les traces JSONL exigent UTF-8, format et schéma exacts, propriétés connues,
 offsets strictement croissants, valeurs finies/bornées et lignes de 16 Kio au
 maximum. Les erreurs indiquent seulement le numéro de ligne.
 
+## Canal de télémétrie local T0054
+
+La diffusion `telemetry.v1` reste sous les contrôles de la frontière locale
+T0010, sans nouvelle autorité :
+
+- le jeton d'instance est exigé sur la négociation comme sur l'upgrade WebSocket ;
+  une connexion sans jeton ou avec un mauvais jeton reçoit `401` et ne crée aucun
+  abonné ;
+- la liaison reste `127.0.0.1` : toute autre adresse de l'hôte, `::1` inclus, est
+  refusée par le socket, jamais par un filtre applicatif ;
+- seuls les champs bornés de `FlightSample` sont publiés, sans type SDK, sans
+  identifiant de compagnie ou de vol et sans champ métier ;
+- chaque échantillon est revalidé avant diffusion, y compris s'il provient d'un
+  adaptateur qui contourne la fabrique du domaine ;
+- la mémoire est bornée par construction : un seul échantillon en attente par
+  abonné, aucun tampon cumulatif, et un abonné qui cesse de drainer est
+  abandonné après un délai d'envoi borné ;
+- l'état publié se limite à `telemetrySource` et `telemetryState` ; ni chemin de
+  trace, ni version de SDK, ni jeton n'apparaît dans une réponse ou une erreur ;
+- aucun jeton, échantillon brut ni chemin utilisateur n'est journalisé : le
+  processus ne conserve aucun fournisseur de logs.
+
+La source native reste facultative. Son absence donne l'état `unavailable` et
+n'ouvre aucun chemin de secours : elle n'est jamais requise par la CI et
+n'accorde aucune capacité à la WebView.
+
 ## Frontière locale T0010
 
 Le bridge exige un port dynamique loopback et un jeton hexadécimal de 256 bits.
@@ -443,6 +540,17 @@ les vulnérabilités hautes, NuGet inspecte les transitifs et `cargo-audit` 0.22
 lit le `Cargo.lock`. Gitleaks parcourt l'historique avec les commentaires et
 uploads propres à l'action désactivés ; il reçoit seulement le jeton GitHub
 éphémère en lecture.
+
+Un avertissement informatif de `cargo-audit` n'est pas une exception implicite.
+`cargo audit` seul ne fait échouer que les vulnérabilités : T0058 ajoute donc un
+gate qui compare le rapport à `eng/cargo-advisory-allowlist.json`. La règle est
+fail-closed dans les deux sens : toute vulnérabilité échoue, tout avertissement
+absent de la liste échoue, un avertissement qui change de crate, de version ou de
+nature échoue, une entrée qui n'est plus signalée échoue comme périmée, et la
+liste entière expire à sa date `revalidateBefore`. Chaque entrée porte une
+justification, sa présence ou non dans le graphe `win-x64` et sa condition de
+sortie. Cette liste ne couvre jamais une vulnérabilité et ne remplace pas une
+exception de sécurité, qui reste soumise à l'approbation explicite d'Andy.
 
 Le dépôt garde les sources NuGet désactivées par défaut. Le job Windows autorise
 uniquement `https://api.nuget.org/v3/index.json` pendant un `dotnet restore`

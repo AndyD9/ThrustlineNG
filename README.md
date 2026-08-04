@@ -15,15 +15,27 @@ Le dépôt est une alpha de reconstruction, pas une version publique stable.
   frontend React, bridge .NET, Supabase local, CI et packaging Windows non signé
   sont en place.
 - Phase 2 active : cycle de compte, grand livre immuable, onboarding autoritaire,
-  politique d'ouverture à 430 000 EUR et achat d'un avion sont implémentés côté
-  serveur.
-- Prochain domaine fonctionnel : location d'avion. Le ticket T0032 reste en
-  `Draft` jusqu'aux décisions produit sur contrat, échéances, défaut,
-  résiliation et autorité temporelle.
+  politique d'ouverture à 430 000 EUR, achat d'un avion, référentiel
+  d'aérodromes, brouillon de dispatch, démarrage d'un vol puis sa clôture avec un
+  règlement net unique et une réputation informative sont implémentés côté
+  serveur. Le golden path serveur va donc de la création de compagnie au vol
+  réglé.
+- Phase 4 amorcée : le desktop compose la connexion locale, l'onboarding, le
+  catalogue, l'achat, la flotte, puis la préparation et la relecture des
+  dispatchs, sans jamais porter l'autorité métier.
+- Phase 3 amorcée : le bridge publie une télémétrie bornée et versionnée sur le
+  contrat local, alimentée par un replay synthétique.
+- Prochain travail : exposer le démarrage et la clôture de vol derrière une
+  frontière authentifiée, les deux dernières commandes serveur du golden path qui
+  n'en ont pas. La location d'avion suit ; son ticket T0032 reste en `Draft`
+  jusqu'aux décisions produit sur contrat, échéances, défaut, résiliation et
+  autorité temporelle.
 
 Aucune donnée utilisateur réelle n'est autorisée. Le support MSFS 2024 réel,
 les environnements Supabase distants, la signature, l'updater et le rollback de
-release ne sont pas encore prouvés.
+release ne sont pas encore prouvés. La télémétrie du bridge n'a encore aucune
+source réelle : le ticket T0059 attend un MSFS 2024 et un SDK SimConnect
+installés avec une provenance vérifiable.
 
 ## Stack
 

@@ -85,6 +85,14 @@ jobs:
           $auditOutput | Tee-Object -FilePath artifacts/supply-chain/cargo-audit.json
           if ($auditExitCode -ne 0) { exit $auditExitCode }
 
+      - name: Enforce reviewed Cargo advisories
+        id: cargo-advisories
+        continue-on-error: true
+        shell: pwsh
+        run: >-
+          pwsh -NoProfile -File ./scripts/ci/check-cargo-advisories.ps1
+          -ReportPath artifacts/supply-chain/cargo-audit.json
+
       - name: Scan committed history for secrets
         id: secret-scan
         continue-on-error: true
@@ -127,6 +135,7 @@ jobs:
           PNPM_AUDIT: ${{ steps.pnpm-audit.outcome }}
           NUGET_AUDIT: ${{ steps.nuget-audit.outcome }}
           CARGO_AUDIT: ${{ steps.cargo-audit.outcome }}
+          CARGO_ADVISORIES: ${{ steps.cargo-advisories.outcome }}
           SECRET_SCAN: ${{ steps.secret-scan.outcome }}
           LICENCES: ${{ steps.licences.outcome }}
           SBOM: ${{ steps.sbom.outcome }}
@@ -135,6 +144,7 @@ jobs:
             $env:PNPM_AUDIT,
             $env:NUGET_AUDIT,
             $env:CARGO_AUDIT,
+            $env:CARGO_ADVISORIES,
             $env:SECRET_SCAN,
             $env:LICENCES,
             $env:SBOM

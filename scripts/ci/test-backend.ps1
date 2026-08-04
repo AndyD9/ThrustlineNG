@@ -145,6 +145,46 @@ try {
         throw "Failed to attach the database alias to the pgTAP network."
     }
 
+    $airportReference = Get-Content -Raw -Encoding UTF8 (
+        Join-Path $repositoryRoot "eng/airports.json"
+    ) | ConvertFrom-Json
+    $invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
+    $expectedAirports = @(
+        @($airportReference.airports) |
+            Sort-Object -Property { [string]$_.icaoCode } |
+            ForEach-Object {
+                "{0}|{1}|{2}|{3}|{4}" -f
+                    ([string]$_.icaoCode),
+                    ([string]$_.name),
+                    ([decimal]$_.latitude).ToString("F4", $invariantCulture),
+                    ([decimal]$_.longitude).ToString("F4", $invariantCulture),
+                    ([string]$_.popularityTier)
+            }
+    )
+    $loadedAirports = @(
+        & $dockerPath exec $databaseContainer `
+            psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres `
+                -c "select icao_code, name, latitude, longitude, popularity_tier from public.airports order by icao_code;"
+    )
+    if ($LASTEXITCODE -ne 0 -or
+        ($loadedAirports -join "`n") -cne ($expectedAirports -join "`n")) {
+        throw "Loaded airport reference diverges from eng/airports.json."
+    }
+    $airportSchemaVersions = @(
+        & $dockerPath exec $databaseContainer `
+            psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres `
+                -c "select distinct schema_version from public.airports;"
+    )
+    if ($LASTEXITCODE -ne 0 -or
+        $airportSchemaVersions.Count -ne 1 -or
+        ([string]$airportSchemaVersions[0]).Trim() -ne "1") {
+        throw "Loaded airport reference does not carry exactly schema version 1."
+    }
+    Write-Output (
+        "Airport reference matches eng/airports.json: {0} aerodromes, schema version 1." -f
+            $expectedAirports.Count
+    )
+
     $testOutput = @(
         & pnpm exec supabase test db --network-id $testNetworkName 2>&1
     )
@@ -168,8 +208,14 @@ try {
         $testText -notmatch "aircraft_purchase\.test\.sql" -or
         $testText -notmatch "dispatch_draft_structure\.test\.sql" -or
         $testText -notmatch "dispatch_draft\.test\.sql" -or
+        $testText -notmatch "flight_start_structure\.test\.sql" -or
+        $testText -notmatch "flight_start\.test\.sql" -or
+        $testText -notmatch "airport_reference_structure\.test\.sql" -or
+        $testText -notmatch "airport_reference\.test\.sql" -or
+        $testText -notmatch "flight_settlement_structure\.test\.sql" -or
+        $testText -notmatch "flight_settlement\.test\.sql" -or
         $testText -notmatch "Result:\s+PASS") {
-        throw "Supabase pgTAP did not prove all fourteen files with Result: PASS."
+        throw "Supabase pgTAP did not prove all twenty files with Result: PASS."
     }
 
     $concurrencyUserId = "44000000-0000-4000-8000-000000000004"
@@ -998,6 +1044,296 @@ select
         $dispatchRaceJobs | Remove-Job -Force -ErrorAction SilentlyContinue
     }
 
+    $flightRaceUserId = "96000000-0000-4000-8000-000000000006"
+    $flightRaceCompanyId = "96100000-0000-4000-8000-000000000006"
+    $flightRaceOfferId = "96200000-0000-4000-8000-000000000006"
+    $flightRaceAircraftId = "96300000-0000-4000-8000-000000000006"
+    $flightRaceSetupSql = @"
+insert into auth.users (id, email, raw_user_meta_data, is_anonymous)
+values ('$flightRaceUserId', 'flight-concurrency@thrustline.invalid', '{}', false);
+insert into public.companies (id, owner_id, name)
+values ('$flightRaceCompanyId', '$flightRaceUserId', 'Flight Concurrency Air');
+insert into public.aircraft_purchase_offers (
+    id, aircraft_type_code, serial_number, display_name, price_minor,
+    currency_code, status, sold_at
+)
+values (
+    '$flightRaceOfferId', 'C172', 'CI-C172-5001',
+    'CI Flight Cessna', 1, 'EUR', 'sold', clock_timestamp()
+);
+insert into public.company_aircraft (
+    id, company_id, offer_id, aircraft_type_code, serial_number, display_name
+)
+values (
+    '$flightRaceAircraftId', '$flightRaceCompanyId', '$flightRaceOfferId',
+    'C172', 'CI-C172-5001', 'CI Flight Cessna'
+);
+set local role service_role;
+select public.create_dispatch_draft(
+    '$flightRaceUserId',
+    '96400000-0000-4000-8000-000000000006',
+    '$flightRaceAircraftId',
+    'LFPG',
+    'LFPO'
+);
+reset role;
+"@
+
+    & $dockerPath exec $databaseContainers[0] `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $flightRaceSetupSql *> $null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the flight start concurrency scenario."
+    }
+
+    $flightRaceDispatchIds = @(
+        & $dockerPath exec $databaseContainers[0] `
+            psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres `
+                -c "select id from public.flight_dispatches where aircraft_id = '$flightRaceAircraftId';"
+    )
+    if ($LASTEXITCODE -ne 0 -or $flightRaceDispatchIds.Count -ne 1) {
+        throw "Expected exactly one dispatch draft for the flight start concurrency scenario."
+    }
+    $flightRaceDispatchId = $flightRaceDispatchIds[0]
+
+    $flightRaceFirstSql = @"
+begin;
+set local role service_role;
+select public.start_flight_from_dispatch(
+    '$flightRaceUserId',
+    '96500000-0000-4000-8000-000000000006',
+    '$flightRaceDispatchId'
+) ->> 'startedAt';
+select pg_sleep(4);
+commit;
+"@
+    $flightRaceSecondSql = @"
+begin;
+set local role service_role;
+select public.start_flight_from_dispatch(
+    '$flightRaceUserId',
+    '96600000-0000-4000-8000-000000000006',
+    '$flightRaceDispatchId'
+) ->> 'startedAt';
+commit;
+"@
+
+    $flightRaceJobs = @()
+    try {
+        $flightRaceJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql *> $null
+            $LASTEXITCODE
+        } -ArgumentList $dockerPath, $databaseContainers[0], $flightRaceFirstSql
+
+        Start-Sleep -Milliseconds 750
+
+        $flightRaceJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql *> $null
+            $LASTEXITCODE
+        } -ArgumentList $dockerPath, $databaseContainers[0], $flightRaceSecondSql
+
+        $flightRaceJobs | Wait-Job | Out-Null
+        $flightRaceExitCodes = @(
+            $flightRaceJobs | Receive-Job |
+                ForEach-Object { [int]$_ } |
+                Sort-Object
+        )
+        if ($flightRaceJobs.State -contains "Failed" -or
+            ($flightRaceExitCodes -join "|") -ne "0|1") {
+            throw "Concurrent flight starts did not reject exactly one command."
+        }
+
+        $flightRaceStateSql = @"
+select
+    (select count(*) from public.flight_dispatches
+     where aircraft_id = '$flightRaceAircraftId' and state = 'active'),
+    (select count(*) from private.flight_start_commands
+     where dispatch_id = '$flightRaceDispatchId'),
+    (select count(*) from public.flight_dispatches
+     where aircraft_id = '$flightRaceAircraftId' and state = 'draft'),
+    (select count(distinct started_at) from public.flight_dispatches
+     where aircraft_id = '$flightRaceAircraftId'),
+    (select count(*) from public.flight_dispatches
+     where aircraft_id = '$flightRaceAircraftId' and started_at is null);
+"@
+        $flightRaceState = @(
+            & $dockerPath exec $databaseContainers[0] `
+                psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres -c $flightRaceStateSql
+        )
+        if ($LASTEXITCODE -ne 0 -or
+            ($flightRaceState -join "").Trim() -ne "1|1|0|1|0") {
+            throw "Concurrent flight starts did not converge on one server-timed active flight."
+        }
+        Write-Output "Flight start concurrency passed: 2 sessions, 1 active flight, 1 command, 1 server time."
+    }
+    finally {
+        $flightRaceJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    }
+
+    # Two sessions closing the same active flight must converge on one settlement:
+    # one terminal state, one report, one reputation event and one credit.
+    $closeRaceUserId = "97000000-0000-4000-8000-000000000007"
+    $closeRaceCompanyId = "97100000-0000-4000-8000-000000000007"
+    $closeRaceOfferId = "97200000-0000-4000-8000-000000000007"
+    $closeRaceAircraftId = "97300000-0000-4000-8000-000000000007"
+    $closeRaceSetupSql = @"
+insert into auth.users (id, email, raw_user_meta_data, is_anonymous)
+values ('$closeRaceUserId', 'close-concurrency@thrustline.invalid', '{}', false);
+insert into public.companies (id, owner_id, name)
+values ('$closeRaceCompanyId', '$closeRaceUserId', 'Close Concurrency Air');
+insert into public.aircraft_purchase_offers (
+    id, aircraft_type_code, serial_number, display_name, price_minor,
+    currency_code, status, sold_at
+)
+values (
+    '$closeRaceOfferId', 'C172', 'CI-C172-5002',
+    'CI Close Cessna', 1, 'EUR', 'sold', clock_timestamp()
+);
+insert into public.company_aircraft (
+    id, company_id, offer_id, aircraft_type_code, serial_number, display_name
+)
+values (
+    '$closeRaceAircraftId', '$closeRaceCompanyId', '$closeRaceOfferId',
+    'C172', 'CI-C172-5002', 'CI Close Cessna'
+);
+set local role service_role;
+select public.post_company_opening_balance(
+    '$closeRaceCompanyId',
+    '97a00000-0000-4000-8000-000000000007',
+    43000000,
+    'EUR'
+);
+select public.create_dispatch_draft(
+    '$closeRaceUserId',
+    '97400000-0000-4000-8000-000000000007',
+    '$closeRaceAircraftId',
+    'LFBO',
+    'LFML'
+);
+reset role;
+"@
+
+    & $dockerPath exec $databaseContainers[0] `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c $closeRaceSetupSql *> $null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the flight closure concurrency scenario."
+    }
+
+    $closeRaceDispatchIds = @(
+        & $dockerPath exec $databaseContainers[0] `
+            psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres `
+                -c "select id from public.flight_dispatches where aircraft_id = '$closeRaceAircraftId';"
+    )
+    if ($LASTEXITCODE -ne 0 -or $closeRaceDispatchIds.Count -ne 1) {
+        throw "Expected exactly one dispatch draft for the flight closure concurrency scenario."
+    }
+    $closeRaceDispatchId = $closeRaceDispatchIds[0]
+
+    & $dockerPath exec $databaseContainers[0] `
+        psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres -c @"
+set local role service_role;
+select public.start_flight_from_dispatch(
+    '$closeRaceUserId',
+    '97500000-0000-4000-8000-000000000007',
+    '$closeRaceDispatchId'
+);
+reset role;
+"@ *> $null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to start the flight of the closure concurrency scenario."
+    }
+
+    $closeRaceFirstSql = @"
+begin;
+set local role service_role;
+select public.close_flight(
+    '$closeRaceUserId',
+    '97600000-0000-4000-8000-000000000007',
+    '$closeRaceDispatchId',
+    '{"outcome":"completed","blockMinutes":60}'::jsonb
+) ->> 'settledAmountMinor';
+select pg_sleep(4);
+commit;
+"@
+    $closeRaceSecondSql = @"
+begin;
+set local role service_role;
+select public.close_flight(
+    '$closeRaceUserId',
+    '97700000-0000-4000-8000-000000000007',
+    '$closeRaceDispatchId',
+    '{"outcome":"interrupted","blockMinutes":60}'::jsonb
+) ->> 'settledAmountMinor';
+commit;
+"@
+
+    $closeRaceJobs = @()
+    try {
+        $closeRaceJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql *> $null
+            $LASTEXITCODE
+        } -ArgumentList $dockerPath, $databaseContainers[0], $closeRaceFirstSql
+
+        Start-Sleep -Milliseconds 750
+
+        $closeRaceJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql *> $null
+            $LASTEXITCODE
+        } -ArgumentList $dockerPath, $databaseContainers[0], $closeRaceSecondSql
+
+        $closeRaceJobs | Wait-Job | Out-Null
+        $closeRaceExitCodes = @(
+            $closeRaceJobs | Receive-Job |
+                ForEach-Object { [int]$_ } |
+                Sort-Object
+        )
+        if ($closeRaceJobs.State -contains "Failed" -or
+            ($closeRaceExitCodes -join "|") -ne "0|1") {
+            throw "Concurrent flight closures did not reject exactly one command."
+        }
+
+        $closeRaceStateSql = @"
+select
+    (select count(*) from public.flight_dispatches
+     where id = '$closeRaceDispatchId' and state = 'completed'),
+    (select count(*) from private.flight_reports
+     where dispatch_id = '$closeRaceDispatchId'),
+    (select count(*) from private.company_reputation_events
+     where dispatch_id = '$closeRaceDispatchId'),
+    (select count(*) from private.flight_close_commands
+     where dispatch_id = '$closeRaceDispatchId'),
+    (select count(*) from private.financial_ledger_entries as entries
+     join private.financial_ledger_subjects as subjects
+       on subjects.subject_id = entries.subject_id
+     where subjects.company_id = '$closeRaceCompanyId'
+       and entries.entry_type = 'flight_settlement'),
+    (select coalesce(sum(entries.amount_minor), 0)
+     from private.financial_ledger_entries as entries
+     join private.financial_ledger_subjects as subjects
+       on subjects.subject_id = entries.subject_id
+     where subjects.company_id = '$closeRaceCompanyId');
+"@
+        $closeRaceState = @(
+            & $dockerPath exec $databaseContainers[0] `
+                psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres -c $closeRaceStateSql
+        )
+        if ($LASTEXITCODE -ne 0 -or
+            ($closeRaceState -join "").Trim() -ne "1|1|1|1|1|43035194") {
+            throw "Concurrent flight closures did not converge on one settlement."
+        }
+        Write-Output "Flight closure concurrency passed: 2 sessions, 1 completed flight, 1 report, 1 reputation event, 1 credit of 35194 minor units."
+    }
+    finally {
+        $closeRaceJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    }
+
     $restoreUserId = "48000000-0000-4000-8000-000000000008"
     $restoreSessionId = "48100000-0000-4000-8000-000000000008"
     $restoreCompanyId = "d8000000-0000-4000-8000-000000000008"
@@ -1424,7 +1760,7 @@ select
         throw "Generated database types are stale."
     }
 
-    Write-Output "Backend CI passed: 2 resets, 12 pgTAP files, 234 assertions, concurrent idempotence and purchase, isolated restore replay, authoritative onboarding, stable types, loopback ports."
+    Write-Output "Backend CI passed: 2 resets, 20 pgTAP files, airport reference matching its canonical source, concurrent idempotence, purchase, dispatch, flight start and flight settlement, isolated restore replay, authoritative onboarding, stable types, loopback ports."
 }
 finally {
     if ($null -ne $databaseContainer -and $null -ne $dockerPath) {
