@@ -1,6 +1,6 @@
 # T0051 — Clôturer un vol une seule fois, régler son revenu et sa réputation
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0051-authoritative-flight-settlement`
 Phase: 2
@@ -272,6 +272,27 @@ supprimer une écriture existante.
 
 Branche : `feature/T0051-authoritative-flight-settlement`, créée depuis
 `origin/main` au merge `2a07113` (PR #98). Aucune branche empilée.
+
+Andy a fusionné la PR #102 dans `main` le 4 août 2026 par le merge `c0972fa`, sur
+le commit de tête `8627fd3`, avec ses trois checks verts : `Audits, licences and
+SBOM` en 4 min 9 s, `Supabase PostgreSQL 17` en 3 min 12 s et `Windows
+multi-stack` en 16 min 16 s. Le ticket est `Done` : critères satisfaits,
+validations locales et CI consignées, vérification manuelle réellement exécutée sur
+état commité et documentation cohérente.
+
+La seule réserve du ticket est levée par cette CI. Le job Linux exécute
+`ci:backend`, non exécutable sous Windows : il rend
+`flight_settlement.test.sql ... ok`, `flight_settlement_structure.test.sql ... ok`,
+`Result: PASS`, puis `Flight closure concurrency passed: 2 sessions, 1 completed
+flight, 1 report, 1 reputation event, 1 credit of 35194 minor units.` et conclut
+par `Backend CI passed: 2 resets, 20 pgTAP files, ... flight start and flight
+settlement, ...`. La convergence de deux clôtures réellement concurrentes sur le
+même vol est donc prouvée par le harnais, et non seulement par un raisonnement sur
+les verrous.
+
+Le premier essai de publication avait échoué sur ce même job en 25 secondes, pour
+le défaut de portabilité du gate consigné dans « Commands and results » ; le
+correctif `8627fd3` est celui que la CI valide.
 
 ### Summary
 
