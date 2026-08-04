@@ -89,6 +89,22 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
     throw 'Package manifest is missing.'
 }
 $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+$productVersionSource = Get-Content -Raw -LiteralPath (
+    Join-Path $repositoryRoot 'eng\product-version.json'
+) | ConvertFrom-Json
+$productVersion = [string]$productVersionSource.productVersion
+$expectedInstallerName = ([string]$productVersionSource.installerNameTemplate).Replace(
+    '{productVersion}', $productVersion
+)
+if ([int]$manifest.schemaVersion -ne 2) {
+    throw "Unsupported package manifest schemaVersion: $($manifest.schemaVersion)."
+}
+if ([string]$manifest.productVersion -ne $productVersion) {
+    throw "Package manifest declares '$($manifest.productVersion)' instead of '$productVersion'."
+}
+if ([string]$manifest.channel -ne [string]$productVersionSource.channel) {
+    throw 'Package manifest must declare the canonical internal alpha channel.'
+}
 $installerEntry = @($manifest.files | Where-Object role -eq 'installer')
 $desktopEntry = @($manifest.files | Where-Object role -eq 'desktop-build-output')
 $bridgeEntry = @($manifest.files | Where-Object role -eq 'bridge')
@@ -97,6 +113,9 @@ if ($installerEntry.Count -ne 1) {
 }
 if ($desktopEntry.Count -ne 1 -or $bridgeEntry.Count -ne 1) {
     throw 'Package manifest must contain exactly one desktop build output and one bridge.'
+}
+if ([string]$installerEntry[0].path -ne $expectedInstallerName) {
+    throw "Manifest installer name must be exactly $expectedInstallerName."
 }
 $installer = Join-Path $packageRoot ([string]$installerEntry[0].path)
 if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {

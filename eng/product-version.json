@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "productVersion": "0.1.0-alpha.1",
+  "channel": "internal-alpha",
+  "publicRelease": false,
+  "signed": false,
+  "installerNameTemplate": "Thrustline-{productVersion}-win-x64.exe",
+  "buildMetadataPattern": "^\\+[0-9]{8}\\.g[0-9a-f]{7,40}$",
+  "targets": {
+    "frontend": "apps/desktop/package.json",
+    "tauri": "apps/desktop/src-tauri/tauri.conf.json",
+    "rustCrate": "apps/desktop/src-tauri/Cargo.toml",
+    "bridge": "Directory.Build.props",
+    "display": "apps/desktop/src/shared/product/productVersion.ts"
+  },
+  "independentVersions": [
+    "package.json",
+    "packages/database/package.json",
+    "eng/versions.json"
+  ]
+}
