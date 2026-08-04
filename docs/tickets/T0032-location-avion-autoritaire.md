@@ -113,9 +113,15 @@ le schéma — et seule la commande temporelle la pilote. `defaulted`, `expired`
   502 assertions réellement découvertes. Les gates, les deux resets, les pgTAP et
   les types sont rejoués verts sur l'arbre fusionné ; les trois commits repris ne
   touchent aucun fichier SQL.
-- 4 août 2026 — `Review` : branche poussée et PR #105 ouverte vers `main`. Les
-  trois checks GitHub, dont le harnais CI Linux et sa course concurrente de
-  location, restent à confirmer avant toute transition vers `Done`.
+- 4 août 2026 — `Review` : branche poussée et PR #105 ouverte vers `main`.
+- 4 août 2026 — les trois checks de la PR #105 sont verts sur le commit de tête
+  `a40d304` : `Audits, licences and SBOM` en 3 min 47 s, `Supabase PostgreSQL 17`
+  en 3 min 21 s et `Windows multi-stack` en 14 min 49 s. Le job Linux exécute le
+  harnais que Windows refuse et conclut « Aircraft lease concurrency passed:
+  creation and temporal catch-up converge without duplicate debit. » La dernière
+  réserve de preuve du ticket est donc levée : la convergence sous concurrence
+  est mesurée, pas déduite. La PR n'est pas fusionnée et aucune capacité de
+  location n'existe encore dans `main`.
 
 ## Dependencies
 
@@ -229,17 +235,17 @@ normatives qu'après leur consignation dans ce ticket et son passage en `Ready`.
 - [x] Une offre serveur et un contrat versionné sont créés atomiquement avec
       l'avion et toute écriture initiale applicable.
 - [x] Chaque échéance est déterministe, rattrapable et prélevée au plus une fois
-      sous rejeu ; la convergence concurrente reste couverte par le seul harnais
-      CI Linux, rejouée manuellement en local et non exécutée sur cette machine.
+      sous rejeu et concurrence — cette dernière mesurée par le harnais CI Linux
+      de la PR #105, non reproductible sur Windows.
 - [x] Défaut, expiration et résiliation suivent les transitions approuvées sans
       mutation de l'historique financier. Réserve explicite : l'état
       `company_aircraft.is_usable` est autoritaire mais aucun consommateur ne le
       lit encore, donc « pas d'usage hors contrat » n'est pas encore opposable au
       dispatch — voir *Risks and limitations*.
 - [x] A/B/anonyme et toutes les mutations ou horloges clientes sont isolés.
-- [x] Deux resets, tous les pgTAP, les types et les gates passent avec un nombre
-      d'assertions réellement découvert et consigné — 22 fichiers, 502
-      assertions. Les courses CI restent à confirmer sur la PR.
+- [x] Deux resets, tous les pgTAP, les types, les courses et les gates passent
+      avec un nombre d'assertions réellement découvert et consigné — 22 fichiers,
+      502 assertions, en local et sur le runner Linux de la PR #105.
 - [x] La documentation distingue commande temporelle prouvée, ordonnanceur
       absent, branche empilée et capacité effectivement livrée dans `main`.
 
@@ -344,20 +350,23 @@ client n'est ajouté.
   502 assertions ;
 - `pnpm.cmd backend:types` puis `backend:types:check` — PASS, « Database types
   match the local schema » ;
-- `pnpm.cmd ci:backend` — NON EXÉCUTÉ : le harnais refuse toute machine autre
-  que le runner Linux explicite. Sa fixture de location et son scénario temporel
-  ont été rejoués à la main contre la base locale, avec réponse de rejeu
-  identique, deux échéances et le grand livre attendu ;
+- `pnpm.cmd ci:backend` — non exécutable en local : le harnais refuse toute
+  machine autre que le runner Linux explicite. Sa fixture de location et son
+  scénario temporel ont d'abord été rejoués à la main contre la base locale, avec
+  réponse de rejeu identique, deux échéances et le grand livre attendu, puis
+  exécutés par le job `Supabase PostgreSQL 17` de la PR #105 — PASS, avec
+  « Aircraft lease concurrency passed: creation and temporal catch-up converge
+  without duplicate debit. » ;
 - `git diff --check` — PASS, avertissements LF/CRLF seulement.
 
 ### Manual verification result
 
-Partiellement exécutée. Isolation A/B/anonyme, rejeu, collision de clé, bornes
-temporelles, solde insuffisant, entrée et sortie de grâce, défaut, expiration,
-préavis, pénalité plafonnée, refus sur solde insuffisant, refus sur échéance
-exigible et rollback injecté sont encodés dans les pgTAP et verts. La
-convergence sous concurrence réelle n'est pas rejouée sur cette machine : elle
-appartient au harnais CI Linux.
+Exécutée. Isolation A/B/anonyme, rejeu, collision de clé, bornes temporelles,
+solde insuffisant, entrée et sortie de grâce, défaut, expiration, préavis,
+pénalité plafonnée, refus sur solde insuffisant, refus sur échéance exigible et
+rollback injecté sont encodés dans les pgTAP et verts, en local comme sur le
+runner Linux. La convergence sous concurrence réelle, non reproductible sur
+Windows, est mesurée par le job `Supabase PostgreSQL 17` de la PR #105.
 
 ### Risks and limitations
 
@@ -373,15 +382,14 @@ appartient au harnais CI Linux.
   qu'une résiliation volontaire en coûte deux loyers. L'incitation est
   assumée pour l'alpha ; son correctif naturel est un malus de réputation, hors
   périmètre ici ;
-- la convergence concurrente et les trois checks GitHub restent à confirmer ;
 - aucun ordonnanceur ne garantit les échéances à l'heure réelle.
 
 ### Follow-ups
 
 - ouvrir un ticket appliquant `is_usable` aux commandes de dispatch et de départ
   de vol, seule façon de rendre « pas d'usage hors contrat » opposable ;
-- confirmer les trois checks GitHub de la PR, dont le harnais CI Linux et son
-  scénario de concurrence de location ;
+- fusionner la PR #105, dont les trois checks sont verts, puis passer le ticket à
+  `Done` en consignant le commit de merge ;
 - ordonnanceur distant des échéances, ticket d'exploitation distinct, obligatoire
   avant toute donnée réelle ;
 - endpoint authentifié de location, absent par décision de périmètre.

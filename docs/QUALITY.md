@@ -808,8 +808,14 @@ et **502 assertions réellement découvertes** au vert, dont 43 de comportement 
 
 Le gate backend classe les trois commandes privilégiées et rejette tout grant
 client, toute mutation directe, ainsi que l'ajout de termes, compagnie, état ou
-temps à la création ; il porte 44 scénarios de mutation. La convergence sous
-concurrence n'est pas mesurable sur Windows : `scripts/ci/test-backend.ps1`
-refuse toute machine autre que le runner Linux, donc sa fixture de location a été
-rejouée à la main contre la base locale et sa course reste à confirmer en CI. La
-preuve locale ne remplace pas l'ordonnanceur distant, explicitement absent.
+temps à la création ; il porte 44 scénarios de mutation.
+
+La convergence sous concurrence n'est pas mesurable sur Windows :
+`scripts/ci/test-backend.ps1` refuse toute machine autre que le runner Linux.
+Elle est prouvée par la PR #105 sur le commit de tête `a40d304`, dont les trois
+checks sont verts : `Audits, licences and SBOM` en 3 min 47 s, `Supabase
+PostgreSQL 17` en 3 min 21 s et `Windows multi-stack` en 14 min 49 s. Le job
+Linux enchaîne les 44 mutations statiques, deux resets, les 22 fichiers et
+502 assertions, puis conclut « Aircraft lease concurrency passed: creation and
+temporal catch-up converge without duplicate debit. » La preuve locale ne
+remplace pas l'ordonnanceur distant, explicitement absent.
