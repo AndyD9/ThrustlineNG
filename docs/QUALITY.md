@@ -758,12 +758,18 @@ dans sa bande, frais de mise en service de dix loyers, premier loyer à
 l'activation, rejeu et collision, isolation A/B/anonyme, borne de grâce
 72 heures, suspension de l'avion pendant la grâce et rétablissement après
 rattrapage, rattrapage ordonné, défaut, expiration, préavis et pénalité de
-résiliation plafonnée, refus sur solde insuffisant, rollback injecté et
-historique immuable. Un run qui ne découvre que les 20 fichiers antérieurs n'est
-pas une preuve T0032.
+résiliation plafonnée, refus sur solde insuffisant, refus sur échéance déjà
+exigible, rollback injecté et historique immuable. Un run qui ne découvre que les
+20 fichiers antérieurs n'est pas une preuve T0032.
+
+Mesure du 4 août 2026 : deux resets PostgreSQL 17 consécutifs, puis 22 fichiers
+et **502 assertions réellement découvertes** au vert, dont 43 de comportement et
+32 de structure pour T0032. Les types régénérés correspondent au schéma local.
 
 Le gate backend classe les trois commandes privilégiées et rejette tout grant
 client, toute mutation directe, ainsi que l'ajout de termes, compagnie, état ou
-temps à la création. Deux resets consécutifs, les types régénérés et une course
-concurrente doivent encore passer avant `Review`. La preuve locale ne remplace
-pas l'ordonnanceur distant, explicitement absent.
+temps à la création ; il porte 44 scénarios de mutation. La convergence sous
+concurrence n'est pas mesurable sur Windows : `scripts/ci/test-backend.ps1`
+refuse toute machine autre que le runner Linux, donc sa fixture de location a été
+rejouée à la main contre la base locale et sa course reste à confirmer en CI. La
+preuve locale ne remplace pas l'ordonnanceur distant, explicitement absent.

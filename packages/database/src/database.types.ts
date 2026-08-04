@@ -9,12 +9,162 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      aircraft_lease_contracts: {
+        Row: {
+          activated_at: string
+          aircraft_id: string | null
+          cadence_hours: number
+          company_id: string | null
+          created_at: string
+          currency_code: string
+          duration_days: number
+          ends_at: string
+          grace_hours: number
+          id: string
+          initial_payment_minor: number
+          offer_id: string
+          reference_price_minor: number
+          rent_minor: number
+          schema_version: number
+          state: string
+          terminate_effective_at: string | null
+          terminated_at: string | null
+          termination_penalty_minor: number
+          terms_version: number
+          usable_during_grace: boolean
+          voluntary_termination: boolean
+        }
+        Insert: {
+          activated_at: string
+          aircraft_id?: string | null
+          cadence_hours: number
+          company_id?: string | null
+          created_at?: string
+          currency_code: string
+          duration_days: number
+          ends_at: string
+          grace_hours: number
+          id?: string
+          initial_payment_minor: number
+          offer_id: string
+          reference_price_minor: number
+          rent_minor: number
+          schema_version?: number
+          state?: string
+          terminate_effective_at?: string | null
+          terminated_at?: string | null
+          termination_penalty_minor: number
+          terms_version: number
+          usable_during_grace: boolean
+          voluntary_termination: boolean
+        }
+        Update: {
+          activated_at?: string
+          aircraft_id?: string | null
+          cadence_hours?: number
+          company_id?: string | null
+          created_at?: string
+          currency_code?: string
+          duration_days?: number
+          ends_at?: string
+          grace_hours?: number
+          id?: string
+          initial_payment_minor?: number
+          offer_id?: string
+          reference_price_minor?: number
+          rent_minor?: number
+          schema_version?: number
+          state?: string
+          terminate_effective_at?: string | null
+          terminated_at?: string | null
+          termination_penalty_minor?: number
+          terms_version?: number
+          usable_during_grace?: boolean
+          voluntary_termination?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aircraft_lease_contracts_aircraft_id_fkey"
+            columns: ["aircraft_id"]
+            isOneToOne: true
+            referencedRelation: "company_aircraft"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aircraft_lease_contracts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aircraft_lease_contracts_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: true
+            referencedRelation: "aircraft_purchase_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aircraft_lease_installments: {
+        Row: {
+          amount_minor: number
+          contract_id: string
+          created_at: string
+          currency_code: string
+          due_at: string
+          grace_until: string | null
+          id: string
+          installment_number: number
+          ledger_entry_id: string | null
+          paid_at: string | null
+          schema_version: number
+          state: string
+        }
+        Insert: {
+          amount_minor: number
+          contract_id: string
+          created_at?: string
+          currency_code: string
+          due_at: string
+          grace_until?: string | null
+          id?: string
+          installment_number: number
+          ledger_entry_id?: string | null
+          paid_at?: string | null
+          schema_version?: number
+          state: string
+        }
+        Update: {
+          amount_minor?: number
+          contract_id?: string
+          created_at?: string
+          currency_code?: string
+          due_at?: string
+          grace_until?: string | null
+          id?: string
+          installment_number?: number
+          ledger_entry_id?: string | null
+          paid_at?: string | null
+          schema_version?: number
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aircraft_lease_installments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "aircraft_lease_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aircraft_purchase_offers: {
         Row: {
           aircraft_type_code: string
+          cadence_hours: number | null
           created_at: string
           currency_code: string
-          cadence_hours: number | null
           display_name: string
           duration_days: number | null
           grace_hours: number | null
@@ -35,9 +185,9 @@ export type Database = {
         }
         Insert: {
           aircraft_type_code: string
+          cadence_hours?: number | null
           created_at?: string
           currency_code: string
-          cadence_hours?: number | null
           display_name: string
           duration_days?: number | null
           grace_hours?: number | null
@@ -58,9 +208,9 @@ export type Database = {
         }
         Update: {
           aircraft_type_code?: string
+          cadence_hours?: number | null
           created_at?: string
           currency_code?: string
-          cadence_hours?: number | null
           display_name?: string
           duration_days?: number | null
           grace_hours?: number | null
@@ -185,123 +335,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      aircraft_lease_contracts: {
-        Row: {
-          activated_at: string
-          aircraft_id: string | null
-          cadence_hours: number
-          company_id: string | null
-          created_at: string
-          currency_code: string
-          duration_days: number
-          ends_at: string
-          grace_hours: number
-          id: string
-          initial_payment_minor: number
-          offer_id: string
-          reference_price_minor: number
-          rent_minor: number
-          schema_version: number
-          state: string
-          terminated_at: string | null
-          termination_penalty_minor: number
-          terms_version: number
-          usable_during_grace: boolean
-          voluntary_termination: boolean
-        }
-        Insert: {
-          activated_at: string
-          aircraft_id?: string | null
-          cadence_hours: number
-          company_id?: string | null
-          created_at?: string
-          currency_code: string
-          duration_days: number
-          ends_at: string
-          grace_hours: number
-          id?: string
-          initial_payment_minor: number
-          offer_id: string
-          reference_price_minor: number
-          rent_minor: number
-          schema_version?: number
-          state?: string
-          terminated_at?: string | null
-          termination_penalty_minor: number
-          terms_version: number
-          usable_during_grace: boolean
-          voluntary_termination: boolean
-        }
-        Update: {
-          activated_at?: string
-          aircraft_id?: string | null
-          cadence_hours?: number
-          company_id?: string | null
-          created_at?: string
-          currency_code?: string
-          duration_days?: number
-          ends_at?: string
-          grace_hours?: number
-          id?: string
-          initial_payment_minor?: number
-          offer_id?: string
-          reference_price_minor?: number
-          rent_minor?: number
-          schema_version?: number
-          state?: string
-          terminated_at?: string | null
-          termination_penalty_minor?: number
-          terms_version?: number
-          usable_during_grace?: boolean
-          voluntary_termination?: boolean
-        }
-        Relationships: []
-      }
-      aircraft_lease_installments: {
-        Row: {
-          amount_minor: number
-          contract_id: string
-          created_at: string
-          currency_code: string
-          due_at: string
-          grace_until: string | null
-          id: string
-          installment_number: number
-          ledger_entry_id: string | null
-          paid_at: string | null
-          schema_version: number
-          state: string
-        }
-        Insert: {
-          amount_minor: number
-          contract_id: string
-          created_at?: string
-          currency_code: string
-          due_at: string
-          grace_until?: string | null
-          id?: string
-          installment_number: number
-          ledger_entry_id?: string | null
-          paid_at?: string | null
-          schema_version?: number
-          state: string
-        }
-        Update: {
-          amount_minor?: number
-          contract_id?: string
-          created_at?: string
-          currency_code?: string
-          due_at?: string
-          grace_until?: string | null
-          id?: string
-          installment_number?: number
-          ledger_entry_id?: string | null
-          paid_at?: string | null
-          schema_version?: number
-          state?: string
-        }
-        Relationships: []
       }
       flight_dispatches: {
         Row: {
@@ -430,6 +463,10 @@ export type Database = {
           score: number
         }[]
       }
+      lease_aircraft: {
+        Args: { idempotency_key: string; offer_id: string; owner_id: string }
+        Returns: Json
+      }
       post_company_opening_balance: {
         Args: {
           amount_minor: number
@@ -439,16 +476,16 @@ export type Database = {
         }
         Returns: Json
       }
+      process_aircraft_lease: {
+        Args: {
+          contract_id: string
+          effective_at?: string
+          idempotency_key: string
+        }
+        Returns: Json
+      }
       purchase_aircraft: {
         Args: { idempotency_key: string; offer_id: string; owner_id: string }
-        Returns: Json
-      }
-      lease_aircraft: {
-        Args: { idempotency_key: string; offer_id: string; owner_id: string }
-        Returns: Json
-      }
-      process_aircraft_lease: {
-        Args: { contract_id: string; effective_at?: string; idempotency_key: string }
         Returns: Json
       }
       replay_account_deletion_event: {

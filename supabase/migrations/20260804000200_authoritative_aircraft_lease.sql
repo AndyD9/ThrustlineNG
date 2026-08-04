@@ -1,13 +1,31 @@
+-- T0032 adds the three lease debits to the known entry types, exactly as T0029
+-- and T0051 extended the list before it. The T0051 settlement credit is carried
+-- over unchanged: dropping it here would silently disable the flight revenue.
+-- Every lease movement is a debit, so its sign is constrained, never trusted.
 alter table private.financial_ledger_entries
     drop constraint financial_ledger_entries_known_type,
     drop constraint financial_ledger_entries_purchase_negative;
 
 alter table private.financial_ledger_entries
     add constraint financial_ledger_entries_known_type
-        check (entry_type in ('opening_balance', 'aircraft_purchase', 'aircraft_lease_rent')),
+        check (
+            entry_type in (
+                'opening_balance',
+                'aircraft_purchase',
+                'flight_settlement',
+                'aircraft_lease_setup_fee',
+                'aircraft_lease_rent',
+                'aircraft_lease_penalty'
+            )
+        ),
     add constraint financial_ledger_entries_acquisition_negative
         check (
-            entry_type not in ('aircraft_purchase', 'aircraft_lease_rent')
+            entry_type not in (
+                'aircraft_purchase',
+                'aircraft_lease_setup_fee',
+                'aircraft_lease_rent',
+                'aircraft_lease_penalty'
+            )
             or amount_minor < 0
         );
 
@@ -52,12 +70,14 @@ alter table public.aircraft_purchase_offers
             and terms_version = 1
             and duration_days = 30
             and cadence_hours = 24
-            and rent_minor = (price_minor + 199) / 200
-            and initial_payment_minor = rent_minor
-            and grace_hours = 48
+            and rent_minor > 0
+            and rent_minor * 1000 >= price_minor
+            and rent_minor * 200 <= price_minor
+            and initial_payment_minor = rent_minor * 10
+            and grace_hours = 72
             and voluntary_termination is true
-            and termination_penalty_minor = 0
-            and usable_during_grace is true
+            and termination_penalty_minor = rent_minor * 2
+            and usable_during_grace is false
         )
     );
 
@@ -108,6 +128,7 @@ create table public.aircraft_lease_contracts (
     state text not null default 'active',
     activated_at timestamptz not null,
     ends_at timestamptz not null,
+    terminate_effective_at timestamptz,
     terminated_at timestamptz,
     created_at timestamptz not null default clock_timestamp(),
     schema_version integer not null default 1,
@@ -115,21 +136,30 @@ create table public.aircraft_lease_contracts (
         terms_version = 1
         and currency_code = 'EUR'
         and reference_price_minor > 0
-        and rent_minor = (reference_price_minor + 199) / 200
+        and rent_minor > 0
+        and rent_minor * 1000 >= reference_price_minor
+        and rent_minor * 200 <= reference_price_minor
         and duration_days = 30
         and cadence_hours = 24
-        and grace_hours = 48
-        and initial_payment_minor = rent_minor
+        and grace_hours = 72
+        and initial_payment_minor = rent_minor * 10
         and voluntary_termination is true
-        and termination_penalty_minor = 0
-        and usable_during_grace is true
+        and termination_penalty_minor = rent_minor * 2
+        and usable_during_grace is false
     ),
     constraint aircraft_lease_contract_state
-        check (state in ('active', 'grace', 'defaulted', 'expired', 'terminated')),
+        check (state in ('active', 'grace', 'terminating', 'defaulted', 'expired', 'terminated')),
     constraint aircraft_lease_contract_dates check (
         ends_at = activated_at + interval '30 days'
         and (
-            (state in ('active', 'grace') and terminated_at is null)
+            (state in ('active', 'grace') and terminated_at is null and terminate_effective_at is null)
+            or (
+                state = 'terminating'
+                and terminated_at is null
+                and terminate_effective_at is not null
+                and terminate_effective_at > activated_at
+                and terminate_effective_at <= ends_at
+            )
             or (state in ('defaulted', 'expired', 'terminated') and terminated_at is not null)
         )
     ),
@@ -171,7 +201,18 @@ create table private.aircraft_lease_events (
     idempotency_key uuid not null,
     created_at timestamptz not null default clock_timestamp(),
     constraint aircraft_lease_event_type check (
-        event_type in ('activated', 'rent_paid', 'grace_started', 'defaulted', 'expired', 'terminated')
+        event_type in (
+            'activated',
+            'setup_fee_paid',
+            'rent_paid',
+            'grace_started',
+            'usage_suspended',
+            'usage_restored',
+            'termination_requested',
+            'defaulted',
+            'expired',
+            'terminated'
+        )
     ),
     constraint aircraft_lease_event_identity unique (contract_id, idempotency_key, event_type, installment_number)
 );
@@ -184,10 +225,13 @@ create table private.aircraft_lease_creation_commands (
     payload_sha256 text not null,
     contract_id uuid not null unique references public.aircraft_lease_contracts (id) on delete restrict,
     aircraft_id uuid not null unique references public.company_aircraft (id) on delete cascade,
+    setup_ledger_entry_id uuid not null unique,
     ledger_entry_id uuid not null unique,
     created_at timestamptz not null default clock_timestamp(),
     primary key (owner_id, idempotency_key),
-    constraint aircraft_lease_creation_payload_hash check (payload_sha256 ~ '^[0-9a-f]{64}$')
+    constraint aircraft_lease_creation_payload_hash check (payload_sha256 ~ '^[0-9a-f]{64}$'),
+    constraint aircraft_lease_creation_distinct_entries
+        check (setup_ledger_entry_id <> ledger_entry_id)
 );
 
 create table private.aircraft_lease_temporal_commands (
@@ -203,9 +247,16 @@ create table private.aircraft_lease_termination_commands (
     owner_id uuid not null references auth.users (id) on delete cascade,
     idempotency_key uuid not null,
     contract_id uuid not null references public.aircraft_lease_contracts (id) on delete restrict,
+    penalty_minor bigint not null,
+    ledger_entry_id uuid unique,
     result jsonb not null,
     created_at timestamptz not null default clock_timestamp(),
-    primary key (owner_id, idempotency_key)
+    primary key (owner_id, idempotency_key),
+    constraint aircraft_lease_termination_penalty check (penalty_minor >= 0),
+    constraint aircraft_lease_termination_penalty_entry check (
+        (penalty_minor = 0 and ledger_entry_id is null)
+        or (penalty_minor > 0 and ledger_entry_id is not null)
+    )
 );
 
 alter table public.aircraft_lease_contracts enable row level security;
@@ -277,8 +328,8 @@ declare
 begin
     for contract_record in
         update public.aircraft_lease_contracts
-        set state = 'terminated', terminated_at = effective
-        where company_id = old.id and state in ('active', 'grace')
+        set state = 'terminated', terminated_at = effective, terminate_effective_at = null
+        where company_id = old.id and state in ('active', 'grace', 'terminating')
         returning id, aircraft_id
     loop
         update public.company_aircraft set is_usable = false where id = contract_record.aircraft_id;
@@ -309,6 +360,8 @@ declare
     contract public.aircraft_lease_contracts%rowtype;
     installment public.aircraft_lease_installments%rowtype;
     installment_id uuid := gen_random_uuid();
+    setup_fee_key uuid := gen_random_uuid();
+    setup_fee_entry private.financial_ledger_entries%rowtype;
     ledger_entry private.financial_ledger_entries%rowtype;
     payload_hash text;
     ledger_balance bigint;
@@ -340,6 +393,7 @@ begin
             raise invalid_parameter_value using message = 'Idempotency key was already used with a different payload.';
         end if;
         return jsonb_build_object('aircraftId', existing.aircraft_id, 'contractId', existing.contract_id,
+            'setupFeeLedgerEntryId', existing.setup_ledger_entry_id,
             'ledgerEntryId', existing.ledger_entry_id, 'offerId', existing.offer_id,
             'schemaVersion', 1, 'state', 'active');
     end if;
@@ -356,7 +410,9 @@ begin
     if ledger_currency_count <> 1 or ledger_currency <> offer.currency_code then
         raise object_not_in_prerequisite_state using message = 'Aircraft offer currency does not match the company ledger.';
     end if;
-    if ledger_balance < offer.initial_payment_minor then
+    -- The set-up fee and the first rent are both due at effect, so the balance
+    -- must cover them together. A partial activation is never written.
+    if ledger_balance < offer.initial_payment_minor + offer.rent_minor then
         raise check_violation using message = 'Company balance is insufficient for this aircraft lease.';
     end if;
     select coalesce(max(sequence_number), 0) + 1 into next_sequence
@@ -383,7 +439,14 @@ begin
     insert into private.financial_ledger_entries (
         subject_id, sequence_number, idempotency_key, entry_type, amount_minor, currency_code
     ) values (
-        subject.subject_id, next_sequence, installment_id, 'aircraft_lease_rent', -contract.rent_minor, contract.currency_code
+        subject.subject_id, next_sequence, setup_fee_key, 'aircraft_lease_setup_fee',
+        -contract.initial_payment_minor, contract.currency_code
+    ) returning * into setup_fee_entry;
+
+    insert into private.financial_ledger_entries (
+        subject_id, sequence_number, idempotency_key, entry_type, amount_minor, currency_code
+    ) values (
+        subject.subject_id, next_sequence + 1, installment_id, 'aircraft_lease_rent', -contract.rent_minor, contract.currency_code
     ) returning * into ledger_entry;
 
     insert into public.aircraft_lease_installments (
@@ -398,15 +461,19 @@ begin
     insert into private.aircraft_lease_events (contract_id, event_type, installment_number, effective_at, idempotency_key)
     values
         (contract.id, 'activated', null, activated, idempotency_key),
+        (contract.id, 'setup_fee_paid', null, activated, setup_fee_entry.id),
         (contract.id, 'rent_paid', 1, activated, installment.id);
 
     insert into private.aircraft_lease_creation_commands (
-        owner_id, idempotency_key, company_id, offer_id, payload_sha256, contract_id, aircraft_id, ledger_entry_id
+        owner_id, idempotency_key, company_id, offer_id, payload_sha256, contract_id, aircraft_id,
+        setup_ledger_entry_id, ledger_entry_id
     ) values (
-        owner_id, idempotency_key, company.id, offer.id, payload_hash, contract.id, aircraft.id, ledger_entry.id
+        owner_id, idempotency_key, company.id, offer.id, payload_hash, contract.id, aircraft.id,
+        setup_fee_entry.id, ledger_entry.id
     );
 
     return jsonb_build_object('aircraftId', aircraft.id, 'contractId', contract.id,
+        'setupFeeLedgerEntryId', setup_fee_entry.id,
         'ledgerEntryId', ledger_entry.id, 'offerId', offer.id, 'schemaVersion', 1, 'state', 'active');
 end;
 $$;
@@ -462,6 +529,9 @@ begin
     for installment_no in 2..30 loop
         due := contract.activated_at + make_interval(hours => contract.cadence_hours * (installment_no - 1));
         exit when due > effective_at;
+        -- A notified termination stops the obligations at its effective instant:
+        -- no rent is ever due for a period the contract no longer covers.
+        exit when contract.state = 'terminating' and due >= contract.terminate_effective_at;
 
         select * into installment from public.aircraft_lease_installments
         where aircraft_lease_installments.contract_id = contract.id
@@ -517,8 +587,15 @@ begin
             end if;
             insert into private.aircraft_lease_events (contract_id, event_type, installment_number, effective_at, idempotency_key)
             values (contract.id, 'rent_paid', installment_no, effective_at, installment.id);
+            -- Clearing every arrear is the only exit from grace, and it is driven
+            -- by this privileged command alone. Usage returns with the contract.
             if contract.state = 'grace' then
                 update public.aircraft_lease_contracts set state = 'active' where id = contract.id returning * into contract;
+                if not contract.usable_during_grace then
+                    update public.company_aircraft set is_usable = true where id = contract.aircraft_id;
+                    insert into private.aircraft_lease_events (contract_id, event_type, installment_number, effective_at, idempotency_key)
+                    values (contract.id, 'usage_restored', installment_no, effective_at, installment.id);
+                end if;
             end if;
         else
             if not installment_exists then
@@ -542,10 +619,32 @@ begin
             else
                 update public.aircraft_lease_contracts set state = 'grace'
                 where id = contract.id returning * into contract;
+                -- Approved terms suspend the aircraft for the whole grace window,
+                -- so an unpaid rent cannot buy another day of operation. The
+                -- update is idempotent; the event is written once per obligation
+                -- so a repeated run inside the same grace window cannot collide.
+                if not contract.usable_during_grace then
+                    update public.company_aircraft set is_usable = false where id = contract.aircraft_id;
+                    if not installment_exists then
+                        insert into private.aircraft_lease_events (contract_id, event_type, installment_number, effective_at, idempotency_key)
+                        values (contract.id, 'usage_suspended', installment_no, effective_at, installment.id);
+                    end if;
+                end if;
             end if;
             exit;
         end if;
     end loop;
+
+    -- A notified termination becomes final at the end of the period already paid.
+    -- Only this privileged command closes it, never the owner and never a client.
+    if contract.state = 'terminating' and effective_at >= contract.terminate_effective_at then
+        update public.aircraft_lease_contracts
+        set state = 'terminated', terminated_at = effective_at, terminate_effective_at = null
+        where id = contract.id returning * into contract;
+        update public.company_aircraft set is_usable = false where id = contract.aircraft_id;
+        insert into private.aircraft_lease_events (contract_id, event_type, effective_at, idempotency_key)
+        values (contract.id, 'terminated', effective_at, idempotency_key);
+    end if;
 
     if contract.state = 'active' and effective_at >= contract.ends_at
        and (
@@ -576,7 +675,17 @@ returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
     contract public.aircraft_lease_contracts%rowtype;
     company public.companies%rowtype;
+    subject private.financial_ledger_subjects%rowtype;
     existing private.aircraft_lease_termination_commands%rowtype;
+    penalty_entry private.financial_ledger_entries%rowtype;
+    penalty_key uuid := gen_random_uuid();
+    penalty_charged bigint;
+    remaining_rent bigint;
+    paid_count integer;
+    due_count integer;
+    ledger_balance bigint;
+    next_sequence bigint;
+    effective timestamptz;
     result jsonb;
     terminated timestamptz := transaction_timestamp();
 begin
@@ -602,18 +711,70 @@ begin
 
     select * into contract from public.aircraft_lease_contracts
     where id = terminate_aircraft_lease.contract_id and company_id = company.id for update;
-    if not found or contract.state not in ('active', 'grace') then
+    -- Approved terms allow a voluntary exit from an active contract only. Grace,
+    -- default, expiry and an already notified termination are not escape hatches.
+    if not found or contract.state <> 'active' or not contract.voluntary_termination then
         raise object_not_in_prerequisite_state using message = 'Aircraft lease cannot be terminated.';
     end if;
 
-    update public.aircraft_lease_contracts set state = 'terminated', terminated_at = terminated
-    where id = contract.id returning * into contract;
-    update public.company_aircraft set is_usable = false where id = contract.aircraft_id;
-    insert into private.aircraft_lease_events (contract_id, event_type, effective_at, idempotency_key)
-    values (contract.id, 'terminated', terminated, idempotency_key);
+    select * into strict subject from private.financial_ledger_subjects
+    where company_id = company.id and anonymized_at is null for update;
 
-    result := jsonb_build_object('contractId', contract.id, 'schemaVersion', 1, 'state', contract.state);
-    insert into private.aircraft_lease_termination_commands values (owner_id, idempotency_key, contract.id, result, clock_timestamp());
+    select count(*) into paid_count from public.aircraft_lease_installments
+    where aircraft_lease_installments.contract_id = contract.id
+      and aircraft_lease_installments.state = 'paid';
+
+    -- Obligations already exigible must be settled by the temporal command before
+    -- a termination can close the contract, otherwise a notice would skip a rent.
+    due_count := least(
+        contract.duration_days,
+        1 + floor(
+            extract(epoch from (terminated - contract.activated_at))
+            / (contract.cadence_hours * 3600)
+        )::integer
+    );
+    if paid_count < due_count then
+        raise object_not_in_prerequisite_state using
+            message = 'Aircraft lease has an exigible rent; run the authoritative catch-up first.';
+    end if;
+
+    -- The notice runs to the end of the period already paid, and the penalty is
+    -- two rents but never more than the rent the contract would still have owed.
+    effective := least(
+        contract.ends_at,
+        contract.activated_at + make_interval(hours => contract.cadence_hours * paid_count)
+    );
+    remaining_rent := contract.rent_minor * (contract.duration_days - paid_count);
+    penalty_charged := least(contract.termination_penalty_minor, greatest(remaining_rent, 0));
+
+    if penalty_charged > 0 then
+        select coalesce(sum(amount_minor), 0) into ledger_balance
+        from private.financial_ledger_entries where subject_id = subject.subject_id;
+        if ledger_balance < penalty_charged then
+            raise check_violation using
+                message = 'Company balance is insufficient for this aircraft lease termination.';
+        end if;
+        select coalesce(max(sequence_number), 0) + 1 into next_sequence
+        from private.financial_ledger_entries where subject_id = subject.subject_id;
+        insert into private.financial_ledger_entries (
+            subject_id, sequence_number, idempotency_key, entry_type, amount_minor, currency_code
+        ) values (
+            subject.subject_id, next_sequence, penalty_key, 'aircraft_lease_penalty',
+            -penalty_charged, contract.currency_code
+        ) returning * into penalty_entry;
+    end if;
+
+    update public.aircraft_lease_contracts
+    set state = 'terminating', terminate_effective_at = effective
+    where id = contract.id returning * into contract;
+    insert into private.aircraft_lease_events (contract_id, event_type, effective_at, idempotency_key)
+    values (contract.id, 'termination_requested', terminated, idempotency_key);
+
+    result := jsonb_build_object('contractId', contract.id, 'schemaVersion', 1, 'state', contract.state,
+        'terminateEffectiveAt', contract.terminate_effective_at, 'penaltyMinor', penalty_charged,
+        'ledgerEntryId', penalty_entry.id);
+    insert into private.aircraft_lease_termination_commands
+    values (owner_id, idempotency_key, contract.id, penalty_charged, penalty_entry.id, result, clock_timestamp());
     return result;
 end;
 $$;

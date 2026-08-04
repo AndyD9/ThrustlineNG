@@ -879,10 +879,16 @@ function Get-BackendIssues {
     $leaseMigration = Get-Content -Raw -Encoding UTF8 $leaseMigrationPath
     $leaseRequirements = @{
         "versioned lease terms" = 'terms_version = 1[\s\S]+duration_days = 30[\s\S]+cadence_hours = 24'
-        "fixed rent" = 'rent_minor = \(price_minor \+ 199\) / 200'
-        "first rent" = 'initial_payment_minor = rent_minor'
-        "48-hour grace" = 'grace_hours = 48'
-        "grace usage" = 'usable_during_grace is true'
+        "bounded authored rent" = 'rent_minor \* 1000 >= price_minor[\s\S]+rent_minor \* 200 <= price_minor'
+        "set-up fee of ten rents" = 'initial_payment_minor = rent_minor \* 10'
+        "72-hour grace" = 'grace_hours = 72'
+        "grace suspends usage" = 'usable_during_grace is false'
+        "termination penalty of two rents" = 'termination_penalty_minor = rent_minor \* 2'
+        "capped penalty" = 'least\(contract\.termination_penalty_minor, greatest\(remaining_rent, 0\)\)'
+        "penalty refused without balance" = 'insufficient for this aircraft lease termination'
+        "notice to the paid period" = 'set state = .terminating., terminate_effective_at = effective'
+        "exigible rent settled first" = 'run the authoritative catch-up first'
+        "server derived setup and rent" = 'ledger_balance < offer\.initial_payment_minor \+ offer\.rent_minor'
         "lease contracts" = 'create table public\.aircraft_lease_contracts'
         "deterministic installments" = 'constraint aircraft_lease_installment_identity unique \(contract_id, installment_number\)'
         "immutable events" = 'aircraft_lease_events_reject_update_delete'
@@ -894,6 +900,8 @@ function Get-BackendIssues {
         "ordered catch-up" = 'for installment_no in 2\.\.30 loop'
         "server derived due date" = 'contract\.activated_at \+ make_interval\(hours => contract\.cadence_hours'
         "usage revoked" = 'update public\.company_aircraft set is_usable = false'
+        "usage restored after catch-up" = 'update public\.company_aircraft set is_usable = true'
+        "notice stops the obligations" = "exit when contract\.state = 'terminating' and due >= contract\.terminate_effective_at"
         "empty search path" = "set search_path = ''"
     }
     foreach ($entry in $leaseRequirements.GetEnumerator()) {

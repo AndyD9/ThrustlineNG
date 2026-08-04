@@ -576,10 +576,18 @@ le client ne fournit ni prix, devise, compagnie, durée, cadence, grâce, date o
 état. Création, rattrapage temporel et résiliation sont réservés à
 `service_role`, avec `search_path` vide et registres d'idempotence privés. Les
 échéances utilisent une identité stable par contrat et numéro ; une écriture
-`aircraft_lease_rent` immuable correspond à chaque échéance payée.
+`aircraft_lease_rent` immuable correspond à chaque échéance payée, et les frais
+de mise en service comme la pénalité de résiliation ajoutent chacun exactement
+une écriture débitrice de type dédié.
 
-Le contrat autorise l'usage pendant la grâce de 48 heures et le retire
-transactionnellement au défaut, à l'expiration ou à la résiliation. Les rôles
+Le contrat suspend l'usage dès l'entrée en grâce de 72 heures, le rétablit
+uniquement si la commande temporelle solde les arriérés, et le retire
+transactionnellement au défaut, à l'expiration ou à la prise d'effet du préavis
+de résiliation. Une résiliation ne peut ni raccourcir une échéance déjà exigible
+ni s'écrire partiellement : sans le solde de la pénalité, la commande est
+refusée. Réserve connue : cet état d'usage est autoritaire dans les données mais
+n'est encore lu par aucune commande de dispatch, donc il ne bloque pas encore un
+vol sur un avion hors contrat. Les rôles
 client ne reçoivent que `SELECT` sous RLS sur leurs contrats et échéances ;
 `anon` ne lit rien et aucune mutation directe n'est accordée. La commande
 temporelle accepte une heure uniquement parce que son appelant `service_role`

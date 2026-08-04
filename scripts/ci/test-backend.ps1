@@ -702,7 +702,7 @@ insert into public.aircraft_purchase_offers (
     termination_penalty_minor, usable_during_grace
 ) values (
     '$leaseConcurrencyOfferId', 'C172', 'CI-C172-LEASE-4001',
-    'CI Lease Cessna', 10000, 'EUR', 'lease', 1, 30, 24, 50, 50, 48, true, 0, true
+    'CI Lease Cessna', 10000, 'EUR', 'lease', 1, 30, 24, 25, 250, 72, true, 50, false
 );
 "@
     $leaseFirstSql = @"

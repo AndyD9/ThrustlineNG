@@ -577,12 +577,17 @@ succès, un refus et `1|1|1|5000000`. La capacité est livrée dans `main`, sans
 endpoint desktop, déploiement distant ni donnée réelle.
 T0032 implémente sur sa branche un contrat de location versionné, des échéances
 quotidiennes et des commandes `service_role` de création, rattrapage et
-résiliation. Une révision intermédiaire de la migration s'est appliquée sur
-PostgreSQL 17. Le run pgTAP ayant découvert les 16 fichiers a ensuite identifié
-deux défauts de fixture corrigés ; la révision finale et sa relance restent non
-exécutées après blocage du quota Docker. Aucun
-ordonnanceur, endpoint, desktop, déploiement distant ou donnée réelle n'est
-fourni.
+résiliation, sur les termes qu'Andy a approuvés le 4 août 2026. La branche a
+d'abord rattrapé 49 commits de `main`, ce qui a révélé une collision
+d'horodatage de migration avec le départ de vol T0050 et une réécriture de
+contrainte qui aurait supprimé le crédit `flight_settlement` de T0051 ; les deux
+sont corrigées. Deux resets PostgreSQL 17 consécutifs, 22 fichiers pgTAP,
+502 assertions découvertes, les types régénérés et les quatre gates statiques
+passent. La convergence concurrente appartient au harnais CI Linux et reste à
+confirmer sur la PR. `company_aircraft.is_usable` est autoritaire mais lu par
+aucune commande de dispatch, donc la fin d'usage n'est pas encore opposable à un
+vol. Aucun ordonnanceur, endpoint, desktop, déploiement distant ou donnée réelle
+n'est fourni, et rien de tout cela n'est encore livré dans `main`.
 
 Sur le commit d'implémentation `1ede937`, l'exécution CI `30740977879` valide
 PostgreSQL 17 et Windows, et l'exécution supply-chain `30740977888` est verte.

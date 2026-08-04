@@ -1,6 +1,6 @@
 begin;
 
-select plan(28);
+select plan(32);
 
 select has_table('public', 'aircraft_lease_contracts', 'lease contracts exist');
 select has_table('public', 'aircraft_lease_installments', 'lease installments exist');
@@ -66,6 +66,18 @@ select is((select prosecdef from pg_proc where oid = 'public.lease_aircraft(uuid
     'lease creation is security definer');
 select is((select proconfig from pg_proc where oid = 'public.process_aircraft_lease(uuid,uuid,timestamp with time zone)'::regprocedure),
     array['search_path=""']::text[], 'temporal command has empty search path');
+select has_column('public', 'aircraft_lease_contracts', 'terminate_effective_at',
+    'a notified termination carries its server effective instant');
+select ok(
+    (select pg_get_constraintdef(oid) like '%terminating%' from pg_constraint
+     where conname = 'aircraft_lease_contract_state'),
+    'the notice state is part of the authorized transitions'
+);
+select has_column('private', 'aircraft_lease_creation_commands', 'setup_ledger_entry_id',
+    'the creation registry pins the set-up fee debit');
+select has_column('private', 'aircraft_lease_termination_commands', 'penalty_minor',
+    'the termination registry pins the penalty actually charged');
+
 select has_trigger('private', 'aircraft_lease_events', 'aircraft_lease_events_reject_update_delete',
     'lease event history rejects update and delete');
 select has_trigger('public', 'companies', 'companies_terminate_aircraft_leases',

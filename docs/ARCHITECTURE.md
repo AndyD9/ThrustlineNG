@@ -427,5 +427,19 @@ obligation et grand livre restent dans une même transaction.
 
 `process_aircraft_lease` matérialise les échéances dans l'ordre du contrat. Son
 temps effectif est une autorité privilégiée fournie par l'appelant serveur ; il
-ne doit jamais être relayé depuis un client. Aucun cron, ordonnanceur distant,
-endpoint Edge, desktop ou bridge n'est ajouté par T0032.
+ne doit jamais être relayé depuis un client. La même commande porte les deux
+transitions différées du contrat : la sortie de grâce quand les arriérés sont
+soldés, et la finalisation d'un préavis de résiliation à la fin de la période
+payée. `terminate_aircraft_lease` n'écrit donc jamais l'état terminal lui-même ;
+il pose le préavis, prélève la pénalité plafonnée et laisse la frontière
+temporelle conclure.
+
+La migration étend la liste des types d'écriture du grand livre en conservant le
+crédit `flight_settlement` de T0051 : toute migration financière ultérieure qui
+recompose cette contrainte doit reprendre les types déjà livrés, sous peine de
+désactiver silencieusement une capacité voisine.
+
+Aucun cron, ordonnanceur distant, endpoint Edge, desktop ou bridge n'est ajouté
+par T0032. `company_aircraft.is_usable` est écrit par les trois commandes mais
+n'est encore lu par aucune commande de dispatch, ce qui reste une dette explicite
+du ticket.
