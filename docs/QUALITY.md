@@ -404,6 +404,39 @@ maintenance passent avec 9, 6 et 8 mutations. Cette preuve jsdom/`fetch` inject�
 ne valide ni WebView live, ni CSP de production, ni Edge Runtime, ni cible
 distante, ni donnée réelle.
 
+Preuve T0053 du 4 août 2026 : typecheck, tests, couverture et build passent avec
+24 fichiers/297 tests frontend exécutés, dont 56 nouveaux pour la lecture des
+dispatchs ; 1 fichier/2 scénarios runtime T0040 reste ignoré sans environnement
+explicite. Le domaine `features/flight-dispatch` passe de 4 fichiers/66 tests à
+7 fichiers/122 tests. La couverture globale atteint 94,46 % des statements,
+88,96 % des branches, 97,51 % des fonctions et 94,42 % des lignes, dont 98,01 %
+des statements et 93,27 % des branches sur `features/flight-dispatch`, et 98,87 %
+des statements sur le seul module de lecture ; les seules lignes non couvertes
+sont les gardes de réentrance et d'annulation du panneau et une branche de flux
+borné. Les tests du transport couvrent l'URL complète, la projection, l'ordre et
+la limite exacts, l'absence des paramètres `company_id`, `owner_id`,
+`aircraft_id`, `id` et `state`, les quatre headers et l'absence de corps, la
+liste vide, l'état `active`, la limite exacte de 50 puis 51 lignes refusées, les
+doublons d'identifiant et d'avion, treize lignes non conformes dont clé
+supplémentaire, clé manquante, UUID, ICAO, aéroports identiques, état inconnu,
+horodatage non canonique ou impossible et version inattendue, une enveloppe non
+tabulaire, un corps non JSON, une longueur déclarée hors borne, un corps
+surdimensionné détecté en flux, les statuts 401/403 puis 404/429/500/503, une
+panne réseau dont le message serveur n'est pas propagé, sept cibles refusées
+avant tout appel et trois valeurs de header refusées avant tout appel. Côté
+panneau : zéro lecture au rendu, liste vide explicite, chargement puis échec sans
+rendu partiel, refus Auth qui efface la session, actualisation sur changement de
+version, signal reçu pendant une lecture en cours et rejoué, absence de lecture
+implicite quand le signal précède toute ouverture, lectures concurrentes bloquées
+avec retry, annulation au démontage, et absence de token, d'identifiant de
+dispatch et d'identifiant d'avion dans le DOM. La composition d'accueil prouve
+que rien n'est appelé au rendu, que `globalThis.fetch` n'est jamais appelé et que
+la source autoritaire est relue après une création réussie. Les gates autorité,
+données et maintenance passent avec 9, 6 et 8 mutations, l'autorité déclarant
+désormais quatre lectures Data API clientes. Cette preuve jsdom/`fetch` injecté ne
+valide ni WebView live, ni CSP de production, ni RLS réelle, ni cible distante, ni
+donnée réelle.
+
 Preuve T0023 du 1er août 2026 : l'Edge Runtime réel est chargé sans nouveau port
 hôte. Une identité/session/JWT synthétiques traverse Auth puis
 `company-onboarding`; le rejeu rend les mêmes identifiants et PostgreSQL confirme

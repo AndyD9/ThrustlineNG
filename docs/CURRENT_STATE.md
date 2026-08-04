@@ -710,7 +710,8 @@ comparaison table ↔ source rend 103 lignes identiques et la vérification manu
 confirme `103|103|4|0|1`, un rejeu de contrat inchangé, trois refus indiscernables
 et `42501` pour toute mutation cliente comme pour la lecture anonyme. Cette
 tranche n'ajoute ni lecture desktop, ni sélecteur d'aérodromes, ni calcul de
-distance, de durée ou de revenu, et n'est pas encore fusionnée dans `main`.
+distance, de durée ou de revenu. Elle est fusionnée dans `main` depuis la Pull
+Request #91, merge `df685b7` du 4 août 2026.
 
 T0052 ajoute le premier appelant desktop de cette frontière : un module de
 commande borné à la cible loopback `http:` et un panneau mince injecté dans
@@ -728,9 +729,32 @@ nouveaux pour ce flux, avec 93,96 % des statements et 88,41 % des branches en
 couverture globale et 98,34 % des statements sur `features/flight-dispatch`;
 typecheck, build et les gates autorité, données et maintenance passent. Cette
 tranche n'ajoute ni lecture Data API, ni mutation cliente, ni lecture durable des
-dispatchs, ni transition de vol, ni effet financier, sa preuve reste jsdom avec
-`fetch` injecté, sans WebView live ni Edge Runtime, et elle n'est pas encore
-fusionnée dans `main`.
+dispatchs, ni transition de vol, ni effet financier, et sa preuve reste jsdom avec
+`fetch` injecté, sans WebView live ni Edge Runtime. Elle est fusionnée dans `main`
+depuis la Pull Request #94, merge `9ea2493` du 4 août 2026.
+
+T0053 ajoute la lecture durable qui manquait, dans un module séparé du module de
+commande. La lecture est un `GET` unique vers `flight_dispatches` à projection,
+ordre `created_at.desc,id.desc` et limite de cinquante lignes constants, sans
+aucun filtre de compagnie, de propriétaire, d'avion ou d'état : la RLS
+`flight_dispatches_select_own` reste l'unique autorité de sélection. La cible
+reste loopback `http:` sans identifiants, requête, fragment ni chemin, la requête
+est bornée à cinq secondes et la réponse lue à 64 Kio en flux. Chaque ligne est
+validée avant tout rendu — jeu de clés exact, UUID canoniques, deux ICAO
+distincts, état `draft` ou `active`, horodatage canonique et `schema_version` à
+`1` — et la liste refuse tout dépassement de limite comme tout doublon
+d'identifiant ou d'avion. Le panneau ne lit rien au rendu, obtient le bearer du
+gestionnaire T0038 au chargement, efface la session sur refus Auth, rend
+explicitement liste vide, chargement et échec, relit la source autoritaire après
+une création réussie sans construire localement le dispatch créé, rejoue un signal
+reçu pendant une lecture en cours et annule sa requête au démontage. Le 4 août
+2026, 24 fichiers/297 tests frontend passent, dont 56 nouveaux pour ce flux, avec
+94,46 % des statements et 88,96 % des branches en couverture globale et 98,01 %
+des statements sur `features/flight-dispatch`; typecheck, build et les gates
+autorité, données et maintenance passent. Cette tranche n'ajoute ni pagination,
+ni tri ou filtre client, ni transition de vol, ni effet financier, sa preuve reste
+jsdom avec `fetch` injecté, sans WebView live ni RLS réelle, et elle n'est pas
+encore fusionnée dans `main`.
 
 Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 91,52 % des statements, 88,78 % des branches et 93,10 % des lignes ; le build
@@ -751,7 +775,9 @@ dispatch et classe explicitement son absence de consommateur client : la table
 est serveur, en lecture seule pour `authenticated`, et ne figure donc pas dans
 l'allowlist `clientDataApiReads`. T0052 rattache au même domaine deux chemins
 desktop, le module de commande et son panneau, sans nouvelle entrée dans
-`clientDataApiReads` et sans mutation cliente.
+`clientDataApiReads` et sans mutation cliente. T0053 y ajoute le module de lecture
+et son panneau, ainsi que la quatrième et dernière entrée de
+`clientDataApiReads`, `flight_dispatches`, toujours sans mutation cliente.
 
 `pnpm authority:check` scanne React, Tauri et le bridge, refuse toute mutation
 Supabase/SQL directe, accès Data API non classé, credential ou commande
@@ -842,14 +868,15 @@ version restent non validés et relèvent de la phase 6.
 
 T0043 à T0050 sont livrés dans `main`, y compris la preuve locale réelle
 Auth → Edge Runtime → `create_dispatch_draft` et le démarrage serveur d'un vol
-depuis un brouillon possédé. T0057 livre le référentiel d'aérodromes sur sa
-propre branche : il n'est pas encore fusionné et ne doit donc pas être présumé
-présent dans `main`. Le prochain ticket recommandé du flux backend est T0051, la
-clôture d'un vol avec son règlement et sa réputation, dont la sortie de `Draft`
-exige la fusion de T0057 maintenant que T0050 est dans `main` ; l'endpoint
-authentifié du démarrage reste un ticket distinct. Le flux desktop livre T0052
-sur sa propre branche, non fusionnée, et son prochain ticket est T0053, la
-lecture durable des dispatchs, sans SimBrief. La
+depuis un brouillon possédé. T0057 livre le référentiel d'aérodromes et est
+fusionné dans `main` depuis la Pull Request #91, merge `df685b7` du 4 août 2026.
+Le prochain ticket recommandé du flux backend est donc T0051, la clôture d'un vol
+avec son règlement et sa réputation, dont les deux conditions de sortie de `Draft`
+— la fusion de T0050 et celle de T0057 — sont désormais satisfaites ; l'endpoint
+authentifié du démarrage reste un ticket distinct. Le flux desktop a fusionné
+T0052 dans `main` par la Pull Request #94, merge `9ea2493` du 4 août 2026, et
+livre T0053, la lecture durable des dispatchs, sur sa propre branche non encore
+fusionnée, sans SimBrief. La
 location T0032 reste bloquée sur ses décisions produit et la persistance Windows
 reste un ticket de sécurité séparé avant tout stockage de refresh token.
 

@@ -66,7 +66,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0050 | Démarrer un vol autoritaire depuis un brouillon de dispatch | 2 | T0018, T0020, T0024, T0029, T0047–T0048 | Done |
 | T0051 | Clôturer un vol une seule fois, régler son revenu et sa réputation | 2 | T0020, T0028–T0029, T0047, T0050, T0057 | Draft |
 | T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Review |
-| T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Draft |
+| T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Review |
 | T0054 | Publier la télémétrie bornée du bridge sur le contrat local | 3 | T0010–T0011, T0015 | Ready |
 | T0055 | Fixer la source canonique de version produit et livrer l'alpha technique interne | 1–6 | T0006, T0014–T0015, T0043–T0048 | Ready |
 | T0056 | Clôturer les vérifications interactives T0007 à T0009 | 1 | T0007–T0009, T0015, décision Andy | Ready |
@@ -92,9 +92,12 @@ redisponible et une réputation informative bornée. T0057 devient donc le prér
 technique de T0051, puisque distance et popularité exigent un référentiel
 d'aérodromes autoritaire.
 
-T0051 et T0053 restent `Draft` uniquement pour l'ordre d'intégration : T0051 attend
-la fusion de T0050 et T0057, T0053 celle de T0052, afin de ne pas rouvrir une pile
-de branches. La location T0032 reste hors du gate de l'alpha et conserve son statut
+T0051 reste `Draft` uniquement pour l'ordre d'intégration : il attend la fusion de
+T0050 et T0057, afin de ne pas rouvrir une pile de branches. T0053 était soumis à
+la même règle et sa condition est levée depuis la fusion de T0052 dans `main` le
+4 août 2026 par la Pull Request #94, merge `9ea2493` ; il est donc implémenté sur
+une branche partie de ce `origin/main` et attend sa revue en `Review`. La location
+T0032 reste hors du gate de l'alpha et conserve son statut
 `Draft`. T0011 reste `Verify` jusqu'aux essais MSFS 2024 réels et n'est pas couvert
 par T0056.
 
