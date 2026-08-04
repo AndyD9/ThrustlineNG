@@ -50,6 +50,39 @@ Le harnais utilise un dépôt synthétique qui doit contenir tous les manifests 
 par `check-toolchain.ps1`. Toute extension du contrôle de pins doit mettre à jour
 ce fixture et ajouter ou préserver un scénario d'échec associé.
 
+## Version produit
+
+La source canonique unique `eng/product-version.json` porte la version produit,
+son canal et le modèle de nom d'artefact. Elle reste indépendante de
+`eng/versions.json`, qui épingle la toolchain, ainsi que des versions de schéma,
+de contrat et d'outils.
+
+Depuis la racine :
+
+```powershell
+pnpm product-version:check
+```
+
+Le gate T0055 refuse une version qui n'est pas une préversion SemVer 2.0.0
+ordonnée `alpha.N`, `beta.N` ou `rc.N`, une version supérieure ou égale à `1.0.0`,
+une métadonnée de build dans la source canonique et un canal autre que l'alpha
+interne non signée. Il compare ensuite les cinq cibles — frontend, `tauri.conf.json`,
+crate Rust, `Directory.Build.props` et l'affichage desktop — à cette source, exige
+un nom d'installateur qui reprend exactement la version sans chemin, et vérifie
+que les scripts de packaging dérivent ce nom et le manifeste de la source
+canonique. Six mutations négatives sont prouvées : cible divergente, version
+opaque `1.0aeb458345`, nom d'artefact désynchronisé, métadonnée de build dans la
+source, concaténation du commit dans la version informationnelle .NET et script
+de build détaché de la source.
+
+Ce gate n'est pas exécuté par la CI : `.github/workflows/ci.yml` et son harnais
+`tests/ci/run.ps1` sont hors des zones autorisées de T0055. Il reste donc un
+contrôle local jusqu'au ticket de release qui l'ajoutera au workflow.
+
+Une build interne peut porter la métadonnée `+YYYYMMDD.gSHORTSHA`, qui ne change
+pas l'ordre des versions. L'interface n'affiche que la version produit ; ni tag,
+ni signature, ni distribution publique ne sont produits par ce contrôle.
+
 ## Autorité des mutations
 
 La source `eng/authority-inventory.json` et son gate couvrent les dix étapes du
@@ -109,11 +142,11 @@ Ubuntu, le cycle de reset tente sinon de recréer PostgreSQL alors que son port
 est encore occupé. Le chargement Deno réel reste une preuve Windows séparée.
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les vingt fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. Les 427 assertions couvrent le cycle de compte
+les vingt-deux fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 502 assertions couvrent le cycle de compte
 T0018, le replay T0019, le grand livre T0020, l'onboarding T0022, l'achat
 T0029, le dispatch T0047, le démarrage de vol T0050, le référentiel
-d'aérodromes T0057 et la clôture de vol T0051. `backend:test` s'exécute sur les sources copiées dans le
+d'aérodromes T0057, la clôture de vol T0051 et la location T0032. `backend:test` s'exécute sur les sources copiées dans le
 runtime isolé par `backend:start` : après avoir modifié une migration, un seed ou
 un fichier pgTAP, relancer `backend:start` avant de conclure, sinon la commande
 rejoue silencieusement la version précédente. Le job CI
@@ -569,6 +602,7 @@ pnpm bridge:build
 pnpm bridge:test
 pnpm bridge:health
 pnpm bridge:publish
+pnpm product-version:check
 pnpm windows:package:check
 pnpm windows:package
 pnpm windows:package:test
@@ -591,8 +625,14 @@ Le harnais T0014 contrôle la cible NSIS unique, le mode `currentUser`, WebView2
 l'inclusion du bridge. Il prouve deux mutations négatives : installation
 `perMachine` et ajout d'une cible MSI.
 
+Depuis T0055, `windows:package` exécute d'abord `product-version:check`, refuse un
+bundle NSIS qui ne porte pas la version produit, nomme l'artefact copié
+`Thrustline-<version>-win-x64.exe` et inscrit `productVersion` et `channel` dans
+le manifeste, désormais en `schemaVersion` `2`.
+
 `windows:package:test` installe silencieusement dans une cible explicite sous
-`artifacts/t0014`, compare le hash de l'installateur et du bridge au manifeste,
+`artifacts/t0014`, compare la version et le nom d'installateur du manifeste à la
+source canonique, compare le hash de l'installateur et du bridge au manifeste,
 confirme les trois statuts Authenticode `NotSigned`, ouvre la fenêtre
 `Thrustline`, observe un seul bridge, ferme les deux processus, exécute
 `Healthy`/`0`, désinstalle et exige la disparition de la cible. Ce parcours

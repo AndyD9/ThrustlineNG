@@ -1,14 +1,17 @@
 # État actuel du dépôt
 
-Dernière revue documentaire : 4 août 2026 (clôture de T0051 après sa fusion dans
-`main`, à la suite de celles de T0053, T0054 et T0058).
+Dernière revue documentaire : 4 août 2026 (version produit canonique et alpha
+technique interne T0055, après la clôture de T0051 dans `main`, elle-même à la
+suite de celles de T0053, T0054 et T0058).
 Statut : T0009, T0012–T0031, T0033–T0054, T0057 et T0058 sont `Done`. T0053 est
 livré dans `main` par la PR #96 au merge `87c4eec`, T0054 par la PR #99 au merge
 `3a2c292`, T0058 par la PR #98 au merge `2a07113` et T0051 par la PR #102 au merge
 `c0972fa`, chacun avec ses trois checks verts. Le flux backend du golden path va
-donc désormais de la création de compagnie à la clôture d'un vol réglé. T0055 et
-T0056 sont `Ready` et T0059 est `Draft` faute d'un MSFS 2024 et d'un SDK
-SimConnect installés avec provenance vérifiable.
+donc désormais de la création de compagnie à la clôture d'un vol réglé. T0055 est
+`Verify` : sa version produit canonique et son package non signé nommé sont
+prouvés localement, son parcours interactif d'alpha reste à confirmer. T0056 est
+`Ready` et T0059 est `Draft` faute d'un MSFS 2024 et d'un SDK SimConnect
+installés avec provenance vérifiable.
 T0050 est livré dans `main`
 par la PR #89 au merge `6577125`, où le job Linux `Supabase PostgreSQL 17`
 réussit ; le job `Windows multi-stack` du même run échoue sur la seule ligne
@@ -990,6 +993,50 @@ T0014 est `Done` depuis la réconciliation du 30 juillet 2026.
 Signature, SmartScreen, MSI, updater, provenance, upgrade N-1 et rollback de
 version restent non validés et relèvent de la phase 6.
 
+## Version produit et alpha technique interne
+
+T0055 crée la source canonique unique `eng/product-version.json`, qui porte la
+version produit `0.1.0-alpha.1`, le canal `internal-alpha`, le modèle de nom
+d'installateur et le motif de métadonnée de build interne. Elle reste distincte
+d'`eng/versions.json`, qui épingle la toolchain. Le `package.json` racine du
+workspace et `packages/database/package.json`, dont la version suit le schéma de
+base et non le produit, sont déclarés explicitement indépendants et conservent
+`0.0.0`.
+
+Cinq cibles reprennent exactement la version : `apps/desktop/package.json`,
+`apps/desktop/src-tauri/tauri.conf.json`, le crate Rust avec son `Cargo.lock`
+régénéré, `Directory.Build.props` pour le bridge .NET et le module d'affichage
+`apps/desktop/src/shared/product/productVersion.ts`. L'en-tête desktop affiche
+`Version 0.1.0-alpha.1`, sans hash, sans chemin et sans secret. La build .NET
+concaténait le commit complet dans sa version informationnelle ; ce comportement
+est désactivé et contrôlé, de sorte que le binaire du bridge déclare exactement
+`0.1.0-alpha.1`.
+
+Le gate `pnpm product-version:check` passe et prouve six mutations négatives
+réellement exécutées, plus une divergence réelle sur disque qui rend le code de
+sortie `1`. Il n'est pas exécuté par la CI : `.github/workflows/ci.yml` et
+`tests/ci/run.ps1` sont hors des zones autorisées de T0055.
+
+Le 4 août 2026, le package NSIS x64 `currentUser` non signé est produit
+localement sous le nom exact `Thrustline-0.1.0-alpha.1-win-x64.exe`, pour
+35 415 126 octets, avec 334 fichiers de bridge self-contained. Son manifeste
+passe en `schemaVersion` `2`, déclare `productVersion` et `channel`, ses trois
+hashes SHA-256 correspondent aux fichiers et les trois statuts Authenticode sont
+`NotSigned`, sans aucun chemin utilisateur. Deux builds successifs de la même
+arborescence donnent des hashes différents pour l'installateur et la sortie
+desktop, alors que le bridge .NET déterministe reste identique : le manifeste
+prouve l'intégrité d'un artefact, pas une reproductibilité bit à bit. Le cycle installation, lancement, fenêtre `Thrustline`, bridge
+unique, fermeture, `Healthy`/`0` et désinstallation passe sans résidu. Les
+binaires desktop installés déclarent `0.1.0-alpha.1` en `ProductVersion` et
+`FileVersion`.
+
+Le parcours interactif login → compagnie → catalogue → achat dans l'application
+installée, sur la pile Supabase locale, reste une vérification humaine non
+exécutée : T0055 est `Verify` jusqu'à sa confirmation par Andy. Aucun tag Git,
+aucune signature, aucun canal de release, aucun updater et aucun rollback N-1 ne
+sont produits ; ces capacités relèvent de la phase 6. Aucune donnée réelle n'est
+admise.
+
 ## Prochain ticket recommandé
 
 T0043 à T0050 sont livrés dans `main`, y compris la preuve locale réelle
@@ -1006,13 +1053,18 @@ par la PR #96 au merge `87c4eec` : la préparation et la relecture des dispatchs
 sont donc composées, sans SimBrief, et son prochain ticket n'est pas encore ouvert.
 Le flux moteur de vol et bridge a livré T0054 par la PR #99 au merge `3a2c292`;
 son prochain ticket est T0059, qui reste `Draft` faute du prérequis physique
-MSFS 2024 et SDK SimConnect installés avec provenance vérifiable. Les transverses
-T0055 et T0056 sont `Ready`. La location T0032 a reçu ses décisions produit le
-4 août 2026 et est `In progress` sur sa branche dédiée ; la persistance Windows
+MSFS 2024 et SDK SimConnect installés avec provenance vérifiable. Le transverse
+T0055 est livré dans `main` par la PR #104 : la version produit canonique, sa
+propagation, son gate et le package non signé nommé sont en place, et seul le
+parcours interactif d'alpha reste à confirmer par Andy. T0056 est encore
+`Ready`. La location T0032 a reçu ses décisions produit le 4 août 2026 et est en
+revue sur sa branche dédiée ; la persistance Windows
 reste un ticket de sécurité séparé avant tout stockage de refresh token.
 
-T0032 consigne désormais la décision explicite d'Andy et reste `In progress`
-jusqu'à la relance complète des validations, des courses et des deux resets.
+T0032 consigne la décision explicite d'Andy du 4 août 2026 et passe en `Review` :
+les deux resets, les 502 assertions pgTAP, les types et les quatre gates statiques
+sont verts en local, et seules les courses concurrentes du harnais CI Linux
+restent à confirmer sur sa PR.
 T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS
 2024 exigés par ADR-0003. Les autres dettes ouvertes restent priorisées par
 sévérité dans `KNOWN_ISSUES.md`.

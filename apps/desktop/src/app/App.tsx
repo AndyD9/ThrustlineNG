@@ -14,6 +14,7 @@ import type { SignInCommand } from "@/features/auth/PasswordSignInPanel";
 import { DesktopSessionManager } from "@/features/auth/session";
 import type { CompanyOnboardingCommand } from "@/features/company-onboarding/CompanyOnboardingPanel";
 import type { CompanyPresenceCommand } from "@/features/company-state/CompanyPresencePanel";
+import { PRODUCT_VERSION_LABEL } from "@/shared/product/productVersion";
 
 export interface DesktopAuthRuntime {
   config: DesktopConnectionConfig;
@@ -60,6 +61,7 @@ function AppContent({
           <span className="baseline-label">
             {authenticated ? "Session locale" : "Connexion requise"}
           </span>
+          <span className="baseline-label">{PRODUCT_VERSION_LABEL}</span>
         </header>
         <AppRoutes
           aircraftCatalogCommand={aircraftCatalogCommand}

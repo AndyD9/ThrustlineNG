@@ -1,6 +1,6 @@
 [package]
 name = "thrustline-desktop"
-version = "0.0.0"
+version = "0.1.0-alpha.1"
 description = "Minimal Thrustline desktop shell"
 edition = "2024"
 rust-version = "1.97.1"
