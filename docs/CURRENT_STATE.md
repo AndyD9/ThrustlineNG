@@ -5,10 +5,11 @@ T0054 et T0058 après leurs fusions dans `main`).
 Statut : T0009, T0012–T0031, T0033–T0050, T0052–T0054, T0057 et T0058 sont
 `Done`. T0053 est livré dans `main` par la PR #96 au merge `87c4eec`, T0054 par la
 PR #99 au merge `3a2c292` et T0058 par la PR #98 au merge `2a07113`, chacun avec
-ses trois checks verts. T0051 reste `Draft` alors que ses deux conditions d'ordre
-d'intégration sont satisfaites ; son passage à `Ready` appartient à son propre
-changement. T0055 et T0056 sont `Ready` et T0059 est `Draft` faute d'un MSFS 2024
-et d'un SDK SimConnect installés avec provenance vérifiable.
+ses trois checks verts. T0051 est `Review` : ses deux conditions d'ordre
+d'intégration étaient satisfaites et son implémentation est complète sur
+`feature/T0051-authoritative-flight-settlement`, encore non fusionnée. T0055 et
+T0056 sont `Ready` et T0059 est `Draft` faute d'un MSFS 2024 et d'un SDK
+SimConnect installés avec provenance vérifiable.
 T0050 est livré dans `main`
 par la PR #89 au merge `6577125`, où le job Linux `Supabase PostgreSQL 17`
 réussit ; le job `Windows multi-stack` du même run échoue sur la seule ligne
@@ -114,14 +115,24 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   ni clôture. T0057 ajoute, livré dans `main` par la PR #91 au merge `df685b7`,
   un référentiel d'aérodromes serveur en lecture seule dont tout brouillon doit
   désormais référencer les deux codes, sans distance, revenu ni lecture desktop.
+  T0051 ajoute sur sa propre branche, non fusionnée, la clôture unique d'un vol :
+  deux états terminaux, un rapport borné, un règlement net unique dans le grand
+  livre, une réputation informative bornée et un avion immédiatement
+  redisponible, sans frontière Auth ni appelant desktop.
 - Gate de maintenance T0030 présent dans `main` : cohérence du registre, des
   statuts ticket/index et des marqueurs de dette, avec huit mutations négatives.
 - Gate d'avis Cargo T0058 présent dans `main`, livré par la PR #98 au merge
   `2a07113` : source `eng/cargo-advisory-allowlist.json` à 15 avis revus, harnais
   statique à huit mutations négatives dans le job Windows et comparaison au
   rapport réel dans le job supply-chain.
+- Politique de règlement de vol T0051 sur sa propre branche, non fusionnée :
+  source `eng/flight-settlement-policy.json`, projection embarquée comparée par le
+  gate backend, plancher `5000` et plafond `2000000` en `EUR`.
 - Inventaire d'autorité : 10 étapes du golden path, 13 domaines et 3 surfaces
-  clientes dans `eng/authority-inventory.json`.
+  clientes dans `eng/authority-inventory.json`. T0051 fait passer
+  `flight-finalization` et `reputation-progression` de `not-implemented` à
+  `server-authoritative` partiel, sans ajouter d'entrée dans
+  `clientDataApiReads`.
 
 ## Procédure vérifiée depuis un clone propre
 
@@ -768,6 +779,40 @@ tranche n'ajoute ni lecture desktop, ni sélecteur d'aérodromes, ni calcul de
 distance, de durée ou de revenu. Elle est fusionnée dans `main` depuis la Pull
 Request #91, merge `df685b7` du 4 août 2026.
 
+T0051 ajoute une dixième migration append-only qui n'en réécrit aucune et ferme le
+cycle serveur du vol. La liste d'états de dispatch passe à quatre valeurs fermées,
+`completed` et `interrupted` étant terminales et portant une colonne `closed_at`
+dérivée de PostgreSQL ; l'unicité globale par avion devient un index unique
+partiel limité à `draft` et `active`, si bien qu'un avion redevient immédiatement
+dispatchable tandis que son vol clôturé reste comme historique. La source
+canonique `eng/flight-settlement-policy.json` déclare le barème
+`(15000 + 120 × distance_nm + 300 × block_minutes) × multiplicateur`, un plancher
+de `5000`, un plafond de `2000000`, les quatre multiplicateurs de palier et les
+deltas de réputation ; la migration en embarque une projection que `backend:check`
+reconstruit depuis la source et compare texte à texte.
+
+`close_flight`, réservée à `service_role`, accepte un propriétaire vérifié, une
+clé d'idempotence, un dispatch et un rapport dont le jeu de clés est strictement
+validé. Elle verrouille compagnie, sujet financier puis dispatch, retient
+`min(temps déclaré, temps écoulé serveur)`, dérive la distance de grand cercle du
+référentiel T0057, recalcule le montant, l'écrête au plafond puis applique le
+plancher à une fin interrompue, et écrit dans une seule transaction l'état
+terminal, le rapport, l'écriture nette `flight_settlement`, l'événement de
+réputation et son registre d'idempotence. La réputation reste informative :
+`get_company_reputation` dérive la compagnie de `auth.uid()` et rend un score
+borné `0–100` qui ne module aucune capacité.
+
+Le 4 août 2026, deux resets puis 20 fichiers/427 assertions pgTAP passent avec
+`Result: PASS`, les types n'ajoutent que `closed_at`, `close_flight` et
+`get_company_reputation`, et le gate backend passe avec 42 mutations négatives. La
+vérification manuelle sur état réellement commité rend un règlement de `35194`
+unités mineures pour un vol terminé de 168,28 NM, le plancher `5000` pour un vol
+interrompu, un solde de `43040194`, une réputation de `48`, un avion
+immédiatement redispatchable et quatre refus sans écriture. Cette tranche
+n'ajoute ni frontière Auth, ni appelant desktop, ni annulation, ni télémétrie de
+clôture, ni SimBrief, ni cible distante, ni donnée réelle, et elle n'est pas
+encore fusionnée dans `main`.
+
 T0052 ajoute le premier appelant desktop de cette frontière : un module de
 commande borné à la cible loopback `http:` et un panneau mince injecté dans
 l'accueil authentifié. Le module normalise les ICAO en majuscules après trim,
@@ -925,18 +970,20 @@ T0043 à T0050 sont livrés dans `main`, y compris la preuve locale réelle
 Auth → Edge Runtime → `create_dispatch_draft` et le démarrage serveur d'un vol
 depuis un brouillon possédé. T0057 livre le référentiel d'aérodromes dans `main`
 par la PR #91 au merge `df685b7`, avec ses trois checks verts, dont le harnais
-Linux qui compare la table chargée à `eng/airports.json`. Le prochain ticket
-recommandé du flux backend est T0051, la clôture d'un vol avec son règlement et sa
-réputation, dont les deux conditions de sortie de `Draft` — la fusion de T0050 et
-celle de T0057 — sont désormais satisfaites ; l'endpoint authentifié du démarrage
-comme celui de la clôture restent des tickets distincts. Le flux desktop a livré
-T0052 dans `main` par la PR #94 puis T0053 par la PR #96 au merge `87c4eec` : la
-préparation et la relecture des dispatchs sont donc composées, sans SimBrief, et
-son prochain ticket n'est pas encore ouvert. Le flux moteur de vol et bridge a
-livré T0054 par la PR #99 au merge `3a2c292`; son prochain ticket est T0059, qui
-reste `Draft` faute du prérequis physique MSFS 2024 et SDK SimConnect installés
-avec provenance vérifiable. Les transverses T0055 et T0056 sont `Ready`. La
-location T0032 reste bloquée sur ses décisions produit et la persistance Windows
+Linux qui compare la table chargée à `eng/airports.json`. Le flux backend a
+enchaîné sur T0051, la clôture d'un vol avec son règlement et sa réputation : ses
+deux conditions de sortie de `Draft` — la fusion de T0050 et celle de T0057 —
+étaient satisfaites, et son implémentation est `Review` sur
+`feature/T0051-authoritative-flight-settlement`, non fusionnée. Le prochain ticket
+de ce flux est l'endpoint authentifié de la clôture, encore à ouvrir, comme celui
+du démarrage. Le flux desktop a livré T0052 dans `main` par la PR #94 puis T0053
+par la PR #96 au merge `87c4eec` : la préparation et la relecture des dispatchs
+sont donc composées, sans SimBrief, et son prochain ticket n'est pas encore ouvert.
+Le flux moteur de vol et bridge a livré T0054 par la PR #99 au merge `3a2c292`;
+son prochain ticket est T0059, qui reste `Draft` faute du prérequis physique
+MSFS 2024 et SDK SimConnect installés avec provenance vérifiable. Les transverses
+T0055 et T0056 sont `Ready`. La location T0032 reste bloquée sur ses décisions
+produit et la persistance Windows
 reste un ticket de sécurité séparé avant tout stockage de refresh token.
 
 T0032 cadre la location d'avion mais reste `Draft` jusqu'à décision explicite

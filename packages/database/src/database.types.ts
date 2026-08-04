@@ -157,6 +157,7 @@ export type Database = {
         Row: {
           aircraft_id: string
           arrival_icao: string
+          closed_at: string | null
           company_id: string
           created_at: string
           departure_icao: string
@@ -168,6 +169,7 @@ export type Database = {
         Insert: {
           aircraft_id: string
           arrival_icao: string
+          closed_at?: string | null
           company_id: string
           created_at?: string
           departure_icao: string
@@ -179,6 +181,7 @@ export type Database = {
         Update: {
           aircraft_id?: string
           arrival_icao?: string
+          closed_at?: string | null
           company_id?: string
           created_at?: string
           departure_icao?: string
@@ -191,7 +194,7 @@ export type Database = {
           {
             foreignKeyName: "flight_dispatches_aircraft_id_fkey"
             columns: ["aircraft_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "company_aircraft"
             referencedColumns: ["id"]
           },
@@ -211,6 +214,15 @@ export type Database = {
     Functions: {
       cancel_account_deletion: {
         Args: { idempotency_key: string; request_id: string }
+        Returns: Json
+      }
+      close_flight: {
+        Args: {
+          dispatch_id: string
+          idempotency_key: string
+          owner_id: string
+          report: Json
+        }
         Returns: Json
       }
       create_company_with_opening_balance: {
@@ -258,6 +270,14 @@ export type Database = {
           recorded_at: string
           schema_version: number
           sequence_number: number
+        }[]
+      }
+      get_company_reputation: {
+        Args: never
+        Returns: {
+          event_count: number
+          schema_version: number
+          score: number
         }[]
       }
       post_company_opening_balance: {

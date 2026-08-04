@@ -120,6 +120,41 @@ un code inconnu est refusé exactement comme un code mal formé, sans révéler 
 contenu du référentiel. Cette tranche n'expose pas de sélecteur d'aérodromes au
 desktop et ne calcule ni distance, ni durée, ni revenu.
 
+## Clôture d'un vol et règlement du MVP
+
+Un vol actif se clôture **exactement une fois**, dans l'un de deux états
+terminaux : terminé ou interrompu. La clôture règle un **revenu net unique**, pas
+un couple revenu/coût séparé, en `EUR` comme l'ouverture. Le montant est dérivé du
+temps de bloc, de la distance entre les deux aérodromes et de la popularité de ces
+aérodromes :
+
+```text
+net = (15000 + 120 × distance_nm + 300 × block_minutes) × multiplicateur de palier
+plancher d'un vol interrompu : 5 000 unités mineures, soit 50 EUR
+plafond par vol              : 2 000 000 unités mineures, soit 20 000 EUR
+paliers                      : 0,90 / 1,00 / 1,15 / 1,30, moyennés sur départ et arrivée
+```
+
+`eng/flight-settlement-policy.json` est la source normative de ce barème. Un vol
+de 150 NM en 75 minutes entre deux aérodromes de palier standard règle environ
+555 EUR. Un vol interrompu ou en crash reste clôturable et reçoit le revenu
+minimum : jamais zéro, jamais le barème complet.
+
+Le joueur ne déclare qu'une nature de fin de vol, un temps de bloc et quelques
+mesures indicatives. Le temps retenu est le plus petit du temps déclaré et du
+temps réellement écoulé côté serveur, et le montant est toujours recalculé : un
+temps ou une distance gonflés ne créent pas d'argent. L'avion redevient
+**immédiatement** disponible pour un nouveau dispatch dès la clôture, et le vol
+clôturé reste comme historique.
+
+La compagnie porte enfin une **réputation informative** : un score borné de 0 à
+100 qui part de 50, gagne 1 point par vol terminé et perd 3 points par vol
+interrompu. Dans l'alpha, ce score ne débloque, ne bloque et ne module rien — ni
+revenu, ni dispatch, ni achat. Le barème est volontairement simple et devra être
+revu avant toute ouverture externe ; le plafond protège l'économie sans remplacer
+un équilibrage mesuré. Cette tranche ne définit ni annulation d'un vol, ni usure,
+ni maintenance, ni équipage, ni passagers, ni fret.
+
 ## Hors MVP
 
 - Réseau social, marketplace communautaire et mods.

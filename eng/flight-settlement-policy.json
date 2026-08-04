@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "scope": "alpha-flight-settlement",
+  "origin": "Andy's seven flight-closure decisions of 3 August 2026, encoded for the internal playable alpha. The scale is deliberately simple: it protects the ledger with a floor and a cap instead of claiming a measured economic balance, and it must be revisited before any external opening.",
+  "currencyCode": "EUR",
+  "baseAmountMinor": 15000,
+  "perNauticalMileMinor": 120,
+  "perBlockMinuteMinor": 300,
+  "interruptedFloorMinor": 5000,
+  "perFlightCapMinor": 2000000,
+  "maximumBlockMinutes": 1440,
+  "popularityMultipliers": {
+    "regional": 0.90,
+    "standard": 1.00,
+    "major": 1.15,
+    "hub": 1.30
+  },
+  "reputation": {
+    "baseScore": 50,
+    "minimumScore": 0,
+    "maximumScore": 100,
+    "completedDelta": 1,
+    "interruptedDelta": -3
+  }
+}

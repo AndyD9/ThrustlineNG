@@ -181,6 +181,49 @@ et ne reçoit aucun `execute`. Aucune frontière Auth, appelant desktop,
 télémétrie, clôture, écriture financière, annulation ou preuve Edge runtime n'est
 couverte par ce ticket.
 
+## Clôture de vol et règlement autoritaires T0051
+
+`close_flight` est une fonction `security definer` à `search_path` vide
+exécutable uniquement par `service_role`. Elle accepte un propriétaire vérifié en
+amont, une clé UUID, un dispatch et un rapport `jsonb` dont le jeu de clés est
+validé strictement : `outcome` et `blockMinutes` sont obligatoires,
+`landingVerticalSpeedFpm` et `fuelUsedKg` sont facultatifs, toute clé
+supplémentaire est refusée. Aucun montant, aucune devise, aucune distance, aucune
+compagnie, aucun état et aucun horodatage de clôture ne franchit la frontière
+comme autorité cliente.
+
+La règle de sécurité ajoutée est explicite : aucune valeur monétaire, distance ou
+durée facturable ne franchit une frontière cliente sans être recalculée ou bornée
+par le serveur. Le temps de bloc retenu est `min(temps déclaré, temps réellement
+écoulé depuis l'horodatage de départ serveur)`, la distance vient du référentiel
+T0057, le multiplicateur des paliers de ce même référentiel, et le montant est
+recalculé puis borné par le plafond de la politique. Une fin interrompue reçoit le
+plancher de la politique, jamais zéro et jamais le barème complet. Le barème
+lui-même vient d'une source canonique versionnée dont la copie embarquée est
+comparée texte à texte par le gate backend ; il n'est ni lisible ni surchargeable
+par une variable d'environnement, et `private.flight_settlement_policy()`
+n'accorde `execute` à aucun rôle d'API.
+
+La commande verrouille la compagnie, puis le sujet financier, puis le dispatch, et
+refuse un compte en suppression via `private.account_is_active`. Un dispatch
+inconnu, appartenant à une autre compagnie, déjà clôturé ou encore en brouillon
+rend le même message opaque. Les trois tables ajoutées — rapports, événements de
+réputation et registre de clôture — vivent dans `private`, forcent RLS et
+n'accordent aucun privilège à `anon`, `authenticated` ou `service_role`. Les
+événements de réputation sont append-only par trigger, comme les écritures du
+grand livre : ni `update`, ni `delete`, ni `truncate`. La seule lecture cliente est
+`public.get_company_reputation`, qui exige une session `authenticated` non
+anonyme, dérive la compagnie de `auth.uid()` et rend un score borné `0–100` sans
+identifiant, sans montant et sans effet sur une capacité.
+
+Un rejeu identique rend la même réponse et n'écrit rien de plus ; une clé réutilisée
+avec un autre payload échoue ; deux sessions concurrentes sur le même vol
+convergent vers un état terminal, un rapport, un événement de réputation et un
+seul crédit. Une panne injectée sur le registre annule l'état, le rapport, la
+réputation et l'argent ensemble. Aucune frontière Auth, appelant desktop,
+annulation, télémétrie de clôture, cible distante ni donnée réelle n'est couverte
+par ce ticket.
+
 ## Configuration et session desktop T0038
 
 Le bundle n'accepte que deux paramètres explicitement publics : URL Supabase et
