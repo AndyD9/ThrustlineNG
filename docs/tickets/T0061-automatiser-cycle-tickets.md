@@ -447,6 +447,19 @@ humains, puisque lui seul peut confirmer une vérification interactive.
 - Unifier la lecture de l'index entre le sélecteur et le gate de maintenance si un
   troisième lecteur apparaît.
 
+### Pull request
+
+La PR #108 est ouverte en **brouillon** vers `main` depuis
+`chore/T0061-automatiser-cycle-tickets`, base réelle `main`, état `MERGEABLE`.
+Ses trois checks sont verts le 5 août 2026 : `Windows multi-stack` en 17 min 29,
+`Supabase PostgreSQL 17` en 3 min 27 et `Audits, licences and SBOM` en 3 min 50.
+
+La PR #107 portait le même travail sous l'identifiant T0060 et était
+`CONFLICTING` sans exécuter aucun check. Elle est fermée et remplacée par #108 ;
+aucun commit n'est perdu, ils sont tous dans #108.
+
+Aucune fusion n'est effectuée. La décision appartient à Andy.
+
 ### Documentation updated
 
 `docs/WORKFLOW.md`, `docs/QUALITY.md`, `docs/tickets/README.md`.
