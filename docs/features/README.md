@@ -34,6 +34,7 @@ gelée du format précédent.
 | --- | --- | --- | --- | --- |
 | F0001 | Faire décoller un vol préparé depuis l'application | 2–4 | T0050, T0048, T0052–T0053, T0065 fusionné | Ready |
 | F0002 | Clôturer son vol et encaisser son revenu depuis l'application | 2–4 | T0051, T0057, F0001 fusionnée, décision Andy | Draft |
+| F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | Ready |
 
 Les deux premières fonctionnalités ouvrent le format sur ce qui restait du golden
 path : `start_flight_from_dispatch` et `close_flight` sont livrées dans `main` depuis
@@ -47,6 +48,20 @@ est la fusion de la PR #121 (T0065), qui change le contrat de rejeu que sa proje
 publique doit refléter. F0002 est `Draft` sur une décision nommée d'Andy : d'où vient
 le temps de vol d'un rapport de clôture tant qu'aucune télémétrie n'est reliée au
 cycle de vol. Les trois options et leurs coûts sont posés dans son fichier.
+
+F0003 sort d'une question d'Andy du 5 août 2026 — « il faut qu'on le trouve nous-même,
+dans l'hypothèse où la personne n'a rien de tout ça » — et d'un relevé qui lui donne
+raison plus durement que prévu : le bridge charge `SimConnect.dll` par
+`DllImportSearchPath.SafeDirectories`, qui ne regarde ni le `PATH` ni un chemin
+d'installation du SDK, si bien que le chargement échouerait **même sur la machine de
+validation**, où MSFS 2024 et le SDK `1.5.7` sont pourtant installés. Et une machine
+d'utilisateur final n'a rien à trouver, puisque personne n'installe un SDK de
+développement. Elle est `Ready` parce que ses deux premiers jalons — sonde bornée et
+état dégradé explicite — n'attendent aucune décision ; seul son J3, qui fournit la
+bibliothèque à une machine sans SDK, dépend d'une décision d'Andy et de la lecture de
+l'EULA du SDK. C'est exactement ce que le format T0068 permet : une fonctionnalité
+exécutable dont un jalon tardif reste bloqué, au lieu d'un ticket entier bloqué par sa
+dernière étape.
 
 ## Transition
 
