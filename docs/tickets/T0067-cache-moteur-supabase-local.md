@@ -61,7 +61,7 @@ de `scripts/`.
 - T0012 et T0021 — pile Supabase locale isolée, ports 54321 à 54323 publiés
   uniquement sur `127.0.0.1` (`Done`, présents dans `main`) ;
 - `KI-017` — résolu par T0021 : son invariant loopback ne doit pas être affaibli ;
-- `LC-2026-004` — un résidu n'est pas une pile occupée ; le diagnostic écrit dans
+- `LC-2026-007` — un résidu n'est pas une pile occupée ; le diagnostic écrit dans
   `docs/QUALITY.md` reste valable et ce ticket ne le remplace pas ;
 - décision d'Andy ci-dessus.
 
@@ -160,7 +160,7 @@ git diff --check
 ## Manual verification
 
 1. Relever l'état du moteur et des ports 54321 à 54323 avant tout démarrage, selon
-   la règle `LC-2026-004` de `docs/QUALITY.md`.
+   la règle `LC-2026-007` de `docs/QUALITY.md`.
 2. Démarrer la pile, mesurer la durée à froid puis à chaud.
 3. Arrêter brutalement le moteur, puis relancer `pnpm backend:start` et consigner le
    résultat exact.

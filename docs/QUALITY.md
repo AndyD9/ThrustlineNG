@@ -28,7 +28,7 @@ PowerShell prouvée par T0051 et rappelée dans la section « Backend Supabase �
    which collation to use for string comparison » : comparer `proname::text` ou
    agréger en une seule chaîne. Une assertion sur `set search_path = ''` doit
    attendre le littéral réellement stocké, `search_path=""` avec ses guillemets.
-4. **Pile locale singleton résiduelle contre pile occupée (`LC-2026-004`).** La
+4. **Pile locale singleton résiduelle contre pile occupée (`LC-2026-007`).** La
    pile `backend:*` est un singleton sur `127.0.0.1`. Avant de déclarer un
    contrôle `bloqué par l'environnement` pour occupation, relever l'état réel du
    conteneur avec `docker inspect` et les écouteurs des ports 54321 à 54323 avec
