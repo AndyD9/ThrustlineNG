@@ -469,12 +469,15 @@ crée pas de second départ, celle-ci ne s'appliquant qu'à la transition fraîc
 
 Ce chemin de rejeu reste celui livré par T0050, inchangé, et il reconstruit sa
 réponse depuis la ligne de dispatch vivante au lieu de la relire d'un
-enregistrement : `aircraftId`, `dispatchId`, `schemaVersion` et `startedAt` sont
-donc bien ceux de l'acquisition, mais `state` reflète l'état courant du dispatch
-et vaut `completed` ou `interrupted` si le vol a été clôturé entre-temps. Ce
-n'est donc pas une réponse stockée verbatim. T0065 tranche s'il faut la stocker —
-`private.flight_start_commands` conserve déjà l'avion, le dispatch et l'instant de
-départ — ou réduire la garantie à l'absence de second départ.
+enregistrement : `aircraftId`, `dispatchId` et `schemaVersion` sont bien ceux de
+l'acquisition, mais `state` suit l'état courant du dispatch et `startedAt` est
+remis à `null` par le trigger `private.set_flight_dispatch_started_at` dès que cet
+état quitte `active`. Après une clôture, le rejeu d'une commande acquise rend donc
+`state = 'completed'` et `startedAt = null`. Ce n'est pas une réponse stockée
+verbatim. T0065 tranche s'il faut la restituer — `private.flight_start_commands`
+conserve déjà l'avion, le dispatch et l'instant de départ acquis, seul endroit où
+ce dernier survit à la clôture — ou réduire la garantie à l'absence de second
+départ.
 
 `public.close_flight` n'est pas gardé, sur décision d'Andy du 4 août 2026 : un vol
 déjà en cours reste clôturable et réglé même après la fin de la location, sinon un

@@ -312,7 +312,9 @@ même si la nouvelle définition perd un de leurs invariants.
       elle est prouvée. Mais le chemin de rejeu de T0050, repris inchangé,
       reconstruit sa réponse depuis la ligne de dispatch vivante au lieu de la
       relire d'un enregistrement : après un `close_flight`, le rejeu rend
-      `state = 'completed'` et non `'active'`. L'exigence §2 demande à la fois que
+      `state = 'completed'` au lieu de `'active'`, et `startedAt = null` parce que
+      le trigger `private.set_flight_dispatch_started_at` efface cet instant dès
+      que l'état quitte `active`. L'exigence §2 demande à la fois que
       ce chemin « reste inchangé » et qu'il rende « la même réponse stockée » :
       les deux moitiés ne peuvent pas être vraies ensemble. T0065 porte cette
       contradiction et sa décision.

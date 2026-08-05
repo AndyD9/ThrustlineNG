@@ -630,8 +630,10 @@ dernier. Le rejeu d'une commande de départ déjà acquise reste inchangé : la 
 ne le refuse jamais et il ne crée pas de second départ, même si l'avion est devenu
 inutilisable entre-temps. Sa réponse n'est en revanche pas stockée verbatim, parce
 que le chemin de rejeu de T0050 la reconstruit depuis la ligne de dispatch
-vivante : son champ `state` vaut `completed` ou `interrupted` si le vol a été
-clôturé depuis l'acquisition. La propriété de sécurité visée par ce ticket —
+vivante : si le vol a été clôturé depuis l'acquisition, son champ `state` vaut
+`completed` ou `interrupted` et son `startedAt` est `null`, le trigger
+`private.set_flight_dispatch_started_at` effaçant cet instant dès que l'état quitte
+`active`. La propriété de sécurité visée par ce ticket —
 aucune mise en service d'un avion hors contrat — est intacte ; l'exactitude du
 rejeu est portée par T0065.
 

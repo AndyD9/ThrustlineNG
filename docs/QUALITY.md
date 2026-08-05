@@ -871,7 +871,7 @@ commande déjà acquise —, et que `anon` comme `authenticated` restent privés
 d'`execute` sur les deux commandes et d'`update` sur `public.company_aircraft`.
 Le rejeu d'un départ postérieur à la clôture du vol n'est pas couvert : la réponse
 est reconstruite depuis la ligne de dispatch vivante, donc son `state` suit cette
-ligne. T0065 porte cette exactitude.
+ligne et son `startedAt` y est `null`. T0065 porte cette exactitude.
 
 Mesure du 5 août 2026, sous Windows 11, Docker Desktop 29.6.2 et PostgreSQL 17 :
 deux resets consécutifs appliquent les onze migrations livrées puis la douzième,
