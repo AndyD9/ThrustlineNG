@@ -76,6 +76,13 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Review |
 | T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
 | T0062 | Réparer le gate d'automatisation des tickets et l'exécuter en CI | Gouvernance | T0055, T0061 | Verify |
+| T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060, décision Andy | Draft |
+| T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
+| T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
+
+Les identifiants T0063 et T0064 sont réservés par des branches non fusionnées au
+5 août 2026, dont la Pull Request brouillon #113 pour T0064 : ils ne sont pas
+réutilisés ici et le trou dans la suite est volontaire.
 
 ## Vague de tickets vers l'alpha interne
 
@@ -423,18 +430,11 @@ avec dix mutations négatives, sous Windows PowerShell 5.1 comme sous
 PowerShell 7. T0061 est `Review` : il ne livre aucune capacité produit et n'a pas
 encore tourné de bout en bout sur un ticket réel.
 
-T0060 ferme la dette explicitement consignée par T0032 : `company_aircraft.is_usable`
-était autoritaire dans les données mais lu par aucun consommateur, donc la fin
-d'usage d'un avion n'était pas opposable. Une douzième migration append-only
-redéfinit en bloc `create_dispatch_draft` et `start_flight_from_dispatch` pour
-qu'elles lisent cet état sur la ligne d'avion dérivée du serveur et verrouillée,
-dans l'ordre documenté compagnie, dispatch, avion. Les deux refus réutilisent
-verbatim les messages déjà livrés, si bien qu'un avion hors contrat est
-indistinguable d'un avion étranger. `close_flight` reste sans garde, sur décision
-d'Andy du 4 août 2026 : un vol déjà en cours se clôture et se règle, seul le
-brouillon suivant est refusé. T0060 est `Review` : 23 fichiers / 539 assertions
-pgTAP, les types inchangés, cinq gates et la vérification manuelle passent
-localement le 5 août 2026, et la Pull Request brouillon #112 rend ses trois checks
-verts, le job Linux prouvant la course entre commande temporelle et création de
-brouillon, non exécutable sous Windows. Ces checks verts ne valent pas fusion : le
-merge appartient à Andy.
+T0065, T0066 et T0067 sortent de la clôture d'apprentissage de la vague T0060, le
+5 août 2026. Ils sont `Draft` et ne corrigent rien au passage : T0065 et T0067
+attendent chacun une décision nommée d'Andy, consignée dans leur propre fichier
+avec sa condition de sortie, et T0066 peut devenir `Ready` sans décision. Les trois
+portent sur des défauts réellement présents dans `main` au commit `c0f16dc`,
+enregistrés en `KI-024`, `KI-025` et `KI-026`; aucun ne dépend de la fusion de la
+Pull Request brouillon #112, sauf T0065 qui doit la suivre pour ne pas rouvrir un
+quatrième conflit sur la même définition de fonction.

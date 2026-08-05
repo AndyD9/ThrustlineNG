@@ -1,5 +1,42 @@
 # Qualité du dépôt
 
+## Règles issues des défauts déjà observés
+
+Ces règles viennent de défauts réellement rencontrés, dont le registre et les
+preuves sont dans `docs/LEARNINGS.md`. Elles s'ajoutent à la règle des deux hôtes
+PowerShell prouvée par T0051 et rappelée dans la section « Backend Supabase ».
+
+1. **Réécriture en bloc d'un objet SQL déjà livré (`LC-2026-002`).** Les marqueurs
+   du gate backend sont épinglés par fichier de migration : une série T0047,
+   T0050, T0051 ou T0057 continue de passer contre son propre fichier même si la
+   définition vivante déménage et perd un de ses invariants. Toute migration qui
+   redéfinit une fonction déjà livrée doit donc réaffirmer contre le **nouveau**
+   fichier les invariants qu'elle reprend, et prouver la reprise par un diff des
+   deux définitions extraites avant et après, dont le seul écart attendu est le
+   changement du ticket. T0032 avait supprimé puis réintégré le crédit
+   `flight_settlement` de T0051 en réécrivant une contrainte de cette façon.
+2. **Fins de ligne du runner (`LC-2026-003`).** Un gate à regex multiligne ou de
+   proximité doit être exécuté contre les fins de ligne que le runner verra. En
+   .NET, une ancre `$` sous `(?m)` ne correspond jamais avant `\r\n` : un fixture
+   écrit par `Set-Content` est en CRLF, et un fichier nouvellement écrit en LF
+   devient CRLF au checkout Windows par `.gitattributes` `* text=auto` et
+   `core.autocrlf true`. Rejouer le gate sur la forme réellement checkoutée avant
+   de publier, sinon il peut passer en local et échouer, ou muter à vide, sur le
+   runner.
+3. **Assertions pgTAP sur le catalogue PostgreSQL (`LC-2026-005`).** Un
+   `results_eq` sur une colonne de type `name` échoue par « could not determine
+   which collation to use for string comparison » : comparer `proname::text` ou
+   agréger en une seule chaîne. Une assertion sur `set search_path = ''` doit
+   attendre le littéral réellement stocké, `search_path=""` avec ses guillemets.
+4. **Pile locale singleton résiduelle contre pile occupée (`LC-2026-004`).** La
+   pile `backend:*` est un singleton sur `127.0.0.1`. Avant de déclarer un
+   contrôle `bloqué par l'environnement` pour occupation, relever l'état réel du
+   conteneur avec `docker inspect` et les écouteurs des ports 54321 à 54323 avec
+   `Get-NetTCPConnection` : un conteneur `exited` sans écouteur est un résidu, pas
+   un travail concurrent, et son nettoyage passe par `pnpm backend:stop`, jamais
+   par une manipulation Docker directe. Si un écouteur existe, le contrôle est
+   réellement bloqué et la pile ne doit pas être réinitialisée.
+
 ## Gouvernance de maintenance
 
 Depuis la racine :
