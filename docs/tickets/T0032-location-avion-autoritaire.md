@@ -1,6 +1,6 @@
 # T0032 — Louer un avion sans double prélèvement ni usage hors contrat
 
-Status: Review
+Status: Verify
 Owner: Andy
 Branch: `feature/T0032-authoritative-aircraft-lease`
 Phase: 2

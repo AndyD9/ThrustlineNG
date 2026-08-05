@@ -32,13 +32,16 @@ preuves. T0049 lève la seule réserve « runtime Edge live » du dispatch : le
 Cette preuve reste locale et synthétique et ne livre aucune capacité produit
 nouvelle.
 Les vérifications historiques T0007–T0008 et T0011 restent `Verify`. T0032 est
-`In progress` après décision explicite d'Andy le 4 août 2026 : 30 jours, loyer
+`Verify` : la PR #105 est fusionnée dans `main` le 4 août 2026, sur décision
+explicite d'Andy le même jour : 30 jours, loyer
 toutes les 24 heures payé d'avance, premier loyer prélevé à l'activation, frais
 de mise en service non remboursables de dix loyers, grâce de 72 heures avec
 avion suspendu, résiliation volontaire avec préavis jusqu'à la fin de la période
 payée et pénalité de deux loyers plafonnée au loyer restant dû, retrait d'usage
-à toute fin. Aucune capacité de location n'est encore livrée dans `main`. La
-phase 2 reste sous interdiction de données utilisateur réelles.
+à toute fin. La location serveur est livrée dans `main` par la PR #105 ; il reste
+à rejouer sa convergence sous concurrence réelle, qui appartient au harnais CI
+Linux et non à cette machine. La phase 2 reste sous interdiction de données
+utilisateur réelles.
 
 La fusion #41 (`06cece5`) est couverte par le run CI `30706049048`, réussi sur
 PostgreSQL 17 et Windows multi-stack, et par le run supply-chain `30706049088`,

@@ -45,7 +45,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0029 | Acquérir un premier avion sans double débit ni propriété partielle | 2 | T0020, T0022–T0024, T0028, décision Andy | Done |
 | T0030 | Empêcher les dettes techniques silencieuses | Gouvernance | T0027–T0028 | Done |
 | T0031 | Réconcilier l'index après les fusions T0029–T0030 | Gouvernance | T0029–T0030 | Done |
-| T0032 | Louer un avion sans double prélèvement ni usage hors contrat | 2 | T0020, T0022–T0024, T0028–T0029, décisions Andy | Review |
+| T0032 | Louer un avion sans double prélèvement ni usage hors contrat | 2 | T0020, T0022–T0024, T0028–T0029, décisions Andy | Verify |
 | T0033 | Réconcilier les livraisons récentes et le README | Gouvernance | T0027–T0032 | Done |
 | T0034 | Découpler la fixture du gate de maintenance | Gouvernance | T0030, T0033 | Done |
 | T0035 | Exposer l'achat d'avion derrière une frontière serveur authentifiée | 2 | T0023–T0024, T0029, T0034 | Done |
@@ -74,7 +74,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Done |
 | T0059 | Prouver le premier slice SimConnect réel et capturer son corpus | 3 | T0011, T0014–T0015, T0054, ADR-0003, MSFS 2024 installé, décision Andy | Draft |
 | T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Ready |
-| T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
+| T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Done |
 
 ## Vague de tickets vers l'alpha interne
 
@@ -417,7 +417,12 @@ non déléguée à un agent : `pnpm ticket-batch:select` compte les flux, vérif
 dépendances, compare les statuts du fichier et de l'index, puis détecte les
 collisions de `Allowed areas` en traitant l'index et l'état courant comme des
 fichiers de suivi partagés qui imposent un ordre d'intégration. Le gate
-`pnpm ticket-automation:check` prouve ce comportement sur un dépôt synthétique
+`pnpm ticket-automation:check` couvre ce comportement sur un dépôt synthétique
 avec dix mutations négatives, sous Windows PowerShell 5.1 comme sous
-PowerShell 7. T0061 est `Review` : il ne livre aucune capacité produit et n'a pas
-encore tourné de bout en bout sur un ticket réel.
+PowerShell 7. T0061 est `Done` : la PR #108 est fusionnée dans `main` au merge
+`c51f3fe` le 5 août 2026. Il ne livre aucune capacité produit et n'a pas encore
+tourné de bout en bout sur un ticket réel.
+
+Ces dix mutations ne mutaient toutefois rien tant que le fixture était écrit en
+CRLF, et aucun workflow n'exécutait le gate : T0062 corrige le harnais et branche
+`ticket-automation:check` ainsi que `product-version:check` sur la CI.

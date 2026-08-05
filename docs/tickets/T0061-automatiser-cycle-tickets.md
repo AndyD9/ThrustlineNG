@@ -1,6 +1,6 @@
 # T0061 — Automatiser le cycle des tickets sans déplacer l'autorité d'Andy
 
-Status: Review
+Status: Done
 Owner: Codex
 Branch: `chore/T0061-automatiser-cycle-tickets`
 Phase: Gouvernance
