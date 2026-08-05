@@ -319,6 +319,9 @@ phase('Redaction')
 const written = []
 for (let index = 0; index < usable.length; index++) {
   const proposal = usable[index]
+  // Seule charge JSON de la boucle qui reste indentee: le redacteur recopie ces champs section
+  // par section dans docs/templates/TICKET.md. La fidelite de transcription vaut plus que les
+  // deux cents tokens que l indentation coute ici.
   const result = await agent(
     `Ecris le fichier de ticket ThrustlineNG correspondant a cette proposition.
 
@@ -365,20 +368,19 @@ ${SOURCES}
 
 ${NON_NEGOTIABLE}
 
-Tickets ecrits par la vague:
-${JSON.stringify(written, null, 2)}
+Tickets ecrits par la vague, un ticket par ligne au format JSON:
+${written.map((ticket) => JSON.stringify(ticket)).join('\n')}
 
-Decisions relevees pendant le cadrage:
-${JSON.stringify(
-  usable.flatMap((proposal) =>
+Decisions relevees pendant le cadrage, une decision par ligne au format JSON:
+${usable
+  .flatMap((proposal) =>
     (proposal.proposed.decisionsNeeded || []).map((decision) => ({
       flow: proposal.flow,
       ...decision,
     }))
-  ),
-  null,
-  2
-)}
+  )
+  .map((decision) => JSON.stringify(decision))
+  .join('\n')}
 
 Procedure:
 1. Ajoute une ligne par nouveau ticket dans le tableau de docs/tickets/README.md, en respectant

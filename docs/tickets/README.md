@@ -76,6 +76,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Ready |
 | T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
 | T0062 | Réparer le gate d'automatisation des tickets et l'exécuter en CI | Gouvernance | T0055, T0061 | Verify |
+| T0064 | Réduire le coût en tokens des charges JSON de la boucle de tickets | Gouvernance | T0061 fusionné, T0062 fusionné, T0063 non fusionné | Review |
 
 ## Vague de tickets vers l'alpha interne
 

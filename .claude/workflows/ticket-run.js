@@ -452,8 +452,8 @@ Ticket: ${ticket.file}
 Branche: ${implementation.branch}
 Worktree: ${implementation.worktree}
 
-Constats bloquants de la revue adversariale:
-${JSON.stringify(blockingFindings, null, 2)}
+Constats bloquants de la revue adversariale, un constat par ligne au format JSON:
+${blockingFindings.map((finding) => JSON.stringify(finding)).join('\n')}
 
 ${SOURCES}
 
@@ -479,6 +479,30 @@ const results = executed.filter(Boolean)
 let learning = null
 if (!skipLearning && results.length > 0) {
   phase('Apprentissage')
+  // Une ligne compacte par ticket au lieu d un seul JSON indente. Sur une vague de trois
+  // tickets, l indentation seule coutait environ 800 tokens et ne prouvait rien de plus.
+  // Aucun champ n est retire: une preuve absente du prompt est une preuve que l agent
+  // d apprentissage ne peut plus citer. Le decoupage par ligne garde chaque ticket citable.
+  const waveEvidence = results
+    .map((entry) =>
+      JSON.stringify({
+        id: entry.ticket.id,
+        flow: entry.ticket.flow,
+        outcome: entry.implementation ? entry.implementation.outcome : 'inconnu',
+        branch: entry.implementation ? entry.implementation.branch : '',
+        commit: entry.implementation ? entry.implementation.commit : '',
+        pullRequest: entry.implementation ? entry.implementation.pullRequest : '',
+        manualVerification: entry.implementation ? entry.implementation.manualVerification : '',
+        commands: entry.implementation ? entry.implementation.commands : [],
+        outOfScopeFindings: entry.implementation ? entry.implementation.outOfScopeFindings : [],
+        learningCandidates: entry.implementation ? entry.implementation.learningCandidates : [],
+        risks: entry.implementation ? entry.implementation.risks : [],
+        reviewVerdict: entry.review ? entry.review.verdict : 'non revu',
+        reviewFindings: entry.review ? entry.review.findings : [],
+        remediation: entry.remediation || null,
+      })
+    )
+    .join('\n')
   learning = await agent(
     `Ferme la boucle d apprentissage de cette vague de tickets ThrustlineNG et ecris ce qui est prouve.
 
@@ -486,27 +510,9 @@ ${SOURCES}
 
 ${HARD_LIMITS}
 
-Resultats de la vague, tels que rapportes par les coordinateurs, les revues et les remediations:
-${JSON.stringify(
-  results.map((entry) => ({
-    id: entry.ticket.id,
-    flow: entry.ticket.flow,
-    outcome: entry.implementation ? entry.implementation.outcome : 'inconnu',
-    branch: entry.implementation ? entry.implementation.branch : '',
-    commit: entry.implementation ? entry.implementation.commit : '',
-    pullRequest: entry.implementation ? entry.implementation.pullRequest : '',
-    manualVerification: entry.implementation ? entry.implementation.manualVerification : '',
-    commands: entry.implementation ? entry.implementation.commands : [],
-    outOfScopeFindings: entry.implementation ? entry.implementation.outOfScopeFindings : [],
-    learningCandidates: entry.implementation ? entry.implementation.learningCandidates : [],
-    risks: entry.implementation ? entry.implementation.risks : [],
-    reviewVerdict: entry.review ? entry.review.verdict : 'non revu',
-    reviewFindings: entry.review ? entry.review.findings : [],
-    remediation: entry.remediation || null,
-  })),
-  null,
-  2
-)}
+Resultats de la vague, tels que rapportes par les coordinateurs, les revues et les remediations,
+un ticket par ligne au format JSON:
+${waveEvidence}
 
 Travaille dans un worktree dedie, jamais dans ${REPO} lui-meme:
 1. git -C "${REPO}" fetch origin --quiet
