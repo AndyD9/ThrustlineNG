@@ -76,14 +76,15 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Review |
 | T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
 | T0062 | Réparer le gate d'automatisation des tickets et l'exécuter en CI | Gouvernance | T0055, T0061 | Verify |
+| T0063 | Faire avancer la boucle de tickets sans déclenchement humain | Gouvernance | T0061 fusionné, T0062 fusionné, décision Andy | Review |
 | T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060 fusionnée, décision Andy du 5 août 2026 | Ready |
 | T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
 | T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
 | T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 propagé, T0064 fusionné, décisions Andy | Draft |
 
-Les identifiants T0063 et T0064 sont réservés par des branches non fusionnées au
-5 août 2026, dont la Pull Request brouillon #113 pour T0064 : ils ne sont pas
-réutilisés ici et le trou dans la suite est volontaire.
+L'identifiant T0064 est réservé par la Pull Request brouillon #113, non fusionnée
+au 5 août 2026 : il n'est pas réutilisé ici et le trou dans la suite est
+volontaire.
 
 ## Vague de tickets vers l'alpha interne
 
@@ -430,6 +431,28 @@ fichiers de suivi partagés qui imposent un ordre d'intégration. Le gate
 avec dix mutations négatives, sous Windows PowerShell 5.1 comme sous
 PowerShell 7. T0061 est `Review` : il ne livre aucune capacité produit et n'a pas
 encore tourné de bout en bout sur un ticket réel.
+
+T0063 lève le non-objectif de T0061 sur la planification, sur décision d'Andy du
+5 août 2026 : la boucle avance désormais une fois par jour ouvré sans qu'il la
+déclenche. Un run non surveillé n'exécute que des tickets sans humain requis, et
+cette frontière est calculée par le sélecteur, pas par un agent : `Autonomous: No`,
+`Security-sensitive: Yes`, `Risk: High` ou une dépendance nommant une décision
+d'Andy, MSFS, du matériel ou une vérification humaine reportent le ticket avec sa
+raison. Sur le backlog du 5 août 2026, aucun ticket ne qualifie — T0056 exige la
+confirmation humaine d'Andy et T0060 cumule `Risk: High`, la sensibilité sécurité
+et une de ses décisions — donc la boucle prépare et rapporte sans rien exécuter.
+La tâche planifiée vit dans le profil utilisateur, hors du dépôt, parce qu'elle a
+besoin de PowerShell Windows, pnpm, les worktrees et parfois Docker. T0063 est
+`Review` et sa tâche planifiée n'a pas encore eu son premier run.
+
+T0063 avait d'abord été empilé sur `fix/T0062-ticket-automation-gate-crlf`. Sa
+Pull Request #110 est `MERGED` sur cette base, mais la PR #109 l'avait déjà
+fusionnée dans `main` avant elle : les commits T0063 ne sont donc jamais entrés
+dans la branche par défaut, et `docs/tickets/T0063-*.md` était absent de `main` au
+commit `2b3ebf9`. C'est le motif déjà observé pour les PR #68, #70, #72 et #74.
+Cette Pull Request corrective propage T0063 vers `main` depuis
+`fix/T0063-propager-vers-main`, en conservant les lignes T0065–T0067 arrivées
+entre-temps.
 
 T0065, T0066 et T0067 sortent de la clôture d'apprentissage de la vague T0060, le
 5 août 2026, et ne corrigent rien au passage. Les trois portent sur des défauts
