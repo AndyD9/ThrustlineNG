@@ -76,7 +76,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Ready |
 | T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
 | T0062 | Réparer le gate d'automatisation des tickets et l'exécuter en CI | Gouvernance | T0055, T0061 | Verify |
-| T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060, décision Andy | Draft |
+| T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060 fusionnée, décision Andy du 5 août 2026 | Ready |
 | T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
 | T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
 
@@ -431,10 +431,14 @@ PowerShell 7. T0061 est `Review` : il ne livre aucune capacité produit et n'a p
 encore tourné de bout en bout sur un ticket réel.
 
 T0065, T0066 et T0067 sortent de la clôture d'apprentissage de la vague T0060, le
-5 août 2026. Ils sont `Draft` et ne corrigent rien au passage : T0065 et T0067
-attendent chacun une décision nommée d'Andy, consignée dans leur propre fichier
-avec sa condition de sortie, et T0066 peut devenir `Ready` sans décision. Les trois
-portent sur des défauts réellement présents dans `main` au commit `c0f16dc`,
-enregistrés en `KI-024`, `KI-025` et `KI-026`; aucun ne dépend de la fusion de la
-Pull Request brouillon #112, sauf T0065 qui doit la suivre pour ne pas rouvrir un
-quatrième conflit sur la même définition de fonction.
+5 août 2026, et ne corrigent rien au passage. Les trois portent sur des défauts
+réellement présents dans `main` au commit `c0f16dc`, enregistrés en `KI-024`,
+`KI-025` et `KI-026`.
+
+T0065 est `Ready` depuis la décision d'Andy du 5 août 2026, qui retient l'issue A :
+le rejeu d'un départ de vol doit rendre la réponse acquise, la garantie est tenue et
+non réduite. Son exécution reste néanmoins suspendue à la fusion de la Pull Request
+brouillon #112, parce qu'il redéfinit la même fonction et qu'un quatrième conflit
+sur cette définition vivante serait rouvert autrement. T0066 peut devenir `Ready`
+sans décision. T0067 attend encore une décision nommée d'Andy, consignée dans son
+fichier avec sa condition de sortie.
