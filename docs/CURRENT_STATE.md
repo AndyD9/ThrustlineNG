@@ -1118,10 +1118,49 @@ cette branche et sur rien d'autre. Des checks verts ne livrent aucune capacité 
 le merge appartient exclusivement à Andy, et cette section ne décrira une capacité
 de `main` qu'après sa fusion.
 
-Deux découvertes de cette vague concernent en revanche `main` lui-même et sont
-suivies comme dettes : le rejeu d'un départ de vol ne rend pas une réponse stockée
-(`KI-024`) et les courses concurrentes du harnais backend concluent sur un code de
-sortie sans vérifier le motif du refus (`KI-025`).
+Deux découvertes de cette vague concernaient en revanche `main` lui-même et ont été
+suivies comme dettes : le rejeu d'un départ de vol ne rendait pas une réponse stockée
+(`KI-024`, **résolu** par T0065 ci-dessous) et les courses concurrentes du harnais
+backend concluent sur un code de sortie sans vérifier le motif du refus (`KI-025`,
+porté par T0066).
+
+## Restitution du rejeu d'un départ de vol T0065
+
+T0065 rend, sur sa branche `fix/T0065-rejeu-depart-vol-identique`, le rejeu d'un
+départ de vol identique à la réponse acquise. Une treizième migration append-only,
+`20260805000200_flight_start_replay_fidelity.sql`, redéfinit
+`public.start_flight_from_dispatch` pour la troisième fois et ne change que son
+chemin de rejeu : `aircraftId` et `startedAt` viennent des colonnes de
+`private.flight_start_commands`, `dispatchId` de sa clé, `state` est le littéral
+`active` puisque cette ligne n'existe qu'après une transition réussie, et seul le
+`schema_version` immuable est encore lu sur la ligne de dispatch. Aucune colonne
+n'est ajoutée et `public.create_dispatch_draft` n'est pas redéfinie.
+
+Le constat d'ouverture est corrigé par la mesure : `KI-024` annonçait deux champs
+dérivants, dont un `startedAt` effacé par
+`private.set_flight_dispatch_started_at`. T0051 avait déjà redéfini ce trigger pour
+qu'un état terminal conserve son instant de départ, et sa contrainte l'exige non nul.
+Un seul champ sur cinq dérivait donc, `state`. La restitution ne dépend pas de ce
+trigger, si bien qu'une migration future qui le changerait ne peut pas rouvrir
+l'écart.
+
+Le 5 août 2026, deux resets consécutifs puis 24 fichiers / 552 assertions pgTAP
+concluent par `Result: PASS`, soit 13 assertions nouvelles dont l'ordre place la
+clôture avant le rejeu ; `backend:types:check` rend `Database types match the local
+schema.`; le gate backend passe avec 58 mutations négatives, dont huit nouvelles ; les
+gates autorité, données et maintenance passent. La vérification manuelle du même
+jour, sur état réellement commité, rend un départ acquis à `active`, une clôture à
+`completed` réglée `35194` unités mineures pour 168,28 NM, une ligne de dispatch
+vivante `completed | departure kept | closed`, un rejeu identique champ par champ avec
+`state = active`, un état final `1|1|0|1|2|43035194` et un départ frais du dispatch
+clôturé toujours refusé.
+
+Cette tranche n'ajoute ni frontière Auth, ni endpoint, ni appelant desktop, ni cible
+distante, ni donnée réelle, et rien n'est encore fusionné dans `main`. Une limite est
+consignée : le nouveau fichier pgTAP n'est pas nommé dans la liste explicite de
+`scripts/ci/test-backend.ps1`, hors des `Allowed areas` du ticket ; il est bien
+exécuté et un échec ferait tomber `Result: PASS`, mais son nom reste à ajouter par un
+suivi.
 
 ## Prochain ticket recommandé
 
