@@ -76,6 +76,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Ready |
 | T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
 | T0062 | Réparer le gate d'automatisation des tickets et l'exécuter en CI | Gouvernance | T0055, T0061 | Verify |
+| T0063 | Faire avancer la boucle de tickets sans déclenchement humain | Gouvernance | T0061 fusionné, T0062 non fusionné, décision Andy | Review |
 
 ## Vague de tickets vers l'alpha interne
 
@@ -422,3 +423,17 @@ fichiers de suivi partagés qui imposent un ordre d'intégration. Le gate
 avec dix mutations négatives, sous Windows PowerShell 5.1 comme sous
 PowerShell 7. T0061 est `Review` : il ne livre aucune capacité produit et n'a pas
 encore tourné de bout en bout sur un ticket réel.
+
+T0063 lève le non-objectif de T0061 sur la planification, sur décision d'Andy du
+5 août 2026 : la boucle avance désormais une fois par jour ouvré sans qu'il la
+déclenche. Un run non surveillé n'exécute que des tickets sans humain requis, et
+cette frontière est calculée par le sélecteur, pas par un agent : `Autonomous: No`,
+`Security-sensitive: Yes`, `Risk: High` ou une dépendance nommant une décision
+d'Andy, MSFS, du matériel ou une vérification humaine reportent le ticket avec sa
+raison. Sur le backlog du 5 août 2026, aucun ticket ne qualifie — T0056 exige la
+confirmation humaine d'Andy et T0060 cumule `Risk: High`, la sensibilité sécurité
+et une de ses décisions — donc la boucle prépare et rapporte sans rien exécuter.
+La tâche planifiée vit dans le profil utilisateur, hors du dépôt, parce qu'elle a
+besoin de PowerShell Windows, pnpm, les worktrees et parfois Docker. T0063 est
+`Review`, empilé sur T0062 non fusionné, et sa tâche planifiée n'a pas encore eu son
+premier run.

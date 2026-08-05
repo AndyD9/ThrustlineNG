@@ -6,6 +6,14 @@ Branch: `type/txxxx-slug`
 Phase: X
 Risk: Low / Medium / High
 Security-sensitive: Yes / No
+Autonomous: Yes / No
+
+`Autonomous` est optionnel et ne concerne que la boucle planifiée de
+`docs/WORKFLOW.md`. `No` interdit à un run non surveillé de démarrer ce ticket.
+En son absence, la boucle classe le ticket elle-même : un ticket
+`Security-sensitive: Yes`, `Risk: High`, ou dont une dépendance nomme une décision
+d'Andy, MSFS, du matériel ou une vérification humaine, n'est jamais démarré sans
+surveillance.
 
 ## Goal
 

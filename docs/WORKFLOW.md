@@ -247,6 +247,31 @@ sont donc rendues en un seul lot entre les deux :
    remédie aux constats bloquants confirmés, puis ferme la boucle d'apprentissage
    sur une branche dédiée.
 
+**La boucle tourne aussi sans déclenchement humain.** Une tâche planifiée locale
+l'exécute une fois par jour ouvré, tôt le matin. Elle vit hors du dépôt, dans
+`~/.claude/scheduled-tasks/thrustlineng-ticket-loop/`, et ne s'exécute que quand
+l'application est ouverte ; si elle était fermée à l'heure prévue, le run part au
+lancement suivant. Elle a besoin de PowerShell Windows, pnpm, les worktrees et
+parfois Docker : elle tourne donc sur la machine d'Andy, jamais dans un runner
+distant.
+
+Un run non surveillé applique l'ordre de priorité ci-dessus, puis :
+
+1. il n'exécute que des tickets **sans humain requis**. Cette frontière est
+   déterministe et calculée par le sélecteur, pas par un agent : un ticket
+   `Security-sensitive: Yes`, `Risk: High`, portant `Autonomous: No`, ou dont une
+   dépendance nomme une décision d'Andy, MSFS, du matériel ou une vérification
+   humaine, est reporté avec sa raison ;
+2. s'il n'a rien à exécuter et qu'aucune Pull Request de la boucle n'attend déjà
+   Andy, il prépare la vague suivante dans un worktree dédié et ouvre sa PR
+   brouillon. La condition sur les PR en attente évite d'empiler des
+   planifications quasi identiques jour après jour ;
+3. il ne touche jamais à la branche courante du worktree principal, où un travail
+   humain peut être en cours ;
+4. il ne notifie Andy que si une action lui revient : PR prête à fusionner,
+   décision réservée, CI rouge, incohérence de suivi, découverte `Critical` ou
+   `High`. Un run silencieux est un run réussi.
+
 **Le mode écriture est explicite.** `ticket-run` ne crée un worktree, une branche,
 un commit ou une Pull Request que si son argument `mode` vaut exactement
 `execute`. Sans cet argument, ou si ses arguments sont illisibles, il rend

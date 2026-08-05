@@ -7,6 +7,8 @@ param(
 
     [string[]]$Only = @(),
 
+    [switch]$AutonomousOnly,
+
     [switch]$Json
 )
 
@@ -33,6 +35,25 @@ $blockedDependencyStatuses = @('Draft', 'Blocked', 'Rejected', 'Superseded')
 $enDash = [char]0x2013
 $emDash = [char]0x2014
 $dashClass = "[$enDash$emDash-]"
+
+# An unattended run may only start a ticket whose remaining work needs no human.
+# The vetoes below are deterministic and read from the ticket itself, so the
+# boundary is reviewable in the ticket rather than trusted to an agent. A ticket
+# may also opt out explicitly with "Autonomous: No"; an unreadable or absent
+# value never grants autonomy on its own.
+# A single dot stands for any accented letter so the patterns stay ASCII and match
+# both "decision" and its accented spelling.
+$autonomyVetoPatterns = @(
+    '(?i)d.cisions?\b',
+    '(?i)\bAndy\b',
+    '(?i)MSFS',
+    '(?i)SimConnect',
+    '(?i)install',
+    '(?i)mat.riel',
+    '(?i)v.rification humaine',
+    '(?i)revue de phase',
+    '(?i)revue phase'
+)
 $sharedTrackingPaths = @(
     'docs/tickets/readme.md',
     'docs/current_state.md',
@@ -266,9 +287,40 @@ foreach ($file in @(Get-ChildItem -LiteralPath $ticketsRoot -Filter 'T????-*.md'
         $securityLines[0] -match '^Security-sensitive:\s*(.+?)\s*$' | Out-Null
         $securitySensitive = ($Matches[1] -match '(?i)^yes')
     }
+    $risk = ''
+    $riskLines = @($lines | Where-Object { $_ -match '^Risk:\s*(.+?)\s*$' })
+    if ($riskLines.Count -ge 1) {
+        $riskLines[0] -match '^Risk:\s*(.+?)\s*$' | Out-Null
+        $risk = $Matches[1]
+    }
+    $autonomousOptOut = $false
+    $autonomousLines = @($lines | Where-Object { $_ -match '^Autonomous:\s*(.+?)\s*$' })
+    if ($autonomousLines.Count -ge 1) {
+        $autonomousLines[0] -match '^Autonomous:\s*(.+?)\s*$' | Out-Null
+        $autonomousOptOut = ($Matches[1] -notmatch '(?i)^yes')
+    }
 
     $dependencyBullets = @(Get-Section -Lines $lines -Heading 'Dependencies')
     $allowedBullets = @(Get-Section -Lines $lines -Heading 'Allowed areas')
+    $autonomyVetoes = [System.Collections.Generic.List[string]]::new()
+    if ($autonomousOptOut) {
+        $autonomyVetoes.Add('ticket declares Autonomous: No')
+    }
+    if ($securitySensitive) {
+        $autonomyVetoes.Add('security sensitive')
+    }
+    if ($risk -match '(?i)high') {
+        $autonomyVetoes.Add("risk is '$risk'")
+    }
+    foreach ($bullet in $dependencyBullets) {
+        foreach ($pattern in $autonomyVetoPatterns) {
+            if ($bullet -match $pattern) {
+                $autonomyVetoes.Add("dependency needs a human: $bullet")
+                break
+            }
+        }
+    }
+
     $declaredPaths = @(Get-AllowedPaths -Bullets $allowedBullets)
     $exclusivePaths = @($declaredPaths | Where-Object { $_ -notin $sharedTrackingPaths })
     $sharedPaths = @($declaredPaths | Where-Object { $_ -in $sharedTrackingPaths })
@@ -279,7 +331,10 @@ foreach ($file in @(Get-ChildItem -LiteralPath $ticketsRoot -Filter 'T????-*.md'
         phase             = $indexById[$id].Phase
         status            = $status
         branch            = $branch
+        risk              = $risk
         securitySensitive = $securitySensitive
+        autonomy          = if ($autonomyVetoes.Count -eq 0) { 'autonomous' } else { 'human required' }
+        autonomyVetoes    = @($autonomyVetoes)
         file              = "docs/tickets/$($file.Name)"
         dependencies      = @(Get-DependencyIds -Bullets $dependencyBullets)
         humanPrerequisites = @(Get-HumanPrerequisites -Bullets $dependencyBullets)
@@ -363,6 +418,14 @@ foreach ($candidate in $candidates) {
         continue
     }
 
+    if ($AutonomousOnly -and $candidate.autonomy -ne 'autonomous') {
+        $deferred.Add([pscustomobject]@{
+            id     = $candidate.id
+            reason = "human required: $($candidate.autonomyVetoes -join '; ')"
+        })
+        continue
+    }
+
     if ($candidate.declaredPaths.Count -eq 0) {
         $deferred.Add([pscustomobject]@{
             id     = $candidate.id
@@ -405,6 +468,7 @@ foreach ($path in $sharedTrackingPaths) {
 $report = [pscustomobject]@{
     root             = $Root
     maxFlows         = $MaxFlows
+    autonomousOnly   = [bool]$AutonomousOnly
     capacity         = $capacity
     ticketCount      = $tickets.Count
     blocking         = @($blocking)
@@ -433,7 +497,9 @@ else {
     }
     Write-Host 'Selected:'
     if ($selected.Count -eq 0) { Write-Host '  - none' }
-    foreach ($item in $selected) { Write-Host "  - $($item.id) $($item.title)" }
+    foreach ($item in $selected) {
+        Write-Host "  - $($item.id) [$($item.autonomy)] $($item.title)"
+    }
     if ($report.deferred.Count -gt 0) {
         Write-Host 'Deferred:'
         foreach ($item in $report.deferred) { Write-Host "  - $($item.id): $($item.reason)" }
