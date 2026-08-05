@@ -2,8 +2,12 @@
 param(
     [string]$Root,
 
+    # The unit of work is the feature since T0068; Andy fixed the ceiling at two
+    # on 5 August 2026. -MaxFlows stays as an alias so callers written for the
+    # three-flow model keep binding.
     [ValidateRange(1, 9)]
-    [int]$MaxFlows = 3,
+    [Alias('MaxFlows')]
+    [int]$MaxConcurrent = 2,
 
     [string[]]$Only = @(),
 
@@ -27,20 +31,23 @@ $allowedStatuses = @(
 $startableStatuses = @('Ready')
 $occupyingStatuses = @('In progress')
 $blockedDependencyStatuses = @('Draft', 'Blocked', 'Rejected', 'Superseded')
+$completedMilestoneStatuses = @('Done')
 
-# Every ticket touches these tracking files. They are not collisions, but they do
-# require an explicit integration order: this is the index drift already observed
-# during the T0043-T0050 merges. Script text stays ASCII so Windows PowerShell
-# 5.1 parses it without a byte order mark.
+# Every work item touches these tracking files. They are not collisions, but they
+# do require an explicit integration order: this is the index drift already
+# observed during the T0043-T0050 merges. Script text stays ASCII so Windows
+# PowerShell 5.1 parses it without a byte order mark.
 $enDash = [char]0x2013
 $emDash = [char]0x2014
 $dashClass = "[$enDash$emDash-]"
 
-# An unattended run may only start a ticket whose remaining work needs no human.
-# The vetoes below are deterministic and read from the ticket itself, so the
-# boundary is reviewable in the ticket rather than trusted to an agent. A ticket
-# may also opt out explicitly with "Autonomous: No"; an unreadable or absent
-# value never grants autonomy on its own.
+# An unattended run may only start work whose remaining steps need no human. The
+# vetoes below are deterministic and read from the file itself, so the boundary is
+# reviewable in the ticket or feature rather than trusted to an agent. A file may
+# also opt out explicitly with "Autonomous: No"; an unreadable or absent value
+# never grants autonomy on its own.
+# For a feature the boundary is evaluated on the next executable milestone, because
+# a financial migration and a read-only panel do not carry the same risk.
 # A single dot stands for any accented letter so the patterns stay ASCII and match
 # both "decision" and its accented spelling.
 $autonomyVetoPatterns = @(
@@ -56,6 +63,7 @@ $autonomyVetoPatterns = @(
 )
 $sharedTrackingPaths = @(
     'docs/tickets/readme.md',
+    'docs/features/readme.md',
     'docs/current_state.md',
     'docs/known_issues.md',
     'docs/learnings.md',
@@ -63,12 +71,15 @@ $sharedTrackingPaths = @(
 )
 
 function Get-IndexRows {
-    param([Parameter(Mandatory)][string]$Path)
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$IdPrefix
+    )
 
     $rows = [System.Collections.Generic.List[object]]::new()
     $lines = @(Get-Content -Encoding UTF8 -LiteralPath $Path)
     for ($index = 0; $index -lt $lines.Count; $index++) {
-        if ($lines[$index] -notmatch '^\| T[^|]+\|') {
+        if ($lines[$index] -notmatch "^\| $IdPrefix[^|]+\|") {
             continue
         }
         $cells = @($lines[$index].Trim('|').Split('|') | ForEach-Object { $_.Trim() })
@@ -104,6 +115,89 @@ function Get-Section {
     return $bullets
 }
 
+# A feature declares ordered milestones as "### J<n> - title" under "## Jalons".
+# Each milestone may redeclare Status, Risk, Security-sensitive and Autonomous;
+# the header values act as defaults. Values are collected as lists so a duplicated
+# field is reported instead of silently taking the first one.
+function Get-Milestones {
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [AllowEmptyString()]
+        [string[]]$Lines
+    )
+
+    $milestones = [System.Collections.Generic.List[object]]::new()
+    $inside = $false
+    $current = $null
+    foreach ($line in $Lines) {
+        if ($line -match '^###\s+(J\d+)\b\s*(.*)$') {
+            if (-not $inside) {
+                continue
+            }
+            if ($null -ne $current) {
+                $milestones.Add($current)
+            }
+            $current = [pscustomobject]@{
+                id     = $Matches[1]
+                title  = $Matches[2].Trim().Trim([char[]]@($emDash, $enDash, '-', ' '))
+                fields = @{}
+            }
+            continue
+        }
+        if ($line -match '^##\s+(.+?)\s*$') {
+            if ($null -ne $current) {
+                $milestones.Add($current)
+                $current = $null
+            }
+            $inside = ($Matches[1] -match '^Jalons\b')
+            continue
+        }
+        if ($null -eq $current) {
+            continue
+        }
+        if ($line -match '^(Status|Risk|Security-sensitive|Autonomous):\s*(.+?)\s*$') {
+            $name = $Matches[1]
+            $value = $Matches[2]
+            if ($current.fields.ContainsKey($name)) {
+                $current.fields[$name] = @($current.fields[$name]) + @($value)
+            }
+            else {
+                $current.fields[$name] = @($value)
+            }
+        }
+    }
+    if ($null -ne $current) {
+        $milestones.Add($current)
+    }
+    return $milestones
+}
+
+function Get-HeaderValues {
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [AllowEmptyString()]
+        [string[]]$Lines,
+
+        [Parameter(Mandatory)][string]$Name
+    )
+
+    # Only the preamble counts. A feature repeats Status, Risk, Security-sensitive
+    # and Autonomous inside each milestone, so reading the whole file would let a
+    # milestone value pass for the header one.
+    $values = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in $Lines) {
+        if ($line -match '^##') {
+            break
+        }
+        if ($line -match "^$Name" + ':\s*(.+?)\s*$') {
+            $values.Add($Matches[1])
+        }
+    }
+    return $values
+}
+
 function Get-DependencyIds {
     param(
         [Parameter(Mandatory)]
@@ -114,19 +208,21 @@ function Get-DependencyIds {
 
     $ids = [System.Collections.Generic.List[string]]::new()
     foreach ($bullet in $Bullets) {
-        $rangeMatches = [regex]::Matches($bullet, "T(\d{4})\s*$dashClass\s*T(\d{4})")
-        foreach ($rangeMatch in $rangeMatches) {
-            $first = [int]$rangeMatch.Groups[1].Value
-            $last = [int]$rangeMatch.Groups[2].Value
-            if ($last -lt $first) {
-                continue
+        foreach ($prefix in @('T', 'F')) {
+            $rangeMatches = [regex]::Matches($bullet, "$prefix(\d{4})\s*$dashClass\s*$prefix(\d{4})")
+            foreach ($rangeMatch in $rangeMatches) {
+                $first = [int]$rangeMatch.Groups[1].Value
+                $last = [int]$rangeMatch.Groups[2].Value
+                if ($last -lt $first) {
+                    continue
+                }
+                for ($number = $first; $number -le $last; $number++) {
+                    $ids.Add("$prefix{0:D4}" -f $number)
+                }
             }
-            for ($number = $first; $number -le $last; $number++) {
-                $ids.Add('T{0:D4}' -f $number)
+            foreach ($single in [regex]::Matches($bullet, "$prefix\d{4}")) {
+                $ids.Add($single.Value)
             }
-        }
-        foreach ($single in [regex]::Matches($bullet, 'T\d{4}')) {
-            $ids.Add($single.Value)
         }
     }
     return @($ids | Sort-Object -Unique)
@@ -142,7 +238,7 @@ function Get-HumanPrerequisites {
 
     $prerequisites = [System.Collections.Generic.List[string]]::new()
     foreach ($bullet in $Bullets) {
-        $residual = [regex]::Replace($bullet, "T\d{4}(\s*$dashClass\s*T\d{4})?", '')
+        $residual = [regex]::Replace($bullet, "[TF]\d{4}(\s*$dashClass\s*[TF]\d{4})?", '')
         foreach ($fragment in $residual.Split(',')) {
             $candidate = $fragment.Trim([char[]]@(' ', "`t", '.', ';', ':', '-', $enDash, $emDash))
             if ($candidate.Length -lt 3) {
@@ -210,153 +306,275 @@ function Test-PathCollision {
 }
 
 $blocking = [System.Collections.Generic.List[string]]::new()
-$ticketsRoot = Join-Path $Root 'docs/tickets'
-$indexPath = Join-Path $ticketsRoot 'README.md'
+$items = [System.Collections.Generic.List[object]]::new()
 
-foreach ($requiredPath in @($ticketsRoot, $indexPath)) {
-    if (-not (Test-Path -LiteralPath $requiredPath)) {
-        throw "Missing required path: $requiredPath"
+# Tickets are the frozen archive format and features are the current one. Both are
+# read with the same consistency rules so the transition cannot hide a drift on
+# either side.
+$kinds = @(
+    [pscustomobject]@{
+        Kind      = 'ticket'
+        Label     = 'Ticket'
+        IdPrefix  = 'T'
+        Directory = 'docs/tickets'
+        FileGlob  = 'T????-*.md'
+        IndexName = 'docs/tickets/README.md'
+        Required  = $true
     }
-}
+    [pscustomobject]@{
+        Kind      = 'feature'
+        Label     = 'Feature'
+        IdPrefix  = 'F'
+        Directory = 'docs/features'
+        FileGlob  = 'F????-*.md'
+        IndexName = 'docs/features/README.md'
+        Required  = $false
+    }
+)
 
-$indexById = @{}
-foreach ($row in (Get-IndexRows -Path $indexPath)) {
-    if ($row.Cells.Count -ne 5) {
-        $blocking.Add("Ticket index line $($row.Line) must contain exactly 5 columns.")
-        continue
-    }
-    $id = $row.Cells[0]
-    if ($id -notmatch '^T\d{4}$') {
-        $blocking.Add("Invalid ticket identifier at index line $($row.Line): $id")
-        continue
-    }
-    if ($indexById.ContainsKey($id)) {
-        $blocking.Add("Duplicate ticket index identifier: $id")
-        continue
-    }
-    $indexById[$id] = [pscustomobject]@{
-        Title  = $row.Cells[1]
-        Phase  = $row.Cells[2]
-        Status = $row.Cells[4]
-    }
-}
+foreach ($kind in $kinds) {
+    $kindRoot = Join-Path $Root $kind.Directory
+    $indexPath = Join-Path $Root $kind.IndexName
 
-if ($indexById.Count -eq 0) {
-    $blocking.Add('Ticket index carries no ticket row.')
-}
-
-$tickets = [System.Collections.Generic.List[object]]::new()
-foreach ($file in @(Get-ChildItem -LiteralPath $ticketsRoot -Filter 'T????-*.md' -File | Sort-Object Name)) {
-    if ($file.BaseName -notmatch '^(T\d{4})-') {
-        $blocking.Add("Invalid ticket filename: $($file.Name)")
+    if (-not (Test-Path -LiteralPath $kindRoot)) {
+        if ($kind.Required) {
+            throw "Missing required path: $kindRoot"
+        }
         continue
     }
-    $id = $Matches[1]
-    $lines = @(Get-Content -Encoding UTF8 -LiteralPath $file.FullName)
-    $statusLines = @($lines | Where-Object { $_ -match '^Status:\s*(.+?)\s*$' })
-    if ($statusLines.Count -ne 1) {
-        $blocking.Add("Ticket $id must contain exactly one Status field.")
-        continue
-    }
-    $statusLines[0] -match '^Status:\s*(.+?)\s*$' | Out-Null
-    $status = $Matches[1]
-    if ($status -notin $allowedStatuses) {
-        $blocking.Add("Invalid status in ticket ${id}: $status")
-        continue
-    }
-    if (-not $indexById.ContainsKey($id)) {
-        $blocking.Add("Ticket $id is missing from docs/tickets/README.md.")
-        continue
-    }
-    if ($indexById[$id].Status -ne $status) {
-        $blocking.Add(
-            "Ticket $id status differs: index '$($indexById[$id].Status)', file '$status'."
-        )
+    if (-not (Test-Path -LiteralPath $indexPath)) {
+        # The directory exists, so its index is mandatory: without it a file could
+        # carry any status unchecked.
+        if ($kind.Required) {
+            throw "Missing required path: $indexPath"
+        }
+        $blocking.Add("$($kind.Directory) exists without $($kind.IndexName).")
         continue
     }
 
-    $branch = ''
-    $branchLines = @($lines | Where-Object { $_ -match '^Branch:\s*(.+?)\s*$' })
-    if ($branchLines.Count -ge 1) {
-        $branchLines[0] -match '^Branch:\s*(.+?)\s*$' | Out-Null
-        $branch = $Matches[1].Trim('`')
-    }
-    $securitySensitive = $false
-    $securityLines = @($lines | Where-Object { $_ -match '^Security-sensitive:\s*(.+?)\s*$' })
-    if ($securityLines.Count -ge 1) {
-        $securityLines[0] -match '^Security-sensitive:\s*(.+?)\s*$' | Out-Null
-        $securitySensitive = ($Matches[1] -match '(?i)^yes')
-    }
-    $risk = ''
-    $riskLines = @($lines | Where-Object { $_ -match '^Risk:\s*(.+?)\s*$' })
-    if ($riskLines.Count -ge 1) {
-        $riskLines[0] -match '^Risk:\s*(.+?)\s*$' | Out-Null
-        $risk = $Matches[1]
-    }
-    $autonomousOptOut = $false
-    $autonomousLines = @($lines | Where-Object { $_ -match '^Autonomous:\s*(.+?)\s*$' })
-    if ($autonomousLines.Count -ge 1) {
-        $autonomousLines[0] -match '^Autonomous:\s*(.+?)\s*$' | Out-Null
-        $autonomousOptOut = ($Matches[1] -notmatch '(?i)^yes')
-    }
-
-    $dependencyBullets = @(Get-Section -Lines $lines -Heading 'Dependencies')
-    $allowedBullets = @(Get-Section -Lines $lines -Heading 'Allowed areas')
-    $autonomyVetoes = [System.Collections.Generic.List[string]]::new()
-    if ($autonomousOptOut) {
-        $autonomyVetoes.Add('ticket declares Autonomous: No')
-    }
-    if ($securitySensitive) {
-        $autonomyVetoes.Add('security sensitive')
-    }
-    if ($risk -match '(?i)high') {
-        $autonomyVetoes.Add("risk is '$risk'")
-    }
-    foreach ($bullet in $dependencyBullets) {
-        foreach ($pattern in $autonomyVetoPatterns) {
-            if ($bullet -match $pattern) {
-                $autonomyVetoes.Add("dependency needs a human: $bullet")
-                break
-            }
+    $indexById = @{}
+    foreach ($row in (Get-IndexRows -Path $indexPath -IdPrefix $kind.IdPrefix)) {
+        if ($row.Cells.Count -ne 5) {
+            $blocking.Add("$($kind.Label) index line $($row.Line) must contain exactly 5 columns.")
+            continue
+        }
+        $id = $row.Cells[0]
+        if ($id -notmatch "^$($kind.IdPrefix)\d{4}$") {
+            $blocking.Add("Invalid $($kind.Kind) identifier at index line $($row.Line): $id")
+            continue
+        }
+        if ($indexById.ContainsKey($id)) {
+            $blocking.Add("Duplicate $($kind.Kind) index identifier: $id")
+            continue
+        }
+        $indexById[$id] = [pscustomobject]@{
+            Title  = $row.Cells[1]
+            Phase  = $row.Cells[2]
+            Status = $row.Cells[4]
         }
     }
 
-    $declaredPaths = @(Get-AllowedPaths -Bullets $allowedBullets)
-    $exclusivePaths = @($declaredPaths | Where-Object { $_ -notin $sharedTrackingPaths })
-    $sharedPaths = @($declaredPaths | Where-Object { $_ -in $sharedTrackingPaths })
+    if ($kind.Required -and $indexById.Count -eq 0) {
+        $blocking.Add("$($kind.Label) index carries no $($kind.Kind) row.")
+    }
 
-    $tickets.Add([pscustomobject]@{
-        id                = $id
-        title             = $indexById[$id].Title
-        phase             = $indexById[$id].Phase
-        status            = $status
-        branch            = $branch
-        risk              = $risk
-        securitySensitive = $securitySensitive
-        autonomy          = if ($autonomyVetoes.Count -eq 0) { 'autonomous' } else { 'human required' }
-        autonomyVetoes    = @($autonomyVetoes)
-        file              = "docs/tickets/$($file.Name)"
-        dependencies      = @(Get-DependencyIds -Bullets $dependencyBullets)
-        humanPrerequisites = @(Get-HumanPrerequisites -Bullets $dependencyBullets)
-        declaredPaths     = $declaredPaths
-        exclusivePaths    = $exclusivePaths
-        sharedPaths       = $sharedPaths
-    })
-}
+    foreach ($file in @(Get-ChildItem -LiteralPath $kindRoot -Filter $kind.FileGlob -File | Sort-Object Name)) {
+        if ($file.BaseName -notmatch "^($($kind.IdPrefix)\d{4})-") {
+            $blocking.Add("Invalid $($kind.Kind) filename: $($file.Name)")
+            continue
+        }
+        $id = $Matches[1]
+        $lines = @(Get-Content -Encoding UTF8 -LiteralPath $file.FullName)
 
-foreach ($id in $indexById.Keys) {
-    if (@(Get-ChildItem -LiteralPath $ticketsRoot -Filter "$id-*.md" -File).Count -ne 1) {
-        $blocking.Add("Ticket index entry $id has no unique ticket file.")
+        $statusValues = @(Get-HeaderValues -Lines $lines -Name 'Status')
+        if ($statusValues.Count -ne 1) {
+            $blocking.Add("$($kind.Label) $id must contain exactly one Status field.")
+            continue
+        }
+        $status = $statusValues[0]
+        if ($status -notin $allowedStatuses) {
+            $blocking.Add("Invalid status in $($kind.Kind) ${id}: $status")
+            continue
+        }
+        if (-not $indexById.ContainsKey($id)) {
+            $blocking.Add("$($kind.Label) $id is missing from $($kind.IndexName).")
+            continue
+        }
+        if ($indexById[$id].Status -ne $status) {
+            $blocking.Add(
+                "$($kind.Label) $id status differs: index '$($indexById[$id].Status)', file '$status'."
+            )
+            continue
+        }
+
+        $branch = ''
+        $branchValues = @(Get-HeaderValues -Lines $lines -Name 'Branch')
+        if ($branchValues.Count -ge 1) {
+            $branch = $branchValues[0].Trim('`')
+        }
+        $securityValues = @(Get-HeaderValues -Lines $lines -Name 'Security-sensitive')
+        $securitySensitive = ($securityValues.Count -ge 1) -and ($securityValues[0] -match '(?i)^yes')
+        $risk = ''
+        $riskValues = @(Get-HeaderValues -Lines $lines -Name 'Risk')
+        if ($riskValues.Count -ge 1) {
+            $risk = $riskValues[0]
+        }
+        $autonomousValues = @(Get-HeaderValues -Lines $lines -Name 'Autonomous')
+        $autonomousOptOut = ($autonomousValues.Count -ge 1) -and ($autonomousValues[0] -notmatch '(?i)^yes')
+
+        $dependencyBullets = @(Get-Section -Lines $lines -Heading 'Dependencies')
+        $allowedBullets = @(Get-Section -Lines $lines -Heading 'Allowed areas')
+
+        $autonomyVetoes = [System.Collections.Generic.List[string]]::new()
+        if ($autonomousOptOut) {
+            $autonomyVetoes.Add("$($kind.Kind) declares Autonomous: No")
+        }
+
+        # A ticket carries its whole boundary in the header. A feature moves it to the
+        # next executable milestone, so the two are computed separately.
+        $milestones = [System.Collections.Generic.List[object]]::new()
+        $nextMilestone = $null
+        if ($kind.Kind -eq 'ticket') {
+            if ($securitySensitive) {
+                $autonomyVetoes.Add('security sensitive')
+            }
+            if ($risk -match '(?i)high') {
+                $autonomyVetoes.Add("risk is '$risk'")
+            }
+        }
+        else {
+            # @() is required: PowerShell unrolls a returned collection, so a feature
+            # with a single milestone would arrive as a scalar, and .Count does not
+            # exist on a scalar under Windows PowerShell 5.1 with StrictMode.
+            $milestones = @(Get-Milestones -Lines $lines)
+            if ($milestones.Count -eq 0) {
+                $blocking.Add("$($kind.Label) $id declares no milestone under '## Jalons'.")
+                continue
+            }
+
+            $milestoneInvalid = $false
+            for ($position = 0; $position -lt $milestones.Count; $position++) {
+                $milestone = $milestones[$position]
+                $expectedId = 'J{0}' -f ($position + 1)
+                if ($milestone.id -ne $expectedId) {
+                    $blocking.Add(
+                        "$($kind.Label) $id milestones are not sequential: expected $expectedId, found $($milestone.id)."
+                    )
+                    $milestoneInvalid = $true
+                    break
+                }
+                if (-not $milestone.fields.ContainsKey('Status')) {
+                    $blocking.Add("$($kind.Label) $id milestone $($milestone.id) has no Status field.")
+                    $milestoneInvalid = $true
+                    break
+                }
+                $milestoneStatuses = @($milestone.fields['Status'])
+                if ($milestoneStatuses.Count -ne 1) {
+                    $blocking.Add(
+                        "$($kind.Label) $id milestone $($milestone.id) must contain exactly one Status field."
+                    )
+                    $milestoneInvalid = $true
+                    break
+                }
+                if ($milestoneStatuses[0] -notin $allowedStatuses) {
+                    $blocking.Add(
+                        "Invalid status in $($kind.Kind) $id milestone $($milestone.id): $($milestoneStatuses[0])"
+                    )
+                    $milestoneInvalid = $true
+                    break
+                }
+            }
+            if ($milestoneInvalid) {
+                continue
+            }
+
+            $nextMilestone = @(
+                $milestones | Where-Object { @($_.fields['Status'])[0] -notin $completedMilestoneStatuses }
+            ) | Select-Object -First 1
+            if ($null -eq $nextMilestone -and $status -in $startableStatuses) {
+                $blocking.Add(
+                    "$($kind.Label) $id is '$status' while every milestone is Done."
+                )
+                continue
+            }
+
+            if ($null -ne $nextMilestone) {
+                # The header values are the defaults; a milestone that redeclares one
+                # of them wins, because the boundary belongs where the work is.
+                $milestoneSecurity = $securitySensitive
+                if ($nextMilestone.fields.ContainsKey('Security-sensitive')) {
+                    $milestoneSecurity = (@($nextMilestone.fields['Security-sensitive'])[0] -match '(?i)^yes')
+                }
+                $milestoneRisk = $risk
+                if ($nextMilestone.fields.ContainsKey('Risk')) {
+                    $milestoneRisk = @($nextMilestone.fields['Risk'])[0]
+                }
+                if ($nextMilestone.fields.ContainsKey('Autonomous') -and
+                    (@($nextMilestone.fields['Autonomous'])[0] -notmatch '(?i)^yes')) {
+                    $autonomyVetoes.Add("milestone $($nextMilestone.id) declares Autonomous: No")
+                }
+                if ($milestoneSecurity) {
+                    $autonomyVetoes.Add("milestone $($nextMilestone.id) is security sensitive")
+                }
+                if ($milestoneRisk -match '(?i)high') {
+                    $autonomyVetoes.Add("milestone $($nextMilestone.id) risk is '$milestoneRisk'")
+                }
+            }
+        }
+
+        foreach ($bullet in $dependencyBullets) {
+            foreach ($pattern in $autonomyVetoPatterns) {
+                if ($bullet -match $pattern) {
+                    $autonomyVetoes.Add("dependency needs a human: $bullet")
+                    break
+                }
+            }
+        }
+
+        $declaredPaths = @(Get-AllowedPaths -Bullets $allowedBullets)
+        $exclusivePaths = @($declaredPaths | Where-Object { $_ -notin $sharedTrackingPaths })
+        $sharedPaths = @($declaredPaths | Where-Object { $_ -in $sharedTrackingPaths })
+
+        $items.Add([pscustomobject]@{
+            kind              = $kind.Kind
+            id                = $id
+            title             = $indexById[$id].Title
+            phase             = $indexById[$id].Phase
+            status            = $status
+            branch            = $branch
+            risk              = $risk
+            securitySensitive = $securitySensitive
+            autonomy          = if ($autonomyVetoes.Count -eq 0) { 'autonomous' } else { 'human required' }
+            autonomyVetoes    = @($autonomyVetoes)
+            file              = "$($kind.Directory)/$($file.Name)"
+            dependencies      = @(Get-DependencyIds -Bullets $dependencyBullets)
+            humanPrerequisites = @(Get-HumanPrerequisites -Bullets $dependencyBullets)
+            declaredPaths     = $declaredPaths
+            exclusivePaths    = $exclusivePaths
+            sharedPaths       = $sharedPaths
+            milestones        = @($milestones | ForEach-Object {
+                [pscustomobject]@{ id = $_.id; title = $_.title; status = @($_.fields['Status'])[0] }
+            })
+            nextMilestone     = if ($null -eq $nextMilestone) { $null } else { $nextMilestone.id }
+        })
+    }
+
+    foreach ($id in $indexById.Keys) {
+        if (@(Get-ChildItem -LiteralPath $kindRoot -Filter "$id-*.md" -File).Count -ne 1) {
+            $blocking.Add("$($kind.Label) index entry $id has no unique $($kind.Kind) file.")
+        }
     }
 }
 
 $statusById = @{}
-foreach ($ticket in $tickets) {
-    $statusById[$ticket.id] = $ticket.status
+$kindById = @{}
+foreach ($item in $items) {
+    $statusById[$item.id] = $item.status
+    $kindById[$item.id] = $item.kind
 }
 
-$occupying = @($tickets | Where-Object { $_.status -in $occupyingStatuses })
-$capacity = $MaxFlows - $occupying.Count
+$occupying = @($items | Where-Object { $_.status -in $occupyingStatuses })
+$capacity = $MaxConcurrent - $occupying.Count
 if ($capacity -lt 0) {
     $capacity = 0
 }
@@ -375,18 +593,18 @@ $requested = @(
 )
 foreach ($requestedId in $requested) {
     if (-not $statusById.ContainsKey($requestedId)) {
-        $blocking.Add("Requested ticket $requestedId has no ticket file.")
+        $blocking.Add("Requested $requestedId has no ticket or feature file.")
     }
 }
 
-$candidates = @($tickets | Where-Object { $_.status -in $startableStatuses })
+$candidates = @($items | Where-Object { $_.status -in $startableStatuses })
 if ($requested.Count -gt 0) {
     $candidates = @($candidates | Where-Object { $_.id -in $requested })
     foreach ($requestedId in $requested) {
         if ($statusById.ContainsKey($requestedId) -and
             $statusById[$requestedId] -notin $startableStatuses) {
             $blocking.Add(
-                "Requested ticket $requestedId is '$($statusById[$requestedId])', not Ready."
+                "Requested $($kindById[$requestedId]) $requestedId is '$($statusById[$requestedId])', not Ready."
             )
         }
     }
@@ -446,7 +664,7 @@ foreach ($candidate in $candidates) {
     if ($selected.Count -ge $capacity) {
         $deferred.Add([pscustomobject]@{
             id     = $candidate.id
-            reason = "flow capacity reached ($MaxFlows max, $($occupying.Count) occupied)"
+            reason = "work capacity reached ($MaxConcurrent max, $($occupying.Count) occupied)"
         })
         continue
     }
@@ -467,13 +685,21 @@ foreach ($path in $sharedTrackingPaths) {
 
 $report = [pscustomobject]@{
     root             = $Root
-    maxFlows         = $MaxFlows
+    maxConcurrent    = $MaxConcurrent
+    maxFlows         = $MaxConcurrent
     autonomousOnly   = [bool]$AutonomousOnly
     capacity         = $capacity
-    ticketCount      = $tickets.Count
+    itemCount        = $items.Count
+    ticketCount      = @($items | Where-Object { $_.kind -eq 'ticket' }).Count
+    featureCount     = @($items | Where-Object { $_.kind -eq 'feature' }).Count
     blocking         = @($blocking)
     occupied         = @($occupying | ForEach-Object {
-        [pscustomobject]@{ id = $_.id; branch = $_.branch; exclusivePaths = $_.exclusivePaths }
+        [pscustomobject]@{
+            id             = $_.id
+            kind           = $_.kind
+            branch         = $_.branch
+            exclusivePaths = $_.exclusivePaths
+        }
     })
     selected         = @($selected)
     deferred         = @($deferred)
@@ -486,19 +712,23 @@ if ($Json) {
 }
 else {
     Write-Host "Root: $Root"
-    Write-Host "Tickets: $($tickets.Count); flow capacity: $capacity of $MaxFlows"
+    Write-Host (
+        "Features: $($report.featureCount); tickets: $($report.ticketCount); " +
+        "work capacity: $capacity of $MaxConcurrent"
+    )
     if ($report.blocking.Count -gt 0) {
         Write-Host 'Blocking:'
         foreach ($issue in $report.blocking) { Write-Host "  - $issue" }
     }
     if ($report.occupied.Count -gt 0) {
-        Write-Host 'Occupied flows:'
+        Write-Host 'Occupied:'
         foreach ($item in $report.occupied) { Write-Host "  - $($item.id) on $($item.branch)" }
     }
     Write-Host 'Selected:'
     if ($selected.Count -eq 0) { Write-Host '  - none' }
     foreach ($item in $selected) {
-        Write-Host "  - $($item.id) [$($item.autonomy)] $($item.title)"
+        $milestone = if ($item.nextMilestone) { " next $($item.nextMilestone)" } else { '' }
+        Write-Host "  - $($item.id) [$($item.autonomy)]$milestone $($item.title)"
     }
     if ($report.deferred.Count -gt 0) {
         Write-Host 'Deferred:'

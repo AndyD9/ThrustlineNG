@@ -26,8 +26,9 @@ Lire avant tout travail :
 1. `AGENTS.md` ;
 2. `docs/CURRENT_STATE.md` pour l'état réellement prouvé ;
 3. `docs/ROADMAP.md` pour l'ordre des phases ;
-4. le ticket complet dans `docs/tickets/` ;
-5. les documents et ADR liés par le ticket.
+4. l'unité de travail complète : la fonctionnalité dans `docs/features/`, ou le
+   ticket dans `docs/tickets/` s'il vient de l'archive ;
+5. les documents et ADR qu'elle lie.
 
 Références permanentes :
 
@@ -56,10 +57,14 @@ en PR, accepté et fusionné.
 
 ## Démarrage et périmètre
 
-Un ticket fonctionnel à la fois par worktree et un ticket par branche ou
-worktree. Plusieurs tickets peuvent avancer en parallèle uniquement dans des
-worktrees distincts, après vérification de leurs dépendances et de leurs zones
-de modification.
+Une unité de travail à la fois par worktree, et une unité par branche. Une unité
+est une fonctionnalité de `docs/features/` ou un ticket encore ouvert de l'archive
+`docs/tickets/`. Deux unités peuvent avancer en parallèle uniquement dans des
+worktrees distincts, après vérification de leurs dépendances et de leurs zones de
+modification.
+
+Une fonctionnalité avance jalon par jalon, dans l'ordre déclaré sous `## Jalons`.
+Un seul jalon est ouvert à la fois : le premier qui n'est pas `Done`.
 
 Avant toute modification :
 
@@ -67,10 +72,11 @@ Avant toute modification :
 2. exécuter `git status --short --branch` ;
 3. identifier les modifications préexistantes et ne jamais les attribuer au
    ticket ;
-4. lire le statut, les dépendances, `Allowed areas`, `Do not touch`, les critères
-   d'acceptation et la vérification manuelle du ticket ;
-5. confirmer que la branche correspond à `type/TXXXX-slug` et que le ticket peut
-   réellement entrer en `In progress` ;
+4. lire le statut, les dépendances, `Allowed areas`, `Do not touch`, les jalons, les
+   critères d'acceptation et la vérification manuelle de l'unité ;
+5. confirmer que la branche correspond à `feature/fxxxx-slug` pour une
+   fonctionnalité, ou à `type/TXXXX-slug` pour un ticket d'archive, et que l'unité
+   peut réellement entrer en `In progress` ;
 6. signaler avant d'agir toute incohérence de statut, dépendance ou branche.
 
 Types de branche : `foundation`, `feature`, `fix`, `security`, `refactor`,
@@ -99,11 +105,13 @@ Jusqu'à validation de l'alpha jouable interne définie dans `docs/ROADMAP.md`, 
 mode d'exécution par défaut maximise le travail indépendant sans réduire les
 preuves. Le coordinateur applique les règles suivantes :
 
-- maintenir au plus trois tickets produit `In progress` simultanément, chacun
-  dans un worktree distinct, sur les flux moteur de vol/bridge, backend du golden
-  path et composition desktop/E2E ;
-- ne lancer un flux que si son ticket est `Ready`, ses décisions sont prises, ses
-  chemins sont attribués et il peut produire une preuve utile sans présumer une
+- maintenir au plus **deux** unités de travail `In progress` simultanément, chacune
+  dans un worktree distinct. Une unité est une fonctionnalité de `docs/features/`,
+  ou un ticket `TXXXX` encore ouvert de l'archive `docs/tickets/`. Une
+  fonctionnalité est un slice vertical complet : elle occupe à elle seule ce que le
+  découpage précédent étalait sur deux flux ;
+- ne lancer une unité que si elle est `Ready`, ses décisions sont prises, ses
+  chemins sont attribués et elle peut produire une preuve utile sans présumer une
   branche non fusionnée ;
 - traiter en priorité une PR fusionnable, une correction de CI ou la propagation
   d'une capacité déjà validée vers `main` avant d'ouvrir un nouveau travail
@@ -115,7 +123,10 @@ preuves. Le coordinateur applique les règles suivantes :
   son ascendance le permet, sinon ouvrir une branche de propagation propre sans
   force-push et fermer la chaîne obsolète ;
 - regrouper avant implémentation les décisions produit ou économiques nécessaires
-  aux prochains tickets et laisser `Draft` tout ticket encore ambigu ;
+  aux prochaines unités et laisser `Draft` toute unité encore ambiguë ;
+- découper une fonctionnalité en **jalons** internes ordonnés, un commit par jalon,
+  et faire relire chaque jalon sur le diff poussé. Ne jamais transformer un jalon en
+  fichier de suivi séparé : c'est précisément ce que T0068 supprime ;
 - reporter explicitement hors alpha les capacités non requises par son gate. Un
   report ne modifie pas le MVP, les frontières d'autorité ou les exigences de
   distribution publique ;
@@ -123,9 +134,10 @@ preuves. Le coordinateur applique les règles suivantes :
   une revue adversariale, une vérification manuelle requise ou une gate pour
   tenir une date.
 
-La limite de trois flux est un plafond, pas un objectif d'occupation. Un flux
-bloqué ne justifie pas un quatrième ticket si cela augmente les collisions ou la
-file d'intégration.
+La limite de deux unités est un plafond, pas un objectif d'occupation. Une unité
+bloquée ne justifie pas d'en ouvrir une troisième si cela augmente les collisions ou
+la file d'intégration. `pnpm ticket-batch:select` applique ce plafond ; aucun agent
+ne l'assouplit.
 
 - Les recherches, lectures, diagnostics et revues peuvent être parallélisés en
   lecture seule.
@@ -151,15 +163,17 @@ La délégation ne change ni `Allowed areas`, ni `Do not touch`, ni l'autorité
 d'Andy. Elle ne permet pas de fusionner une Pull Request, de résoudre une
 ambiguïté produit ou de créer une exception de sécurité.
 
-## Suivi du ticket
+## Suivi de l'unité de travail
 
-Le champ `Status` du fichier du ticket est la référence pour son workflow.
-`docs/tickets/README.md` est un index qui doit refléter les mêmes statuts.
+Le champ `Status` du fichier est la référence pour son workflow.
+`docs/features/README.md` et `docs/tickets/README.md` sont des index qui doivent
+refléter les mêmes statuts. Une fonctionnalité porte en plus un `Status` par jalon,
+qui suit les mêmes transitions.
 
 Transitions :
 
 - `Draft` : résultat ou preuves encore incomplets ;
-- `Ready` : dépendances satisfaites et ticket exécutable ;
+- `Ready` : dépendances satisfaites et unité exécutable ;
 - `In progress` : travail actif sur une branche identifiée ;
 - `Review` : implémentation terminée, diff et validations automatisées prêts à
   être revus ;
@@ -170,7 +184,7 @@ Transitions :
 
 À chaque transition :
 
-1. mettre à jour le ticket et l'index dans le même changement ;
+1. mettre à jour le fichier et son index dans le même changement ;
 2. consigner une preuve datée, sans transformer une intention en résultat ;
 3. préciser la branche et la PR lorsque l'état dépend de GitHub ;
 4. mettre à jour `CURRENT_STATE.md` seulement si la réalité décrite change ;

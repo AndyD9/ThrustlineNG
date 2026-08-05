@@ -71,13 +71,30 @@ const SELECTION_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['id', 'title', 'branch', 'file', 'flow', 'autonomy', 'exclusivePaths', 'humanPrerequisites'],
+        required: [
+          'id',
+          'kind',
+          'title',
+          'branch',
+          'file',
+          'flow',
+          'nextMilestone',
+          'autonomy',
+          'exclusivePaths',
+          'humanPrerequisites',
+        ],
         properties: {
           id: { type: 'string' },
+          kind: { type: 'string', enum: ['feature', 'ticket'] },
           title: { type: 'string' },
           branch: { type: 'string' },
           file: { type: 'string' },
           flow: { type: 'string', description: 'bridge, backend, desktop ou gouvernance' },
+          nextMilestone: {
+            type: 'string',
+            description:
+              'jalon executable rendu par le selecteur, par exemple J2. Vide pour un ticket d archive.',
+          },
           autonomy: { type: 'string', enum: ['autonomous', 'human required'] },
           exclusivePaths: { type: 'array', items: { type: 'string' } },
           humanPrerequisites: { type: 'array', items: { type: 'string' } },
@@ -278,7 +295,13 @@ function readArguments(raw) {
 
 const input = readArguments(typeof args === 'undefined' ? null : args)
 const requestedTickets = Array.isArray(input.tickets) ? input.tickets : []
-const maxFlows = Number.isInteger(input.maxFlows) ? input.maxFlows : 3
+// Plafond fixe par Andy le 5 aout 2026: deux unites de travail simultanees, une unite etant une
+// fonctionnalite ou un ticket d archive encore ouvert. maxFlows reste accepte comme alias.
+const maxConcurrent = Number.isInteger(input.maxConcurrent)
+  ? input.maxConcurrent
+  : Number.isInteger(input.maxFlows)
+    ? input.maxFlows
+    : 2
 // Le mode ecriture est explicite. Tout le reste, y compris une erreur d analyse des
 // arguments, reste une selection en lecture seule.
 const execute = input.mode === 'execute' && input.dryRun !== true
@@ -312,14 +335,16 @@ ${SOURCES}
 Execute exactement, et rapporte la sortie telle quelle:
 1. git -C "${REPO}" fetch origin --quiet
 2. git -C "${REPO}" log --oneline -1 origin/main
-3. pwsh -NoProfile -File "${REPO}/scripts/select-ticket-batch.ps1" -MaxFlows ${maxFlows}${onlyArgument}${autonomyArgument} -Json
+3. pwsh -NoProfile -File "${REPO}/scripts/select-ticket-batch.ps1" -MaxConcurrent ${maxConcurrent}${onlyArgument}${autonomyArgument} -Json
 
 Le champ selected du selecteur est la selection autorisee: tu ne peux pas y ajouter un ticket,
 meme s il te parait pret, et tu ne peux pas ignorer une entree deferred. Reprends telles quelles
 les entrees blocking, deferred et sharedContention.
 
-Pour chaque ticket selectionne, deduis son flux depuis docs/ROADMAP.md et ses chemins:
-bridge, backend, desktop, ou gouvernance si le ticket est documentaire ou outillage.
+Pour chaque unite selectionnee, reprends kind et nextMilestone tels que le selecteur les rend, sans
+les recalculer. Deduis son domaine dominant depuis docs/ROADMAP.md et ses chemins: bridge, backend,
+desktop, ou gouvernance si l unite est documentaire ou outillage. Une fonctionnalite traverse
+normalement plusieurs domaines; le domaine dominant sert a l ordonner, pas a l autoriser.
 Reprends aussi ses humanPrerequisites: ils indiquent une verification qui restera humaine.
 
 Lecture seule: ne cree ni worktree, ni branche, ni fichier.`,
@@ -358,14 +383,15 @@ const executed = await pipeline(
   selection.selected,
   (ticket) =>
     agent(
-      `Tu es le coordinateur du ticket ${ticket.id} de ThrustlineNG. Implemente uniquement ce ticket,
-jusqu a la Pull Request brouillon incluse.
+      `Tu es le coordinateur de l unite ${ticket.id} de ThrustlineNG. Implemente uniquement cette
+unite, jusqu a la Pull Request brouillon incluse.
 
-Ticket: ${ticket.file}
+Fichier: ${ticket.file}
 Titre: ${ticket.title}
-Branche prevue par le ticket: ${ticket.branch}
-Flux: ${ticket.flow}
+Branche prevue: ${ticket.branch}
+Domaine dominant: ${ticket.flow}
 Base: origin/main (${selection.mainHead})
+${ticket.nextMilestone ? `Prochain jalon executable, calcule par le selecteur: ${ticket.nextMilestone}` : 'Unite au format ticket d archive: pas de jalon.'}
 
 ${SOURCES}
 
@@ -374,28 +400,43 @@ ${HARD_LIMITS}
 ${WORKTREE_SETUP(ticket.id, ticket.branch)}
 
 Deroulement:
-1. Lis le ticket complet. Si son statut, ses dependances ou sa branche sont incoherents, arrete-toi
-   et rends outcome blocked avec la contradiction exacte, sans rien modifier.
-2. Passe le ticket In progress dans son fichier et dans la ligne correspondante de
-   docs/tickets/README.md, dans le meme changement. Le gate de maintenance compare les deux.
+1. Lis le fichier complet. Si son statut, ses dependances, sa branche ou la numerotation de ses
+   jalons sont incoherents, arrete-toi et rends outcome blocked avec la contradiction exacte, sans
+   rien modifier.
+2. Passe l unite In progress dans son fichier et dans la ligne correspondante de son index --
+   docs/features/README.md pour une fonctionnalite, docs/tickets/README.md pour un ticket
+   d archive -- dans le meme changement. Le selecteur compare les deux et echoue fermé.
 3. Releve les dettes de docs/KNOWN_ISSUES.md et les invariants de docs/SECURITY.md qui touchent
    les Allowed areas. Une decouverte Critical arrete le travail.
-4. Inspecte le code reel, puis implemente seulement les exigences du ticket.
-5. Execute d abord les tests cibles, puis les gates applicables listes par le ticket et
-   docs/QUALITY.md. Consigne pour chaque commande: commande exacte, resultat, limite.
-6. Effectue la revue adversariale de ton propre diff dans l ordre de AGENTS.md: securite et perte
+4. Inspecte le code reel, puis implemente seulement les exigences de l unite.
+
+Pour une fonctionnalite, repete les etapes 5 a 10 **jalon par jalon**, dans l ordre declare, en
+commencant par le premier jalon qui n est pas Done. Un jalon = un commit. N ouvre jamais deux
+jalons a la fois et ne commence pas le suivant avant que la revue du precedent soit traitee. Pour
+un ticket d archive, execute ces etapes une seule fois.
+
+5. Implemente le jalon courant et rien d autre. Passe son Status a In progress dans son bloc.
+6. Execute d abord les tests cibles, puis les validations declarees par ce jalon et les gates
+   applicables de docs/QUALITY.md. Consigne pour chaque commande: commande exacte, resultat, limite.
+7. Effectue la revue adversariale de ton propre diff dans l ordre de AGENTS.md: securite et perte
    de donnees, criteres et hors perimetre, regressions et contrats, architecture et dette, tests
-   et lisibilite. Corrige ce qu elle trouve avant de publier.
-7. Effectue la verification manuelle du ticket si elle est possible ici. Sinon, indique
-   precisement qui doit la faire et sur quel environnement, et garde le ticket en Verify.
-8. Remplis le Completion Report du ticket avec des preuves verifiables, les risques, les limites
-   et les follow-ups. Consigne tes candidats d apprentissage selon docs/LEARNINGS.md.
-9. Passe le statut a Review, ou Verify si une verification humaine reste requise, dans le fichier
-   et dans l index.
-10. Indexe uniquement les chemins du ticket, relis git diff --cached --stat puis git diff --cached,
-    execute git diff --cached --check, commite en Conventional Commits, pousse la branche exacte.
-11. Ouvre une Pull Request BROUILLON vers main avec gh pr create --draft, titre TXXXX - Titre et
-    corps derive du ticket. Si une PR existe deja pour cette branche, mets-la a jour.
+   et lisibilite. Corrige ce qu elle trouve avant de publier. La revue independante du jalon vient
+   ensuite, et elle porte sur le diff pousse.
+8. Effectue la verification manuelle du jalon si elle est possible ici. Sinon, indique precisement
+   qui doit la faire et sur quel environnement, et garde l unite en Verify.
+9. Remplis le bloc de Completion Report de ce jalon avec des preuves verifiables. Passe son Status
+   a Review, ou Verify si une verification humaine reste requise.
+10. Indexe uniquement les chemins du jalon, relis git diff --cached --stat puis git diff --cached,
+    execute git diff --cached --check, commite en Conventional Commits en nommant le jalon dans le
+    sujet, pousse la branche exacte.
+11. Quand tous les jalons sont traites: remplis la synthese du Completion Report, les risques, les
+    limites et les follow-ups, consigne tes candidats d apprentissage selon docs/LEARNINGS.md, puis
+    passe le statut de l unite a Review, ou Verify si une verification humaine reste requise, dans
+    le fichier et dans l index.
+12. Ouvre **une seule** Pull Request BROUILLON vers main avec gh pr create --draft, titre
+    "FXXXX - Titre" ou "TXXXX - Titre", et corps derive du fichier avec un paragraphe par jalon. Une
+    fonctionnalite ne produit jamais plusieurs Pull Requests, quel que soit son nombre de jalons: si
+    une PR existe deja pour cette branche, mets-la a jour.
 
 Rends un compte rendu exact: si tu n as pas pu implementer, outcome blocked ou refused avec la
 raison, et laisse le depot dans un etat propre et decrit.`,
@@ -413,19 +454,21 @@ raison, et laisse le depot dans un etat propre et decrit.`,
       return { ticket, implementation, review: null, remediation: null }
     }
     return agent(
-      `Revue adversariale independante du ticket ${ticket.id} de ThrustlineNG. Tu n as pas ecrit ce
+      `Revue adversariale independante de l unite ${ticket.id} de ThrustlineNG. Tu n as pas ecrit ce
 code et tu ne le corriges pas: tu cherches ce qui est reellement faux.
 
-Ticket: ${ticket.file}
+Fichier: ${ticket.file}
 Branche: ${implementation.branch}
 Commit: ${implementation.commit}
+${ticket.kind === 'feature' ? `Fonctionnalite: son diff porte plusieurs jalons, un par commit. Revois **chaque commit separement**, dans l ordre, avec git log --oneline origin/main..${implementation.branch} puis git show sur chacun. Un slice vertical melange une migration autoritaire et une surface de lecture: si tu ne revois que le diff cumule, la migration perd l attention qu elle merite. Rattache chaque constat au jalon concerne.` : 'Ticket d archive: un seul resultat, revois le diff cumule.'}
 
 ${SOURCES}
 
 Inspecte le diff publie, pas une intention:
 1. git -C "${REPO}" fetch origin --quiet
-2. git -C "${REPO}" diff origin/main...${implementation.branch} --stat
-3. git -C "${REPO}" diff origin/main...${implementation.branch}
+2. git -C "${REPO}" log --oneline origin/main..${implementation.branch}
+3. git -C "${REPO}" diff origin/main...${implementation.branch} --stat
+4. git -C "${REPO}" diff origin/main...${implementation.branch}
 
 Cherche dans cet ordre, et arrete-toi a ce que tu peux prouver:
 1. securite, autorite et perte de donnees: une mutation d argent, de propriete, de reputation ou
@@ -544,9 +587,11 @@ Ce que tu ecris, en te limitant a ce que les preuves ci-dessus soutiennent:
    Le travail de cette vague est en Pull Request brouillon et n est pas fusionne: ecris-le comme
    tel, ou pas du tout. Mets dans notPropagated tout fait que tu refuses d ecrire pour cette
    raison, c est un resultat attendu et non un echec.
-4. Nouveaux tickets: cree en Draft, depuis docs/templates/TICKET.md, les follow-ups que cette
-   vague a rendus necessaires, avec leur ligne dans docs/tickets/README.md. Un follow-up qui
-   attend une decision d Andy nomme cette decision et sa condition de sortie.
+4. Nouvelles unites: cree en Draft les follow-ups que cette vague a rendus necessaires, avec leur
+   ligne dans l index correspondant. Une capacite utilisateur suit docs/templates/FEATURE.md et va
+   dans docs/features/ avec ses jalons; un resultat unique de gouvernance, correctif ou outillage
+   suit docs/templates/TICKET.md et va dans docs/tickets/. Un follow-up qui attend une decision
+   d Andy nomme cette decision et sa condition de sortie.
 
 Ne modifie aucune ligne d index qui appartient a un ticket de cette vague: ces lignes vivent dans
 les branches des tickets et les ecrire ici recreerait la derive d index deja observee lors des

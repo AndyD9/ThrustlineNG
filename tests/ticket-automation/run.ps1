@@ -81,9 +81,87 @@ $allowedBlock
 "@
 }
 
+# A feature is the current unit of work: one file, one branch, one pull request and
+# ordered milestones. Each milestone may redeclare Risk, Security-sensitive and
+# Autonomous, and the selector evaluates the unattended boundary on the first
+# milestone that is not Done.
+function New-FeatureFile {
+    param(
+        [Parameter(Mandatory)][string]$Id,
+        [Parameter(Mandatory)][string]$Status,
+        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Dependencies,
+        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$AllowedAreas,
+        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$MilestoneStatuses
+    )
+
+    $dependencyBlock = if ($Dependencies.Count -eq 0) {
+        "- Aucune."
+    }
+    else {
+        ($Dependencies | ForEach-Object { "- $_" }) -join "`n"
+    }
+    $allowedBlock = ($AllowedAreas | ForEach-Object { "- ``$_``" }) -join "`n"
+
+    $milestoneBlocks = @()
+    for ($position = 0; $position -lt $MilestoneStatuses.Count; $position++) {
+        $milestoneId = 'J{0}' -f ($position + 1)
+        $milestoneBlocks += @"
+### $milestoneId - Jalon $milestoneId de la fixture
+
+Status: $($MilestoneStatuses[$position])
+Risk: Low
+Security-sensitive: No
+Autonomous: Yes
+
+- resultat : comportement observable du jalon $milestoneId.
+- frontiere : fixture.
+- validations : aucune commande reelle.
+- revue : fixture only.
+"@
+    }
+    $milestoneSection = $milestoneBlocks -join "`n"
+
+    return @"
+# $Id - Fixture feature $Id
+
+Status: $Status
+Owner: Fixture
+Branch: ``feature/$($Id.ToLowerInvariant())-fixture``
+Phase: 1
+Risk: Low
+Security-sensitive: No
+Autonomous: Yes
+
+## Goal
+
+Capacite observable de la fixture $Id.
+
+## Dependencies
+
+$dependencyBlock
+
+## Allowed areas
+
+$allowedBlock
+
+## Do not touch
+
+- Tout le reste.
+
+## Jalons
+
+$milestoneSection
+
+## Acceptance criteria
+
+- [ ] Fixture only.
+"@
+}
+
 function New-Fixture {
     $root = Join-Path ([System.IO.Path]::GetTempPath()) ("ticket-automation-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Force -Path (Join-Path $root 'docs/tickets') | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $root 'docs/features') | Out-Null
 
     $definitions = @(
         [pscustomobject]@{
@@ -131,6 +209,44 @@ function New-Fixture {
         Set-FixtureText -Path (Join-Path $root "docs/tickets/$fileName") -Text $content
     }
 
+    $featureDefinitions = @(
+        [pscustomobject]@{
+            Id = 'F0001'; Title = 'Fixture feature slice'; Status = 'Ready'
+            Dependencies = @('T0001')
+            AllowedAreas = @('apps/desktop/src/features/gamma', 'docs/features/README.md')
+            MilestoneStatuses = @('Done', 'Ready')
+        },
+        [pscustomobject]@{
+            Id = 'F0002'; Title = 'Fixture feature draft'; Status = 'Draft'
+            Dependencies = @('T0001')
+            AllowedAreas = @('supabase/functions/fixture', 'docs/features/README.md')
+            MilestoneStatuses = @('Draft')
+        }
+    )
+
+    $featureRows = foreach ($definition in $featureDefinitions) {
+        $dependencyCell = if ($definition.Dependencies.Count -eq 0) { '-' } else { $definition.Dependencies -join ', ' }
+        "| $($definition.Id) | $($definition.Title) | 1 | $dependencyCell | $($definition.Status) |"
+    }
+
+    $featureIndex = @(
+        '# Fonctionnalites de fixture',
+        '',
+        '| ID | Titre | Phase | Depend de | Statut |',
+        '| --- | --- | --- | --- | --- |'
+    ) + $featureRows
+    Set-FixtureText -Path (Join-Path $root 'docs/features/README.md') -Text (($featureIndex -join "`n") + "`n")
+
+    foreach ($definition in $featureDefinitions) {
+        $content = New-FeatureFile `
+            -Id $definition.Id `
+            -Status $definition.Status `
+            -Dependencies $definition.Dependencies `
+            -AllowedAreas $definition.AllowedAreas `
+            -MilestoneStatuses $definition.MilestoneStatuses
+        Set-FixtureText -Path (Join-Path $root "docs/features/$($definition.Id)-fixture.md") -Text $content
+    }
+
     return $root
 }
 
@@ -173,14 +289,36 @@ function Set-TicketField {
     Set-FixtureText -Path $path -Text $mutated
 }
 
+function Set-FeatureField {
+    param(
+        [Parameter(Mandatory)][string]$Root,
+        [Parameter(Mandatory)][string]$Id,
+        [Parameter(Mandatory)][string]$Pattern,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Replacement
+    )
+
+    $path = Join-Path $Root "docs/features/$Id-fixture.md"
+    $text = [System.IO.File]::ReadAllText($path)
+    $mutated = [regex]::Replace($text, $Pattern, $Replacement)
+    if ($mutated -eq $text) {
+        throw "Pattern '$Pattern' changed nothing in $Id; the mutation would prove nothing."
+    }
+    Set-FixtureText -Path $path -Text $mutated
+}
+
 function Set-IndexStatus {
     param(
         [Parameter(Mandatory)][string]$Root,
         [Parameter(Mandatory)][string]$Id,
-        [Parameter(Mandatory)][string]$Status
+        [Parameter(Mandatory)][string]$Status,
+
+        # Tickets and features each own their index; both are checked with the same
+        # rules, so the mutation helper serves both.
+        [ValidateSet('docs/tickets', 'docs/features')]
+        [string]$Directory = 'docs/tickets'
     )
 
-    $path = Join-Path $Root 'docs/tickets/README.md'
+    $path = Join-Path $Root "$Directory/README.md"
     $lines = @(Get-Content -Encoding UTF8 -LiteralPath $path)
     $touched = 0
     for ($index = 0; $index -lt $lines.Count; $index++) {
@@ -279,7 +417,9 @@ function Assert-Scenario {
     }
 }
 
-# Reference scenario: three flows selected, the fourth candidate deferred by capacity.
+# Reference scenario: two units of work selected, the rest deferred by capacity.
+# Andy fixed the ceiling at two on 5 August 2026, when the feature became the unit
+# of tracking and integration: a vertical slice occupies what used to be two flows.
 $referenceRoot = New-Fixture
 try {
     $reference = Invoke-Selector -Root $referenceRoot
@@ -290,12 +430,12 @@ try {
     if ($null -ne $reference.Report) {
         $referenceSelected = @(@($reference.Report.selected) | ForEach-Object { $_.id })
         Assert-Condition `
-            -Label 'reference fixture selects three flows' `
-            -Condition (($referenceSelected -join ',') -eq 'T0002,T0003,T0004') `
+            -Label 'reference fixture selects two units of work' `
+            -Condition (($referenceSelected -join ',') -eq 'T0002,T0003') `
             -Detail "got '$($referenceSelected -join ',')'"
         Assert-Condition `
             -Label 'reference fixture reports the integration order' `
-            -Condition ((@($reference.Report.integrationOrder) -join ',') -eq 'T0002,T0003,T0004') `
+            -Condition ((@($reference.Report.integrationOrder) -join ',') -eq 'T0002,T0003') `
             -Detail "got '$(@($reference.Report.integrationOrder) -join ',')'"
         Assert-Condition `
             -Label 'reference fixture reports shared index contention' `
@@ -321,21 +461,21 @@ Assert-Scenario `
     -Mutate { param($root) Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^Status: Ready$' -Replacement 'Status: Review' } `
     -ExpectedExitCode 1 `
     -ExpectedBlockingPattern "Ticket T0002 status differs" `
-    -ExpectedSelected @('T0003', 'T0004', 'T0005')
+    -ExpectedSelected @('T0003', 'T0004')
 
 Assert-Scenario `
     -Label 'mutation 2 - invalid ticket status' `
     -Mutate { param($root) Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^Status: Ready$' -Replacement 'Status: Almost done' } `
     -ExpectedExitCode 1 `
     -ExpectedBlockingPattern 'Invalid status in ticket T0002' `
-    -ExpectedSelected @('T0003', 'T0004', 'T0005')
+    -ExpectedSelected @('T0003', 'T0004')
 
 Assert-Scenario `
     -Label 'mutation 3 - missing Status field' `
     -Mutate { param($root) Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^Status: Ready\r?\n' -Replacement '' } `
     -ExpectedExitCode 1 `
     -ExpectedBlockingPattern 'Ticket T0002 must contain exactly one Status field' `
-    -ExpectedSelected @('T0003', 'T0004', 'T0005')
+    -ExpectedSelected @('T0003', 'T0004')
 
 Assert-Scenario `
     -Label 'mutation 4 - ticket file absent from the index' `
@@ -346,7 +486,7 @@ Assert-Scenario `
     } `
     -ExpectedExitCode 1 `
     -ExpectedBlockingPattern 'Ticket T0006 is missing from docs/tickets/README.md' `
-    -ExpectedSelected @('T0002', 'T0003', 'T0004')
+    -ExpectedSelected @('T0002', 'T0003')
 
 Assert-Scenario `
     -Label 'mutation 5 - duplicate index identifier' `
@@ -362,7 +502,7 @@ Assert-Scenario `
     } `
     -ExpectedExitCode 1 `
     -ExpectedBlockingPattern 'Duplicate ticket index identifier: T0002' `
-    -ExpectedSelected @('T0002', 'T0003', 'T0004')
+    -ExpectedSelected @('T0002', 'T0003')
 
 Assert-Scenario `
     -Label 'mutation 6 - dependency returned to Draft' `
@@ -387,19 +527,19 @@ Assert-Scenario `
             -Replacement '`apps/desktop/src/features/alpha/panel`'
     } `
     -ExpectedExitCode 0 `
-    -ExpectedSelected @('T0002', 'T0004', 'T0005') `
+    -ExpectedSelected @('T0002', 'T0004') `
     -ExpectedDeferredPattern 'allowed area collision on apps/desktop/src/features/alpha/panel' `
     -ExpectedDeferredId 'T0003'
 
 Assert-Scenario `
-    -Label 'mutation 8 - an In progress flow consumes capacity and claims its paths' `
+    -Label 'mutation 8 - an In progress unit consumes capacity and claims its paths' `
     -Mutate {
         param($root)
         Set-TicketField -Root $root -Id 'T0001' -Pattern '(?m)^Status: Done$' -Replacement 'Status: In progress'
         Set-IndexStatus -Root $root -Id 'T0001' -Status 'In progress'
     } `
     -ExpectedExitCode 0 `
-    -ExpectedSelected @('T0002', 'T0003') `
+    -ExpectedSelected @('T0002') `
     -ExpectedDeferredPattern 'allowed area collision on apps/bridge/src/telemetry' `
     -ExpectedDeferredId 'T0004'
 
@@ -422,7 +562,7 @@ Assert-Scenario `
     -Label 'reference fixture is fully autonomous' `
     -Mutate { param($root) $null = $root } `
     -ExpectedExitCode 0 `
-    -ExpectedSelected @('T0002', 'T0003', 'T0004') `
+    -ExpectedSelected @('T0002', 'T0003') `
     -AdditionalArguments @('-AutonomousOnly')
 
 Assert-Scenario `
@@ -432,7 +572,7 @@ Assert-Scenario `
         Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^Risk: Low$' -Replacement "Risk: Low`nAutonomous: No"
     } `
     -ExpectedExitCode 0 `
-    -ExpectedSelected @('T0003', 'T0004', 'T0005') `
+    -ExpectedSelected @('T0003', 'T0004') `
     -ExpectedDeferredPattern 'human required: ticket declares Autonomous: No' `
     -ExpectedDeferredId 'T0002' `
     -AdditionalArguments @('-AutonomousOnly')
@@ -444,7 +584,7 @@ Assert-Scenario `
         Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^Security-sensitive: No$' -Replacement 'Security-sensitive: Yes'
     } `
     -ExpectedExitCode 0 `
-    -ExpectedSelected @('T0003', 'T0004', 'T0005') `
+    -ExpectedSelected @('T0003', 'T0004') `
     -ExpectedDeferredPattern 'human required: security sensitive' `
     -ExpectedDeferredId 'T0002' `
     -AdditionalArguments @('-AutonomousOnly')
@@ -456,7 +596,7 @@ Assert-Scenario `
         Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^Risk: Low$' -Replacement 'Risk: High'
     } `
     -ExpectedExitCode 0 `
-    -ExpectedSelected @('T0003', 'T0004', 'T0005') `
+    -ExpectedSelected @('T0003', 'T0004') `
     -ExpectedDeferredPattern "human required: risk is 'High'" `
     -ExpectedDeferredId 'T0002' `
     -AdditionalArguments @('-AutonomousOnly')
@@ -468,7 +608,7 @@ Assert-Scenario `
         Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^- T0001$' -Replacement '- T0001, decision Andy'
     } `
     -ExpectedExitCode 0 `
-    -ExpectedSelected @('T0003', 'T0004', 'T0005') `
+    -ExpectedSelected @('T0003', 'T0004') `
     -ExpectedDeferredPattern 'human required: dependency needs a human' `
     -ExpectedDeferredId 'T0002' `
     -AdditionalArguments @('-AutonomousOnly')
@@ -480,7 +620,159 @@ Assert-Scenario `
         Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^Risk: Low$' -Replacement 'Risk: High'
     } `
     -ExpectedExitCode 0 `
-    -ExpectedSelected @('T0002', 'T0003', 'T0004')
+    -ExpectedSelected @('T0002', 'T0003')
+
+# Feature scenarios. Since T0068 the feature is the unit of tracking, branch and
+# integration, and the unattended boundary is evaluated on the first milestone that
+# is not Done. The fixture feature F0001 is Ready with J1 Done and J2 Ready, so
+# every milestone mutation below targets J2 through its heading.
+Assert-Scenario `
+    -Label 'mutation 16 - feature status diverges from the feature index' `
+    -Mutate { param($root) Set-IndexStatus -Root $root -Id 'F0001' -Status 'Done' -Directory 'docs/features' } `
+    -ExpectedExitCode 1 `
+    -ExpectedBlockingPattern "Feature F0001 status differs: index 'Done', file 'Ready'" `
+    -ExpectedSelected @('T0002', 'T0003')
+
+Assert-Scenario `
+    -Label 'mutation 17 - feature file absent from the feature index' `
+    -Mutate {
+        param($root)
+        $content = New-FeatureFile `
+            -Id 'F0003' -Status 'Ready' -Dependencies @('T0001') `
+            -AllowedAreas @('packages/fixture-feature') -MilestoneStatuses @('Ready')
+        Set-FixtureText -Path (Join-Path $root 'docs/features/F0003-fixture.md') -Text $content
+    } `
+    -ExpectedExitCode 1 `
+    -ExpectedBlockingPattern 'Feature F0003 is missing from docs/features/README.md' `
+    -ExpectedSelected @('T0002', 'T0003')
+
+Assert-Scenario `
+    -Label 'mutation 18 - a milestone carries an invalid status' `
+    -Mutate {
+        param($root)
+        Set-FeatureField -Root $root -Id 'F0001' `
+            -Pattern '(?s)(### J2 .*?)Status: Ready' -Replacement '${1}Status: Presque fini'
+    } `
+    -ExpectedExitCode 1 `
+    -ExpectedBlockingPattern 'Invalid status in feature F0001 milestone J2: Presque fini' `
+    -ExpectedSelected @('T0002', 'T0003')
+
+Assert-Scenario `
+    -Label 'mutation 19 - milestones are not sequential' `
+    -Mutate {
+        param($root)
+        Set-FeatureField -Root $root -Id 'F0001' -Pattern '### J2 -' -Replacement '### J3 -'
+    } `
+    -ExpectedExitCode 1 `
+    -ExpectedBlockingPattern 'Feature F0001 milestones are not sequential: expected J2, found J3' `
+    -ExpectedSelected @('T0002', 'T0003')
+
+Assert-Scenario `
+    -Label 'mutation 20 - a milestone with no Status field is refused' `
+    -Mutate {
+        param($root)
+        Set-FeatureField -Root $root -Id 'F0001' `
+            -Pattern '(?s)(### J2 .*?)Status: Ready\r?\n' -Replacement '${1}'
+    } `
+    -ExpectedExitCode 1 `
+    -ExpectedBlockingPattern 'Feature F0001 milestone J2 has no Status field' `
+    -ExpectedSelected @('T0002', 'T0003')
+
+Assert-Scenario `
+    -Label 'mutation 21 - a Ready feature whose every milestone is Done is refused' `
+    -Mutate {
+        param($root)
+        Set-FeatureField -Root $root -Id 'F0001' `
+            -Pattern '(?s)(### J2 .*?)Status: Ready' -Replacement '${1}Status: Done'
+    } `
+    -ExpectedExitCode 1 `
+    -ExpectedBlockingPattern "Feature F0001 is 'Ready' while every milestone is Done" `
+    -ExpectedSelected @('T0002', 'T0003')
+
+# The next four scenarios are the point of T0068: the boundary follows the
+# milestone, not the feature header, which still declares Risk Low,
+# Security-sensitive No and Autonomous Yes in all of them.
+Assert-Scenario `
+    -Label 'the fixture feature is autonomous on its next milestone' `
+    -Mutate { param($root) $null = $root } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @('F0001') `
+    -AdditionalArguments @('-Only', 'F0001', '-AutonomousOnly')
+
+Assert-Scenario `
+    -Label 'mutation 22 - the next milestone declares Autonomous: No' `
+    -Mutate {
+        param($root)
+        Set-FeatureField -Root $root -Id 'F0001' `
+            -Pattern '(?s)(### J2 .*?)Autonomous: Yes' -Replacement '${1}Autonomous: No'
+    } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @() `
+    -ExpectedDeferredPattern 'human required: milestone J2 declares Autonomous: No' `
+    -ExpectedDeferredId 'F0001' `
+    -AdditionalArguments @('-Only', 'F0001', '-AutonomousOnly')
+
+Assert-Scenario `
+    -Label 'mutation 23 - the next milestone is security sensitive' `
+    -Mutate {
+        param($root)
+        Set-FeatureField -Root $root -Id 'F0001' `
+            -Pattern '(?s)(### J2 .*?)Security-sensitive: No' -Replacement '${1}Security-sensitive: Yes'
+    } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @() `
+    -ExpectedDeferredPattern 'human required: milestone J2 is security sensitive' `
+    -ExpectedDeferredId 'F0001' `
+    -AdditionalArguments @('-Only', 'F0001', '-AutonomousOnly')
+
+Assert-Scenario `
+    -Label 'mutation 24 - the next milestone carries a High risk' `
+    -Mutate {
+        param($root)
+        Set-FeatureField -Root $root -Id 'F0001' `
+            -Pattern '(?s)(### J2 .*?)Risk: Low' -Replacement '${1}Risk: High'
+    } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @() `
+    -ExpectedDeferredPattern "human required: milestone J2 risk is 'High'" `
+    -ExpectedDeferredId 'F0001' `
+    -AdditionalArguments @('-Only', 'F0001', '-AutonomousOnly')
+
+Assert-Scenario `
+    -Label 'mutation 25 - a High risk on an already Done milestone does not veto' `
+    -Mutate {
+        param($root)
+        Set-FeatureField -Root $root -Id 'F0001' `
+            -Pattern '(?s)(### J1 .*?)Risk: Low' -Replacement '${1}Risk: High'
+    } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @('F0001') `
+    -AdditionalArguments @('-Only', 'F0001', '-AutonomousOnly')
+
+Assert-Scenario `
+    -Label 'mutation 26 - a feature directory without its index is refused' `
+    -Mutate {
+        param($root)
+        Remove-Item -Force -LiteralPath (Join-Path $root 'docs/features/README.md')
+    } `
+    -ExpectedExitCode 1 `
+    -ExpectedBlockingPattern 'docs/features exists without docs/features/README.md' `
+    -ExpectedSelected @('T0002', 'T0003')
+
+Assert-Scenario `
+    -Label 'a feature and an archive ticket remain selectable together during the transition' `
+    -Mutate { param($root) $null = $root } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @('T0002', 'F0001') `
+    -AdditionalArguments @('-Only', 'T0002,F0001')
+
+Assert-Scenario `
+    -Label 'mutation 27 - the work ceiling of two defers the third unit' `
+    -Mutate { param($root) $null = $root } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @('T0002', 'T0003') `
+    -ExpectedDeferredPattern 'work capacity reached \(2 max, 0 occupied\)' `
+    -ExpectedDeferredId 'T0004'
 
 if ($failures.Count -gt 0) {
     Write-Host "Ticket automation gate failed with $($failures.Count) of $assertionCount assertions:"
@@ -490,5 +782,5 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
-Write-Host "Ticket batch selector invariants passed: $assertionCount assertions, 15 negative mutations."
+Write-Host "Ticket batch selector invariants passed: $assertionCount assertions, 27 negative mutations."
 exit 0
