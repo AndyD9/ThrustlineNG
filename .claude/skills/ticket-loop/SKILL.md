@@ -30,6 +30,29 @@ Si l'une de ces limites est atteinte, s'arrêter et le dire à Andy.
 | `dry` | affiche seulement la sélection déterministe, sans rien modifier (défaut de `ticket-run`) |
 | `TXXXX [TYYYY]` | force la sélection sur ces tickets, s'ils sont réellement `Ready` |
 | `--max N` | change le plafond de flux (défaut 3, ne pas dépasser sans décision d'Andy) |
+| `unattended` | n'exécute que les tickets sans humain requis ; c'est le mode de la tâche planifiée |
+
+## Run planifié
+
+Une tâche planifiée locale exécute cette boucle une fois par jour ouvré à 07:38.
+Elle vit dans `~/.claude/scheduled-tasks/thrustlineng-ticket-loop/SKILL.md`, hors
+du dépôt, et ne tourne que quand l'application est ouverte.
+
+Un run non surveillé n'exécute que des tickets **sans humain requis**, frontière
+calculée par le sélecteur :
+
+```bash
+pwsh -NoProfile -File ./scripts/select-ticket-batch.ps1 -AutonomousOnly
+```
+
+Sont reportés avec leur raison : `Autonomous: No`, `Security-sensitive: Yes`,
+`Risk: High`, et toute dépendance nommant une décision d'Andy, MSFS, du matériel
+ou une vérification humaine. Ne jamais retirer `autonomousOnly` d'un run non
+surveillé, et ne jamais élargir la frontière pour « débloquer » la boucle : c'est
+une décision d'Andy.
+
+Le run planifié ne notifie que si une action revient à Andy. Un run silencieux est
+un run réussi.
 
 ## 1. Vérifier l'état avant tout
 

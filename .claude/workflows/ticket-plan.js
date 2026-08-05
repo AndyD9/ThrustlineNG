@@ -11,12 +11,36 @@ export const meta = {
   ],
 }
 
-const REPO = 'C:/Users/andyd/Documents/ThrustlineNG'
+const MAIN_REPO = 'C:/Users/andyd/Documents/ThrustlineNG'
+
+// args peut arriver comme objet ou comme chaine JSON selon l appelant: une chaine non
+// analysable retombe sur les valeurs par defaut au lieu d elargir le perimetre.
+function readArguments(raw) {
+  if (!raw) {
+    return {}
+  }
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return parsed && typeof parsed === 'object' ? parsed : {}
+    } catch (error) {
+      return {}
+    }
+  }
+  return typeof raw === 'object' ? raw : {}
+}
+
+const input = readArguments(typeof args === 'undefined' ? null : args)
+// Un run non surveille passe un worktree dedie pour ne jamais ecrire dans la branche
+// courante du worktree principal.
+const REPO =
+  typeof input.repoRoot === 'string' && input.repoRoot.trim() ? input.repoRoot.trim() : MAIN_REPO
 
 const SOURCES = `Lis d abord, dans cet ordre: AGENTS.md, docs/CURRENT_STATE.md, docs/ROADMAP.md,
 docs/WORKFLOW.md, docs/tickets/README.md, docs/KNOWN_ISSUES.md et docs/templates/TICKET.md.
-Racine du depot: ${REPO}. Travaille uniquement dans cette racine, sur la branche courante.
-Ne change jamais de branche, ne commite pas, ne pousse pas, n ouvre aucune Pull Request.`
+Racine de travail: ${REPO}. Travaille uniquement dans cette racine, sur sa branche courante.
+Ne change jamais de branche, ne commite pas, ne pousse pas, n ouvre aucune Pull Request.
+Ne touche jamais a un autre worktree, en particulier pas a ${MAIN_REPO} s il differe de ta racine.`
 
 const NON_NEGOTIABLE = `Regles non negociables:
 - Une branche ou une PR non fusionnee n est jamais une capacite livree dans main. Verifie avec
@@ -205,24 +229,6 @@ const CONSOLIDATION_SCHEMA = {
   },
 }
 
-// args peut arriver comme objet ou comme chaine JSON selon l appelant: une chaine non
-// analysable retombe sur les valeurs par defaut au lieu d elargir le perimetre.
-function readArguments(raw) {
-  if (!raw) {
-    return {}
-  }
-  if (typeof raw === 'string') {
-    try {
-      const parsed = JSON.parse(raw)
-      return parsed && typeof parsed === 'object' ? parsed : {}
-    } catch (error) {
-      return {}
-    }
-  }
-  return typeof raw === 'object' ? raw : {}
-}
-
-const input = readArguments(typeof args === 'undefined' ? null : args)
 const allFlows = ['bridge', 'backend', 'desktop']
 const requestedFlows = Array.isArray(input.flows) && input.flows.length > 0 ? input.flows : allFlows
 const maxTickets = Number.isInteger(input.maxTickets) ? Math.min(input.maxTickets, 3) : 3
