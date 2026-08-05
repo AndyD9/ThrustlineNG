@@ -94,6 +94,11 @@ diffusion : il fournit la source réelle que T0054 ne pouvait pas exiger.
   daté du `Context`. Il reste **non satisfait quant à la provenance** : l'exigence §1
   demande une provenance consignée de l'installation du SDK, et un relevé de chemins
   ne l'établit pas. Aucune trace synthétique ne contourne ce ticket ;
+- `F0003` — localisation de la bibliothèque cliente SimConnect et dégradation
+  explicite en son absence. **Prérequis découvert le 5 août 2026** : l'exigence §2 de
+  ce ticket suppose une résolution qui n'existe pas encore, et sur une machine
+  d'utilisateur final il n'y a de toute façon rien à résoudre, puisque personne
+  n'installe un SDK de développement. Voir le constat dans cette exigence ;
 - décision d'Andy, en attente, désormais réduite à deux points :
   1. **la provenance du SDK** — d'où il vient et quand il a été installé, sous une
      forme consignable et vérifiable, pas une déclaration orale ;
@@ -154,6 +159,18 @@ diffusion : il fournit la source réelle que T0054 ne pouvait pas exiger.
 - Prouver que la publication ne contient ni `SimConnect.dll`, ni assembly du
   SDK, ni binaire hérité, et que la DLL réelle est résolue uniquement à
   l'exécution depuis l'installation du SDK.
+  **Cette exigence suppose une résolution qui n'existe pas, constat du 5 août
+  2026.** `NativeSimConnectAdapter` charge `SimConnect.dll` par
+  `NativeLibrary.TryLoad(..., DllImportSearchPath.SafeDirectories)`, dont les
+  répertoires sont celui de l'application, `System32` et ceux ajoutés
+  explicitement — ni le `PATH`, ni un chemin d'installation du SDK. Or sur la
+  machine de validation, `System32`, `SysWOW64` et `WinSxS` ne contiennent aucun
+  `SimConnect.dll`, le SDK garde la sienne dans `C:\MSFS2024SDK\SimConnect SDK\lib`
+  et le paquet MSFS 2024 n'expose qu'un `SimConnect_internal.dll` sous
+  `WindowsApps`, protégé par ACL et de nom différent. Le chargement échouerait donc
+  **même avec les deux prérequis installés**. La localisation est portée par la
+  fonctionnalité `F0003`, dont la fusion devient un prérequis de ce ticket : sans
+  elle, il n'y a pas de résolution à prouver.
 - Consigner explicitement si l'assembly managé officiel a été nécessaire ou si
   le chemin natif de T0011 suffit sur .NET 10 self-contained. Ce constat est la
   preuve attendue par `KI-015`.
