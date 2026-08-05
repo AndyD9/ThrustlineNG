@@ -63,6 +63,14 @@ jobs:
         shell: pwsh
         run: pnpm maintenance:check
 
+      - name: Validate ticket automation governance
+        shell: pwsh
+        run: pnpm ticket-automation:check
+
+      - name: Validate product version source
+        shell: pwsh
+        run: pnpm product-version:check
+
       - name: Validate Cargo advisory allowlist
         shell: pwsh
         run: pnpm supply-chain:cargo:check
