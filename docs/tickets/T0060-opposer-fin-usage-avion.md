@@ -94,6 +94,15 @@ même si la nouvelle définition perd un de leurs invariants.
   implémentation, preuves locales et revue adversariale du diff. Le seul contrôle
   non exécuté ici est la course concurrente du harnais CI Linux, qui reste attendue
   de la Pull Request ; aucune Pull Request n'est fusionnée par ce ticket.
+- 5 août 2026 — `origin/main` avait avancé de deux commits pendant
+  l'implémentation (T0062, merge `c0f16dc`). `origin/main` est fusionné dans la
+  branche sans conflit — la seule zone commune est la ligne d'index ajoutée pour
+  T0062, résolue automatiquement — puis tous les statuts ticket/index sont
+  revérifiés et tous les gates statiques rejoués sur l'arbre fusionné. Avant cette
+  fusion, `pnpm ticket-automation:check` échouait sur la branche : c'est
+  exactement le défaut que T0062 corrige dans `main`, il est étranger à ce ticket
+  et le gate passe après la fusion. Aucun fichier SQL n'est touché par la fusion,
+  donc les preuves pgTAP et de types restent valides.
 
 ## Dependencies
 
@@ -465,6 +474,8 @@ PostgreSQL 17, worktree `.worktrees/t0060`.
 | `pnpm authority:check` | réussi — 10 étapes, 13 domaines, 3 surfaces, 9 mutations | statique |
 | `pnpm data-policy:check` | réussi — 6 mutations | statique |
 | `pnpm maintenance:check` | réussi — registre, index, marqueurs, 8 mutations | statique |
+| `pnpm ticket-automation:check` | **échoué avant la fusion de `origin/main`, réussi après** — 34 assertions, 10 mutations | défaut étranger au ticket, corrigé par T0062 dans `main` ; `tests/ticket-automation/run.ps1` est hors des zones autorisées de T0060 |
+| `pnpm ci:check` | réussi — dépôt plus 2 mutations | statique |
 | `pnpm backend:stop` | réussi — pile arrêtée, seul le cache d'images conservé | — |
 | `git diff --cached --check` | réussi, aucune sortie | — |
 | `pnpm ci:backend` | **non exécuté** | `scripts/ci/test-backend.ps1` refuse toute machine autre que le runner CI Linux ; la course concurrente T0060 reste à confirmer sur la PR |
