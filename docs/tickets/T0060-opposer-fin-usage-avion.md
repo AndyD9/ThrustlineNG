@@ -1,6 +1,6 @@
 # T0060 — Opposer la fin d'usage d'un avion au dispatch et au départ de vol
 
-Status: Ready
+Status: In progress
 Owner: Andy
 Branch: `feature/T0060-aircraft-usability-guard`
 Phase: 2
@@ -83,6 +83,13 @@ même si la nouvelle définition perd un de leurs invariants.
   `tests/backend/run.ps1` reçoit trois marqueurs qui interdisent une nouvelle
   dérive silencieuse du décompte. Ce ticket enregistrera ses propres fichiers
   pgTAP dans la même chaîne et mettra à jour le même décompte.
+- 5 août 2026 — passage en `In progress` dans le fichier et dans l'index, sur la
+  branche `feature/T0060-aircraft-usability-guard` créée depuis `origin/main` au
+  merge `c51f3fe`. Le worktree dédié `.worktrees/t0060` est propre à la création
+  et aucune modification préexistante n'y est constatée. La dépendance T0032 est
+  revérifiée à cette date : la migration
+  `supabase/migrations/20260804000200_authoritative_aircraft_lease.sql` est bien
+  présente dans `origin/main`, donc le prérequis de fusion reste acquis.
 
 ## Dependencies
 
