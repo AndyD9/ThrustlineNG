@@ -81,7 +81,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060 fusionnée, décision Andy du 5 août 2026 | Ready |
 | T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
 | T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
-| T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 fusionné, T0064 non fusionné, décisions Andy | Draft |
+| T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 fusionné, T0064 livré par #118, décisions Andy | Draft |
 
 Aucun identifiant n'est plus réservé hors de cette table : la Pull Request de
 consolidation du 5 août 2026 y inscrit T0063, T0064 et T0068, qui manquaient
