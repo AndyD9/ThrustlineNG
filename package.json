@@ -41,7 +41,9 @@
     "backend:types:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/generate-database-types.ps1 -Check",
     "data-policy:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/data-policy/run.ps1",
     "authority:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/authority/run.ps1",
-    "maintenance:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/maintenance/run.ps1"
+    "maintenance:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/maintenance/run.ps1",
+    "ticket-automation:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./tests/ticket-automation/run.ps1",
+    "ticket-batch:select": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/select-ticket-batch.ps1"
   },
   "engines": {
     "node": "24.18.0",
