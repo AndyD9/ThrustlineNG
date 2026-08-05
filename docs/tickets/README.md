@@ -45,7 +45,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0029 | Acquérir un premier avion sans double débit ni propriété partielle | 2 | T0020, T0022–T0024, T0028, décision Andy | Done |
 | T0030 | Empêcher les dettes techniques silencieuses | Gouvernance | T0027–T0028 | Done |
 | T0031 | Réconcilier l'index après les fusions T0029–T0030 | Gouvernance | T0029–T0030 | Done |
-| T0032 | Louer un avion sans double prélèvement ni usage hors contrat | 2 | T0020, T0022–T0024, T0028–T0029, décisions Andy | Review |
+| T0032 | Louer un avion sans double prélèvement ni usage hors contrat | 2 | T0020, T0022–T0024, T0028–T0029, décisions Andy | Verify |
 | T0033 | Réconcilier les livraisons récentes et le README | Gouvernance | T0027–T0032 | Done |
 | T0034 | Découpler la fixture du gate de maintenance | Gouvernance | T0030, T0033 | Done |
 | T0035 | Exposer l'achat d'avion derrière une frontière serveur authentifiée | 2 | T0023–T0024, T0029, T0034 | Done |
@@ -74,17 +74,18 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Done |
 | T0059 | Prouver le premier slice SimConnect réel et capturer son corpus | 3 | T0011, T0014–T0015, T0054, ADR-0003, MSFS 2024 installé, décision Andy | Draft |
 | T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Review |
-| T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
+| T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Done |
 | T0062 | Réparer le gate d'automatisation des tickets et l'exécuter en CI | Gouvernance | T0055, T0061 | Verify |
 | T0063 | Faire avancer la boucle de tickets sans déclenchement humain | Gouvernance | T0061 fusionné, T0062 fusionné, décision Andy | Review |
+| T0064 | Réduire le coût en tokens des charges JSON de la boucle de tickets | Gouvernance | T0061, T0062 fusionnés, T0063 fusionné | Review |
 | T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060 fusionnée, décision Andy du 5 août 2026 | Ready |
 | T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
 | T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
-| T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 propagé, T0064 fusionné, décisions Andy | Draft |
+| T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 fusionné, T0064 livré par #118, décisions Andy | Draft |
 
-L'identifiant T0064 est réservé par la Pull Request brouillon #113, non fusionnée
-au 5 août 2026 : il n'est pas réutilisé ici et le trou dans la suite est
-volontaire.
+Aucun identifiant n'est plus réservé hors de cette table : la Pull Request de
+consolidation du 5 août 2026 y inscrit T0063, T0064 et T0068, qui manquaient
+chacun à l'index tout en existant comme fichier de ticket.
 
 ## Vague de tickets vers l'alpha interne
 
@@ -427,7 +428,7 @@ non déléguée à un agent : `pnpm ticket-batch:select` compte les flux, vérif
 dépendances, compare les statuts du fichier et de l'index, puis détecte les
 collisions de `Allowed areas` en traitant l'index et l'état courant comme des
 fichiers de suivi partagés qui imposent un ordre d'intégration. Le gate
-`pnpm ticket-automation:check` prouve ce comportement sur un dépôt synthétique
+`pnpm ticket-automation:check` couvre ce comportement sur un dépôt synthétique
 avec dix mutations négatives, sous Windows PowerShell 5.1 comme sous
 PowerShell 7. T0061 est `Review` : il ne livre aucune capacité produit et n'a pas
 encore tourné de bout en bout sur un ticket réel.
@@ -480,6 +481,6 @@ un index de 439 lignes, 113 merges, 24 worktrees résiduels, 4 tickets de
 réconciliation d'index sans capacité produit, et 4 à 6 tickets par capacité
 utilisateur — donc autant de bases de branche à choisir, d'où les PR correctives
 #69, #73, #79, #83 et, le 5 août 2026, la PR #110 fusionnée hors de `main`.
-T0068 est `Draft` : il modifie le sélecteur, son gate et la boucle que T0063
-livre sans être présent dans `main`, et la PR #113 touche déjà les mêmes
-workflows.
+T0068 est `Draft` : la PR #113 touche déjà les mêmes workflows de la boucle. Sa
+dépendance sur T0063 est en revanche satisfaite depuis la PR corrective #117,
+fusionnée au merge `f4ea508` avec ses trois checks verts.

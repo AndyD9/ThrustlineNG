@@ -52,10 +52,14 @@ Andy a tranché le 5 août 2026 les quatre décisions de forme reportées en
 
 ## Dependencies
 
-- T0063 propagé dans `main` par une PR corrective : ce ticket modifie le
-  sélecteur, son gate et la boucle planifiée que T0063 livre.
-- T0064 fusionné (PR #113) : il modifie déjà `.claude/workflows/` sur les charges
-  JSON de la boucle, donc les mêmes fichiers.
+- T0063 propagé dans `main` par la PR corrective #117 au merge `f4ea508`, avec ses
+  trois checks verts : le sélecteur, son gate à 50 assertions et 15 mutations, et
+  la boucle planifiée que ce ticket modifie sont désormais présents dans la branche
+  par défaut. Dépendance satisfaite.
+- T0064 : il modifie déjà `.claude/workflows/` sur les charges JSON de la boucle,
+  donc les mêmes fichiers. Il n'est plus porté par la PR #113 mais par la Pull
+  Request de consolidation #118, qui livre aussi ce cadrage. La dépendance est donc
+  satisfaite dès la fusion de #118, et T0068 devient exécutable à ce moment-là.
 - T0061 et T0062 fusionnés : acquis, PR #108 et #109.
 - Décisions d'Andy du 5 août 2026 : acquises, reportées en `Requirements`.
 
