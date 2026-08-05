@@ -26,7 +26,18 @@ conservée.
 Conséquence : un départ acquis alors que le dispatch était `active` puis clôturé
 par `public.close_flight` T0051 rend, au rejeu de la même clé, l'état `completed`
 et non l'état rendu à l'acquisition. Le champ `startedAt` suit la même dépendance à
-l'état vivant.
+l'état vivant, et de façon plus brutale que l'état : le trigger
+`private.set_flight_dispatch_started_at` du même fichier de migration, lignes 21 à
+43, exécute `new.started_at := null` dès que `new.state` n'est pas `active`. Une
+contrainte `flight_dispatches_started_at_matches_state` impose d'ailleurs cette
+nullité. Le rejeu d'une commande acquise rend donc, après clôture,
+`state = 'completed'` **et** `startedAt = null` — deux champs sur cinq, dont un
+effacé et non seulement périmé. Vérifié le 5 août 2026 sur `origin/main` au commit
+`c0f16dc`.
+
+Trois champs sont en revanche réellement stables, parce qu'aucune commande livrée
+ne les modifie après la création du brouillon : `aircraftId`, `dispatchId` et
+`schemaVersion`.
 
 Le comportement vient de T0050 et n'est pas une régression de T0060 ; il a été
 relevé par la revue adversariale de la Pull Request brouillon #112 du 5 août 2026,
@@ -38,15 +49,30 @@ qui « rend la même réponse stockée », ce que le code ne fait pas.
 
 Deux issues sont possibles et elles ne coûtent pas la même chose :
 
-- **A — tenir la garantie.** Une migration append-only ajoute la réponse rendue
-  dans `private.flight_start_commands` et le chemin de rejeu la restitue sans
-  relire `public.flight_dispatches`. Coût : une colonne de plus dans un registre
-  privé, une redéfinition de plus de `start_flight_from_dispatch`, et la réponse
-  d'une commande devient une donnée conservée.
+- **A — tenir la garantie.** Le chemin de rejeu restitue la réponse acquise sans
+  dépendre de l'état vivant. Coût réel, plus faible que prévu : **aucune colonne
+  nouvelle n'est nécessaire.** `private.flight_start_commands` conserve déjà
+  `aircraft_id`, `dispatch_id` et `started_at not null`, et ce registre est le seul
+  endroit où l'instant de départ survit à la clôture ; `state` valait forcément
+  `active` à l'acquisition, par construction, puisque la ligne de registre n'est
+  écrite qu'après la transition réussie ; `schema_version` est immuable et peut
+  rester lu sur la ligne de dispatch. La réponse rejouée se reconstruit donc depuis
+  le registre plus un littéral. Le coût véritable est ailleurs : c'est une
+  redéfinition de plus de `start_flight_from_dispatch` — la troisième — avec la
+  réaffirmation complète des invariants T0050 et de la garde T0060 contre le
+  nouveau fichier, conformément à `LC-2026-002`.
 - **B — réduire la garantie.** La documentation et les critères ne promettent plus
-  qu'un rejeu ne crée pas de second départ et rend le même `dispatchId`, sans rien
-  promettre sur `state` ni `startedAt`. Coût : un client ne peut plus se fier au
-  rejeu pour connaître l'état au moment de l'acquisition.
+  qu'un rejeu ne crée pas de second départ et rend les trois champs stables
+  `aircraftId`, `dispatchId` et `schemaVersion`, sans rien promettre sur `state` ni
+  `startedAt`. Coût : un client ne peut plus se fier au rejeu pour connaître l'état
+  ni l'instant de l'acquisition, et un rejeu après clôture rend un `startedAt` nul
+  qu'un appelant naïf peut prendre pour « jamais parti ».
+
+Cadrage utile pour trancher : l'exigence §2 de T0060 demande à la fois que ce
+chemin de rejeu « reste inchangé » et qu'il rende « la même réponse stockée ». Les
+deux moitiés sont inconciliables. L'issue A honore la seconde en renonçant à la
+première ; l'issue B fait l'inverse. C'est ce choix, et non un détail
+d'implémentation, qui est réservé à Andy.
 
 Condition de sortie : ce ticket reste `Draft` jusqu'à ce qu'Andy choisisse A ou B.
 La réponse est reportée datée dans ce ticket, qui passe alors `Ready`. Aucun agent
@@ -90,8 +116,12 @@ livrée.
 - L'issue retenue est appliquée entièrement, jamais partiellement : soit le rejeu
   restitue la réponse conservée, soit la promesse documentaire est réduite dans les
   trois documents qui la portent.
-- Pour l'issue A, la réponse conservée est écrite dans la même transaction que le
-  départ, et le chemin de rejeu ne lit plus l'état vivant du dispatch.
+- Pour l'issue A, le chemin de rejeu ne lit plus de l'état vivant du dispatch aucun
+  champ que la clôture modifie ou efface. Reconstruire la réponse depuis
+  `private.flight_start_commands`, dont l'écriture appartient déjà à la transaction
+  du départ, suffit et doit être préféré à l'ajout d'une colonne : ne conserver une
+  donnée nouvelle que si cette reconstruction se révèle insuffisante, et le
+  justifier alors dans le Completion Report.
 - Pour l'issue A, la redéfinition de `start_flight_from_dispatch` reprend
   intégralement les invariants T0050 et la garde d'usage T0060, et les réaffirme
   contre le nouveau fichier conformément à `LC-2026-002`.
@@ -141,8 +171,10 @@ livrée.
 - dettes et problèmes connus applicables : `KI-024` ouvre ce ticket ; `KI-021`
   interdit toujours les données réelles ;
 - dette créée ou aggravée : l'issue A réécrit `start_flight_from_dispatch` une
-  troisième fois et conserve une réponse de commande, donc une donnée de plus à
-  purger le jour où une politique de rétention la couvre ;
+  troisième fois, ce qui est son coût réel ; reconstruite depuis le registre
+  existant, elle ne conserve en revanche aucune donnée nouvelle et n'ajoute donc
+  rien à purger. Si une colonne était finalement ajoutée, elle deviendrait une
+  donnée de plus à couvrir par une politique de rétention ;
 - règle de sécurité ajoutée, modifiée ou à revalider : le contrat d'idempotence
   d'une commande privilégiée devient explicite dans `docs/SECURITY.md` ;
 - contrôle manuel à automatiser : l'ordre du scénario pgTAP, clôture avant rejeu,
