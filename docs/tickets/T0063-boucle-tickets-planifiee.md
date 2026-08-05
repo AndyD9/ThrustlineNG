@@ -245,6 +245,26 @@ Hors du dépôt, dans le profil utilisateur :
 | `node --check` sur les deux workflows, enveloppés dans un contexte `async` | passed |
 | `git diff --check` | passed |
 
+### Pull request
+
+La PR #110 est ouverte en **brouillon**, base réelle
+`fix/T0062-ticket-automation-gate-crlf`, état `MERGEABLE`. Ses trois checks sont
+verts le 5 août 2026 : `Windows multi-stack` en 17 min 06, `Supabase PostgreSQL 17`
+en 3 min 28 et `Audits, licences and SBOM` en 3 min 54.
+
+Cette fois, la preuve ne s'arrête pas à la couleur des checks. Le log du job
+`Windows multi-stack`, étape « Validate ticket automation governance », montre
+`pnpm ticket-automation:check` puis
+`Ticket batch selector invariants passed: 50 assertions, 15 negative mutations`.
+C'est la confirmation la plus forte du correctif de fin de ligne de T0062 : le
+runner récupère le harnais en CRLF, comme `.gitattributes` le prescrit, et les
+quinze mutations mordent quand même. Elle vaut mieux que la simulation locale, qui
+recopiait le fichier à la main.
+
+Cette PR ne prouve aucune livraison dans `main` : elle est empilée sur T0062, elle
+reste brouillon, et sa condition de sortie est le reciblage vers `main` après la
+fusion de T0062. La fusion appartient à Andy.
+
 ### Manual verification result
 
 Étapes 1, 2 et 3 exécutées. La sélection autonome est vide et strictement incluse
