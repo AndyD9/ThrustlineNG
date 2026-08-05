@@ -22,31 +22,61 @@ jamais déléguée implicitement.
 
 États alternatifs : `Blocked`, `Rejected`, `Superseded`.
 
+## 0. L'unité de travail
+
+Depuis T0068 et la décision d'Andy du 5 août 2026, l'unité de suivi, de branche et
+d'intégration est la **fonctionnalité** : une capacité utilisateur, un fichier dans
+`docs/features/`, une branche, une Pull Request.
+
+Une fonctionnalité est un slice vertical complet. Migration, RPC, frontière
+authentifiée, validation sur le runtime local et composition desktop y vivent
+ensemble, découpées en **jalons** internes ordonnés : un commit par jalon, une revue
+par jalon, une vérification manuelle par jalon.
+
+Le format ticket de `docs/templates/TICKET.md` reste en service pour un résultat
+unique qui n'est pas une capacité utilisateur : gouvernance, correctif, outillage,
+réconciliation. `docs/tickets/` est par ailleurs l'archive gelée du découpage
+précédent ; ses tickets encore ouverts vont jusqu'à leur terme sans être regroupés.
+
+Pourquoi ce changement : une capacité coûtait 4 à 6 tickets, donc autant de
+branches, de bases à choisir et de lignes d'index à tenir cohérentes. Au 5 août
+2026, cela avait produit 63 tickets pour 19 296 lignes, 4 tickets de réconciliation
+d'index sans capacité produit, 4 Pull Requests correctives et 5 fusions hors de
+`main`.
+
 ## 1. Préparer la phase
 
 1. Définir le résultat utilisateur.
 2. Écrire/valider les ADR structurantes.
 3. Identifier dépendances et risques.
-4. Découper en vertical slices.
-5. Créer seulement les 3–8 prochains tickets détaillés ; garder le reste au
-   niveau roadmap pour éviter un plan périmé de 50 tickets.
+4. Découper en fonctionnalités, chacune un slice vertical complet.
+5. À l'intérieur d'une fonctionnalité, ordonner les jalons du plus contraignant au
+   plus dépendant : migration et autorité serveur avant frontière, frontière avant
+   composition cliente.
+6. Créer seulement les 1–3 prochaines fonctionnalités détaillées ; garder le reste
+   au niveau roadmap pour éviter un plan périmé.
 
 ### 1.1 Piloter le flux accéléré vers l'alpha
 
-Pendant le mode accéléré défini dans `AGENTS.md`, la préparation maintient une
-vue courte des trois flux indépendants suivants :
+Pendant le mode accéléré défini dans `AGENTS.md`, au plus **deux** unités de travail
+sont `In progress`, chacune dans son worktree, sa branche et avec son coordinateur.
+Une fonctionnalité verticale occupe à elle seule ce que le découpage précédent
+étalait sur deux flux.
+
+Les domaines restent utiles pour ordonner le travail, pas pour l'autoriser :
 
 1. moteur de vol, SimConnect, reprise et rapport dans le bridge ;
 2. dispatch, clôture et grand livre autoritaires côté backend ;
 3. composition desktop et preuve E2E du golden path.
 
-Chaque flux possède au plus un ticket `In progress`, un worktree, une branche et
-un coordinateur. Les flux ne sont pas des branches permanentes : dès qu'un
-ticket est intégré, son successeur repart du nouveau `origin/main`.
+Une fonctionnalité traverse normalement plusieurs de ces domaines : c'est le but.
+Aucune n'est une branche permanente ; dès qu'une unité est intégrée, la suivante
+repart du nouveau `origin/main`.
 
 Avant de lancer la vague suivante :
 
-1. cartographier les contrats et chemins partagés entre les 3–8 tickets détaillés ;
+1. cartographier les contrats et chemins partagés entre les 1–3 fonctionnalités
+   détaillées ;
 2. demander à Andy en un seul lot les décisions qui changent le produit,
    l'économie, la sécurité, les données, le support ou l'architecture ;
 3. attribuer les chemins disjoints et l'ordre d'intégration ;
@@ -65,27 +95,31 @@ sortie, et ne passent pas `Ready for review` tant qu'elles ne ciblent pas la
 branche destinée à recevoir effectivement la capacité. Le coordinateur ne crée
 pas une troisième couche si la première peut d'abord être propagée vers `main`.
 
-## 2. Rendre un ticket Ready
+## 2. Rendre une unité Ready
 
-Un ticket Ready contient :
+Une fonctionnalité Ready contient :
 
-- objectif unique ;
-- dépendances satisfaites ;
-- zones autorisées et interdites ;
-- exigences et non-objectifs ;
-- critères d'acceptation observables ;
-- tests attendus ;
-- vérification manuelle de 5–10 minutes ;
-- revue sécurité si nécessaire.
+- un objectif utilisateur unique ;
+- des dépendances satisfaites ;
+- l'union des zones autorisées et interdites ;
+- des jalons ordonnés, chacun avec son résultat observable, sa frontière
+  principale, ses validations et ses trois champs d'autonomie ;
+- des critères d'acceptation observables sur la capacité entière ;
+- une vérification manuelle par jalon, de 5–10 minutes chacune ;
+- une revue sécurité si un jalon est `Security-sensitive: Yes`.
 
-Le reviewer challenge le ticket avant tout code : trop large, ambigu, mauvaise
-frontière ou absence de preuve = retour en Draft.
+Un ticket d'archive Ready garde les mêmes exigences sans les jalons.
+
+Le reviewer challenge l'unité avant tout code : objectif double, jalon non
+observable, mauvaise frontière ou absence de preuve = retour en Draft. Un jalon qui
+ne peut pas être commité seul n'est pas un jalon : il appartient au précédent.
 
 ## 3. Implémenter
 
-1. Lire `AGENTS.md`, `CURRENT_STATE.md`, le ticket et les docs liées.
+1. Lire `AGENTS.md`, `CURRENT_STATE.md`, l'unité de travail et les docs liées.
 2. Vérifier l'état Git et préserver les changements existants.
-3. Déterminer la branche `type/TXXXX-slug`, puis la créer ou y basculer après
+3. Déterminer la branche — `feature/fxxxx-slug` pour une fonctionnalité,
+   `type/TXXXX-slug` pour un ticket d'archive — puis la créer ou y basculer après
    avoir préservé et signalé les changements préexistants. Si elle est déjà
    active, ne pas la recréer.
 4. Inspecter le code réel.
@@ -166,15 +200,22 @@ dispose d'un worktree et d'une branche dédiés. Avant de les lancer, vérifier 
 Chaque ticket conserve son propre coordinateur, ses validations et son handoff.
 Une preuve issue d'un worktree ne clôt jamais implicitement un autre ticket.
 
-En mode accéléré vers l'alpha, appliquer en plus la limite de trois tickets
-produit simultanés et les trois flux définis en section 1.1. Toute dépendance de
-contrat découverte entre deux flux les rend séquentiels jusqu'à stabilisation et
-fusion du contrat dans `main`.
+En mode accéléré vers l'alpha, appliquer en plus la limite de deux unités de travail
+simultanées définie en section 1.1. Toute dépendance de contrat découverte entre
+deux unités les rend séquentielles jusqu'à stabilisation et fusion du contrat dans
+`main`. À l'intérieur d'une fonctionnalité, les jalons sont séquentiels par
+construction : le sélecteur n'ouvre que le premier qui n'est pas `Done`.
 
 Types de branche : `foundation`, `feature`, `fix`, `security`, `refactor`,
 `docs`, `chore`.
 
 ## 4. Revoir
+
+**Une fonctionnalité se revoit jalon par jalon, sur le diff poussé du jalon**, par un
+agent qui ne l'a pas écrit, avant d'ouvrir le jalon suivant. C'est la contrepartie
+du slice vertical : sans elle, une migration financière et un panneau de lecture
+finiraient dans la même passe de revue, et la première y perdrait l'attention
+qu'elle mérite. Une revue unique en fin de fonctionnalité n'est pas conforme.
 
 La revue vérifie dans cet ordre :
 
@@ -227,25 +268,35 @@ un fichier et l'index, statut invalide, champ `Status` absent ou dupliqué, tick
 absent de l'index, dépendance introuvable. Une sortie non nulle interdit toute
 planification comme toute exécution.
 
-Il traite `docs/tickets/README.md`, `docs/CURRENT_STATE.md`,
-`docs/KNOWN_ISSUES.md`, `docs/LEARNINGS.md` et `docs/ROADMAP.md` comme des
-fichiers de suivi partagés : leur présence dans plusieurs `Allowed areas` n'est
-pas une collision, mais elle impose un ordre d'intégration explicite. C'est la
-dérive d'index observée lors des fusions T0043 à T0050.
+Il traite `docs/features/README.md`, `docs/tickets/README.md`,
+`docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md`, `docs/LEARNINGS.md` et
+`docs/ROADMAP.md` comme des fichiers de suivi partagés : leur présence dans
+plusieurs `Allowed areas` n'est pas une collision, mais elle impose un ordre
+d'intégration explicite. C'est la dérive d'index observée lors des fusions T0043 à
+T0050.
+
+Il lit les deux répertoires. Pour une fonctionnalité, il vérifie en plus que les
+jalons sont numérotés séquentiellement à partir de `J1`, que chacun porte exactement
+un `Status` valide, et qu'une fonctionnalité `Ready` n'a pas tous ses jalons `Done`.
+La frontière d'autonomie est évaluée sur le **premier jalon qui n'est pas `Done`** :
+ses champs `Autonomous`, `Security-sensitive` et `Risk` l'emportent sur ceux de
+l'en-tête, qui ne servent que de valeurs par défaut. Un `Autonomous: No` en en-tête
+interdit en revanche tout run non surveillé.
 
 **Deux workflows séparés par une porte humaine.** Un workflow s'exécute en
 arrière-plan et ne peut pas poser de question ; les décisions réservées à Andy
 sont donc rendues en un seul lot entre les deux :
 
 1. `ticket-plan` établit l'état réellement présent dans `origin/main`, cadre au
-   plus un ticket par flux, écrit un fichier de ticket par proposition puis
-   consolide l'index et rejoue les gates. Il ne commite pas.
-2. Andy répond au lot de décisions. Chaque réponse est reportée datée dans le
-   ticket concerné, qui passe `Ready` seulement si plus aucune décision ne manque.
-3. `ticket-run` sélectionne, implémente chaque ticket dans un worktree dédié sous
-   `.worktrees/`, fait relire le diff poussé par un agent qui ne l'a pas écrit,
-   remédie aux constats bloquants confirmés, puis ferme la boucle d'apprentissage
-   sur une branche dédiée.
+   plus deux unités, écrit un fichier de fonctionnalité par proposition avec ses
+   jalons ordonnés, puis consolide l'index et rejoue les gates. Il ne commite pas.
+2. Andy répond au lot de décisions. Chaque réponse est reportée datée dans l'unité
+   concernée, qui passe `Ready` seulement si plus aucune décision ne manque.
+3. `ticket-run` sélectionne, implémente chaque unité dans un worktree dédié sous
+   `.worktrees/`, **commite et fait relire chaque jalon séparément** par un agent qui
+   ne l'a pas écrit, remédie aux constats bloquants confirmés, puis ferme la boucle
+   d'apprentissage sur une branche dédiée. Une fonctionnalité ne produit qu'une
+   Pull Request, quel que soit son nombre de jalons.
 
 **La boucle tourne aussi sans déclenchement humain.** Une tâche planifiée locale
 l'exécute une fois par jour ouvré, tôt le matin. Elle vit hors du dépôt, dans
@@ -284,8 +335,8 @@ ne force-push pas, n'utilise jamais `git add .` ni `git add -A`, ne touche pas a
 worktree principal et ne change pas sa branche. Elle ne tranche aucune ambiguïté
 produit, économique, de sécurité, de données, de support ou d'architecture, et ne
 modifie ni `AGENTS.md` ni une ADR acceptée : un apprentissage qui viserait
-`AGENTS.md` est proposé dans le corps de la Pull Request. Le plafond de trois
-tickets `In progress` reste appliqué par le sélecteur.
+`AGENTS.md` est proposé dans le corps de la Pull Request. Le plafond de deux unités
+`In progress` reste appliqué par le sélecteur.
 
 Toute Pull Request produite par la boucle reste **brouillon**. Une capacité n'est
 livrée que lorsque Andy l'a fusionnée dans `main`.
@@ -403,16 +454,27 @@ sur ce dépôt stocké sous `C:\Users\...`.
 
 ## Limites de taille
 
-Un bon ticket :
+Une bonne fonctionnalité :
 
-- vise un résultat ;
-- modifie idéalement une frontière principale ;
-- produit un diff révisable ;
+- vise une capacité utilisateur unique, énonçable sans « et » ;
+- porte 2 à 5 jalons ; au-delà, c'est deux fonctionnalités ;
+- peut être abandonnée sans invalider plus de quelques jours de travail.
+
+Un bon jalon :
+
+- vise un résultat observable ;
+- modifie une frontière principale, pas trois ;
+- produit un diff révisable en une passe ;
 - se vérifie manuellement en 5–10 minutes ;
-- peut être abandonné sans invalider plusieurs jours de travail.
+- est commitable seul, même si la capacité n'est pas encore complète.
 
-Si le ticket combine migration, nouveau protocole, gros écran et pipeline release,
-le diviser.
+C'est le jalon qui porte la limite de taille, pas la fonctionnalité. Si un jalon
+combine migration, nouveau protocole, gros écran et pipeline release, le diviser. Si
+la fonctionnalité a besoin de plus de cinq jalons ou de deux buts, la diviser.
+
+La contrepartie assumée par Andy le 5 août 2026 : une fonctionnalité abandonnée
+coûte plus qu'un ticket abandonné. La revue par jalon et la limite de cinq jalons
+sont là pour borner ce coût.
 
 ## Commande de démarrage recommandée
 
@@ -431,12 +493,12 @@ Completion Report avec preuves, risques et follow-ups.
 À la fin de chaque phase :
 
 - quelles règles ont évité une erreur ?
-- quels tickets étaient trop grands ou ambigus ?
+- quelles fonctionnalités ou quels jalons étaient trop grands ou ambigus ?
 - quels contrôles manquaient ?
 - quels documents ont dérivé ?
 - quelle automatisation répétée mérite un script ou une skill ?
 - quelles dettes `Open`, exceptions de sécurité et règles à revalider doivent
-  entrer dans les 3–8 prochains tickets ?
+  entrer dans les 1–3 prochaines fonctionnalités ?
 
 Enregistrer une première observation sans attendre sa répétition. Modifier le
 workflow uniquement après avoir satisfait les seuils de promotion de

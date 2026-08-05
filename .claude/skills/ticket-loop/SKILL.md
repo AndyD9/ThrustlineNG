@@ -8,13 +8,20 @@ description: Boucle automatique des tickets ThrustlineNG — écrit la prochaine
 Cette skill orchestre deux workflows et une porte humaine. Elle ne remplace pas
 `AGENTS.md` ni `docs/WORKFLOW.md` : elle les exécute.
 
+**L'unité de travail est la fonctionnalité** depuis T0068 et la décision d'Andy du
+5 août 2026 : une capacité utilisateur, un fichier dans `docs/features/`, une
+branche, une Pull Request, et des jalons internes ordonnés — un commit et une revue
+par jalon. `docs/tickets/` est l'archive gelée ; ses tickets encore ouverts vont
+jusqu'à leur terme et le sélecteur les traite avec les mêmes règles.
+
 ## Ce que la boucle ne fait jamais
 
 - fusionner une Pull Request : le merge appartient exclusivement à Andy ;
 - trancher une ambiguïté produit, économique, de sécurité, de données, de support
   ou d'architecture ;
 - modifier `AGENTS.md`, une ADR acceptée ou un budget ;
-- dépasser trois tickets `In progress` simultanés ;
+- dépasser **deux** unités de travail `In progress` simultanées ;
+- ouvrir plus d'une Pull Request pour une même fonctionnalité ;
 - présenter une branche non fusionnée comme livrée dans `main`.
 
 Si l'une de ces limites est atteinte, s'arrêter et le dire à Andy.
@@ -25,12 +32,12 @@ Si l'une de ces limites est atteinte, s'arrêter et le dire à Andy.
 
 | Argument | Effet |
 | --- | --- |
-| `plan` | écrit ou met à jour la vague de tickets, puis s'arrête |
-| `run` | exécute les tickets déjà `Ready`, sans planifier |
+| `plan` | écrit ou met à jour la vague de fonctionnalités, puis s'arrête |
+| `run` | exécute les unités déjà `Ready`, sans planifier |
 | `dry` | affiche seulement la sélection déterministe, sans rien modifier (défaut de `ticket-run`) |
-| `TXXXX [TYYYY]` | force la sélection sur ces tickets, s'ils sont réellement `Ready` |
-| `--max N` | change le plafond de flux (défaut 3, ne pas dépasser sans décision d'Andy) |
-| `unattended` | n'exécute que les tickets sans humain requis ; c'est le mode de la tâche planifiée |
+| `FXXXX [TYYYY]` | force la sélection sur ces unités, si elles sont réellement `Ready` |
+| `--max N` | change le plafond d'unités (défaut 2, ne pas dépasser sans décision d'Andy) |
+| `unattended` | n'exécute que les unités sans humain requis ; c'est le mode de la tâche planifiée |
 
 ## Run planifié
 
@@ -38,7 +45,7 @@ Une tâche planifiée locale exécute cette boucle une fois par jour ouvré à 0
 Elle vit dans `~/.claude/scheduled-tasks/thrustlineng-ticket-loop/SKILL.md`, hors
 du dépôt, et ne tourne que quand l'application est ouverte.
 
-Un run non surveillé n'exécute que des tickets **sans humain requis**, frontière
+Un run non surveillé n'exécute que des unités **sans humain requis**, frontière
 calculée par le sélecteur :
 
 ```bash
@@ -47,7 +54,13 @@ pwsh -NoProfile -File ./scripts/select-ticket-batch.ps1 -AutonomousOnly
 
 Sont reportés avec leur raison : `Autonomous: No`, `Security-sensitive: Yes`,
 `Risk: High`, et toute dépendance nommant une décision d'Andy, MSFS, du matériel
-ou une vérification humaine. Ne jamais retirer `autonomousOnly` d'un run non
+ou une vérification humaine.
+
+Pour une fonctionnalité, ces trois champs sont lus sur le **premier jalon qui n'est
+pas `Done`**, pas sur l'en-tête : l'en-tête ne fournit que des valeurs par défaut.
+C'est ce qui permet à un jalon de lecture seule d'avancer sans surveillance dans une
+fonctionnalité dont un autre jalon touche à l'argent. Un `Autonomous: No` en en-tête
+reste un veto global. Ne jamais retirer `autonomousOnly` d'un run non
 surveillé, et ne jamais élargir la frontière pour « débloquer » la boucle : c'est
 une décision d'Andy.
 
@@ -96,12 +109,12 @@ tourne en arrière-plan et ne peut pas poser de question.
 
 Après ses réponses :
 
-1. reporter chaque décision datée dans la section `Context` du ticket concerné ;
-2. passer en `Ready` uniquement les tickets dont plus aucune décision ne manque,
-   dans le fichier **et** dans `docs/tickets/README.md` ;
+1. reporter chaque décision datée dans la section `Context` de l'unité concernée ;
+2. passer en `Ready` uniquement les unités dont plus aucune décision ne manque, dans
+   le fichier **et** dans son index — `docs/features/README.md` pour une
+   fonctionnalité, `docs/tickets/README.md` pour un ticket d'archive ;
 3. rejouer `pnpm maintenance:check` et `pnpm ticket-automation:check` ;
-4. committer la vague de cadrage sur une branche `docs/TXXXX-*` dédiée et ouvrir
-   sa PR brouillon.
+4. committer la vague de cadrage sur une branche dédiée et ouvrir sa PR brouillon.
 
 Un ticket dont une décision manque reste `Draft`. Ne jamais inventer la réponse.
 
@@ -144,8 +157,9 @@ Ne jamais conclure qu'une capacité est livrée : elle l'est quand elle est dans
 
 ## Pièges déjà payés dans ce dépôt
 
-- **Dérive d'index.** Presque tous les tickets touchent
-  `docs/tickets/README.md`. Une fusion qui résout ce conflit en écartant un côté
+- **Dérive d'index.** Presque toutes les unités touchent leur index —
+  `docs/features/README.md`, ou `docs/tickets/README.md` pour l'archive. Une fusion
+  qui résout ce conflit en écartant un côté
   fait repasser des lignes en `Review` alors que les fichiers disent `Done`, et
   laisse `pnpm maintenance:check` rouge sur `main`. Le sélecteur signale cette
   contention et impose un ordre d'intégration : le respecter, et après chaque

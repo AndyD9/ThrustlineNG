@@ -1,8 +1,8 @@
 # T0068 — Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration
 
-Status: Draft
-Owner: Unassigned
-Branch: `chore/T0068-unite-fonctionnalite`
+Status: Review
+Owner: Codex
+Branch: `chore/T0068-format-fonctionnalite`
 Phase: Gouvernance
 Risk: Medium
 Security-sensitive: No
@@ -139,35 +139,35 @@ Contraintes techniques :
 
 ## Acceptance criteria
 
-- [ ] `docs/templates/FEATURE.md` existe et impose un `Goal` unique, l'union des
+- [x] `docs/templates/FEATURE.md` existe et impose un `Goal` unique, l'union des
       `Allowed areas`, et des jalons ordonnés portant chacun résultat, frontière,
       validations, `Autonomous`, `Security-sensitive`, `Risk` et Completion Report.
-- [ ] `docs/features/README.md` existe avec un index vide et sa convention de
+- [x] `docs/features/README.md` existe avec un index vide et sa convention de
       nommage `F0001-slug.md`.
-- [ ] `docs/tickets/README.md` déclare l'archive en tête, sans qu'aucune ligne ni
+- [x] `docs/tickets/README.md` déclare l'archive en tête, sans qu'aucune ligne ni
       aucun statut existant ne change.
-- [ ] `docs/WORKFLOW.md` remplace les §1, §2 et « Limites de taille » par l'unité
+- [x] `docs/WORKFLOW.md` remplace les §1, §2 et « Limites de taille » par l'unité
       fonctionnalité, la revue par jalon et le plafond de deux.
-- [ ] `AGENTS.md` remplace le plafond de trois flux par le plafond de deux
+- [x] `AGENTS.md` remplace le plafond de trois flux par le plafond de deux
       fonctionnalités, sans modifier la liste de lecture obligatoire.
-- [ ] `pnpm ticket-batch:select` sélectionne une fonctionnalité, rend ses jalons
+- [x] `pnpm ticket-batch:select` sélectionne une fonctionnalité, rend ses jalons
       ordonnés, et rend le prochain jalon exécutable.
-- [ ] Le sélecteur applique la frontière d'autonomie au jalon : un jalon
+- [x] Le sélecteur applique la frontière d'autonomie au jalon : un jalon
       `Security-sensitive: Yes`, `Risk: High`, `Autonomous: No`, ou dont une
       dépendance nomme une décision d'Andy, MSFS, du matériel ou une vérification
       humaine est reporté avec sa raison, sans reporter la fonctionnalité entière.
-- [ ] Le sélecteur sort en échec fermé sur une incohérence de suivi au niveau
+- [x] Le sélecteur sort en échec fermé sur une incohérence de suivi au niveau
       fonctionnalité, et continue de traiter les tickets `TXXXX` en transition.
-- [ ] Le sélecteur applique un plafond de deux fonctionnalités `In progress`.
-- [ ] `pnpm ticket-automation:check` passe sous Windows PowerShell 5.1 et sous
+- [x] Le sélecteur applique un plafond de deux fonctionnalités `In progress`.
+- [x] `pnpm ticket-automation:check` passe sous Windows PowerShell 5.1 et sous
       PowerShell 7, avec au moins une mutation négative par règle nouvelle.
-- [ ] Une mutation qui ne change rien échoue bruyamment comme défaut de test.
-- [ ] `ticket-plan` écrit une fonctionnalité et non plusieurs tickets ;
+- [x] Une mutation qui ne change rien échoue bruyamment comme défaut de test.
+- [x] `ticket-plan` écrit une fonctionnalité et non plusieurs tickets ;
       `ticket-run` produit une branche, une Pull Request brouillon et un commit par
       jalon.
-- [ ] `pnpm ci:check`, `pnpm maintenance:check` et `pnpm product-version:check`
+- [x] `pnpm ci:check`, `pnpm maintenance:check` et `pnpm product-version:check`
       passent.
-- [ ] Aucun fichier applicatif n'est modifié ; `git diff --check` est propre.
+- [x] Aucun fichier applicatif n'est modifié ; `git diff --check` est propre.
 
 ## Security review
 
@@ -237,18 +237,117 @@ données.
 
 ## Completion Report
 
-À remplir après implémentation.
-
 ### Summary
+
+L'unité de suivi, de branche et d'intégration est désormais la fonctionnalité.
+`docs/templates/FEATURE.md` impose un `Goal` unique, l'union des `Allowed areas` et
+des jalons ordonnés `### J<n>` portant chacun `Status`, `Risk`, `Security-sensitive`,
+`Autonomous` et son bloc de Completion Report. `docs/features/README.md` ouvre
+l'index de la nouvelle numérotation ; `docs/tickets/README.md` déclare l'archive en
+tête sans qu'aucune ligne ni aucun statut existant ne change.
+
+Le sélecteur lit les deux répertoires avec les mêmes règles de cohérence, via une
+table de deux « kinds » plutôt que deux chemins de code dupliqués. Les messages
+existants sur les tickets sont conservés mot pour mot, ce qui a permis de prouver que
+le refactor était neutre : après réécriture, les quinze mutations d'origine
+n'échouaient plus que sur les attentes de capacité, aucune sur un message.
+
+La frontière d'autonomie est le cœur du ticket. Elle est évaluée sur le **premier
+jalon qui n'est pas `Done`** : ses trois champs l'emportent sur ceux de l'en-tête,
+qui ne servent que de valeurs par défaut. Un `Autonomous: No` en en-tête reste un
+veto global. C'est ce qui permet à un jalon de lecture seule d'avancer sans
+surveillance dans une fonctionnalité dont un autre jalon touche à l'argent — sans
+défaire la frontière que T0063 avait livrée.
+
+Le plafond passe de trois flux à deux unités, appliqué par le sélecteur sur les
+fonctionnalités comme sur les tickets d'archive. `-MaxConcurrent` remplace
+`-MaxFlows`, conservé comme alias pour ne casser aucun appelant.
 
 ### Files changed
 
+- `docs/templates/FEATURE.md` : nouveau format, jalons et Completion Report par jalon.
+- `docs/features/README.md` : nouvel index, convention `F0001-slug.md`, transition.
+- `docs/tickets/README.md` : en-tête d'archive et convention mise à jour.
+- `docs/WORKFLOW.md` : nouvelle §0, §1, §1.1, §2, revue par jalon en §4, section du
+  sélecteur, boucle automatisée, « Limites de taille » et rétrospective.
+- `AGENTS.md` : unité de travail, plafond de deux, branche de fonctionnalité, suivi
+  des jalons. La liste de lecture obligatoire est étendue à `docs/features/`, jamais
+  réduite.
+- `scripts/select-ticket-batch.ps1` : lecture des deux répertoires, `Get-Milestones`,
+  `Get-HeaderValues` bornée au préambule, autonomie au jalon, `-MaxConcurrent`.
+- `tests/ticket-automation/run.ps1` : fixture de fonctionnalités, `New-FeatureFile`,
+  `Set-FeatureField`, `Set-IndexStatus -Directory`, douze mutations nouvelles.
+- `.claude/workflows/ticket-plan.js` : propose des fonctionnalités avec leurs jalons,
+  plafond de deux, écrit dans `docs/features/`.
+- `.claude/workflows/ticket-run.js` : un commit et une revue par jalon, une seule
+  Pull Request par fonctionnalité, `kind` et `nextMilestone` dans la sélection.
+- `.claude/skills/ticket-loop/SKILL.md` : arguments, limites et frontière au jalon.
+- `docs/tickets/T0068-unite-fonctionnalite.md` : ce rapport.
+
 ### Commands and results
+
+Toutes réussies :
+
+- `tests/ticket-automation/run.ps1` : **89 assertions, 27 mutations négatives**, sous
+  PowerShell 7 et sous Windows PowerShell 5.1 — contre 50 et 15 avant le ticket.
+- `scripts/select-ticket-batch.ps1` : sortie `0` sur le dépôt réel, 0 fonctionnalité,
+  68 tickets, capacité 2 de 2.
+- `pnpm maintenance:check`, `pnpm ci:check`, `pnpm product-version:check`,
+  `pnpm authority:check`, `pnpm data-policy:check` : passent.
+- `node --check` sur `ticket-plan.js` et `ticket-run.js`.
+- `git diff --check` : propre.
+
+Un défaut réel a été trouvé en cours de route par l'exécution sous les deux hôtes :
+`Get-Milestones` rend une `List`, que PowerShell déroule à la sortie d'une fonction.
+Une fonctionnalité à un seul jalon arrivait donc comme scalaire, et `.Count` n'existe
+pas sur un scalaire sous Windows PowerShell 5.1 avec `StrictMode`. Le gate passait
+sous PowerShell 7 et échouait sous 5.1. Corrigé par un `@()` explicite et commenté.
 
 ### Manual verification result
 
+Les cinq étapes sont exécutées sur un dépôt jetable, sous les deux hôtes, puis le
+dépôt est détruit :
+
+1. `-Only F0001 -AutonomousOnly` rend `Selected: none` et
+   `F0001: human required: milestone J2 declares Autonomous: No`, alors que l'en-tête
+   de `F0001` déclare `Autonomous: Yes`. C'est la précision apportée par le ticket.
+2. Le même jalon est sélectionné en run surveillé, avec `next J2`.
+3. Trois fonctionnalités `Ready` : deux sélectionnées, les autres différées avec
+   `work capacity reached (2 max, 0 occupied)`.
+4. Le ticket d'archive `T0060` reste sélectionnable au format précédent, aux côtés
+   d'une fonctionnalité.
+5. Une divergence de statut entre `F0002` et l'index rend
+   `Feature F0002 status differs: index 'Done', file 'Ready'.` et une sortie `1` ;
+   le rétablissement repasse à `0`.
+
 ### Risks and limitations
+
+- Aucune fonctionnalité `F0001` n'est écrite : le ticket livre le format, pas une
+  capacité. La première fonctionnalité réelle validera le format en usage.
+- Les deux workflows d'orchestration ne sont couverts par aucun test automatisé
+  au-delà de `node --check`. C'est un follow-up déjà consigné dans T0062, et il pèse
+  plus lourd maintenant que leurs invites portent la boucle par jalon.
+- Deux formats de suivi coexistent pendant la transition. La dette est bornée par
+  l'épuisement des tickets `TXXXX` encore ouverts : T0007, T0008, T0011, T0032,
+  T0055, T0056, T0059 à T0068.
+- La revue par jalon est une consigne dans les invites, pas un contrôle
+  déterministe : rien n'empêche techniquement une revue unique en fin de
+  fonctionnalité.
+- Une fonctionnalité abandonnée coûte plus qu'un ticket abandonné. Andy a accepté ce
+  coût le 5 août 2026 contre la suppression de l'empilement de branches.
 
 ### Follow-ups
 
+- Ajouter un contrôle déterministe qui refuse une Pull Request dont la base n'est pas
+  `main`. Cinq occurrences : #68, #70, #72, #74 et #110. Ce ticket ne le livre pas.
+- Couvrir `.claude/workflows/*.js` par un test de chargement et de contrat
+  d'arguments, y compris la boucle par jalon.
+- Nettoyer les 26 worktrees résiduels de `.worktrees/` et `.claude/worktrees/` dont
+  la branche est fusionnée.
+- Écrire la première fonctionnalité `F0001` et corriger le format sur ce qu'elle
+  révèle.
+
 ### Documentation updated
+
+`AGENTS.md`, `docs/WORKFLOW.md`, `docs/templates/FEATURE.md`,
+`docs/features/README.md`, `docs/tickets/README.md`.

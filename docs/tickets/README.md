@@ -1,14 +1,24 @@
-# Tickets de refonte
+# Tickets de refonte — archive
 
-Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
+> **Cet index est gelé.** Depuis T0068 et la décision d'Andy du 5 août 2026, l'unité
+> de suivi, de branche et d'intégration est la fonctionnalité : voir
+> `docs/features/README.md`. Aucun nouveau ticket produit n'est ouvert ici, et les
+> 63 tickets existants ne sont pas regroupés rétroactivement. Leurs statuts et
+> Completion Reports restent la trace de ce qui a été réellement prouvé.
+>
+> Deux usages subsistent : les tickets `TXXXX` encore ouverts, qui vont jusqu'à leur
+> terme au format précédent, et un résultat unique qui n'est pas une capacité
+> utilisateur — gouvernance, correctif, outillage, réconciliation — pour lequel
+> `docs/templates/TICKET.md` reste le bon format.
 
 ## Convention
 
 - Nom : `T0001-baseline-reproductible.md`
 - Un ticket = un résultat et une branche.
-- Les tickets détaillés ne sont créés que quelques étapes à l'avance.
 - Le statut et le Completion Report restent dans le fichier du ticket.
 - Un ticket terminé est conservé pour la traçabilité.
+- Le sélecteur applique à ces tickets les mêmes contrôles de cohérence qu'aux
+  fonctionnalités, et le même plafond de deux unités simultanées.
 
 ## Backlog initial
 
@@ -81,7 +91,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060 fusionnée, décision Andy du 5 août 2026 | Ready |
 | T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
 | T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
-| T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 fusionné, T0064 livré par #118, décisions Andy | Draft |
+| T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 fusionné, T0064 fusionné, décisions Andy | Review |
 
 Aucun identifiant n'est plus réservé hors de cette table : la Pull Request de
 consolidation du 5 août 2026 y inscrit T0063, T0064 et T0068, qui manquaient
