@@ -96,7 +96,13 @@ Tauri/WebView2, le bridge ASP.NET Core .NET 10 est publié self-contained
   performance, packaging Windows, CI et supply chain.
 - Workflows dans `main` :
   `.github/workflows/ci.yml` et `.github/workflows/security.yml`.
-- Migrations Supabase append-only constatées : 7 dans `main`.
+- Migrations Supabase append-only constatées : 11 dans `main` au commit `c0f16dc`,
+  de `20260728000100_create_companies.sql` à
+  `20260804000200_authoritative_aircraft_lease.sql`, et 22 fichiers pgTAP dans
+  `supabase/tests/database/`. Relevé le 5 août 2026 par
+  `git ls-tree -r --name-only origin/main supabase/migrations/`. Cet inventaire
+  annonçait encore 7 migrations, écart antérieur à ce relevé et non couvert par un
+  gate.
 - Variables/configurations relevées par nom seulement : `SUPABASE_URL`,
   `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`.
 - Politique économique T0028 présente dans `main` : source v1
@@ -231,8 +237,11 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
 ## Dette et risques structurants
 
 - Le runtime Supabase local repose sur un daemon DinD privilégié et conserve un
-  volume de cache d'images ; il ne monte ni socket Docker hôte, ni dépôt complet,
-  ni donnée réelle.
+  volume monté sur `/var/lib/docker`, qui contient donc les images **et** les
+  conteneurs de la pile interne, et non un simple cache d'images ; il ne monte ni
+  socket Docker hôte, ni dépôt complet, ni donnée réelle. `KI-026` suit la
+  conséquence : un arrêt brutal du moteur bloque `pnpm backend:start` jusqu'au
+  retrait complet de ce volume.
 - Le build Tauri complet dépend de la publication préalable du sidecar dans le
   layout `externalBin` ; les gates de packaging contrôlent ce couplage.
 - Les futures pages fonctionnelles doivent éviter le mélange historique
@@ -1039,6 +1048,32 @@ exécutée : T0055 est `Verify` jusqu'à sa confirmation par Andy. Aucun tag Git
 aucune signature, aucun canal de release, aucun updater et aucun rollback N-1 ne
 sont produits ; ces capacités relèvent de la phase 6. Aucune donnée réelle n'est
 admise.
+
+## Garde d'usage d'un avion : en Pull Request brouillon, pas dans `main`
+
+Au 5 août 2026, `origin/main` au commit `c0f16dc` ne porte aucun consommateur de
+`public.company_aircraft.is_usable` : la colonne n'apparaît que dans la migration
+de location `20260804000200_authoritative_aircraft_lease.sql` et dans son fichier
+pgTAP. La garantie « pas d'usage hors contrat » reste donc autoritaire dans les
+données et **non opposable** à la création d'un brouillon de dispatch comme au
+départ d'un vol.
+
+T0060 ferme cet écart sur la branche `feature/T0060-aircraft-usability-guard`, pas
+dans `main`. Sa Pull Request #112 est **brouillon** : base `main`, head
+`feature/T0060-aircraft-usability-guard`, état `MERGEABLE`, cinq commits. Ses trois
+checks sont verts sur son commit de tête `03db4b8` — `Supabase PostgreSQL 17` en
+3 min 24 s, `Audits, licences and SBOM` en 3 min 58 s et `Windows multi-stack` en
+16 min 23 s — et l'étaient déjà sur le commit de code `2cefbf6`. Ses preuves
+locales du 5 août 2026, deux resets consécutifs puis 23 fichiers et 539 assertions
+pgTAP, `backend:check` à 50 mutations négatives et types inchangés, portent sur
+cette branche et sur rien d'autre. Des checks verts ne livrent aucune capacité :
+le merge appartient exclusivement à Andy, et cette section ne décrira une capacité
+de `main` qu'après sa fusion.
+
+Deux découvertes de cette vague concernent en revanche `main` lui-même et sont
+suivies comme dettes : le rejeu d'un départ de vol ne rend pas une réponse stockée
+(`KI-024`) et les courses concurrentes du harnais backend concluent sur un code de
+sortie sans vérifier le motif du refus (`KI-025`).
 
 ## Prochain ticket recommandé
 

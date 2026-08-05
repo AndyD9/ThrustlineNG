@@ -76,6 +76,13 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Ready |
 | T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Done |
 | T0062 | Réparer le gate d'automatisation des tickets et l'exécuter en CI | Gouvernance | T0055, T0061 | Verify |
+| T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060, décision Andy | Draft |
+| T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
+| T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
+
+Les identifiants T0063 et T0064 sont réservés par des branches non fusionnées au
+5 août 2026, dont la Pull Request brouillon #113 pour T0064 : ils ne sont pas
+réutilisés ici et le trou dans la suite est volontaire.
 
 ## Vague de tickets vers l'alpha interne
 
@@ -420,10 +427,14 @@ collisions de `Allowed areas` en traitant l'index et l'état courant comme des
 fichiers de suivi partagés qui imposent un ordre d'intégration. Le gate
 `pnpm ticket-automation:check` couvre ce comportement sur un dépôt synthétique
 avec dix mutations négatives, sous Windows PowerShell 5.1 comme sous
-PowerShell 7. T0061 est `Done` : la PR #108 est fusionnée dans `main` au merge
-`c51f3fe` le 5 août 2026. Il ne livre aucune capacité produit et n'a pas encore
-tourné de bout en bout sur un ticket réel.
+PowerShell 7. T0061 est `Review` : il ne livre aucune capacité produit et n'a pas
+encore tourné de bout en bout sur un ticket réel.
 
-Ces dix mutations ne mutaient toutefois rien tant que le fixture était écrit en
-CRLF, et aucun workflow n'exécutait le gate : T0062 corrige le harnais et branche
-`ticket-automation:check` ainsi que `product-version:check` sur la CI.
+T0065, T0066 et T0067 sortent de la clôture d'apprentissage de la vague T0060, le
+5 août 2026. Ils sont `Draft` et ne corrigent rien au passage : T0065 et T0067
+attendent chacun une décision nommée d'Andy, consignée dans leur propre fichier
+avec sa condition de sortie, et T0066 peut devenir `Ready` sans décision. Les trois
+portent sur des défauts réellement présents dans `main` au commit `c0f16dc`,
+enregistrés en `KI-024`, `KI-025` et `KI-026`; aucun ne dépend de la fusion de la
+Pull Request brouillon #112, sauf T0065 qui doit la suivre pour ne pas rouvrir un
+quatrième conflit sur la même définition de fonction.
