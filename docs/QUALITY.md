@@ -26,7 +26,7 @@ pnpm ticket-automation:check
 pnpm ticket-batch:select
 ```
 
-Le gate T0060 valide `scripts/select-ticket-batch.ps1` sur un dépôt synthétique,
+Le gate T0061 valide `scripts/select-ticket-batch.ps1` sur un dépôt synthétique,
 indépendant des tickets réels, avec 34 assertions et dix mutations négatives :
 statut divergent entre fichier et index, statut invalide, champ `Status` absent,
 ticket absent de l'index, identifiant d'index dupliqué, dépendance revenue en
@@ -51,7 +51,7 @@ corriger d'abord. Il reste en lecture seule et ne modifie aucun fichier.
 
 Ce gate prouve le sélecteur, pas la qualité du travail des agents. Il ne
 transforme pas une invite de workflow en garantie de comportement, et n'est pas
-exécuté par la CI : `.github/workflows/` est hors des zones autorisées de T0060.
+exécuté par la CI : `.github/workflows/` est hors des zones autorisées de T0061.
 
 ## Politique de données
 

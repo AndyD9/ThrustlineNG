@@ -252,7 +252,7 @@ un commit ou une Pull Request que si son argument `mode` vaut exactement
 `execute`. Sans cet argument, ou si ses arguments sont illisibles, il rend
 seulement la sélection : il échoue fermé. Cette porte existe parce qu'une
 transmission d'arguments défaillante a fait démarrer une implémentation réelle
-pendant la mise au point de T0060.
+pendant la mise au point de T0061.
 
 **Limites que la boucle ne franchit pas.** Elle ne fusionne aucune Pull Request,
 ne force-push pas, n'utilise jamais `git add .` ni `git add -A`, ne touche pas au

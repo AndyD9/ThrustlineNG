@@ -1,8 +1,8 @@
-# T0060 — Automatiser le cycle des tickets sans déplacer l'autorité d'Andy
+# T0061 — Automatiser le cycle des tickets sans déplacer l'autorité d'Andy
 
 Status: Review
 Owner: Codex
-Branch: `chore/T0060-automatiser-cycle-tickets`
+Branch: `chore/T0061-automatiser-cycle-tickets`
 Phase: Gouvernance
 Risk: Medium
 Security-sensitive: No
@@ -64,7 +64,7 @@ appliqué — une occurrence unique reste `Observed`, et une modification de
 - `package.json` pour les seuls scripts `ticket-automation:check` et `ticket-batch:select`
 - `docs/WORKFLOW.md`
 - `docs/QUALITY.md`
-- `docs/tickets/T0060-automatiser-cycle-tickets.md`
+- `docs/tickets/T0061-automatiser-cycle-tickets.md`
 - `docs/tickets/README.md`
 
 ## Do not touch
@@ -246,8 +246,8 @@ est arrivé sous forme de chaîne JSON.
 - `package.json` — `ticket-automation:check` et `ticket-batch:select`.
 - `docs/WORKFLOW.md` — section « Boucle automatisée des tickets ».
 - `docs/QUALITY.md` — section « Automatisation du cycle des tickets ».
-- `docs/tickets/T0060-automatiser-cycle-tickets.md` — ce ticket.
-- `docs/tickets/README.md` — ligne d'index T0060.
+- `docs/tickets/T0061-automatiser-cycle-tickets.md` — ce ticket.
+- `docs/tickets/README.md` — ligne d'index T0061.
 
 ### Commands and results
 
@@ -271,7 +271,7 @@ hors des `Allowed areas` de ce ticket :
 ### Learning candidate LC-2026-002
 
 - Date : 5 août 2026
-- Contexte : T0060, `chore/T0060-automatiser-cycle-tickets`
+- Contexte : T0061, `chore/T0061-automatiser-cycle-tickets`
 - État : Reproduced
 - Symptôme observé : `scripts/select-ticket-batch.ps1` échouait sous Windows
   PowerShell 5.1 avec une erreur d'analyse, alors qu'il s'exécutait sous
@@ -292,7 +292,7 @@ hors des `Allowed areas` de ce ticket :
 ### Learning candidate LC-2026-003
 
 - Date : 5 août 2026
-- Contexte : T0060, même branche
+- Contexte : T0061, même branche
 - État : Reproduced
 - Symptôme observé : `-Only "T0003,T0004"` sélectionnait zéro ticket sous
   PowerShell 7 et deux tickets sous 5.1, pour le même script et les mêmes
@@ -313,7 +313,7 @@ hors des `Allowed areas` de ce ticket :
 ### Learning candidate LC-2026-004
 
 - Date : 5 août 2026
-- Contexte : T0060, mise au point de `ticket-run`
+- Contexte : T0061, mise au point de `ticket-run`
 - État : Reproduced
 - Symptôme observé : `ticket-run` lancé avec `args: { dryRun: true }` a franchi sa
   garde et démarré un agent d'implémentation réel sur T0056. Le run a été arrêté

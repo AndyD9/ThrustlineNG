@@ -73,7 +73,8 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Done |
 | T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Done |
 | T0059 | Prouver le premier slice SimConnect réel et capturer son corpus | 3 | T0011, T0014–T0015, T0054, ADR-0003, MSFS 2024 installé, décision Andy | Draft |
-| T0060 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
+| T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Ready |
+| T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
 
 ## Vague de tickets vers l'alpha interne
 
@@ -408,7 +409,7 @@ cycles manuels et ses preuves CI sont validés ; T0014 est `Done` depuis le
 30 juillet 2026. Les vérifications encore ouvertes de T0007–T0008 et les essais
 MSFS de T0011 restent suivis séparément.
 
-T0060 automatise le cycle des tickets lui-même, sur décision d'Andy du 5 août
+T0061 automatise le cycle des tickets lui-même, sur décision d'Andy du 5 août
 2026 : la boucle écrit la vague suivante, l'exécute jusqu'à la Pull Request
 brouillon et met à jour le registre d'apprentissage, mais elle ne fusionne jamais
 et ne tranche aucune décision réservée à Andy. Sa sélection est déterministe et
@@ -418,5 +419,5 @@ collisions de `Allowed areas` en traitant l'index et l'état courant comme des
 fichiers de suivi partagés qui imposent un ordre d'intégration. Le gate
 `pnpm ticket-automation:check` prouve ce comportement sur un dépôt synthétique
 avec dix mutations négatives, sous Windows PowerShell 5.1 comme sous
-PowerShell 7. T0060 est `Review` : il ne livre aucune capacité produit et n'a pas
+PowerShell 7. T0061 est `Review` : il ne livre aucune capacité produit et n'a pas
 encore tourné de bout en bout sur un ticket réel.

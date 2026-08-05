@@ -214,8 +214,10 @@ try {
         $testText -notmatch "airport_reference\.test\.sql" -or
         $testText -notmatch "flight_settlement_structure\.test\.sql" -or
         $testText -notmatch "flight_settlement\.test\.sql" -or
+        $testText -notmatch "aircraft_lease_structure\.test\.sql" -or
+        $testText -notmatch "aircraft_lease\.test\.sql" -or
         $testText -notmatch "Result:\s+PASS") {
-        throw "Supabase pgTAP did not prove all twenty files with Result: PASS."
+        throw "Supabase pgTAP did not prove all twenty-two files with Result: PASS."
     }
 
     $concurrencyUserId = "44000000-0000-4000-8000-000000000004"
@@ -1760,7 +1762,7 @@ select
         throw "Generated database types are stale."
     }
 
-    Write-Output "Backend CI passed: 2 resets, 20 pgTAP files, airport reference matching its canonical source, concurrent idempotence, purchase, dispatch, flight start and flight settlement, isolated restore replay, authoritative onboarding, stable types, loopback ports."
+    Write-Output "Backend CI passed: 2 resets, 22 pgTAP files, airport reference matching its canonical source, concurrent idempotence, purchase, dispatch, flight start, flight settlement and aircraft lease, isolated restore replay, authoritative onboarding, stable types, loopback ports."
 }
 finally {
     if ($null -ne $databaseContainer -and $null -ne $dockerPath) {
