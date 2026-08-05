@@ -1,6 +1,6 @@
 # T0068 — Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration
 
-Status: Review
+Status: Done
 Owner: Codex
 Branch: `chore/T0068-format-fonctionnalite`
 Phase: Gouvernance
@@ -302,6 +302,25 @@ Un défaut réel a été trouvé en cours de route par l'exécution sous les deu
 Une fonctionnalité à un seul jalon arrivait donc comme scalaire, et `.Count` n'existe
 pas sur un scalaire sous Windows PowerShell 5.1 avec `StrictMode`. Le gate passait
 sous PowerShell 7 et échouait sous 5.1. Corrigé par un `@()` explicite et commenté.
+
+### Pull request et fusion
+
+La **PR #119 est fusionnée par Andy dans `main` le 5 août 2026 à 18 h 05 UTC au merge
+`17ad8a8`**, base `main`, head `chore/T0068-format-fonctionnalite`. Ses trois checks
+sont verts : `Windows multi-stack` en 18 min 05, `Supabase PostgreSQL 17` en 3 min 37
+et `Audits, licences and SBOM` en 3 min 12.
+
+La couleur des checks ne suffit pas : le journal du job `Windows multi-stack`, étape
+« Validate ticket automation governance », montre `pnpm ticket-automation:check` puis
+son harnais. Le même gate rejoué le 5 août 2026 sur `origin/main` au merge `17ad8a8`
+rend `Ticket batch selector invariants passed: 89 assertions, 27 negative mutations`,
+et `scripts/select-ticket-batch.ps1` rend `Features: 0; tickets: 68; work capacity:
+2 of 2` avec une sortie `0` : le nouveau format est donc exercé sur le dépôt réel avec
+un index de fonctionnalités vide, ce qui était son premier risque d'échec.
+
+Le ticket passe à `Done` par la maintenance documentaire du 5 août 2026 : critères
+satisfaits, vérification manuelle terminée, gate prouvé en CI et sur `main`. Ses
+quatre follow-ups restent ouverts et ne conditionnent pas ce statut.
 
 ### Manual verification result
 
