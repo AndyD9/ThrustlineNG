@@ -585,12 +585,62 @@ uniquement si la commande temporelle solde les arriérés, et le retire
 transactionnellement au défaut, à l'expiration ou à la prise d'effet du préavis
 de résiliation. Une résiliation ne peut ni raccourcir une échéance déjà exigible
 ni s'écrire partiellement : sans le solde de la pénalité, la commande est
-refusée. Réserve connue : cet état d'usage est autoritaire dans les données mais
-n'est encore lu par aucune commande de dispatch, donc il ne bloque pas encore un
-vol sur un avion hors contrat. Les rôles
+refusée. Cet état d'usage est désormais opposable : T0060 le fait lire par les
+deux commandes de mise en service, donc la réserve « autoritaire dans les données
+mais non opposable » de T0032 est levée. Les rôles
 client ne reçoivent que `SELECT` sous RLS sur leurs contrats et échéances ;
 `anon` ne lit rien et aucune mutation directe n'est accordée. La commande
 temporelle accepte une heure uniquement parce que son appelant `service_role`
 constitue l'autorité serveur ; toute future frontière doit refuser de reprendre
 une heure client. Sans ordonnanceur, l'exécution ponctuelle en production n'est
 pas garantie et aucune donnée réelle n'est admise.
+
+## Opposabilité de la fin d'usage T0060
+
+Règle de sécurité ajoutée : **la mise en service d'un avion dépend de son état
+d'usage serveur, jamais d'une donnée d'appelant, et l'écriture de cet état reste
+réservée aux commandes de location.**
+
+`public.create_dispatch_draft` et `public.start_flight_from_dispatch` sont
+redéfinies en bloc par une migration append-only et lisent
+`public.company_aircraft.is_usable` sur la ligne dérivée du serveur, verrouillée
+`for update`. Aucun paramètre, aucune colonne et aucune valeur d'usage ne franchit
+la frontière : les deux signatures sont inchangées, les fonctions restent
+`security definer` avec `search_path` vide, et le seul `execute` accordé reste
+celui de `service_role`. `anon` et `authenticated` n'obtiennent ni exécution, ni
+`update` sur `public.company_aircraft`, et aucun privilège de lecture nouveau
+n'est accordé sur les tables de location.
+
+Les deux refus réutilisent **verbatim** les messages déjà livrés,
+`Aircraft is unavailable for dispatch.` et
+`Dispatch is unavailable for flight start.`, avec le SQLSTATE
+`object_not_in_prerequisite_state`. Un avion inutilisable est donc indistinguable
+d'un avion inconnu ou appartenant à une autre compagnie ; aucun message, aucun
+`detail` et aucun `hint` ne révèle l'existence d'une location, son état, une
+échéance ou une grâce. À la création d'un brouillon, la garde précède même le
+contrôle d'exclusivité, si bien que le refus ne dit pas non plus si l'avion porte
+déjà un dispatch, et les deux refus partent de la même ligne de la fonction. Le
+gate backend interdit qu'un message de refus de cette migration nomme une
+location, un état ou une échéance.
+
+La garde est évaluée dans la transaction de la commande, sur une ligne verrouillée,
+dans un ordre documenté — compagnie, dispatch, avion — compatible avec les
+commandes de location, où `public.company_aircraft` est aussi verrouillé en
+dernier. Le rejeu d'une commande de départ déjà acquise reste inchangé : la garde
+ne le refuse jamais et il ne crée pas de second départ, même si l'avion est devenu
+inutilisable entre-temps. Sa réponse n'est en revanche pas stockée verbatim, parce
+que le chemin de rejeu de T0050 la reconstruit depuis la ligne de dispatch
+vivante : si le vol a été clôturé depuis l'acquisition, son champ `state` vaut
+`completed` ou `interrupted` et son `startedAt` est `null`, le trigger
+`private.set_flight_dispatch_started_at` effaçant cet instant dès que l'état quitte
+`active`. La propriété de sécurité visée par ce ticket —
+aucune mise en service d'un avion hors contrat — est intacte ; l'exactitude du
+rejeu est portée par T0065.
+
+`public.close_flight` n'est pas gardé, sur décision d'Andy du 4 août 2026 : un vol
+déjà parti reste clôturable et réglé, et c'est seulement le brouillon suivant qui
+est refusé. Réserve résiduelle : sans ordonnanceur d'échéances, la garde est exacte
+par rapport à l'état enregistré et non par rapport à l'heure murale, donc un avion
+peut rester utilisable après sa date réelle d'expiration jusqu'au prochain appel de
+la commande temporelle. Aucune frontière Auth, aucun endpoint, aucun appelant
+desktop, aucune cible distante et aucune donnée réelle ne sont couverts.
