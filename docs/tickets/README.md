@@ -80,7 +80,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060 fusionnée, décision Andy du 5 août 2026 | Ready |
 | T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
 | T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
-| T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 propagé, T0064 fusionné, décisions Andy | Draft |
+| T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 fusionné, T0064 non fusionné, décisions Andy | Draft |
 
 L'identifiant T0064 est réservé par la Pull Request brouillon #113, non fusionnée
 au 5 août 2026 : il n'est pas réutilisé ici et le trou dans la suite est
@@ -480,6 +480,6 @@ un index de 439 lignes, 113 merges, 24 worktrees résiduels, 4 tickets de
 réconciliation d'index sans capacité produit, et 4 à 6 tickets par capacité
 utilisateur — donc autant de bases de branche à choisir, d'où les PR correctives
 #69, #73, #79, #83 et, le 5 août 2026, la PR #110 fusionnée hors de `main`.
-T0068 est `Draft` : il modifie le sélecteur, son gate et la boucle que T0063
-livre sans être présent dans `main`, et la PR #113 touche déjà les mêmes
-workflows.
+T0068 est `Draft` : la PR #113 touche déjà les mêmes workflows de la boucle. Sa
+dépendance sur T0063 est en revanche satisfaite depuis la PR corrective #117,
+fusionnée au merge `f4ea508` avec ses trois checks verts.
