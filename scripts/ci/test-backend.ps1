@@ -216,8 +216,9 @@ try {
         $testText -notmatch "flight_settlement\.test\.sql" -or
         $testText -notmatch "aircraft_lease_structure\.test\.sql" -or
         $testText -notmatch "aircraft_lease\.test\.sql" -or
+        $testText -notmatch "aircraft_usability_guard\.test\.sql" -or
         $testText -notmatch "Result:\s+PASS") {
-        throw "Supabase pgTAP did not prove all twenty-two files with Result: PASS."
+        throw "Supabase pgTAP did not prove all twenty-three files with Result: PASS."
     }
 
     $concurrencyUserId = "44000000-0000-4000-8000-000000000004"
@@ -822,6 +823,136 @@ select
         throw "Concurrent lease state is not atomic and idempotent."
     }
     Write-Output "Aircraft lease concurrency passed: creation and temporal catch-up converge without duplicate debit."
+
+    # T0060: the privileged temporal command withdraws the usage of an aircraft
+    # while a dispatch draft is created on that very aircraft. The temporal
+    # session opens first and holds the aircraft row for four seconds, so the
+    # draft blocks on the same row and is re-evaluated against the committed
+    # usage. The expected convergence is a single coherent outcome: one temporal
+    # command, an unusable aircraft, no dispatch and no orphan command, without a
+    # deadlock on either side.
+    $usabilityRaceUserId = "89000000-0000-4000-8000-000000000009"
+    $usabilityRaceOfferId = "89200000-0000-4000-8000-000000000009"
+    $usabilityRaceLeaseKey = "89300000-0000-4000-8000-000000000009"
+    $usabilityRaceTemporalKey = "89400000-0000-4000-8000-000000000009"
+    $usabilityRaceDispatchKey = "89500000-0000-4000-8000-000000000009"
+    $usabilityRaceSetupSql = @"
+insert into auth.users (id, email, raw_user_meta_data, is_anonymous)
+values ('$usabilityRaceUserId', 'usability-race@thrustline.invalid', '{}', false);
+set local role service_role;
+select public.create_company_with_opening_balance(
+    '$usabilityRaceUserId', '89600000-0000-4000-8000-000000000009',
+    'Usability Race Air', 275, 'EUR'
+);
+reset role;
+insert into public.aircraft_purchase_offers (
+    id, aircraft_type_code, serial_number, display_name, price_minor, currency_code,
+    offer_kind, terms_version, duration_days, cadence_hours, rent_minor,
+    initial_payment_minor, grace_hours, voluntary_termination,
+    termination_penalty_minor, usable_during_grace
+) values (
+    '$usabilityRaceOfferId', 'C172', 'CI-C172-USABILITY-9001',
+    'CI Usability Cessna', 10000, 'EUR', 'lease', 1, 30, 24, 25, 250, 72, true, 50, false
+);
+set local role service_role;
+select public.lease_aircraft(
+    '$usabilityRaceUserId', '$usabilityRaceLeaseKey', '$usabilityRaceOfferId'
+) ->> 'aircraftId';
+reset role;
+"@
+    $usabilityRaceIds = @(
+        & $dockerPath exec $databaseContainers[0] `
+            psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $usabilityRaceSetupSql
+    )
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to prepare the aircraft usability concurrency scenario."
+    }
+    $usabilityRaceAircraftId = @(
+        $usabilityRaceIds | ForEach-Object { ([string]$_).Trim() } |
+            Where-Object { $_ -match '^[0-9a-f-]{36}$' }
+    ) | Select-Object -Last 1
+    $usabilityRaceContractSql = @"
+select id::text from public.aircraft_lease_contracts
+where aircraft_id = '$usabilityRaceAircraftId';
+"@
+    $usabilityRaceContractId = (
+        @(
+            & $dockerPath exec $databaseContainers[0] `
+                psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $usabilityRaceContractSql
+        ) -join ""
+    ).Trim()
+    if ($LASTEXITCODE -ne 0 -or
+        $usabilityRaceAircraftId -notmatch '^[0-9a-f-]{36}$' -or
+        $usabilityRaceContractId -notmatch '^[0-9a-f-]{36}$') {
+        throw "Failed to resolve the aircraft usability concurrency fixture."
+    }
+
+    $usabilityWithdrawSql = @"
+begin;
+select set_config(
+    't0060.race_effective_at',
+    (select (activated_at + interval '24 hours')::text from public.aircraft_lease_contracts where id = '$usabilityRaceContractId'),
+    true
+);
+set local role service_role;
+select public.process_aircraft_lease(
+    '$usabilityRaceContractId', '$usabilityRaceTemporalKey',
+    current_setting('t0060.race_effective_at')::timestamptz
+) ->> 'state';
+select pg_sleep(4);
+commit;
+"@
+    $usabilityDispatchSql = @"
+begin;
+set local role service_role;
+select public.create_dispatch_draft(
+    '$usabilityRaceUserId', '$usabilityRaceDispatchKey', '$usabilityRaceAircraftId',
+    'LFPG', 'LFPO'
+) ->> 'dispatchId';
+commit;
+"@
+    $usabilityRaceJobs = @()
+    try {
+        $usabilityRaceJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            & $DockerPath exec $ContainerId psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql
+            if ($LASTEXITCODE -ne 0) { throw "Concurrent lease usage withdrawal failed." }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $usabilityWithdrawSql
+        Start-Sleep -Milliseconds 750
+        $usabilityRaceJobs += Start-Job -ScriptBlock {
+            param($DockerPath, $ContainerId, $Sql)
+            $output = & $DockerPath exec $ContainerId psql -X -qAt -v ON_ERROR_STOP=1 -U postgres -d postgres -c $Sql 2>&1
+            if ($LASTEXITCODE -ne 0) { "refused" } else { ($output -join "").Trim() }
+        } -ArgumentList $dockerPath, $databaseContainers[0], $usabilityDispatchSql
+        $usabilityRaceJobs | Wait-Job | Out-Null
+        $usabilityRaceOutput = @(
+            $usabilityRaceJobs | Receive-Job | ForEach-Object { ([string]$_).Trim() }
+        )
+        if ($usabilityRaceJobs.State -contains "Failed" -or
+            $usabilityRaceOutput -notcontains "grace" -or
+            $usabilityRaceOutput -notcontains "refused") {
+            throw "Concurrent usage withdrawal and dispatch creation did not converge."
+        }
+    }
+    finally {
+        $usabilityRaceJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    }
+
+    $usabilityConvergenceSql = @"
+select
+    (select count(*) from public.flight_dispatches where aircraft_id = '$usabilityRaceAircraftId'),
+    (select count(*) from private.dispatch_draft_commands where aircraft_id = '$usabilityRaceAircraftId'),
+    (select is_usable::int from public.company_aircraft where id = '$usabilityRaceAircraftId'),
+    (select count(*) from private.aircraft_lease_temporal_commands where contract_id = '$usabilityRaceContractId');
+"@
+    $usabilityConvergence = @(
+        & $dockerPath exec $databaseContainers[0] `
+            psql -X -qAt -F "|" -v ON_ERROR_STOP=1 -U postgres -d postgres -c $usabilityConvergenceSql
+    )
+    if ($LASTEXITCODE -ne 0 -or ($usabilityConvergence -join "").Trim() -ne "0|0|0|1") {
+        throw "Concurrent usage withdrawal left a dispatch on an unusable aircraft."
+    }
+    Write-Output "Aircraft usability concurrency passed: 2 sessions, 1 temporal command, unusable aircraft, no dispatch and no orphan command."
 
     $balanceRaceUserId = "77000000-0000-4000-8000-000000000007"
     $balanceRaceOfferA = "77100000-0000-4000-8000-000000000007"
@@ -1762,7 +1893,7 @@ select
         throw "Generated database types are stale."
     }
 
-    Write-Output "Backend CI passed: 2 resets, 22 pgTAP files, airport reference matching its canonical source, concurrent idempotence, purchase, dispatch, flight start, flight settlement and aircraft lease, isolated restore replay, authoritative onboarding, stable types, loopback ports."
+    Write-Output "Backend CI passed: 2 resets, 23 pgTAP files, airport reference matching its canonical source, concurrent idempotence, purchase, dispatch, flight start, flight settlement, aircraft lease and aircraft usability withdrawal, isolated restore replay, authoritative onboarding, stable types, loopback ports."
 }
 finally {
     if ($null -ne $databaseContainer -and $null -ne $dockerPath) {

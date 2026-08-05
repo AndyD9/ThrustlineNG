@@ -599,10 +599,10 @@ contrainte qui aurait supprimé le crédit `flight_settlement` de T0051 ; les de
 sont corrigées. Deux resets PostgreSQL 17 consécutifs, 22 fichiers pgTAP,
 502 assertions découvertes, les types régénérés et les quatre gates statiques
 passent. La convergence concurrente appartient au harnais CI Linux et reste à
-confirmer sur la PR. `company_aircraft.is_usable` est autoritaire mais lu par
-aucune commande de dispatch, donc la fin d'usage n'est pas encore opposable à un
-vol. Aucun ordonnanceur, endpoint, desktop, déploiement distant ou donnée réelle
-n'est fourni, et rien de tout cela n'est encore livré dans `main`.
+confirmer sur la PR. `company_aircraft.is_usable` était autoritaire mais lu par
+aucune commande de dispatch : cette dette est fermée par T0060, sur sa branche.
+Aucun ordonnanceur, endpoint, desktop, déploiement distant ou donnée réelle
+n'est fourni par T0032.
 
 Sur le commit d'implémentation `1ede937`, l'exécution CI `30740977879` valide
 PostgreSQL 17 et Windows, et l'exécution supply-chain `30740977888` est verte.
@@ -902,6 +902,54 @@ Le 2 août 2026, 5 fichiers/38 tests frontend passent. La couverture atteint
 Vite réussit. Les gates autorité, données et maintenance passent respectivement
 avec 5, 6 et 8 mutations négatives. Le bundle ne contient ni credential de test,
 ni référence privilégiée, ni accès Data API.
+
+T0060 rend opposable, sur sa branche `feature/T0060-aircraft-usability-guard`, la
+fin d'usage d'un avion. Une douzième migration append-only,
+`20260805000100_aircraft_usability_guard.sql`, redéfinit en bloc
+`create_dispatch_draft` et `start_flight_from_dispatch` pour qu'elles lisent
+`company_aircraft.is_usable` sur la ligne d'avion dérivée du serveur et
+verrouillée, dans l'ordre documenté compagnie, dispatch, avion. Elle n'ajoute
+aucune source d'inutilisabilité : les trois commandes de location restent la seule
+autorité qui écrit cet état. Les deux refus réutilisent verbatim les messages déjà
+livrés, avec le même SQLSTATE, si bien qu'un avion hors contrat est indistinguable
+d'un avion étranger — la garde de brouillon précède même le contrôle
+d'exclusivité, et les deux refus partent de la même ligne de la fonction. Le rejeu
+d'un départ déjà acquis est inchangé, et `close_flight` n'est pas gardé sur
+décision d'Andy du 4 août 2026 : un vol déjà en cours reste clôturable et réglé,
+seul le brouillon suivant est refusé.
+
+Le 5 août 2026, sous Windows 11, Docker Desktop 29.6.2 et PostgreSQL 17, deux
+resets consécutifs puis 23 fichiers/539 assertions pgTAP concluent par
+`Result: PASS`, soit 37 assertions nouvelles ; `backend:types:check` confirme des
+types inchangés, la migration ne remplaçant que des corps de fonction. Le gate
+backend passe avec 50 mutations négatives sous Windows PowerShell 5.1 comme sous
+PowerShell 7, dont six nouvelles qui détectent une garde retirée d'une des deux
+commandes, une garde dégradée en avertissement, un message qui nomme la location,
+un `execute` accordé à un rôle client et un paramètre d'usage d'appelant ; les
+gates autorité, données et maintenance passent. La vérification manuelle du même
+jour, sur état réellement commité, rend `5|3|2|6|4|0|2|2|2` — cinq avions dont
+trois utilisables, six dispatchs dont quatre brouillons et deux vols clôturés, deux
+commandes de départ et deux rapports — avec un règlement de `21086` unités mineures
+pour un vol clôturé alors que son avion était devenu inutilisable, un rejeu de
+départ identique, et `permission denied` pour `anon` comme pour `authenticated` sur
+les deux commandes et sur l'écriture de `is_usable`.
+
+Cette tranche n'ajoute ni ordonnanceur d'échéances, ni frontière Auth, ni endpoint,
+ni appelant desktop, ni cible distante, ni donnée réelle, et rien n'est encore
+fusionné dans `main`. La garde est exacte par rapport à l'état enregistré, pas par
+rapport à l'heure murale : sans ordonnanceur, un avion peut rester utilisable après
+sa date réelle d'expiration jusqu'au prochain appel de la commande temporelle.
+
+La Pull Request brouillon #112 porte ces changements avec ses **trois checks
+verts** : `Audits, licences and SBOM` en 3 min 50 s, `Supabase PostgreSQL 17` en
+3 min 32 s et `Windows multi-stack` en 17 min 19 s. Le job Linux lève la seule
+réserve du ticket, la course entre la commande temporelle et la création d'un
+brouillon n'étant pas exécutable sous Windows : il rend
+`Aircraft usability concurrency passed: 2 sessions, 1 temporal command, unusable
+aircraft, no dispatch and no orphan command.` puis `Backend CI passed: 2 resets,
+23 pgTAP files, ... aircraft lease and aircraft usability withdrawal, ...`. Ces
+checks verts ne valent pas fusion : T0060 reste `Review` et le merge appartient à
+Andy.
 
 ## Autorité des mutations du golden path
 
