@@ -14,6 +14,21 @@ $hostExecutable = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh' } else { 'p
 $assertionCount = 0
 $failures = [System.Collections.Generic.List[string]]::new()
 
+# Ticket files are LF in the repository (`.gitattributes`: `*.md text eol=lf`), so
+# the fixture must be LF too. `Set-Content` writes CRLF on Windows, and in .NET a
+# `$` anchor under `(?m)` matches before `\n` but never before `\r\n`: a mutation
+# pattern such as '^Status: Ready$' then silently matches nothing. This script is
+# itself stored with CRLF, so its here-strings carry CRLF and must be normalised.
+function Set-FixtureText {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Text
+    )
+
+    $normalised = $Text -replace "`r`n", "`n"
+    [System.IO.File]::WriteAllText($Path, $normalised, (New-Object System.Text.UTF8Encoding($false)))
+}
+
 function New-TicketFile {
     param(
         [Parameter(Mandatory)][string]$Id,
@@ -104,7 +119,7 @@ function New-Fixture {
         '| ID | Titre | Phase | Depend de | Statut |',
         '| --- | --- | --- | --- | --- |'
     ) + $rows
-    Set-Content -Encoding UTF8 -LiteralPath (Join-Path $root 'docs/tickets/README.md') -Value $index
+    Set-FixtureText -Path (Join-Path $root 'docs/tickets/README.md') -Text (($index -join "`n") + "`n")
 
     foreach ($definition in $definitions) {
         $content = New-TicketFile `
@@ -113,7 +128,7 @@ function New-Fixture {
             -Dependencies $definition.Dependencies `
             -AllowedAreas $definition.AllowedAreas
         $fileName = "$($definition.Id)-fixture.md"
-        Set-Content -Encoding UTF8 -LiteralPath (Join-Path $root "docs/tickets/$fileName") -Value $content
+        Set-FixtureText -Path (Join-Path $root "docs/tickets/$fileName") -Text $content
     }
 
     return $root
@@ -148,8 +163,14 @@ function Set-TicketField {
     )
 
     $path = Join-Path $Root "docs/tickets/$Id-fixture.md"
-    $text = Get-Content -Raw -Encoding UTF8 -LiteralPath $path
-    Set-Content -Encoding UTF8 -LiteralPath $path -Value ([regex]::Replace($text, $Pattern, $Replacement))
+    $text = [System.IO.File]::ReadAllText($path)
+    $mutated = [regex]::Replace($text, $Pattern, $Replacement)
+    # Fail closed: a negative scenario whose mutation changes nothing proves
+    # nothing, and it would report as a selector defect instead of a test defect.
+    if ($mutated -eq $text) {
+        throw "Pattern '$Pattern' changed nothing in $Id; the mutation would prove nothing."
+    }
+    Set-FixtureText -Path $path -Text $mutated
 }
 
 function Set-IndexStatus {
@@ -161,6 +182,7 @@ function Set-IndexStatus {
 
     $path = Join-Path $Root 'docs/tickets/README.md'
     $lines = @(Get-Content -Encoding UTF8 -LiteralPath $path)
+    $touched = 0
     for ($index = 0; $index -lt $lines.Count; $index++) {
         if ($lines[$index] -notmatch "^\|\s*$Id\s*\|") {
             continue
@@ -168,8 +190,12 @@ function Set-IndexStatus {
         $cells = @($lines[$index].Trim('|').Split('|') | ForEach-Object { $_.Trim() })
         $cells[4] = $Status
         $lines[$index] = '| ' + ($cells -join ' | ') + ' |'
+        $touched++
     }
-    Set-Content -Encoding UTF8 -LiteralPath $path -Value $lines
+    if ($touched -eq 0) {
+        throw "No index row matched $Id; the mutation would prove nothing."
+    }
+    Set-FixtureText -Path $path -Text (($lines -join "`n") + "`n")
 }
 
 function Assert-Condition {
@@ -199,7 +225,16 @@ function Assert-Scenario {
 
     $root = New-Fixture
     try {
-        & $Mutate $root
+        try {
+            & $Mutate $root
+        }
+        catch {
+            Assert-Condition `
+                -Label $Label `
+                -Condition $false `
+                -Detail "the mutation itself failed: $($_.Exception.Message)"
+            return
+        }
         $result = Invoke-Selector -Root $root -AdditionalArguments $AdditionalArguments
 
         Assert-Condition `
@@ -307,7 +342,7 @@ Assert-Scenario `
     -Mutate {
         param($root)
         $content = New-TicketFile -Id 'T0006' -Status 'Ready' -Dependencies @('T0001') -AllowedAreas @('packages/fixture')
-        Set-Content -Encoding UTF8 -LiteralPath (Join-Path $root 'docs/tickets/T0006-fixture.md') -Value $content
+        Set-FixtureText -Path (Join-Path $root 'docs/tickets/T0006-fixture.md') -Text $content
     } `
     -ExpectedExitCode 1 `
     -ExpectedBlockingPattern 'Ticket T0006 is missing from docs/tickets/README.md' `
@@ -320,7 +355,10 @@ Assert-Scenario `
         $path = Join-Path $root 'docs/tickets/README.md'
         $lines = @(Get-Content -Encoding UTF8 -LiteralPath $path)
         $duplicate = @($lines | Where-Object { $_ -match '^\|\s*T0002\s*\|' })[0]
-        Add-Content -Encoding UTF8 -LiteralPath $path -Value $duplicate
+        if (-not $duplicate) {
+            throw 'No T0002 index row to duplicate; the mutation would prove nothing.'
+        }
+        Set-FixtureText -Path $path -Text (((@($lines) + @($duplicate)) -join "`n") + "`n")
     } `
     -ExpectedExitCode 1 `
     -ExpectedBlockingPattern 'Duplicate ticket index identifier: T0002' `
