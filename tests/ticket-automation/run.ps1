@@ -418,6 +418,70 @@ Assert-Scenario `
     -ExpectedSelected @('T0003', 'T0004') `
     -AdditionalArguments @('-Only', 'T0003,T0004')
 
+Assert-Scenario `
+    -Label 'reference fixture is fully autonomous' `
+    -Mutate { param($root) $null = $root } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @('T0002', 'T0003', 'T0004') `
+    -AdditionalArguments @('-AutonomousOnly')
+
+Assert-Scenario `
+    -Label 'mutation 11 - explicit Autonomous: No vetoes an unattended run' `
+    -Mutate {
+        param($root)
+        Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^Risk: Low$' -Replacement "Risk: Low`nAutonomous: No"
+    } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @('T0003', 'T0004', 'T0005') `
+    -ExpectedDeferredPattern 'human required: ticket declares Autonomous: No' `
+    -ExpectedDeferredId 'T0002' `
+    -AdditionalArguments @('-AutonomousOnly')
+
+Assert-Scenario `
+    -Label 'mutation 12 - a security sensitive ticket is never unattended' `
+    -Mutate {
+        param($root)
+        Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^Security-sensitive: No$' -Replacement 'Security-sensitive: Yes'
+    } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @('T0003', 'T0004', 'T0005') `
+    -ExpectedDeferredPattern 'human required: security sensitive' `
+    -ExpectedDeferredId 'T0002' `
+    -AdditionalArguments @('-AutonomousOnly')
+
+Assert-Scenario `
+    -Label 'mutation 13 - a High risk ticket is never unattended' `
+    -Mutate {
+        param($root)
+        Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^Risk: Low$' -Replacement 'Risk: High'
+    } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @('T0003', 'T0004', 'T0005') `
+    -ExpectedDeferredPattern "human required: risk is 'High'" `
+    -ExpectedDeferredId 'T0002' `
+    -AdditionalArguments @('-AutonomousOnly')
+
+Assert-Scenario `
+    -Label 'mutation 14 - a dependency naming a human decision vetoes an unattended run' `
+    -Mutate {
+        param($root)
+        Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^- T0001$' -Replacement '- T0001, decision Andy'
+    } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @('T0003', 'T0004', 'T0005') `
+    -ExpectedDeferredPattern 'human required: dependency needs a human' `
+    -ExpectedDeferredId 'T0002' `
+    -AdditionalArguments @('-AutonomousOnly')
+
+Assert-Scenario `
+    -Label 'mutation 15 - the same veto does not block an attended run' `
+    -Mutate {
+        param($root)
+        Set-TicketField -Root $root -Id 'T0002' -Pattern '(?m)^Risk: Low$' -Replacement 'Risk: High'
+    } `
+    -ExpectedExitCode 0 `
+    -ExpectedSelected @('T0002', 'T0003', 'T0004')
+
 if ($failures.Count -gt 0) {
     Write-Host "Ticket automation gate failed with $($failures.Count) of $assertionCount assertions:"
     foreach ($failure in $failures) {
@@ -426,5 +490,5 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
-Write-Host "Ticket batch selector invariants passed: $assertionCount assertions, 10 negative mutations."
+Write-Host "Ticket batch selector invariants passed: $assertionCount assertions, 15 negative mutations."
 exit 0

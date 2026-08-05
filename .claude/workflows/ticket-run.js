@@ -71,13 +71,14 @@ const SELECTION_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['id', 'title', 'branch', 'file', 'flow', 'exclusivePaths', 'humanPrerequisites'],
+        required: ['id', 'title', 'branch', 'file', 'flow', 'autonomy', 'exclusivePaths', 'humanPrerequisites'],
         properties: {
           id: { type: 'string' },
           title: { type: 'string' },
           branch: { type: 'string' },
           file: { type: 'string' },
           flow: { type: 'string', description: 'bridge, backend, desktop ou gouvernance' },
+          autonomy: { type: 'string', enum: ['autonomous', 'human required'] },
           exclusivePaths: { type: 'array', items: { type: 'string' } },
           humanPrerequisites: { type: 'array', items: { type: 'string' } },
         },
@@ -283,6 +284,9 @@ const maxFlows = Number.isInteger(input.maxFlows) ? input.maxFlows : 3
 const execute = input.mode === 'execute' && input.dryRun !== true
 const runLabel = typeof input.runLabel === 'string' && input.runLabel ? input.runLabel : 'run'
 const skipLearning = input.skipLearning === true
+// Un run non surveille ne demarre qu un ticket dont le travail restant n exige aucun
+// humain. La classification est faite par le selecteur, pas par un agent.
+const autonomousOnly = input.autonomousOnly === true || input.unattended === true
 
 if (input.argumentParseError) {
   log(`Arguments illisibles (${input.argumentParseError}): repli en selection seule.`)
@@ -292,6 +296,11 @@ if (!execute) {
 }
 
 const onlyArgument = requestedTickets.length > 0 ? ` -Only ${requestedTickets.join(',')}` : ''
+const autonomyArgument = autonomousOnly ? ' -AutonomousOnly' : ''
+
+if (autonomousOnly) {
+  log('Mode non surveille: seuls les tickets sans prerequis humain sont eligibles.')
+}
 
 phase('Selection')
 const selection = await agent(
@@ -303,7 +312,7 @@ ${SOURCES}
 Execute exactement, et rapporte la sortie telle quelle:
 1. git -C "${REPO}" fetch origin --quiet
 2. git -C "${REPO}" log --oneline -1 origin/main
-3. pwsh -NoProfile -File "${REPO}/scripts/select-ticket-batch.ps1" -MaxFlows ${maxFlows}${onlyArgument} -Json
+3. pwsh -NoProfile -File "${REPO}/scripts/select-ticket-batch.ps1" -MaxFlows ${maxFlows}${onlyArgument}${autonomyArgument} -Json
 
 Le champ selected du selecteur est la selection autorisee: tu ne peux pas y ajouter un ticket,
 meme s il te parait pret, et tu ne peux pas ignorer une entree deferred. Reprends telles quelles

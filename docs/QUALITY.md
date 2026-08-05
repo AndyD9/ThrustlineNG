@@ -27,14 +27,30 @@ pnpm ticket-batch:select
 ```
 
 Le gate T0061 valide `scripts/select-ticket-batch.ps1` sur un dépôt synthétique,
-indépendant des tickets réels, avec 34 assertions et dix mutations négatives :
-statut divergent entre fichier et index, statut invalide, champ `Status` absent,
-ticket absent de l'index, identifiant d'index dupliqué, dépendance revenue en
-`Draft`, collision de zones autorisées entre deux candidats, flux `In progress`
-qui consomme la capacité et réserve ses chemins, ticket forcé alors qu'il n'est
-pas `Ready`, et sélection forcée passée sous forme séparée par des virgules. Le
-scénario de référence vérifie aussi que les fichiers de suivi partagés restent
-hors des collisions tout en étant signalés comme imposant un ordre d'intégration.
+indépendant des tickets réels, avec 50 assertions et quinze mutations négatives.
+
+Cohérence du suivi et capacité : statut divergent entre fichier et index, statut
+invalide, champ `Status` absent, ticket absent de l'index, identifiant d'index
+dupliqué, dépendance revenue en `Draft`, collision de zones autorisées entre deux
+candidats, flux `In progress` qui consomme la capacité et réserve ses chemins,
+ticket forcé alors qu'il n'est pas `Ready`, sélection forcée séparée par des
+virgules.
+
+Frontière d'autonomie ajoutée par T0063, pour les runs non surveillés :
+`Autonomous: No`, `Security-sensitive: Yes`, `Risk: High` et une dépendance nommant
+une décision humaine sont chacun prouvés comme veto sous `-AutonomousOnly`. Une
+quinzième mutation prouve la réciproque : le même veto ne bloque pas un run
+surveillé.
+
+Le scénario de référence vérifie aussi que les fichiers de suivi partagés restent
+hors des collisions tout en étant signalés comme imposant un ordre d'intégration,
+et que la fixture complète est classée autonome.
+
+Le harnais écrit ses fixtures en LF et refuse toute mutation qui ne change rien,
+d'après T0062. Les deux comptent : `.gitattributes` livre ce script en CRLF, et en
+.NET une ancre `$` sous `(?m)` ne correspond jamais avant `\r\n`. Sans ces deux
+garde-fous, les mutations cesseraient silencieusement de s'appliquer sur un clone
+frais et le gate passerait à vide.
 
 Exécuter ce gate sous les **deux** hôtes. Le harnais lance le sélecteur avec
 l'hôte qui l'exécute, et les deux ne passent pas les arguments de la même façon :
