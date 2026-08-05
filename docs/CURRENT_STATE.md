@@ -15,8 +15,11 @@ livré dans `main` par la PR #96 au merge `87c4eec`, T0054 par la PR #99 au merg
 donc désormais de la création de compagnie à la clôture d'un vol réglé. T0055 est
 `Verify` : sa version produit canonique et son package non signé nommé sont
 prouvés localement, son parcours interactif d'alpha reste à confirmer. T0056 est
-`Ready` et T0059 est `Draft` faute d'un MSFS 2024 et d'un SDK SimConnect
-installés avec provenance vérifiable.
+`Ready`. T0059 est `Draft`, mais plus faute d'installation : le 5 août 2026, MSFS
+2024 canal Microsoft Store/Xbox `1.7.35.0` et le SDK SimConnect `1.5.7` sont
+constatés présents sur la machine de validation, sans installation Steam. Ce qui
+reste bloquant est la provenance consignée du SDK et le choix de l'appareil de
+référence.
 T0050 est livré dans `main`
 par la PR #89 au merge `6577125`, où le job Linux `Supabase PostgreSQL 17`
 réussit ; le job `Windows multi-stack` du même run échoue sur la seule ligne
@@ -222,8 +225,15 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
 
 ## Contrôles non exécutables dans cette baseline
 
-- Connexion réelle à MSFS/SimConnect et parcours de vol : MSFS absent. Le replay
-  synthétique automatisé T0011 ne remplace pas une trace réelle avec provenance.
+- Connexion réelle à MSFS/SimConnect et parcours de vol : **jamais exécutée**, et
+  non plus « MSFS absent » depuis le relevé du 5 août 2026. MSFS 2024 Store/Xbox
+  `1.7.35.0` et le SDK SimConnect `1.5.7` sont installés sur la machine de
+  validation ; ce qui manque est la provenance consignée du SDK, le choix de
+  l'appareil de référence, et le travail de T0059 lui-même — enregistreur de traces,
+  corpus versionné et fiche de validation par canal. Une copie tierce de
+  `SimConnect.dll` existe aussi sur cette machine, si bien qu'une preuve devra
+  consigner le chemin réellement chargé. Le replay synthétique automatisé T0011 ne
+  remplace toujours pas une trace réelle avec provenance.
 - Déploiement de l'Edge Function et validation cloud : projet/identifiants
   Supabase absents.
 - Build installable signé, installation, mise à jour et rollback : aucun
@@ -1164,8 +1174,9 @@ serveur du golden path sans frontière Auth. Le flux desktop a livré T0052 dans
 par la PR #96 au merge `87c4eec` : la préparation et la relecture des dispatchs
 sont donc composées, sans SimBrief, et son prochain ticket n'est pas encore ouvert.
 Le flux moteur de vol et bridge a livré T0054 par la PR #99 au merge `3a2c292`;
-son prochain ticket est T0059, qui reste `Draft` faute du prérequis physique
-MSFS 2024 et SDK SimConnect installés avec provenance vérifiable. Le transverse
+son prochain ticket est T0059, qui reste `Draft` — non plus faute d'installation,
+constatée le 5 août 2026, mais faute de la provenance consignée du SDK et du choix de
+l'appareil de référence. Le transverse
 T0055 est livré dans `main` par la PR #104 : la version produit canonique, sa
 propagation, son gate et le package non signé nommé sont en place, et seul le
 parcours interactif d'alpha reste à confirmer par Andy. T0056 est encore

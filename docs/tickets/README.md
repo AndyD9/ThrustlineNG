@@ -144,10 +144,14 @@ Andy. Aucun tag n'est créé.
 T0054 est `Done` depuis la fusion de la PR #99 dans `main` au merge `3a2c292` le
 4 août 2026 : le flux moteur de vol et bridge publie la télémétrie bornée sur le
 contrat local depuis le replay synthétique. Son prochain ticket est T0059, qui
-fournit la source réelle et son corpus ; il reste `Draft` parce que son prérequis
-physique — MSFS 2024 stable et le SDK SimConnect installés avec une provenance
-vérifiable — n'est pas satisfait sur la machine de validation, et aucune trace
-synthétique ne le contourne.
+fournit la source réelle et son corpus ; il reste `Draft`, mais son motif a changé le
+5 août 2026. L'installation est constatée : MSFS 2024 canal Microsoft Store/Xbox
+`1.7.35.0` et SDK SimConnect `1.5.7` sont présents sur la machine de validation,
+aucune installation Steam ne l'est, et le SDK se trouve hors d'un chemin par défaut —
+ce qui explique probablement le constat inverse précédent. Ce qui reste bloquant est
+la **provenance consignée** qu'exige le ticket, qu'un relevé de chemins n'établit
+pas, plus le choix de l'appareil de référence. Aucune trace synthétique ne contourne
+ce ticket.
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
