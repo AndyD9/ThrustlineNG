@@ -626,8 +626,14 @@ location, un état ou une échéance.
 La garde est évaluée dans la transaction de la commande, sur une ligne verrouillée,
 dans un ordre documenté — compagnie, dispatch, avion — compatible avec les
 commandes de location, où `public.company_aircraft` est aussi verrouillé en
-dernier. Le rejeu d'une commande de départ déjà acquise reste inchangé et rend la
-même réponse stockée, même si l'avion est devenu inutilisable entre-temps.
+dernier. Le rejeu d'une commande de départ déjà acquise reste inchangé : la garde
+ne le refuse jamais et il ne crée pas de second départ, même si l'avion est devenu
+inutilisable entre-temps. Sa réponse n'est en revanche pas stockée verbatim, parce
+que le chemin de rejeu de T0050 la reconstruit depuis la ligne de dispatch
+vivante : son champ `state` vaut `completed` ou `interrupted` si le vol a été
+clôturé depuis l'acquisition. La propriété de sécurité visée par ce ticket —
+aucune mise en service d'un avion hors contrat — est intacte ; l'exactitude du
+rejeu est portée par T0065.
 
 `public.close_flight` n'est pas gardé, sur décision d'Andy du 4 août 2026 : un vol
 déjà parti reste clôturable et réglé, et c'est seulement le brouillon suivant qui

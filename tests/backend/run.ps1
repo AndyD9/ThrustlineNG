@@ -994,9 +994,13 @@ function Get-BackendIssues {
         $startGuardIndex -lt $startReplayIndex) {
         $issues.Add("The usability guard must not apply to a flight start already acquired and replayed.")
     }
-    # The guard arrives by a new append-only file, and the count of delivered
-    # migrations it must never appear in is explicit: a twelfth migration cannot
-    # silently escape this check.
+    # The guard arrives by a new append-only file. This check enumerates the
+    # migrations actually present and scans every one of them except the T0060
+    # file, so a thirteenth migration that reintroduces or weakens the guard
+    # cannot escape it either. Comparing a hard-coded list to its own length
+    # would be a tautology, so the list is used the other way round: the eleven
+    # files delivered before T0060 must still appear in the enumeration, which
+    # makes a broken enumeration fail instead of silently scanning nothing.
     $deliveredMigrations = @(
         $migrationPath,
         $lifecycleMigrationPath,
@@ -1010,12 +1014,27 @@ function Get-BackendIssues {
         $settlementMigrationPath,
         $leaseMigrationPath
     )
-    if ($deliveredMigrations.Count -ne 11) {
-        $issues.Add("The append-only guard must cover the eleven migrations delivered before T0060.")
+    $usabilityMigrationName = [System.IO.Path]::GetFileName($usabilityMigrationPath)
+    $presentMigrations = @(
+        Get-ChildItem -LiteralPath (Join-Path $Root "supabase\migrations") -Filter "*.sql" -File |
+            Sort-Object -Property Name
+    )
+    $presentMigrationNames = @($presentMigrations | ForEach-Object { $_.Name })
+    foreach ($deliveredMigration in $deliveredMigrations) {
+        $deliveredMigrationName = [System.IO.Path]::GetFileName($deliveredMigration)
+        if ($presentMigrationNames -notcontains $deliveredMigrationName) {
+            $issues.Add("The append-only guard must still cover every migration delivered before T0060: $deliveredMigrationName")
+        }
     }
-    foreach ($existingMigration in $deliveredMigrations) {
-        if ((Get-Content -Raw -Encoding UTF8 $existingMigration) -match 'not aircraft\.is_usable') {
-            $issues.Add("The aircraft usability guard must arrive by a new append-only migration: $([System.IO.Path]::GetFileName($existingMigration))")
+    if ($presentMigrationNames -notcontains $usabilityMigrationName) {
+        $issues.Add("The aircraft usability guard must arrive by its own append-only migration: $usabilityMigrationName")
+    }
+    foreach ($existingMigration in $presentMigrations) {
+        if ($existingMigration.Name -eq $usabilityMigrationName) {
+            continue
+        }
+        if ((Get-Content -Raw -Encoding UTF8 $existingMigration.FullName) -match 'not aircraft\.is_usable') {
+            $issues.Add("The aircraft usability guard must arrive by a new append-only migration: $($existingMigration.Name)")
         }
     }
 
@@ -1034,7 +1053,7 @@ function Get-BackendIssues {
         "an aircraft back from grace to active is dispatchable again",
         "an aircraft back from grace to active departs again",
         "a flight already under way is still closed and settled on an unusable aircraft",
-        "a start acquired before the usage loss replays the stored response identically",
+        "a start acquired before the usage loss replays identically while the dispatch is active",
         "the closed flight does not make the unusable aircraft dispatchable again",
         "authenticated cannot write the aircraft usage state directly",
         "anonymous cannot execute the guarded dispatch command",

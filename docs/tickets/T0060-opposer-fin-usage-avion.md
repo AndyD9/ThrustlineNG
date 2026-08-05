@@ -305,8 +305,17 @@ même si la nouvelle définition perd un de leurs invariants.
       revenu de `grace` à `active` restent dispatchables et démarrables.
 - [x] Un vol déjà en cours reste clôturable et réglé normalement, conformément à
       la décision d'Andy, et le même avion refuse ensuite un nouveau brouillon.
-- [x] Le rejeu d'une commande de départ acquise avant la perte d'usage rend la
-      même réponse stockée.
+- [ ] Le rejeu d'une commande de départ acquise avant la perte d'usage rend la
+      même réponse stockée. **Non satisfait, et volontairement laissé décoché.**
+      La garde ne s'applique effectivement jamais à un rejeu et aucun second
+      départ n'est créé — c'est la propriété que ce ticket devait préserver, et
+      elle est prouvée. Mais le chemin de rejeu de T0050, repris inchangé,
+      reconstruit sa réponse depuis la ligne de dispatch vivante au lieu de la
+      relire d'un enregistrement : après un `close_flight`, le rejeu rend
+      `state = 'completed'` et non `'active'`. L'exigence §2 demande à la fois que
+      ce chemin « reste inchangé » et qu'il rende « la même réponse stockée » :
+      les deux moitiés ne peuvent pas être vraies ensemble. T0065 porte cette
+      contradiction et sa décision.
 - [x] Les redéfinitions de `create_dispatch_draft` et
       `start_flight_from_dispatch` conservent tous les invariants T0047, T0050,
       T0051 et T0057, et ces invariants sont réaffirmés par les marqueurs du
@@ -443,7 +452,11 @@ Deux choix de placement sont volontaires et prouvés par le gate :
   de la fonction (`line 110`) : ils sont indistinguables jusque dans le `CONTEXT`
   PostgreSQL ;
 - au départ de vol, la garde suit le chemin de rejeu, pour qu'un départ déjà
-  acquis rende exactement la même réponse stockée après la perte d'usage.
+  acquis ne soit jamais refusé après la perte d'usage et ne crée aucun second
+  départ. Ce rejeu rend une réponse identique tant que le dispatch est encore
+  `active`, ce que le pgTAP prouve ; il ne rend pas une réponse stockée verbatim
+  après une clôture, parce qu'il la reconstruit depuis la ligne de dispatch
+  vivante — voir le critère décoché et T0065.
 
 `public.close_flight` n'est pas modifié : conformément à la décision d'Andy du
 4 août 2026, un vol déjà en cours reste clôturable et réglé, et seul le brouillon
@@ -613,7 +626,36 @@ harnais Linux `ci:backend` : elle doit être confirmée par le job
   `docs/CURRENT_STATE.md` annonce toujours « Migrations Supabase append-only
   constatées : 7 dans `main` » dans son inventaire reproductible, alors que
   `origin/main` au merge `c51f3fe` en porte onze. Ce décompte est antérieur à ce
-  ticket et sort de son périmètre ; il mérite un ticket de gouvernance.
+  ticket et sort de son périmètre ; il mérite un ticket de gouvernance. Il n'est
+  pas corrigé ici pour une seconde raison : la PR brouillon #111 possède déjà ce
+  fichier et l'écrire des deux côtés recréerait la dérive de suivi des fusions
+  T0043 à T0050.
+
+### Constats de la revue adversariale du 5 août 2026
+
+La revue indépendante du diff poussé a rendu `fix required` avec quatre constats,
+tous non bloquants. Traitement, dans ce même commit sauf indication contraire :
+
+- **Corrigé — garantie de rejeu fausse (Medium).** Le critère d'acceptation
+  correspondant est décoché, et `docs/SECURITY.md`, `docs/ARCHITECTURE.md`,
+  `docs/QUALITY.md`, ce Completion Report et l'intitulé de l'assertion pgTAP
+  disent désormais ce que le code fait : la garde ne s'applique jamais à un rejeu,
+  mais la réponse rejouée n'est pas stockée verbatim. Décision de fond portée par
+  T0065.
+- **Corrigé — garde-fou append-only tautologique (Low).** `tests/backend/run.ps1`
+  comparait la taille d'un tableau de onze littéraux à `11`, un test qui ne pouvait
+  pas échouer, et n'inspectait que ces onze fichiers. Il énumère maintenant les
+  migrations réellement présentes, scanne chacune sauf celle de T0060 — donc aussi
+  une treizième à venir — et exige que les onze fichiers livrés avant T0060
+  apparaissent dans l'énumération, pour qu'une énumération cassée échoue au lieu de
+  ne rien scanner.
+- **Non corrigé, porté par T0066 — motif de refus des courses (Low).** La course
+  concurrente conclut `refused` sur le seul code de sortie non nul de `psql`, donc
+  un interblocage passerait pour un succès. Le défaut est partagé par les six
+  courses déjà livrées dans `main` : le corriger ici élargirait ce ticket et
+  entrerait en conflit avec T0066, qui le traite pour toutes.
+- **Non corrigé, hors périmètre utile — décompte de migrations (Low).** Voir le
+  point ci-dessus sur `docs/CURRENT_STATE.md` et la PR #111.
 
 ### Learning candidates
 

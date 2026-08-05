@@ -865,9 +865,13 @@ autre compagnie, confirment qu'un avion acheté comptant et un avion sous locati
 `active` restent dispatchables et démarrables, qu'un retour `grace` → `active`
 redonne le droit au brouillon, qu'un vol déjà en cours se clôture et se règle
 pendant que l'avion est inutilisable avant de refuser le brouillon suivant, que le
-rejeu d'un départ acquis avant la perte d'usage rend la réponse stockée à
-l'identique, et que `anon` comme `authenticated` restent privés d'`execute` sur les
-deux commandes et d'`update` sur `public.company_aircraft`.
+rejeu d'un départ acquis avant la perte d'usage rend une réponse identique tant
+que le dispatch est encore `active` — la garde ne s'applique donc pas à une
+commande déjà acquise —, et que `anon` comme `authenticated` restent privés
+d'`execute` sur les deux commandes et d'`update` sur `public.company_aircraft`.
+Le rejeu d'un départ postérieur à la clôture du vol n'est pas couvert : la réponse
+est reconstruite depuis la ligne de dispatch vivante, donc son `state` suit cette
+ligne. T0065 porte cette exactitude.
 
 Mesure du 5 août 2026, sous Windows 11, Docker Desktop 29.6.2 et PostgreSQL 17 :
 deux resets consécutifs appliquent les onze migrations livrées puis la douzième,

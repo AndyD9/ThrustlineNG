@@ -545,7 +545,7 @@ select is(
         (current_setting('t0060.inflight_draft')::jsonb ->> 'dispatchId')::uuid
     )::text,
     current_setting('t0060.inflight_start'),
-    'a start acquired before the usage loss replays the stored response identically'
+    'a start acquired before the usage loss replays identically while the dispatch is active'
 );
 select set_config('t0060.closure', public.close_flight(
     '60050000-0000-4000-8000-000000000005', '63550000-0000-4000-8000-000000000005',

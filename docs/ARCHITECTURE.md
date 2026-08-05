@@ -463,8 +463,18 @@ Deux propriétés de conception sont volontaires. À la création d'un brouillon
 garde d'usage est évaluée **avant** le contrôle d'exclusivité, pour qu'un avion
 inutilisable rende le même refus opaque qu'il porte ou non un dispatch ouvert. Au
 départ de vol, la garde est placée **après** le chemin de rejeu : un départ déjà
-acquis alors que l'avion était utilisable rend exactement la même réponse stockée,
-la garde ne s'appliquant qu'à la transition fraîche `draft` → `active`.
+acquis alors que l'avion était utilisable n'est jamais refusé par la garde et ne
+crée pas de second départ, celle-ci ne s'appliquant qu'à la transition fraîche
+`draft` → `active`.
+
+Ce chemin de rejeu reste celui livré par T0050, inchangé, et il reconstruit sa
+réponse depuis la ligne de dispatch vivante au lieu de la relire d'un
+enregistrement : `aircraftId`, `dispatchId`, `schemaVersion` et `startedAt` sont
+donc bien ceux de l'acquisition, mais `state` reflète l'état courant du dispatch
+et vaut `completed` ou `interrupted` si le vol a été clôturé entre-temps. Ce
+n'est donc pas une réponse stockée verbatim. T0065 tranche s'il faut la stocker —
+`private.flight_start_commands` conserve déjà l'avion, le dispatch et l'instant de
+départ — ou réduire la garantie à l'absence de second départ.
 
 `public.close_flight` n'est pas gardé, sur décision d'Andy du 4 août 2026 : un vol
 déjà en cours reste clôturable et réglé même après la fin de la location, sinon un
