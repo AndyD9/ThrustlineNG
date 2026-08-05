@@ -190,7 +190,7 @@
         "owner A cannot start owner B dispatch",
         "not aircraft.is_usable",
         "a draft created while usable cannot depart once usage is suspended",
-        "a start acquired before the usage loss replays the stored response identically"
+        "a start acquired before the usage loss replays identically while the dispatch is active"
       ],
       "limitations": ["Only the server transitions from one owned draft to one server-timed active flight, and from that flight to one of the two terminal states, are covered. No Auth boundary, desktop caller, flight phase detection or resume exists. T0054 broadcasts bounded replay telemetry on the local bridge contract to authenticated loopback subscribers only, without persisting flight state or linking any sample to a company, a flight or the ledger.", "The flight start now opposes the end of an aircraft lease: it derives the aircraft from the dispatch, locks it last in the documented company, dispatch, aircraft order and refuses a fresh draft-to-active transition on an unusable aircraft with its existing opaque message. A start already acquired replays unchanged, and close_flight is deliberately unguarded so a flight under way stays closeable, per Andy's decision of 4 August 2026."]
     },
