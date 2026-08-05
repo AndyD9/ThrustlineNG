@@ -80,6 +80,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060 fusionnée, décision Andy du 5 août 2026 | Ready |
 | T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
 | T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
+| T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 fusionné, T0064 non fusionné, décisions Andy | Draft |
 
 L'identifiant T0064 est réservé par la Pull Request brouillon #113, non fusionnée
 au 5 août 2026 : il n'est pas réutilisé ici et le trou dans la suite est
@@ -465,3 +466,20 @@ brouillon #112, parce qu'il redéfinit la même fonction et qu'un quatrième con
 sur cette définition vivante serait rouvert autrement. T0066 peut devenir `Ready`
 sans décision. T0067 attend encore une décision nommée d'Andy, consignée dans son
 fichier avec sa condition de sortie.
+
+T0068 change l'unité de découpage elle-même, sur les quatre décisions d'Andy du
+5 août 2026 : une capacité devient un slice vertical complet suivi dans un seul
+fichier, sur une seule branche et une seule Pull Request, découpée en jalons
+internes ordonnés. Les 63 tickets existants et cet index sont gelés comme
+historique, sans regroupement rétroactif ; la nouvelle numérotation démarre en
+`F0001` sous `docs/features/`. Le plafond passe de trois flux à deux
+fonctionnalités simultanées, et les trois champs d'autonomie de T0063 sont portés
+par le jalon afin que la frontière d'un run non surveillé reste évaluée là où elle
+a un sens. Le cadrage est motivé par une mesure : 63 tickets pour 19 296 lignes,
+un index de 439 lignes, 113 merges, 24 worktrees résiduels, 4 tickets de
+réconciliation d'index sans capacité produit, et 4 à 6 tickets par capacité
+utilisateur — donc autant de bases de branche à choisir, d'où les PR correctives
+#69, #73, #79, #83 et, le 5 août 2026, la PR #110 fusionnée hors de `main`.
+T0068 est `Draft` : la PR #113 touche déjà les mêmes workflows de la boucle. Sa
+dépendance sur T0063 est en revanche satisfaite depuis la PR corrective #117,
+fusionnée au merge `f4ea508` avec ses trois checks verts.
