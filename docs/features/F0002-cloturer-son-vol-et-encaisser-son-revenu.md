@@ -1,0 +1,250 @@
+# F0002 — Clôturer son vol et encaisser son revenu depuis l'application
+
+Status: Draft
+Owner: Unassigned
+Branch: `feature/f0002-cloturer-son-vol-et-encaisser-son-revenu`
+Phase: 2–4
+Risk: High
+Security-sensitive: Yes
+Autonomous: No
+
+## Goal
+
+Depuis l'application, la personne dont le vol est en cours peut le clôturer une
+seule fois et voir le revenu net crédité à sa compagnie, son avion redevenu
+disponible et sa réputation mise à jour.
+
+## Context
+
+`public.close_flight` est livrée dans `main` depuis T0051 : elle est `security
+definer`, réservée à `service_role`, valide strictement le jeu de clés du rapport,
+verrouille compagnie, sujet financier puis dispatch, retient
+`min(temps déclaré, temps écoulé serveur)`, dérive la distance du référentiel T0057,
+applique plancher et plafond, puis écrit dans une seule transaction l'état terminal,
+le rapport, l'écriture nette `flight_settlement`, l'événement de réputation et son
+registre d'idempotence. `get_company_reputation` rend un score borné informatif.
+
+Comme le départ de vol avant F0001, cette commande n'a **ni frontière Auth ni
+appelant**. C'est la dernière étape du golden path serveur dans ce cas.
+
+Elle porte en plus une question que le départ de vol n'a pas : le rapport contient
+`blockMinutes`, obligatoire, plus `landingVerticalSpeedFpm` et `fuelUsedKg`
+facultatifs. Aucune télémétrie n'alimente ces champs aujourd'hui — T0054 publie une
+télémétrie bornée sur le contrat local du bridge, mais rien ne la relie au cycle de
+vol, et T0059 attend un MSFS réel. **D'où vient donc le rapport ?** C'est une
+décision produit, pas un choix d'implémentation, et c'est la raison du statut
+`Draft`.
+
+## Décision attendue d'Andy
+
+Une seule décision bloque cette fonctionnalité. Elle n'est pas prise.
+
+**Qui déclare le temps de vol d'un rapport de clôture, dans l'alpha, tant qu'aucune
+télémétrie n'est reliée au cycle de vol ?**
+
+- **A — la personne le saisit.** Le panneau demande un temps de bloc en minutes, et
+  éventuellement le taux de descente à l'atterrissage et le carburant consommé. Le
+  serveur retient déjà `min(déclaré, écoulé)`, donc une surdéclaration ne paie pas ;
+  une sous-déclaration réduit le revenu de la personne elle-même. Coût : un champ à
+  remplir que la télémétrie rendra caduc, et une UX à jeter en partie.
+- **B — le serveur déduit tout.** Le rapport envoyé ne contient que l'issue
+  (`completed` ou `interrupted`) et le temps de bloc devient le temps écoulé serveur.
+  Coût : `close_flight` n'accepte pas aujourd'hui un rapport sans `blockMinutes`, donc
+  cette option demande une migration append-only de plus sur une commande financière
+  — exactement ce que F0001 n'a pas eu besoin de faire.
+- **C — attendre la télémétrie.** La clôture depuis l'application attend que le
+  cycle de vol consomme la source T0054/T0059. Coût : le golden path reste
+  inachevable depuis l'application jusqu'à un MSFS réel, alors que tout le reste est
+  livré.
+
+Condition de sortie : la décision est reportée datée dans cette section, puis le
+statut passe `Ready` et les jalons ci-dessous sont ajustés à l'option retenue.
+
+## Dependencies
+
+- T0051 — clôture autoritaire, règlement, réputation (`Done`, dans `main`) ;
+- T0057 — référentiel d'aérodromes dont la distance est dérivée (`Done`) ;
+- F0001 — la capacité de faire décoller un vol depuis l'application : sans elle,
+  aucun vol `active` n'existe côté application à clôturer. **F0001 doit être fusionnée
+  avant J1** ;
+- décision d'Andy ci-dessus : non prise.
+
+## Allowed areas
+
+À confirmer une fois la décision prise. Périmètre prévu :
+
+- `supabase/functions/flight-close/` (nouveau) ;
+- `supabase/config.toml` ;
+- `tests/backend/run.ps1` ;
+- `scripts/validate-flight-close-runtime.ps1` (nouveau) ;
+- `package.json` ;
+- `apps/desktop/src/features/flight-dispatch/` et, si la lecture du solde est
+  nécessaire, `apps/desktop/src/features/` d'un panneau de finances borné ;
+- `eng/authority-inventory.json` ;
+- `docs/SECURITY.md`, `docs/ARCHITECTURE.md`, `docs/QUALITY.md`,
+  `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md` ;
+- ce fichier et `docs/features/README.md`.
+
+L'option B ajouterait `supabase/migrations/` et `supabase/tests/database/`, ce qui
+change la nature du travail : une commande financière redéfinie, pas seulement une
+frontière ajoutée.
+
+## Do not touch
+
+- `eng/flight-settlement-policy.json` et le barème décidé le 3 août 2026 : cette
+  fonctionnalité expose la clôture, elle ne rediscute pas son économie ;
+- le grand livre, ses écritures append-only et l'anonymisation T0020 ;
+- la garde d'usage T0060 et la restitution T0065 ;
+- toute cible distante, tout projet managé, toute donnée réelle.
+
+## Non-goals
+
+- télémétrie reliée au cycle de vol, détection de phases, reprise après crash ;
+- annulation d'un vol en cours, ou clôture par un tiers ;
+- historique de vols, statistiques ou classements ;
+- effets de réputation sur une capacité : elle reste informative par T0051.
+
+## Jalons
+
+Provisoires : ordonnés et bornés, mais à ajuster à l'option retenue. Ils ne sont pas
+exécutables tant que le statut est `Draft`.
+
+### J1 — La clôture derrière une frontière authentifiée
+
+Status: Draft
+Risk: High
+Security-sensitive: Yes
+Autonomous: No
+
+- résultat : `POST /functions/v1/flight-close` accepte un bearer et un corps borné
+  contenant le dispatch, la clé d'idempotence et le rapport strictement allowlisté,
+  vérifie la session, dérive `owner_id`, appelle `close_flight` sous timeout et rend
+  une projection `no-store` des champs publics, montant réglé compris. Aucun montant,
+  distance, multiplicateur ni devise n'est accepté d'un client.
+- frontière : Edge Function devant une commande financière.
+- validations : tests de la fonction, `backend:check` avec ses mutations nouvelles,
+  `authority:check`, `data-policy:check`.
+- revue : chercher tout chemin par lequel un client influencerait le montant, et
+  tout refus qui révélerait l'état ou le solde.
+
+### J2 — La frontière prouvée sur l'Edge Runtime local réel
+
+Status: Draft
+Risk: Low
+Security-sensitive: No
+Autonomous: Yes
+
+- résultat : un script enchaîne Auth → `flight-close` → RPC sur un vol réellement
+  démarré : réglage unique, rejeu convergent sans seconde écriture, refus sans JWT,
+  refus d'un vol étranger, refus d'un vol déjà clôturé, état SQL relevé et pile
+  détruite.
+- frontière : Edge Runtime local.
+- validations : le script, échouant fermé.
+- revue : vérifier qu'un rejeu ne produit pas une seconde écriture financière et que
+  le motif de chaque refus est comparé, pas déduit d'un code de sortie.
+
+### J3 — La clôture composée depuis le desktop
+
+Status: Draft
+Risk: Medium
+Security-sensitive: No
+Autonomous: No
+
+- résultat : un vol `active` possédé peut être clôturé depuis l'application, avec
+  l'issue et le rapport que la décision d'Andy aura fixés ; le montant réglé et le
+  nouvel état sont affichés depuis la réponse serveur, la flotte et la liste des
+  dispatchs sont relues, un double clic et un retry ne règlent jamais deux fois.
+- frontière : desktop React.
+- validations : typecheck, tests, couverture, build, `authority:check`.
+- revue : vérifier qu'aucun montant n'est calculé côté client, même pour affichage.
+
+## Acceptance criteria
+
+- [ ] Un vol `active` possédé peut être clôturé une seule fois depuis l'application.
+- [ ] Le montant, la distance, le multiplicateur et la devise viennent exclusivement
+      du serveur, y compris à l'affichage.
+- [ ] Un rejeu, un double clic ou un vol déjà clôturé ne produisent ni seconde
+      écriture financière, ni second rapport, ni second événement de réputation.
+- [ ] Un vol inconnu, étranger ou déjà terminal rend le même refus indistinguable.
+- [ ] La frontière est prouvée sur l'Edge Runtime local réel.
+- [ ] L'avion redevient dispatchable après la clôture, et la liste le montre.
+- [ ] Chaque règle nouvelle du gate est prouvée par au moins une mutation négative.
+- [ ] La documentation décrit la capacité livrée et ce qui reste absent.
+
+## Security review
+
+Jalon concerné : **J1**, et à revalider en J3 pour l'affichage.
+
+- actifs/données : argent, réputation, état terminal d'un vol, credential serveur ;
+- frontière : Edge Function authentifiée devant une commande financière ;
+- abus : clôturer le vol d'un autre, régler deux fois la même clé, influencer le
+  montant par le rapport, sonder un solde par la forme d'un refus ;
+- validation/autorisation : bearer vérifié auprès d'Auth, anonyme refusé, `owner_id`
+  dérivé de la réponse Auth, jeu de clés du rapport strictement allowlisté et borné ;
+- atomicité/idempotence : appartiennent à `close_flight` ; la frontière ne réessaie
+  pas et ne réécrit pas sa réponse ;
+- logs/vie privée : aucun montant, JWT, email ni détail SQL journalisé.
+
+## Maintenance review
+
+- dettes et problèmes connus applicables : `KI-025`, `KI-021` ;
+- dette créée ou aggravée : à évaluer selon l'option retenue ; l'option B redéfinit
+  une commande financière et hérite du coût de `LC-2026-002` ;
+- règle de sécurité ajoutée : la frontière de clôture dans `SECURITY.md` ;
+- contrôle manuel à automatiser : la validation runtime de J2 ;
+- risque résiduel : un temps de vol déclaré par la personne reste une donnée non
+  vérifiée, bornée seulement par `min(déclaré, écoulé)`. À consigner explicitement si
+  l'option A est retenue.
+
+## Automated validation
+
+À compléter une fois la décision prise ; forme attendue identique à celle de F0001,
+avec `backend:test` en plus si l'option B impose une migration.
+
+## Manual verification
+
+Une vérification par jalon, plus un parcours de bout en bout login → compagnie →
+catalogue → achat → dispatch → départ → clôture, avec relevé du solde avant et après.
+
+## Rollback
+
+Avant fusion, abandonner la branche. Après fusion, retirer la frontière et son
+appelant laisse `close_flight` réservée à `service_role`. Aucune écriture de grand
+livre déjà produite n'est réversible : c'est la raison pour laquelle le règlement
+reste serveur et unique.
+
+## Completion Report
+
+Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
+
+### J1
+
+- résultat obtenu :
+- fichiers modifiés :
+- commandes et résultats :
+- vérification manuelle :
+- revue et constats traités :
+
+### J2
+
+- résultat obtenu :
+- fichiers modifiés :
+- commandes et résultats :
+- vérification manuelle :
+- revue et constats traités :
+
+### J3
+
+- résultat obtenu :
+- fichiers modifiés :
+- commandes et résultats :
+- vérification manuelle :
+- revue et constats traités :
+
+### Synthèse
+
+### Risks and limitations
+
+### Follow-ups
+
+### Documentation updated

@@ -32,9 +32,21 @@ gelée du format précédent.
 
 | ID | Titre | Phase | Dépend de | Statut |
 | --- | --- | --- | --- | --- |
+| F0001 | Faire décoller un vol préparé depuis l'application | 2–4 | T0050, T0048, T0052–T0053, T0065 fusionné | Ready |
+| F0002 | Clôturer son vol et encaisser son revenu depuis l'application | 2–4 | T0051, T0057, F0001 fusionnée, décision Andy | Draft |
 
-Aucune fonctionnalité n'est encore ouverte. La première remplacera la vague de
-tickets restante décrite dans `docs/ROADMAP.md`.
+Les deux premières fonctionnalités ouvrent le format sur ce qui restait du golden
+path : `start_flight_from_dispatch` et `close_flight` sont livrées dans `main` depuis
+T0050 et T0051, mais ce sont les deux seules commandes du golden path sans frontière
+authentifiée ni appelant. Chacune est donc un slice vertical de trois jalons —
+frontière Edge, validation sur l'Edge Runtime local réel, composition desktop — au
+lieu des quatre à six tickets que le format précédent aurait produits.
+
+F0001 est `Ready` : aucune décision n'est en attente, et sa seule condition d'ordre
+est la fusion de la PR #121 (T0065), qui change le contrat de rejeu que sa projection
+publique doit refléter. F0002 est `Draft` sur une décision nommée d'Andy : d'où vient
+le temps de vol d'un rapport de clôture tant qu'aucune télémétrie n'est reliée au
+cycle de vol. Les trois options et leurs coûts sont posés dans son fichier.
 
 ## Transition
 
