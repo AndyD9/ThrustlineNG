@@ -103,6 +103,26 @@ même si la nouvelle définition perd un de leurs invariants.
   exactement le défaut que T0062 corrige dans `main`, il est étranger à ce ticket
   et le gate passe après la fusion. Aucun fichier SQL n'est touché par la fusion,
   donc les preuves pgTAP et de types restent valides.
+- 5 août 2026 — branche poussée et **Pull Request brouillon #112** ouverte vers
+  `main` : <https://github.com/AndyD9/ThrustlineNG/pull/112>, base `main`, head
+  `feature/T0060-aircraft-usability-guard`, état `MERGEABLE`. Le job Linux
+  `Supabase PostgreSQL 17` **réussit en 3 min 32 s**, ce qui lève la seule réserve
+  du ticket : `scripts/ci/test-backend.ps1` lance la course entre le retrait
+  d'usage et la création d'un brouillon et échoue fermé si elle ne converge pas,
+  donc son succès prouve la convergence sur le runner Linux. La fusion reste
+  exclusivement à Andy.
+- 5 août 2026 — les **trois checks GitHub sont verts** sur la PR #112 :
+  `Audits, licences and SBOM` en 3 min 50 s, `Supabase PostgreSQL 17` en
+  3 min 32 s et `Windows multi-stack` en 17 min 19 s. Le journal du job Linux rend
+  les lignes attendues :
+  `Applying migration 20260805000100_aircraft_usability_guard.sql...` sur les deux
+  resets, `aircraft_usability_guard.test.sql .......... ok`,
+  `Files=23, Tests=539` puis `Result: PASS`,
+  `Aircraft usability concurrency passed: 2 sessions, 1 temporal command, unusable
+  aircraft, no dispatch and no orphan command.` et enfin
+  `Backend CI passed: 2 resets, 23 pgTAP files, ... aircraft lease and aircraft
+  usability withdrawal, ...`. La dernière réserve du ticket est donc levée par le
+  harnais lui-même, et non déduite d'un code de sortie.
 
 ## Dependencies
 
@@ -294,14 +314,13 @@ même si la nouvelle définition perd un de leurs invariants.
 - [x] Les mutations négatives du gate échouent quand la garde est retirée,
       affaiblie, rendue bavarde, ouverte à un rôle client ou pilotée par un
       paramètre d'appelant.
-- [ ] Deux resets consécutifs, tous les pgTAP, les types régénérés et les gates
+- [x] Deux resets consécutifs, tous les pgTAP, les types régénérés et les gates
       passent avec des décomptes réellement découverts et consignés ; la course
       concurrente est confirmée sur le runner CI Linux.
-      **Partiel** : les deux resets, les 23 fichiers / 539 assertions, les types
-      inchangés et les cinq gates sont prouvés localement le 5 août 2026 ; la
-      course concurrente est écrite dans `scripts/ci/test-backend.ps1` mais
-      **non exécutée ici**, ce harnais refusant toute machine autre que le runner
-      CI Linux. Elle reste à confirmer sur la Pull Request.
+      Localement le 5 août 2026 : deux resets, 23 fichiers / 539 assertions, types
+      inchangés, cinq gates verts. Sur le runner Linux de la PR #112, le harnais
+      rend lui-même `Aircraft usability concurrency passed: 2 sessions, 1 temporal
+      command, unusable aircraft, no dispatch and no orphan command.`
 - [x] La documentation distingue la garde livrée de ce qui reste absent :
       ordonnanceur, endpoint et autres sources d'indisponibilité.
 
@@ -478,7 +497,18 @@ PostgreSQL 17, worktree `.worktrees/t0060`.
 | `pnpm ci:check` | réussi — dépôt plus 2 mutations | statique |
 | `pnpm backend:stop` | réussi — pile arrêtée, seul le cache d'images conservé | — |
 | `git diff --cached --check` | réussi, aucune sortie | — |
-| `pnpm ci:backend` | **non exécuté** | `scripts/ci/test-backend.ps1` refuse toute machine autre que le runner CI Linux ; la course concurrente T0060 reste à confirmer sur la PR |
+| `pnpm ci:backend` | **non exécuté localement, réussi sur le runner CI Linux de la PR #112** | `scripts/ci/test-backend.ps1` refuse toute machine autre que le runner Linux ; sa course concurrente T0060 est prouvée par le job `Supabase PostgreSQL 17`, pas par cette machine |
+
+Preuve CI de la PR #112, run `31002454980` : les trois checks sont verts —
+`Audits, licences and SBOM` 3 min 50 s, `Supabase PostgreSQL 17` 3 min 32 s,
+`Windows multi-stack` 17 min 19 s. Le journal du job Linux applique
+`20260805000100_aircraft_usability_guard.sql` sur les deux resets, rend
+`aircraft_usability_guard.test.sql .......... ok`, `Files=23, Tests=539`,
+`Result: PASS`, puis
+`Aircraft usability concurrency passed: 2 sessions, 1 temporal command, unusable
+aircraft, no dispatch and no orphan command.` et
+`Backend CI passed: 2 resets, 23 pgTAP files, ... aircraft lease and aircraft
+usability withdrawal, ...`.
 
 Décompte réellement découvert : 23 fichiers pgTAP et **539 assertions**, contre 22
 et 502 avant ce ticket, soit **37 assertions nouvelles**. Le gate backend porte
@@ -551,7 +581,12 @@ harnais Linux `ci:backend` : elle doit être confirmée par le job
   par rapport à l'heure murale : un avion peut rester utilisable après sa date
   réelle d'expiration jusqu'au prochain appel manuel de la commande temporelle.
 - **Course concurrente non exécutée ici.** Elle est écrite dans le harnais Linux
-  et n'a pas tourné sur cette machine ; son résultat est attendu de la CI.
+  et n'a pas tourné sur cette machine ; elle est prouvée par le job
+  `Supabase PostgreSQL 17` de la PR #112 et reste non reproductible sous Windows.
+  Elle repose sur un ordonnancement temporel — la session temporelle ouvre 750 ms
+  avant la session de dispatch et tient la ligne d'avion quatre secondes —, comme
+  les courses de location, d'achat, de dispatch et de clôture déjà en place ; une
+  inversion la ferait échouer plutôt que passer à tort.
 - **Canal résiduel au départ de vol.** Le message et le SQLSTATE d'un avion
   inutilisable et d'un dispatch étranger sont identiques, mais le `CONTEXT`
   PostgreSQL cite deux lignes différentes de la fonction. Ce `CONTEXT` n'est ni un

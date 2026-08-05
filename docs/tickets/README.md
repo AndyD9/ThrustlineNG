@@ -434,6 +434,7 @@ indistinguable d'un avion étranger. `close_flight` reste sans garde, sur décis
 d'Andy du 4 août 2026 : un vol déjà en cours se clôture et se règle, seul le
 brouillon suivant est refusé. T0060 est `Review` : 23 fichiers / 539 assertions
 pgTAP, les types inchangés, cinq gates et la vérification manuelle passent
-localement le 5 août 2026, mais la course concurrente entre commande temporelle et
-création de brouillon appartient au harnais CI Linux et reste à confirmer sur la
-Pull Request.
+localement le 5 août 2026, et la Pull Request brouillon #112 rend ses trois checks
+verts, le job Linux prouvant la course entre commande temporelle et création de
+brouillon, non exécutable sous Windows. Ces checks verts ne valent pas fusion : le
+merge appartient à Andy.

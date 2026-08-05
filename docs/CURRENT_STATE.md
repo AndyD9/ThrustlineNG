@@ -926,9 +926,18 @@ Cette tranche n'ajoute ni ordonnanceur d'échéances, ni frontière Auth, ni end
 ni appelant desktop, ni cible distante, ni donnée réelle, et rien n'est encore
 fusionné dans `main`. La garde est exacte par rapport à l'état enregistré, pas par
 rapport à l'heure murale : sans ordonnanceur, un avion peut rester utilisable après
-sa date réelle d'expiration jusqu'au prochain appel de la commande temporelle. La
-course concurrente entre commande temporelle et création de brouillon appartient au
-harnais CI Linux et reste à confirmer sur la Pull Request.
+sa date réelle d'expiration jusqu'au prochain appel de la commande temporelle.
+
+La Pull Request brouillon #112 porte ces changements avec ses **trois checks
+verts** : `Audits, licences and SBOM` en 3 min 50 s, `Supabase PostgreSQL 17` en
+3 min 32 s et `Windows multi-stack` en 17 min 19 s. Le job Linux lève la seule
+réserve du ticket, la course entre la commande temporelle et la création d'un
+brouillon n'étant pas exécutable sous Windows : il rend
+`Aircraft usability concurrency passed: 2 sessions, 1 temporal command, unusable
+aircraft, no dispatch and no orphan command.` puis `Backend CI passed: 2 resets,
+23 pgTAP files, ... aircraft lease and aircraft usability withdrawal, ...`. Ces
+checks verts ne valent pas fusion : T0060 reste `Review` et le merge appartient à
+Andy.
 
 ## Autorité des mutations du golden path
 

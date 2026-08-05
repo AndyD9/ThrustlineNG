@@ -895,7 +895,15 @@ via `pnpm backend:check` et PowerShell 7 via
 La course concurrente ajoutée à `scripts/ci/test-backend.ps1` — une commande
 temporelle qui retire l'usage pendant qu'un brouillon est créé sur le même avion —
 n'est pas exécutable sous Windows : le harnais refuse toute machine autre que le
-runner Linux. Elle reste à confirmer par la CI de la Pull Request, où le job Linux
-doit annoncer `Aircraft usability concurrency passed` et l'état `0|0|0|1` : aucun
-brouillon, aucune commande orpheline, avion inutilisable et une seule commande
-temporelle.
+runner Linux. Elle est prouvée sur la PR #112, run `31002454980`, où le job
+`Supabase PostgreSQL 17` réussit en 3 min 32 s et rend lui-même
+`aircraft_usability_guard.test.sql .......... ok`, `Files=23, Tests=539`,
+`Result: PASS`, puis
+`Aircraft usability concurrency passed: 2 sessions, 1 temporal command, unusable
+aircraft, no dispatch and no orphan command.` et
+`Backend CI passed: 2 resets, 23 pgTAP files, ... aircraft lease and aircraft
+usability withdrawal, ...`. La session temporelle ouvre 750 ms avant la session de
+dispatch et tient la ligne d'avion quatre secondes, comme les courses de location,
+d'achat, de dispatch et de clôture déjà en place ; l'état attendu après la course
+est `0|0|0|1` — aucun brouillon, aucune commande orpheline, avion inutilisable et
+une seule commande temporelle.
