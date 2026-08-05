@@ -73,7 +73,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Done |
 | T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Done |
 | T0059 | Prouver le premier slice SimConnect réel et capturer son corpus | 3 | T0011, T0014–T0015, T0054, ADR-0003, MSFS 2024 installé, décision Andy | Draft |
-| T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Ready |
+| T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Review |
 | T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
 | T0062 | Réparer le gate d'automatisation des tickets et l'exécuter en CI | Gouvernance | T0055, T0061 | Verify |
 | T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060, décision Andy | Draft |
