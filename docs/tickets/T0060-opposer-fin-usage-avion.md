@@ -1,6 +1,6 @@
 # T0060 — Opposer la fin d'usage d'un avion au dispatch et au départ de vol
 
-Status: Ready
+Status: Review
 Owner: Andy
 Branch: `feature/T0060-aircraft-usability-guard`
 Phase: 2
@@ -83,6 +83,46 @@ même si la nouvelle définition perd un de leurs invariants.
   `tests/backend/run.ps1` reçoit trois marqueurs qui interdisent une nouvelle
   dérive silencieuse du décompte. Ce ticket enregistrera ses propres fichiers
   pgTAP dans la même chaîne et mettra à jour le même décompte.
+- 5 août 2026 — passage en `In progress` dans le fichier et dans l'index, sur la
+  branche `feature/T0060-aircraft-usability-guard` créée depuis `origin/main` au
+  merge `c51f3fe`. Le worktree dédié `.worktrees/t0060` est propre à la création
+  et aucune modification préexistante n'y est constatée. La dépendance T0032 est
+  revérifiée à cette date : la migration
+  `supabase/migrations/20260804000200_authoritative_aircraft_lease.sql` est bien
+  présente dans `origin/main`, donc le prérequis de fusion reste acquis.
+- 5 août 2026 — passage en `Review` dans le fichier et dans l'index après
+  implémentation, preuves locales et revue adversariale du diff. Le seul contrôle
+  non exécuté ici est la course concurrente du harnais CI Linux, qui reste attendue
+  de la Pull Request ; aucune Pull Request n'est fusionnée par ce ticket.
+- 5 août 2026 — `origin/main` avait avancé de deux commits pendant
+  l'implémentation (T0062, merge `c0f16dc`). `origin/main` est fusionné dans la
+  branche sans conflit — la seule zone commune est la ligne d'index ajoutée pour
+  T0062, résolue automatiquement — puis tous les statuts ticket/index sont
+  revérifiés et tous les gates statiques rejoués sur l'arbre fusionné. Avant cette
+  fusion, `pnpm ticket-automation:check` échouait sur la branche : c'est
+  exactement le défaut que T0062 corrige dans `main`, il est étranger à ce ticket
+  et le gate passe après la fusion. Aucun fichier SQL n'est touché par la fusion,
+  donc les preuves pgTAP et de types restent valides.
+- 5 août 2026 — branche poussée et **Pull Request brouillon #112** ouverte vers
+  `main` : <https://github.com/AndyD9/ThrustlineNG/pull/112>, base `main`, head
+  `feature/T0060-aircraft-usability-guard`, état `MERGEABLE`. Le job Linux
+  `Supabase PostgreSQL 17` **réussit en 3 min 32 s**, ce qui lève la seule réserve
+  du ticket : `scripts/ci/test-backend.ps1` lance la course entre le retrait
+  d'usage et la création d'un brouillon et échoue fermé si elle ne converge pas,
+  donc son succès prouve la convergence sur le runner Linux. La fusion reste
+  exclusivement à Andy.
+- 5 août 2026 — les **trois checks GitHub sont verts** sur la PR #112 :
+  `Audits, licences and SBOM` en 3 min 50 s, `Supabase PostgreSQL 17` en
+  3 min 32 s et `Windows multi-stack` en 17 min 19 s. Le journal du job Linux rend
+  les lignes attendues :
+  `Applying migration 20260805000100_aircraft_usability_guard.sql...` sur les deux
+  resets, `aircraft_usability_guard.test.sql .......... ok`,
+  `Files=23, Tests=539` puis `Result: PASS`,
+  `Aircraft usability concurrency passed: 2 sessions, 1 temporal command, unusable
+  aircraft, no dispatch and no orphan command.` et enfin
+  `Backend CI passed: 2 resets, 23 pgTAP files, ... aircraft lease and aircraft
+  usability withdrawal, ...`. La dernière réserve du ticket est donc levée par le
+  harnais lui-même, et non déduite d'un code de sortie.
 
 ## Dependencies
 
@@ -252,32 +292,47 @@ même si la nouvelle définition perd un de leurs invariants.
 
 ## Acceptance criteria
 
-- [ ] Une seule migration append-only ajoute la garde, sans modifier ni
+- [x] Une seule migration append-only ajoute la garde, sans modifier ni
       supprimer aucune migration livrée, avec un horodatage vérifié contre
       `origin/main` au moment de l'implémentation.
-- [ ] Un avion dont la location est expirée, en défaut, résiliée ou suspendue
+- [x] Un avion dont la location est expirée, en défaut, résiliée ou suspendue
       pendant la grâce est refusé **aux deux bornes** : création de brouillon et
       départ de vol.
-- [ ] Les deux refus rendent les messages publics génériques déjà livrés, sans
+- [x] Les deux refus rendent les messages publics génériques déjà livrés, sans
       révéler l'existence ni l'état d'une location ; le refus est indistinguable
       de celui d'un avion étranger.
-- [ ] Un avion acheté comptant, un avion sous location `active` et un avion
+- [x] Un avion acheté comptant, un avion sous location `active` et un avion
       revenu de `grace` à `active` restent dispatchables et démarrables.
-- [ ] Un vol déjà en cours reste clôturable et réglé normalement, conformément à
+- [x] Un vol déjà en cours reste clôturable et réglé normalement, conformément à
       la décision d'Andy, et le même avion refuse ensuite un nouveau brouillon.
 - [ ] Le rejeu d'une commande de départ acquise avant la perte d'usage rend la
-      même réponse stockée.
-- [ ] Les redéfinitions de `create_dispatch_draft` et
+      même réponse stockée. **Non satisfait, et volontairement laissé décoché.**
+      La garde ne s'applique effectivement jamais à un rejeu et aucun second
+      départ n'est créé — c'est la propriété que ce ticket devait préserver, et
+      elle est prouvée. Mais le chemin de rejeu de T0050, repris inchangé,
+      reconstruit sa réponse depuis la ligne de dispatch vivante au lieu de la
+      relire d'un enregistrement : après un `close_flight`, le rejeu rend
+      `state = 'completed'` au lieu de `'active'`, et `startedAt = null` parce que
+      le trigger `private.set_flight_dispatch_started_at` efface cet instant dès
+      que l'état quitte `active`. L'exigence §2 demande à la fois que
+      ce chemin « reste inchangé » et qu'il rende « la même réponse stockée » :
+      les deux moitiés ne peuvent pas être vraies ensemble. T0065 porte cette
+      contradiction et sa décision.
+- [x] Les redéfinitions de `create_dispatch_draft` et
       `start_flight_from_dispatch` conservent tous les invariants T0047, T0050,
       T0051 et T0057, et ces invariants sont réaffirmés par les marqueurs du
       gate contre le nouveau fichier.
-- [ ] Les mutations négatives du gate échouent quand la garde est retirée,
+- [x] Les mutations négatives du gate échouent quand la garde est retirée,
       affaiblie, rendue bavarde, ouverte à un rôle client ou pilotée par un
       paramètre d'appelant.
-- [ ] Deux resets consécutifs, tous les pgTAP, les types régénérés et les gates
+- [x] Deux resets consécutifs, tous les pgTAP, les types régénérés et les gates
       passent avec des décomptes réellement découverts et consignés ; la course
       concurrente est confirmée sur le runner CI Linux.
-- [ ] La documentation distingue la garde livrée de ce qui reste absent :
+      Localement le 5 août 2026 : deux resets, 23 fichiers / 539 assertions, types
+      inchangés, cinq gates verts. Sur le runner Linux de la PR #112, le harnais
+      rend lui-même `Aircraft usability concurrency passed: 2 sessions, 1 temporal
+      command, unusable aircraft, no dispatch and no orphan command.`
+- [x] La documentation distingue la garde livrée de ce qui reste absent :
       ordonnanceur, endpoint et autres sources d'indisponibilité.
 
 ## Security review
@@ -367,18 +422,282 @@ dette de sécurité, puisqu'elle rouvre l'usage hors contrat.
 
 ## Completion Report
 
-À remplir après implémentation.
-
 ### Summary
+
+Une seule migration append-only,
+`supabase/migrations/20260805000100_aircraft_usability_guard.sql`, rend
+`public.company_aircraft.is_usable` opposable aux deux seules entrées qui mettent
+un avion en service. Son horodatage a été vérifié au moment de l'implémentation
+contre `origin/main` au merge `c51f3fe` : le dernier fichier présent est
+`20260804000200_authoritative_aircraft_lease.sql`, donc `20260805000100` lui est
+strictement supérieur. Aucune migration livrée n'est modifiée ni supprimée.
+
+`public.create_dispatch_draft` et `public.start_flight_from_dispatch` sont
+redéfinies en bloc, à partir de leurs définitions vivantes respectives
+(`20260804000100_authoritative_flight_settlement.sql:349` et
+`20260803000200_authoritative_flight_start.sql:72`). Les deux lisent uniquement
+`is_usable`, sur la ligne d'avion dérivée du serveur et verrouillée `for update`,
+et refusent avec les messages déjà livrés
+`Aircraft is unavailable for dispatch.` et
+`Dispatch is unavailable for flight start.` sous
+`object_not_in_prerequisite_state`. Les signatures, le contrat public,
+`security definer`, `set search_path = ''` et le seul `execute` de `service_role`
+sont inchangés. `start_flight_from_dispatch` lit désormais la ligne d'avion du
+dispatch, ce qu'elle ne faisait pas du tout.
+
+Deux choix de placement sont volontaires et prouvés par le gate :
+
+- à la création d'un brouillon, la garde d'usage précède le contrôle
+  d'exclusivité, pour qu'un avion inutilisable rende le même refus opaque qu'il
+  porte ou non un dispatch ouvert. Sur la pile locale, le refus d'un avion
+  inutilisable et celui d'un avion d'une autre compagnie partent de la même ligne
+  de la fonction (`line 110`) : ils sont indistinguables jusque dans le `CONTEXT`
+  PostgreSQL ;
+- au départ de vol, la garde suit le chemin de rejeu, pour qu'un départ déjà
+  acquis ne soit jamais refusé après la perte d'usage et ne crée aucun second
+  départ. Ce rejeu rend une réponse identique tant que le dispatch est encore
+  `active`, ce que le pgTAP prouve ; il ne rend pas une réponse stockée verbatim
+  après une clôture, parce qu'il la reconstruit depuis la ligne de dispatch
+  vivante — voir le critère décoché et T0065.
+
+`public.close_flight` n'est pas modifié : conformément à la décision d'Andy du
+4 août 2026, un vol déjà en cours reste clôturable et réglé, et seul le brouillon
+suivant est refusé. Aucune écriture de `is_usable` n'est ajoutée ; les trois
+commandes de location restent sa seule autorité, ce que le gate vérifie.
 
 ### Files changed
 
+- `supabase/migrations/20260805000100_aircraft_usability_guard.sql` — nouvelle
+  migration append-only : redéfinition en bloc des deux commandes, garde d'usage,
+  ordre de verrouillage documenté, commentaire de colonne ;
+- `supabase/tests/database/aircraft_usability_guard.test.sql` — nouveau fichier
+  pgTAP, 37 assertions réellement découvertes ;
+- `tests/backend/run.ps1` — chemins attendus, série de marqueurs T0060,
+  réaffirmation des invariants T0047/T0050/T0051/T0057 contre le nouveau fichier,
+  garde append-only à décompte explicite de onze migrations livrées, marqueurs de
+  scénarios pgTAP, exigences CI et six mutations négatives nouvelles ;
+- `scripts/ci/test-backend.ps1` — fichier pgTAP attendu, décompte porté à
+  vingt-trois, course concurrente « retrait d'usage contre création de brouillon »
+  et ligne de résumé ;
+- `eng/authority-inventory.json` — les domaines `dispatch` et `flight-runtime`
+  déclarent l'opposabilité de la fin d'usage, avec chemins, marqueurs et limites ;
+  aucun statut d'autorité des commandes de location n'est modifié ;
+- `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/QUALITY.md`,
+  `docs/CURRENT_STATE.md` ;
+- `docs/tickets/T0060-opposer-fin-usage-avion.md`, `docs/tickets/README.md`.
+
+Aucun autre chemin n'est touché. `packages/database/src/database.types.ts` est
+resté inchangé et n'apparaît donc pas dans le diff : la migration ne remplace que
+des corps de fonction, ce que `pnpm backend:types:check` confirme.
+
 ### Commands and results
+
+Windows 11 Pro 26200, Docker Desktop 29.6.2, Supabase CLI 2.109.1,
+PostgreSQL 17, worktree `.worktrees/t0060`.
+
+| Commande | Résultat | Limite |
+| --- | --- | --- |
+| `pnpm backend:check` | réussi — « 50 mutation scenarios » | statique |
+| `pwsh -NoProfile -File .\tests\backend\run.ps1` | réussi — même sortie sous PowerShell 7 | statique |
+| `pnpm backend:start` | réussi | voir la note d'environnement ci-dessous |
+| `pnpm backend:reset` (1er) | réussi — douze migrations appliquées | local |
+| `pnpm backend:reset` (2e) | réussi | local |
+| `pnpm backend:test` | réussi — `Files=23, Tests=539`, `Result: PASS` | base fraîchement réinitialisée requise |
+| `pnpm backend:types:check` | réussi — « Database types match the local schema. » | local |
+| `pnpm backend:functions:test` | réussi — 46 tests Node, 0 échec | injecté |
+| `pnpm authority:check` | réussi — 10 étapes, 13 domaines, 3 surfaces, 9 mutations | statique |
+| `pnpm data-policy:check` | réussi — 6 mutations | statique |
+| `pnpm maintenance:check` | réussi — registre, index, marqueurs, 8 mutations | statique |
+| `pnpm ticket-automation:check` | **échoué avant la fusion de `origin/main`, réussi après** — 34 assertions, 10 mutations | défaut étranger au ticket, corrigé par T0062 dans `main` ; `tests/ticket-automation/run.ps1` est hors des zones autorisées de T0060 |
+| `pnpm ci:check` | réussi — dépôt plus 2 mutations | statique |
+| `pnpm backend:stop` | réussi — pile arrêtée, seul le cache d'images conservé | — |
+| `git diff --cached --check` | réussi, aucune sortie | — |
+| `pnpm ci:backend` | **non exécuté localement, réussi sur le runner CI Linux de la PR #112** | `scripts/ci/test-backend.ps1` refuse toute machine autre que le runner Linux ; sa course concurrente T0060 est prouvée par le job `Supabase PostgreSQL 17`, pas par cette machine |
+
+Preuve CI de la PR #112, run `31002454980` : les trois checks sont verts —
+`Audits, licences and SBOM` 3 min 50 s, `Supabase PostgreSQL 17` 3 min 32 s,
+`Windows multi-stack` 17 min 19 s. Le journal du job Linux applique
+`20260805000100_aircraft_usability_guard.sql` sur les deux resets, rend
+`aircraft_usability_guard.test.sql .......... ok`, `Files=23, Tests=539`,
+`Result: PASS`, puis
+`Aircraft usability concurrency passed: 2 sessions, 1 temporal command, unusable
+aircraft, no dispatch and no orphan command.` et
+`Backend CI passed: 2 resets, 23 pgTAP files, ... aircraft lease and aircraft
+usability withdrawal, ...`.
+
+Décompte réellement découvert : 23 fichiers pgTAP et **539 assertions**, contre 22
+et 502 avant ce ticket, soit **37 assertions nouvelles**. Le gate backend porte
+**50 scénarios de mutation**, contre 44 avant, soit six nouveaux : garde retirée de
+la création de brouillon, garde retirée du départ de vol, garde dégradée en
+`raise warning`, message générique remplacé par un message nommant la location,
+`execute` accordé à `authenticated`, paramètre d'usage ajouté à la signature.
+
+Note d'environnement, consignée sans être attribuée à ce ticket : au démarrage, la
+pile locale singleton portait un runtime résiduel `thrustline-local-engine` **déjà
+arrêté** (`exited 255`, démarré le 4 août 2026 à 15:36 UTC, terminé le 5 août 2026
+à 10:42 UTC) et aucun des ports 54321–54323 n'était en écoute. Aucun travail
+concurrent ne l'occupait donc. Il a été retiré par les seules commandes du dépôt
+(`pnpm backend:stop` puis le nettoyage automatique de `pnpm backend:start` en
+échec), jamais par une manipulation Docker directe.
 
 ### Manual verification result
 
+Réalisée le 5 août 2026 sur la pile locale, **sur état réellement commité** hors
+transaction annulée, en suivant les six étapes du ticket. Deux compagnies A et B,
+plus deux compagnies dédiées à la grâce et au vol en cours.
+
+1. A loue un avion et en achète un comptant ; B achète un avion et crée un
+   brouillon.
+2. Avec la location encore `active` : brouillon `draft`, départ `active`, clôture
+   `completed` réglée à `21086` unités mineures pour 18,44 NM. Un second brouillon
+   est créé sur le même avion, toujours utilisable.
+3. `terminate_aircraft_lease` rend `terminating`, puis `process_aircraft_lease` à
+   +24 h rend `terminated` avec `is_usable = f`. Le départ du brouillon
+   préexistant est refusé par `Dispatch is unavailable for flight start.`, le
+   départ du dispatch de B rend **le même message**, un nouveau brouillon sur
+   l'avion inutilisable et un brouillon sur l'avion de B rendent tous deux
+   `Aircraft is unavailable for dispatch.` **depuis la même ligne de la fonction**.
+   L'avion acheté comptant de la même compagnie reste dispatchable (`draft`).
+4. Avion suspendu pendant la grâce : état `grace`, brouillon refusé par le message
+   générique ; après un crédit au grand livre et un rattrapage à +30 h, le contrat
+   revient `active` avec `is_usable = t` et le brouillon redevient possible.
+5. Vol démarré puis avion rendu inutilisable pendant le vol : l'état rend
+   `terminated | f | active`, le rejeu de la commande de départ acquise rend
+   `replay_is_identical = t`, la clôture réussit et règle `21086`, puis un nouveau
+   brouillon sur ce même avion est refusé.
+6. `authenticated` et `anon` reçoivent `permission denied for function
+   create_dispatch_draft`, `permission denied for function
+   start_flight_from_dispatch` et `permission denied for table company_aircraft`
+   sur `update ... set is_usable`.
+
+État final commité `5|3|2|6|4|0|2|2|2` : cinq avions dont trois utilisables et deux
+inutilisables, six dispatchs dont quatre brouillons, aucun vol actif et deux vols
+clôturés, deux commandes de départ et deux rapports. Aucune donnée réelle, aucun
+secret, aucun identifiant Auth réel : uniquement des identités `.invalid`
+synthétiques. La pile a ensuite été arrêtée.
+
+La seule vérification qui reste hors de cette machine est la course concurrente du
+harnais Linux `ci:backend` : elle doit être confirmée par le job
+`Supabase PostgreSQL 17` de la Pull Request, qui doit annoncer
+`Aircraft usability concurrency passed` et l'état `0|0|0|1`.
+
 ### Risks and limitations
+
+- **Réécriture en bloc.** La définition vivante de `create_dispatch_draft` est
+  réécrite pour la troisième fois et celle de `start_flight_from_dispatch` pour la
+  seconde. Le piège identifié par le ticket est traité de front : le gate backend
+  réaffirme **contre le nouveau fichier** l'appartenance de l'avion, les deux
+  bornes du référentiel T0057 et son refus opaque, l'exclusivité limitée aux
+  dispatchs ouverts T0051, le blocage d'un compte en suppression, les deux
+  registres d'idempotence, l'empreinte de payload, la transition `draft`-seule et
+  les réponses à sept et cinq champs. Sans cela, ces invariants auraient perdu
+  leur gate au moment même où leur définition changeait de fichier.
+- **Pas d'ordonnanceur.** La garde est exacte par rapport à l'état enregistré, pas
+  par rapport à l'heure murale : un avion peut rester utilisable après sa date
+  réelle d'expiration jusqu'au prochain appel manuel de la commande temporelle.
+- **Course concurrente non exécutée ici.** Elle est écrite dans le harnais Linux
+  et n'a pas tourné sur cette machine ; elle est prouvée par le job
+  `Supabase PostgreSQL 17` de la PR #112 et reste non reproductible sous Windows.
+  Elle repose sur un ordonnancement temporel — la session temporelle ouvre 750 ms
+  avant la session de dispatch et tient la ligne d'avion quatre secondes —, comme
+  les courses de location, d'achat, de dispatch et de clôture déjà en place ; une
+  inversion la ferait échouer plutôt que passer à tort.
+- **Canal résiduel au départ de vol.** Le message et le SQLSTATE d'un avion
+  inutilisable et d'un dispatch étranger sont identiques, mais le `CONTEXT`
+  PostgreSQL cite deux lignes différentes de la fonction. Ce `CONTEXT` n'est ni un
+  message, ni un `detail`, ni un `hint`, il n'est pas rendu au client par la
+  frontière Edge, et il n'est visible que d'un opérateur disposant déjà d'un accès
+  SQL privilégié. À la création d'un brouillon, même cette différence n'existe pas.
+- **Coût de lecture du schéma.** Trois définitions successives de
+  `create_dispatch_draft` coexistent dans l'historique des migrations ; la
+  définition vivante est désormais celle de ce fichier.
+- **Aucune preuve applicative.** Ni frontière Auth, ni endpoint, ni appelant
+  desktop, ni WebView, ni cible distante, ni parité cloud, ni donnée réelle.
 
 ### Follow-ups
 
+- Ordonnanceur d'échéances de location, pour que la fin d'usage soit déclenchée par
+  le temps et non par un appel manuel de `process_aircraft_lease`.
+- Propager la garde vers la frontière Auth `dispatch-draft` et vers un futur
+  endpoint de départ de vol, sans jamais accepter d'état d'usage d'un appelant.
+- Rendre l'état d'usage lisible par le desktop pour que l'interface distingue un
+  avion indisponible d'un avion refusé, sans révéler l'existence d'une location.
+- Automatiser la course « commande temporelle contre création de brouillon »
+  ailleurs que dans le seul harnais CI Linux.
+- Écart hors périmètre relevé et **non corrigé** :
+  `docs/CURRENT_STATE.md` annonce toujours « Migrations Supabase append-only
+  constatées : 7 dans `main` » dans son inventaire reproductible, alors que
+  `origin/main` au merge `c51f3fe` en porte onze. Ce décompte est antérieur à ce
+  ticket et sort de son périmètre ; il mérite un ticket de gouvernance. Il n'est
+  pas corrigé ici pour une seconde raison : la PR brouillon #111 possède déjà ce
+  fichier et l'écrire des deux côtés recréerait la dérive de suivi des fusions
+  T0043 à T0050.
+
+### Constats de la revue adversariale du 5 août 2026
+
+La revue indépendante du diff poussé a rendu `fix required` avec quatre constats,
+tous non bloquants. Traitement, dans ce même commit sauf indication contraire :
+
+- **Corrigé — garantie de rejeu fausse (Medium).** Le critère d'acceptation
+  correspondant est décoché, et `docs/SECURITY.md`, `docs/ARCHITECTURE.md`,
+  `docs/QUALITY.md`, ce Completion Report et l'intitulé de l'assertion pgTAP
+  disent désormais ce que le code fait : la garde ne s'applique jamais à un rejeu,
+  mais la réponse rejouée n'est pas stockée verbatim. Décision de fond portée par
+  T0065.
+- **Corrigé — garde-fou append-only tautologique (Low).** `tests/backend/run.ps1`
+  comparait la taille d'un tableau de onze littéraux à `11`, un test qui ne pouvait
+  pas échouer, et n'inspectait que ces onze fichiers. Il énumère maintenant les
+  migrations réellement présentes, scanne chacune sauf celle de T0060 — donc aussi
+  une treizième à venir — et exige que les onze fichiers livrés avant T0060
+  apparaissent dans l'énumération, pour qu'une énumération cassée échoue au lieu de
+  ne rien scanner.
+- **Non corrigé, porté par T0066 — motif de refus des courses (Low).** La course
+  concurrente conclut `refused` sur le seul code de sortie non nul de `psql`, donc
+  un interblocage passerait pour un succès. Le défaut est partagé par les six
+  courses déjà livrées dans `main` : le corriger ici élargirait ce ticket et
+  entrerait en conflit avec T0066, qui le traite pour toutes.
+- **Non corrigé, hors périmètre utile — décompte de migrations (Low).** Voir le
+  point ci-dessus sur `docs/CURRENT_STATE.md` et la PR #111.
+
+### Learning candidates
+
+Selon `docs/LEARNINGS.md`, ces candidats sont consignés ici et non promus en règle
+globale, `docs/LEARNINGS.md` étant hors des zones autorisées de ce ticket.
+
+1. **Une réécriture en bloc doit réaffirmer ses invariants contre le nouveau
+   fichier.** Les marqueurs du gate backend sont épinglés par fichier de migration :
+   les séries T0047, T0050, T0051 et T0057 continuent de passer contre leurs
+   propres fichiers même quand la définition vivante déménage. Deuxième occurrence
+   indépendante de la même classe de piège après la contrainte
+   `financial_ledger_entries_known_type` réécrite par T0032 ; la règle candidate
+   est : toute migration qui redéfinit une fonction déjà livrée doit ajouter une
+   série de marqueurs qui réaffirme, contre son propre fichier, chaque invariant
+   qu'elle reprend.
+2. **L'ordre des refus est une propriété de sécurité, pas un détail de style.**
+   Placer la garde d'usage avant le contrôle d'exclusivité rend les deux refus
+   indistinguables jusque dans le `CONTEXT` PostgreSQL ; l'inverse aurait créé un
+   canal d'énumération. Encodé au niveau le plus vérifiable : deux contrôles de
+   position dans `tests/backend/run.ps1`, pas une consigne de revue.
+3. **Une pile locale singleton peut être « résiduelle » sans être « occupée ».**
+   Un runtime `exited 255` sans aucun port en écoute n'est pas un travail
+   concurrent ; distinguer les deux cas évite autant un faux blocage qu'un reset
+   destructeur. Candidat de procédure : avant de déclarer la pile occupée, relever
+   `docker inspect` et `Get-NetTCPConnection` sur 54321–54323.
+4. **`results_eq` de pgTAP échoue sur une colonne de type `name`** avec « could not
+   determine which collation to use for string comparison ». Comparer
+   `proname::text`, ou agréger en une seule chaîne, contourne le problème de façon
+   déterministe.
+5. **`proconfig` rend `search_path=""` et non `search_path=`.** Toute assertion sur
+   `set search_path = ''` doit attendre les guillemets.
+
 ### Documentation updated
+
+- `docs/ARCHITECTURE.md` — nouvelle section « Opposabilité de la fin d'usage
+  T0060 » et fermeture de la dette consignée par la section T0032 ;
+- `docs/SECURITY.md` — nouvelle section T0060 avec la règle de sécurité ajoutée, et
+  levée de la réserve « non opposable » de la section T0032 ;
+- `docs/QUALITY.md` — décompte porté à vingt-trois fichiers et 539 assertions, et
+  nouvelle section de preuve T0060 avec ses 50 mutations et sa course CI ;
+- `docs/CURRENT_STATE.md` — état prouvé de T0060 sur sa branche, avec ses décomptes
+  réels, sa vérification manuelle et ce qui reste absent ;
+- ce ticket et `docs/tickets/README.md`.

@@ -1,7 +1,7 @@
 # T0065 — Rendre le rejeu d'un départ de vol identique à la réponse acquise
 
-Status: Draft
-Owner: Unassigned
+Status: Ready
+Owner: Andy
 Branch: `fix/T0065-rejeu-depart-vol-identique`
 Phase: 2
 Risk: Medium
@@ -10,8 +10,8 @@ Security-sensitive: Yes
 ## Goal
 
 Le rejeu d'une commande de départ de vol déjà acquise rend exactement la réponse
-rendue à l'acquisition, ou la garantie documentée est réduite à ce que le code
-tient réellement. Une seule des deux issues est retenue, sur décision d'Andy.
+rendue à l'acquisition, y compris après la clôture du vol. La garantie est tenue et
+non réduite : c'est l'issue A, retenue par Andy le 5 août 2026.
 
 ## Context
 
@@ -45,9 +45,26 @@ en sévérité Medium non bloquante. L'écart est documentaire autant que techni
 `docs/SECURITY.md`, `docs/ARCHITECTURE.md` et `docs/QUALITY.md` décrivent un rejeu
 qui « rend la même réponse stockée », ce que le code ne fait pas.
 
-## Décision réservée à Andy
+## Décision d'Andy du 5 août 2026 — issue A retenue
 
-Deux issues sont possibles et elles ne coûtent pas la même chose :
+**Andy retient l'issue A : le rejeu doit rendre la réponse acquise.** La garantie
+est tenue, pas réduite. Les trois documents qui la décrivent seront donc réalignés
+sur un rejeu exact, et non sur la reconstruction actuelle.
+
+Cette décision ferme la contradiction de l'exigence §2 de T0060 en faveur de la
+moitié « rend la même réponse stockée » : le chemin de rejeu **change**, ce que
+l'autre moitié interdisait. Le contrat d'idempotence de
+`public.start_flight_from_dispatch` devient donc explicite, et
+`docs/SECURITY.md` doit le porter comme tel.
+
+Conséquence de séquencement, non négociable : ce ticket redéfinit
+`start_flight_from_dispatch`, or la Pull Request brouillon #112 la redéfinit déjà.
+Il ne peut donc pas être implémenté avant la fusion de #112, sous peine d'un
+quatrième conflit sur la définition vivante — exactement le piège que
+`LC-2026-002` décrit. Le ticket est `Ready` mais **son exécution est bloquée par
+cette fusion**, qui appartient à Andy.
+
+Les deux issues et leurs coûts, conservés pour la trace de la décision :
 
 - **A — tenir la garantie.** Le chemin de rejeu restitue la réponse acquise sans
   dépendre de l'état vivant. Coût réel, plus faible que prévu : **aucune colonne
@@ -66,18 +83,10 @@ Deux issues sont possibles et elles ne coûtent pas la même chose :
   `aircraftId`, `dispatchId` et `schemaVersion`, sans rien promettre sur `state` ni
   `startedAt`. Coût : un client ne peut plus se fier au rejeu pour connaître l'état
   ni l'instant de l'acquisition, et un rejeu après clôture rend un `startedAt` nul
-  qu'un appelant naïf peut prendre pour « jamais parti ».
+  qu'un appelant naïf peut prendre pour « jamais parti ». **Non retenue.**
 
-Cadrage utile pour trancher : l'exigence §2 de T0060 demande à la fois que ce
-chemin de rejeu « reste inchangé » et qu'il rende « la même réponse stockée ». Les
-deux moitiés sont inconciliables. L'issue A honore la seconde en renonçant à la
-première ; l'issue B fait l'inverse. C'est ce choix, et non un détail
-d'implémentation, qui est réservé à Andy.
-
-Condition de sortie : ce ticket reste `Draft` jusqu'à ce qu'Andy choisisse A ou B.
-La réponse est reportée datée dans ce ticket, qui passe alors `Ready`. Aucun agent
-ne tranche ce choix, parce qu'il fixe le contrat d'idempotence d'une commande déjà
-livrée.
+Condition de sortie remplie : la décision est reportée datée ci-dessus, le ticket
+passe `Ready`. Son exécution reste suspendue à la fusion de #112.
 
 ## Dependencies
 
@@ -91,8 +100,9 @@ livrée.
 
 ## Allowed areas
 
-- `supabase/migrations/` — au plus une migration append-only, seulement pour
-  l'issue A ;
+- `supabase/migrations/` — une seule migration append-only, dont l'horodatage doit
+  être strictement supérieur au dernier fichier présent dans `origin/main` au moment
+  de l'implémentation, et vérifié à ce moment-là ;
 - `supabase/tests/database/` — pgTAP du rejeu ;
 - `tests/backend/run.ps1` — marqueurs et mutations négatives ;
 - `packages/database/src/database.types.ts` — types régénérés par le script
@@ -113,18 +123,20 @@ livrée.
 
 ## Requirements
 
-- L'issue retenue est appliquée entièrement, jamais partiellement : soit le rejeu
-  restitue la réponse conservée, soit la promesse documentaire est réduite dans les
-  trois documents qui la portent.
-- Pour l'issue A, le chemin de rejeu ne lit plus de l'état vivant du dispatch aucun
+- L'issue A est appliquée entièrement, jamais partiellement : le rejeu restitue la
+  réponse acquise, et les trois documents qui décrivent aujourd'hui la
+  reconstruction sont réalignés sur cette exactitude dans le même changement.
+- Le chemin de rejeu ne lit plus de l'état vivant du dispatch aucun
   champ que la clôture modifie ou efface. Reconstruire la réponse depuis
   `private.flight_start_commands`, dont l'écriture appartient déjà à la transaction
   du départ, suffit et doit être préféré à l'ajout d'une colonne : ne conserver une
   donnée nouvelle que si cette reconstruction se révèle insuffisante, et le
   justifier alors dans le Completion Report.
-- Pour l'issue A, la redéfinition de `start_flight_from_dispatch` reprend
-  intégralement les invariants T0050 et la garde d'usage T0060, et les réaffirme
-  contre le nouveau fichier conformément à `LC-2026-002`.
+- La redéfinition de `start_flight_from_dispatch` reprend intégralement les
+  invariants T0050 et la garde d'usage T0060, et les réaffirme contre le nouveau
+  fichier conformément à `LC-2026-002`. C'est la troisième redéfinition de cette
+  fonction : le diff des définitions avant/après doit montrer la seule
+  restitution du rejeu, rien d'autre.
 - Un pgTAP place la clôture **avant** le rejeu : le test actuel appelle le rejeu
   avant `close_flight`, donc il ne peut pas échouer sur le cas contraire.
 - Aucun privilège client nouveau, `execute` toujours réservé à `service_role`.
@@ -138,17 +150,21 @@ livrée.
 
 ## Acceptance criteria
 
-- [ ] La décision d'Andy est reportée datée dans ce ticket avant toute
-      implémentation.
-- [ ] Un départ acquis, puis un vol clôturé, puis un rejeu de la même clé : la
-      réponse du rejeu est prouvée conforme à l'issue retenue par un pgTAP dont
-      l'ordre place la clôture avant le rejeu.
+- [x] La décision d'Andy est reportée datée dans ce ticket avant toute
+      implémentation : issue A, le 5 août 2026.
+- [ ] La Pull Request #112 est fusionnée avant le début de l'implémentation, pour
+      qu'aucune quatrième redéfinition concurrente de `create_dispatch_draft` et
+      `start_flight_from_dispatch` ne soit ouverte en même temps.
+- [ ] Un départ acquis, puis un vol clôturé, puis un rejeu de la même clé : le
+      rejeu rend les cinq champs de la réponse acquise, `state` valant `active` et
+      `startedAt` l'instant du départ, prouvé par un pgTAP dont l'ordre place la
+      clôture **avant** le rejeu.
 - [ ] Aucun second départ, aucune seconde ligne de registre, aucun effet financier
       n'est créé par le rejeu.
 - [ ] `docs/SECURITY.md`, `docs/ARCHITECTURE.md` et `docs/QUALITY.md` décrivent la
-      même garantie que le code, sans exception résiduelle.
-- [ ] `KI-024` passe `Resolved` en citant ce ticket, ou reste `Accepted` avec le
-      risque explicitement accepté par Andy si l'issue B est retenue.
+      même garantie que le code, sans exception résiduelle : ils portent aujourd'hui
+      la reconstruction, ils doivent porter la restitution.
+- [ ] `KI-024` passe `Resolved` en citant ce ticket.
 - [ ] Deux resets consécutifs, tous les pgTAP, les types et les gates passent avec
       des décomptes réellement découverts et consignés.
 
@@ -179,7 +195,9 @@ livrée.
   d'une commande privilégiée devient explicite dans `docs/SECURITY.md` ;
 - contrôle manuel à automatiser : l'ordre du scénario pgTAP, clôture avant rejeu,
   doit être imposé par un marqueur et non par une consigne de revue ;
-- risque résiduel ou exception approuvée : à consigner selon l'issue retenue.
+- risque résiduel ou exception approuvée : l'issue A étant retenue, aucune exception
+  n'est demandée ; le risque résiduel est la troisième redéfinition de la fonction,
+  couvert par le diff avant/après exigé plus haut.
 
 ## Automated validation
 
@@ -210,10 +228,11 @@ Temps cible : 5–10 minutes hors démarrage de la pile.
 
 ## Rollback
 
-Avant fusion, abandonner la branche. Après fusion de l'issue A, la conservation de
-la réponse ne peut être retirée que par une nouvelle migration append-only ; ne
-jamais modifier ni supprimer une migration livrée. Pour l'issue B, la réduction est
-documentaire et se révise par un nouveau ticket.
+Avant fusion, abandonner la branche. Après fusion, la restitution du rejeu ne peut
+être retirée que par une nouvelle migration append-only qui redéfinit explicitement
+la commande ; ne jamais modifier ni supprimer une migration livrée. Revenir à la
+reconstruction actuelle rouvrirait `KI-024` et demanderait un nouveau ticket, la
+garantie étant alors écrite dans `docs/SECURITY.md`.
 
 ## Completion Report
 
