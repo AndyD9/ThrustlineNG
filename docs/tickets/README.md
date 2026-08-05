@@ -73,7 +73,7 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Done |
 | T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Done |
 | T0059 | Prouver le premier slice SimConnect réel et capturer son corpus | 3 | T0011, T0014–T0015, T0054, ADR-0003, MSFS 2024 installé, décision Andy | Draft |
-| T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | In progress |
+| T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Review |
 | T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
 
 ## Vague de tickets vers l'alpha interne
@@ -421,3 +421,18 @@ fichiers de suivi partagés qui imposent un ordre d'intégration. Le gate
 avec dix mutations négatives, sous Windows PowerShell 5.1 comme sous
 PowerShell 7. T0061 est `Review` : il ne livre aucune capacité produit et n'a pas
 encore tourné de bout en bout sur un ticket réel.
+
+T0060 ferme la dette explicitement consignée par T0032 : `company_aircraft.is_usable`
+était autoritaire dans les données mais lu par aucun consommateur, donc la fin
+d'usage d'un avion n'était pas opposable. Une douzième migration append-only
+redéfinit en bloc `create_dispatch_draft` et `start_flight_from_dispatch` pour
+qu'elles lisent cet état sur la ligne d'avion dérivée du serveur et verrouillée,
+dans l'ordre documenté compagnie, dispatch, avion. Les deux refus réutilisent
+verbatim les messages déjà livrés, si bien qu'un avion hors contrat est
+indistinguable d'un avion étranger. `close_flight` reste sans garde, sur décision
+d'Andy du 4 août 2026 : un vol déjà en cours se clôture et se règle, seul le
+brouillon suivant est refusé. T0060 est `Review` : 23 fichiers / 539 assertions
+pgTAP, les types inchangés, cinq gates et la vérification manuelle passent
+localement le 5 août 2026, mais la course concurrente entre commande temporelle et
+création de brouillon appartient au harnais CI Linux et reste à confirmer sur la
+Pull Request.

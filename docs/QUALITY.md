@@ -178,11 +178,12 @@ Ubuntu, le cycle de reset tente sinon de recréer PostgreSQL alors que son port
 est encore occupé. Le chargement Deno réel reste une preuve Windows séparée.
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les vingt-deux fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. Les 502 assertions couvrent le cycle de compte
+les vingt-trois fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 539 assertions couvrent le cycle de compte
 T0018, le replay T0019, le grand livre T0020, l'onboarding T0022, l'achat
 T0029, le dispatch T0047, le démarrage de vol T0050, le référentiel
-d'aérodromes T0057, la clôture de vol T0051 et la location T0032. `backend:test` s'exécute sur les sources copiées dans le
+d'aérodromes T0057, la clôture de vol T0051, la location T0032 et l'opposabilité
+de la fin d'usage T0060. `backend:test` s'exécute sur les sources copiées dans le
 runtime isolé par `backend:start` : après avoir modifié une migration, un seed ou
 un fichier pgTAP, relancer `backend:start` avant de conclure, sinon la commande
 rejoue silencieusement la version précédente. Le job CI
@@ -844,8 +845,57 @@ et **502 assertions réellement découvertes** au vert, dont 43 de comportement 
 
 Le gate backend classe les trois commandes privilégiées et rejette tout grant
 client, toute mutation directe, ainsi que l'ajout de termes, compagnie, état ou
-temps à la création ; il porte 44 scénarios de mutation. La convergence sous
+temps à la création. La convergence sous
 concurrence n'est pas mesurable sur Windows : `scripts/ci/test-backend.ps1`
 refuse toute machine autre que le runner Linux, donc sa fixture de location a été
 rejouée à la main contre la base locale et sa course reste à confirmer en CI. La
 preuve locale ne remplace pas l'ordonnanceur distant, explicitement absent.
+
+## Preuve d'opposabilité de la fin d'usage T0060
+
+T0060 ajoute un fichier pgTAP, `aircraft_usability_guard.test.sql`, qui porte le
+total backend à 23 fichiers. Un run qui ne découvre que les 22 fichiers antérieurs
+n'est pas une preuve T0060. Ses scénarios produisent chaque état inutilisable par
+les commandes de location réelles — suspension pendant la grâce, défaut à la borne
+de grâce, prise d'effet d'un préavis et expiration d'un contrat intégralement payé
+— puis vérifient aux deux bornes le refus d'un brouillon et le refus du départ
+d'un brouillon créé quand l'avion était encore utilisable. Ils comparent aussi les
+refus caractère par caractère à ceux d'un avion et d'un dispatch appartenant à une
+autre compagnie, confirment qu'un avion acheté comptant et un avion sous location
+`active` restent dispatchables et démarrables, qu'un retour `grace` → `active`
+redonne le droit au brouillon, qu'un vol déjà en cours se clôture et se règle
+pendant que l'avion est inutilisable avant de refuser le brouillon suivant, que le
+rejeu d'un départ acquis avant la perte d'usage rend la réponse stockée à
+l'identique, et que `anon` comme `authenticated` restent privés d'`execute` sur les
+deux commandes et d'`update` sur `public.company_aircraft`.
+
+Mesure du 5 août 2026, sous Windows 11, Docker Desktop 29.6.2 et PostgreSQL 17 :
+deux resets consécutifs appliquent les onze migrations livrées puis la douzième,
+`20260805000100_aircraft_usability_guard.sql`, et 23 fichiers /
+**539 assertions réellement découvertes** concluent par `Result: PASS`, soit 37
+assertions nouvelles. `backend:types:check` confirme que les types régénérés sont
+inchangés : la migration ne remplace que des corps de fonction, jamais une
+signature ni une colonne.
+
+Le gate backend passe avec **50 scénarios de mutation**, dont six nouveaux :
+garde retirée de la création de brouillon, garde retirée du départ de vol, garde
+dégradée en `raise warning`, message générique remplacé par un message qui nomme la
+location, `execute` accordé à `authenticated`, et paramètre d'usage ajouté à la
+signature. Parce que la garde réécrit deux fonctions en bloc, la même série
+réaffirme contre le nouveau fichier les invariants dont la définition vivante a
+changé de fichier : appartenance de l'avion, bornes du référentiel d'aérodromes
+T0057 et son refus opaque, exclusivité limitée aux dispatchs ouverts T0051, blocage
+d'un compte en suppression, registres d'idempotence et formes de réponse à sept et
+cinq champs. Deux contrôles de position complètent la série : la garde d'usage doit
+précéder le contrôle d'exclusivité, et elle doit suivre le chemin de rejeu du
+départ de vol. Le gate a été exécuté sous les deux hôtes, Windows PowerShell 5.1
+via `pnpm backend:check` et PowerShell 7 via
+`pwsh -NoProfile -File .\tests\backend\run.ps1`.
+
+La course concurrente ajoutée à `scripts/ci/test-backend.ps1` — une commande
+temporelle qui retire l'usage pendant qu'un brouillon est créé sur le même avion —
+n'est pas exécutable sous Windows : le harnais refuse toute machine autre que le
+runner Linux. Elle reste à confirmer par la CI de la Pull Request, où le job Linux
+doit annoncer `Aircraft usability concurrency passed` et l'état `0|0|0|1` : aucun
+brouillon, aucune commande orpheline, avion inutilisable et une seule commande
+temporelle.

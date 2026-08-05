@@ -440,6 +440,38 @@ recompose cette contrainte doit reprendre les types déjà livrés, sous peine d
 désactiver silencieusement une capacité voisine.
 
 Aucun cron, ordonnanceur distant, endpoint Edge, desktop ou bridge n'est ajouté
-par T0032. `company_aircraft.is_usable` est écrit par les trois commandes mais
-n'est encore lu par aucune commande de dispatch, ce qui reste une dette explicite
-du ticket.
+par T0032. `company_aircraft.is_usable` est écrit par les trois commandes ; la
+dette « écrit mais lu par personne » qu'il consignait est fermée par T0060.
+
+## Opposabilité de la fin d'usage T0060
+
+La migration `20260805000100_aircraft_usability_guard.sql` rend
+`public.company_aircraft.is_usable` opposable aux deux seules entrées qui mettent
+un avion en service. Elle redéfinit en bloc `public.create_dispatch_draft` et
+`public.start_flight_from_dispatch`, sans toucher aucune migration livrée et sans
+ajouter de source d'inutilisabilité : les trois commandes de location restent la
+seule autorité qui écrit cet état, les deux commandes de mise en service se
+contentent de le lire sur la ligne d'avion dérivée du serveur et verrouillée.
+
+L'ordre de verrouillage est documenté dans la migration et identique dans les deux
+commandes : compagnie, puis dispatch, puis avion. `public.company_aircraft` est
+toujours la dernière ligne verrouillée, exactement comme
+`process_aircraft_lease` verrouille contrat puis sujet financier avant de toucher
+l'avion, si bien qu'aucune paire (dispatch, location) ne forme de cycle de verrou.
+
+Deux propriétés de conception sont volontaires. À la création d'un brouillon, la
+garde d'usage est évaluée **avant** le contrôle d'exclusivité, pour qu'un avion
+inutilisable rende le même refus opaque qu'il porte ou non un dispatch ouvert. Au
+départ de vol, la garde est placée **après** le chemin de rejeu : un départ déjà
+acquis alors que l'avion était utilisable rend exactement la même réponse stockée,
+la garde ne s'appliquant qu'à la transition fraîche `draft` → `active`.
+
+`public.close_flight` n'est pas gardé, sur décision d'Andy du 4 août 2026 : un vol
+déjà en cours reste clôturable et réglé même après la fin de la location, sinon un
+défaut terminal immobiliserait définitivement le vol. Le même avion refuse en
+revanche tout nouveau brouillon après cette clôture.
+
+T0060 n'ajoute ni ordonnanceur d'échéances, ni endpoint applicatif, ni appelant
+desktop. La garde est donc exacte par rapport à l'état enregistré, pas par rapport
+à l'heure murale : sans ordonnanceur, un avion peut rester utilisable après sa
+date réelle d'expiration jusqu'au prochain appel de la commande temporelle.

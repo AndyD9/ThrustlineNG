@@ -38,6 +38,7 @@ function Get-BackendIssues {
     $airportMigrationPath = Join-Path $Root "supabase\migrations\20260803000300_bounded_airport_reference.sql"
     $settlementMigrationPath = Join-Path $Root "supabase\migrations\20260804000100_authoritative_flight_settlement.sql"
     $leaseMigrationPath = Join-Path $Root "supabase\migrations\20260804000200_authoritative_aircraft_lease.sql"
+    $usabilityMigrationPath = Join-Path $Root "supabase\migrations\20260805000100_aircraft_usability_guard.sql"
     $airportsPath = Join-Path $Root "eng\airports.json"
     $settlementPolicyPath = Join-Path $Root "eng\flight-settlement-policy.json"
     $seedPath = Join-Path $Root "supabase\seed.sql"
@@ -63,6 +64,7 @@ function Get-BackendIssues {
     $settlementTestPath = Join-Path $Root "supabase\tests\database\flight_settlement.test.sql"
     $leaseStructureTestPath = Join-Path $Root "supabase\tests\database\aircraft_lease_structure.test.sql"
     $leaseTestPath = Join-Path $Root "supabase\tests\database\aircraft_lease.test.sql"
+    $usabilityTestPath = Join-Path $Root "supabase\tests\database\aircraft_usability_guard.test.sql"
     $onboardingFunctionPath = Join-Path $Root "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionPolicyPath = Join-Path $Root "supabase\functions\company-onboarding\economy-policy.json"
     $onboardingFunctionEntryPath = Join-Path $Root "supabase\functions\company-onboarding\index.ts"
@@ -100,6 +102,7 @@ function Get-BackendIssues {
         $airportMigrationPath,
         $settlementMigrationPath,
         $leaseMigrationPath,
+        $usabilityMigrationPath,
         $airportsPath,
         $settlementPolicyPath,
         $seedPath,
@@ -125,6 +128,7 @@ function Get-BackendIssues {
         $settlementTestPath,
         $leaseStructureTestPath,
         $leaseTestPath,
+        $usabilityTestPath,
         $onboardingFunctionPath,
         $onboardingFunctionPolicyPath,
         $onboardingFunctionEntryPath,
@@ -917,6 +921,130 @@ function Get-BackendIssues {
         $issues.Add("Lease creation must not accept client-controlled terms, state, company or time.")
     }
 
+    # T0060 makes the lease usage state opposable at the only two entries that put
+    # an aircraft into service. Because the guard rewrites both commands in one
+    # block, this series pins the guard AND reaffirms, against the new file, every
+    # invariant whose living definition moved here: without that, the T0047, T0050,
+    # T0051 and T0057 controls would lose their gate at the exact moment their
+    # definition changed file.
+    $usabilityMigration = Get-Content -Raw -Encoding UTF8 $usabilityMigrationPath
+    $usabilityRequirements = @{
+        "dispatch derives and locks the aircraft" = 'where aircraft_rows\.id = create_dispatch_draft\.aircraft_id[\s\S]{0,200}aircraft_rows\.company_id = company\.id[\s\S]{0,120}for update'
+        "dispatch reads the server usage state" = "if not found or not aircraft\.is_usable then[\s\S]{0,120}raise object_not_in_prerequisite_state using[\s\S]{0,120}message = 'Aircraft is unavailable for dispatch\.'"
+        "flight start derives and locks the aircraft" = 'where aircraft_rows\.id = dispatch\.aircraft_id[\s\S]{0,200}aircraft_rows\.company_id = company\.id[\s\S]{0,120}for update'
+        "flight start reads the server usage state" = "if not found or not aircraft\.is_usable then[\s\S]{0,120}raise object_not_in_prerequisite_state using[\s\S]{0,120}message = 'Dispatch is unavailable for flight start\.'"
+        "documented lock order" = 'Documented lock order[\s\S]{0,240}company, then dispatch, then aircraft'
+        "service-only dispatch" = 'grant execute on function public\.create_dispatch_draft\(uuid, uuid, uuid, text, text\) to service_role'
+        "service-only flight start" = 'grant execute on function public\.start_flight_from_dispatch\(uuid, uuid, uuid\) to service_role'
+        "empty search path" = "set search_path = ''"
+        "reaffirmed T0047 aircraft ownership" = 'aircraft_rows\.company_id = company\.id'
+        "reaffirmed T0047 idempotency registry" = 'private\.dispatch_draft_commands'
+        "reaffirmed T0047 payload fingerprint" = 'extensions\.digest\('
+        "reaffirmed T0057 departure bound" = 'where airports\.icao_code = normalized_departure'
+        "reaffirmed T0057 arrival bound" = 'where airports\.icao_code = normalized_arrival'
+        "reaffirmed T0057 opaque aerodrome refusal" = "message = 'Departure and arrival must be distinct four-character ICAO codes\.'"
+        "reaffirmed T0051 open-only exclusivity" = "dispatches\.state in \('draft', 'active'\)[\s\S]{0,200}Aircraft already has an active dispatch\."
+        "reaffirmed deletion block at dispatch" = 'private\.account_is_active\(create_dispatch_draft\.owner_id\)'
+        "reaffirmed deletion block at flight start" = 'private\.account_is_active\(start_flight_from_dispatch\.owner_id\)'
+        "reaffirmed T0050 start registry" = 'private\.flight_start_commands'
+        "reaffirmed T0050 draft-only transition" = "dispatch\.state <> 'draft'"
+        "reaffirmed seven-field dispatch response" = "'aircraftId'[\s\S]{0,160}'arrivalIcao'[\s\S]{0,160}'createdAt'[\s\S]{0,160}'departureIcao'[\s\S]{0,160}'dispatchId'[\s\S]{0,160}'schemaVersion'[\s\S]{0,160}'state'"
+        "reaffirmed five-field flight start response" = "'aircraftId'[\s\S]{0,160}'dispatchId'[\s\S]{0,160}'schemaVersion'[\s\S]{0,160}'startedAt'[\s\S]{0,160}'state'"
+    }
+    foreach ($entry in $usabilityRequirements.GetEnumerator()) {
+        Require-Text $usabilityMigration $entry.Value "Aircraft usability guard invariant missing: $($entry.Key)."
+    }
+    if ($usabilityMigration -match '(?i)grant\s+execute\s+on\s+function\s+public\.(create_dispatch_draft|start_flight_from_dispatch)\([^;]+\)\s+to\s+(anon|authenticated)') {
+        $issues.Add("The guarded dispatch and flight start commands must remain service-role-only.")
+    }
+    if ($usabilityMigration -match '(?i)grant\s+(insert|update|delete)[^;]*on\s+(table\s+)?public\.(company_aircraft|flight_dispatches)\s+to\s+(anon|authenticated)') {
+        $issues.Add("Client roles must not gain direct aircraft or dispatch mutation privileges.")
+    }
+    if ($usabilityMigration -match '(?i)(create or replace )?function public\.(create_dispatch_draft|start_flight_from_dispatch)\([^)]*(usable|usage|grounded|serviceable)[^)]*\)') {
+        $issues.Add("The usability guard must not accept a caller-controlled usage parameter.")
+    }
+    if ($usabilityMigration -match '(?i)set\s+is_usable') {
+        $issues.Add("The usability guard must only read the usage state; the lease commands stay its only author.")
+    }
+    foreach ($publicMessage in @(
+        [regex]::Matches($usabilityMigration, "message = '([^']*)'") |
+            ForEach-Object { $_.Groups[1].Value }
+    )) {
+        if ($publicMessage -match '(?i)\b(lease|leases|contract|contracts|grace|expir\w*|default\w*|arrear\w*|rent|rents|suspend\w*|usable|unusable|usage|penalt\w*)\b') {
+            $issues.Add("A public refusal must not reveal the lease or the usage state: $publicMessage")
+        }
+    }
+    $usabilityDraftBody = [regex]::Match(
+        $usabilityMigration,
+        '(?s)create or replace function public\.create_dispatch_draft.*?\r?\n\$\$;'
+    ).Value
+    $usabilityStartBody = [regex]::Match(
+        $usabilityMigration,
+        '(?s)create or replace function public\.start_flight_from_dispatch.*?\r?\n\$\$;'
+    ).Value
+    $draftGuardIndex = $usabilityDraftBody.IndexOf("not aircraft.is_usable")
+    $draftExclusivityIndex = $usabilityDraftBody.IndexOf("Aircraft already has an active dispatch.")
+    if ($draftGuardIndex -lt 0 -or $draftExclusivityIndex -lt 0 -or
+        $draftGuardIndex -gt $draftExclusivityIndex) {
+        $issues.Add("The usability refusal must precede the exclusivity refusal so an unusable aircraft stays opaque.")
+    }
+    $startReplayIndex = $usabilityStartBody.IndexOf("into strict dispatch")
+    $startGuardIndex = $usabilityStartBody.IndexOf("not aircraft.is_usable")
+    if ($startReplayIndex -lt 0 -or $startGuardIndex -lt 0 -or
+        $startGuardIndex -lt $startReplayIndex) {
+        $issues.Add("The usability guard must not apply to a flight start already acquired and replayed.")
+    }
+    # The guard arrives by a new append-only file, and the count of delivered
+    # migrations it must never appear in is explicit: a twelfth migration cannot
+    # silently escape this check.
+    $deliveredMigrations = @(
+        $migrationPath,
+        $lifecycleMigrationPath,
+        $restoreMigrationPath,
+        $ledgerMigrationPath,
+        $onboardingMigrationPath,
+        $purchaseMigrationPath,
+        $dispatchMigrationPath,
+        $flightStartMigrationPath,
+        $airportMigrationPath,
+        $settlementMigrationPath,
+        $leaseMigrationPath
+    )
+    if ($deliveredMigrations.Count -ne 11) {
+        $issues.Add("The append-only guard must cover the eleven migrations delivered before T0060.")
+    }
+    foreach ($existingMigration in $deliveredMigrations) {
+        if ((Get-Content -Raw -Encoding UTF8 $existingMigration) -match 'not aircraft\.is_usable') {
+            $issues.Add("The aircraft usability guard must arrive by a new append-only migration: $([System.IO.Path]::GetFileName($existingMigration))")
+        }
+    }
+
+    $usabilityTests = Get-Content -Raw -Encoding UTF8 $usabilityTestPath
+    foreach ($marker in @(
+        "an unpaid rent suspends the aircraft for the grace window",
+        "the 72-hour grace boundary defaults the contract and removes usage",
+        "a termination notice taking effect removes usage",
+        "a fully paid contract expires and removes usage",
+        "a draft created while usable cannot depart once usage is suspended",
+        "a suspended aircraft receives no new dispatch draft",
+        "an unusable aircraft is indistinguishable from a foreign aircraft at dispatch",
+        "an unusable aircraft is indistinguishable from a foreign dispatch at flight start",
+        "a cash-bought usable aircraft still receives a dispatch draft",
+        "an aircraft under an active lease still starts its flight",
+        "an aircraft back from grace to active is dispatchable again",
+        "an aircraft back from grace to active departs again",
+        "a flight already under way is still closed and settled on an unusable aircraft",
+        "a start acquired before the usage loss replays the stored response identically",
+        "the closed flight does not make the unusable aircraft dispatchable again",
+        "authenticated cannot write the aircraft usage state directly",
+        "anonymous cannot execute the guarded dispatch command",
+        "without a usage parameter"
+    )) {
+        if (-not $usabilityTests.Contains($marker)) {
+            $issues.Add("Missing aircraft usability test scenario: $marker")
+        }
+    }
+
     $onboardingFunction = Get-Content -Raw -Encoding UTF8 $onboardingFunctionPath
     $onboardingFunctionEntry = Get-Content -Raw -Encoding UTF8 $onboardingFunctionEntryPath
     $onboardingFunctionTests = Get-Content -Raw -Encoding UTF8 $onboardingFunctionTestPath
@@ -1269,7 +1397,11 @@ function Get-BackendIssues {
     Require-Text $ciBackend 'airport_reference_structure' "Backend CI does not prove the airport reference structure."
     Require-Text $ciBackend 'aircraft_lease_structure' "Backend CI does not prove the aircraft lease structure."
     Require-Text $ciBackend 'aircraft_lease\\\.test\\\.sql' "Backend CI does not require the aircraft lease scenarios."
-    Require-Text $ciBackend 'twenty-two files with Result: PASS' "Backend CI does not require all twenty-two pgTAP files."
+    Require-Text $ciBackend 'aircraft_usability_guard\\\.test\\\.sql' "Backend CI does not require the aircraft usability guard scenarios."
+    Require-Text $ciBackend 'twenty-three files with Result: PASS' "Backend CI does not require all twenty-three pgTAP files."
+    Require-Text $ciBackend 'Aircraft usability concurrency passed' "Backend CI does not report the usage withdrawal race."
+    Require-Text $ciBackend 'Concurrent usage withdrawal and dispatch creation did not converge' "Backend CI does not verify that a withdrawn usage refuses the concurrent dispatch."
+    Require-Text $ciBackend '"0\|0\|0\|1"' "Backend CI does not require no dispatch, no command, an unusable aircraft and one temporal command after the race."
     Require-Text $ciBackend 'Airport reference matches eng/airports\.json' "Backend CI does not compare the loaded reference with its canonical source."
     Require-Text $ciBackend 'Loaded airport reference diverges from eng/airports\.json' "Backend CI does not fail on a divergent airport reference."
     Require-Text $ciBackend 'pg_dump' "Backend CI does not create a real PostgreSQL backup."
@@ -1326,6 +1458,7 @@ try {
         "supabase\migrations\20260803000300_bounded_airport_reference.sql",
         "supabase\migrations\20260804000100_authoritative_flight_settlement.sql",
         "supabase\migrations\20260804000200_authoritative_aircraft_lease.sql",
+        "supabase\migrations\20260805000100_aircraft_usability_guard.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
@@ -1349,6 +1482,7 @@ try {
         "supabase\tests\database\flight_settlement.test.sql",
         "supabase\tests\database\aircraft_lease_structure.test.sql",
         "supabase\tests\database\aircraft_lease.test.sql",
+        "supabase\tests\database\aircraft_usability_guard.test.sql",
         "supabase\functions\company-onboarding\handler.ts",
         "supabase\functions\company-onboarding\economy-policy.json",
         "supabase\functions\company-onboarding\index.ts",
@@ -1962,6 +2096,90 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260804000100_authoritative_flight_settlement.sql") -Destination $settlementMigrationCopy
+    $usabilityMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260805000100_aircraft_usability_guard.sql"
+    $usabilityMigrationText = Get-Content -Raw -Encoding UTF8 $usabilityMigrationCopy
+
+    [System.IO.File]::WriteAllText(
+        $usabilityMigrationCopy,
+        [regex]::Replace(
+            $usabilityMigrationText,
+            "not found or not aircraft\.is_usable then(\s*raise object_not_in_prerequisite_state using\s*message = 'Aircraft is unavailable for dispatch\.')",
+            'not found then$1'
+        )
+    )
+    $missingDispatchGuardIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($missingDispatchGuardIssues -match "dispatch reads the server usage state")) {
+        Write-Error "Harness self-test failed to detect a dispatch command that ignores the aircraft usage state."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $usabilityMigrationCopy,
+        [regex]::Replace(
+            $usabilityMigrationText,
+            "not found or not aircraft\.is_usable then(\s*raise object_not_in_prerequisite_state using\s*message = 'Dispatch is unavailable for flight start\.')",
+            'not found then$1'
+        )
+    )
+    $missingStartGuardIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($missingStartGuardIssues -match "flight start reads the server usage state")) {
+        Write-Error "Harness self-test failed to detect a flight start that ignores the aircraft usage state."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $usabilityMigrationCopy,
+        [regex]::Replace(
+            $usabilityMigrationText,
+            "raise object_not_in_prerequisite_state using(\s*message = 'Aircraft is unavailable for dispatch\.')",
+            'raise warning using$1'
+        )
+    )
+    $warningOnlyGuardIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($warningOnlyGuardIssues -match "dispatch reads the server usage state")) {
+        Write-Error "Harness self-test failed to detect a usage guard downgraded to a warning."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $usabilityMigrationCopy,
+        $usabilityMigrationText.Replace(
+            "message = 'Aircraft is unavailable for dispatch.'",
+            "message = 'Aircraft lease has expired.'"
+        )
+    )
+    $talkativeRefusalIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($talkativeRefusalIssues -match "must not reveal the lease or the usage state")) {
+        Write-Error "Harness self-test failed to detect a refusal that names the lease."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $usabilityMigrationCopy,
+        $usabilityMigrationText +
+            "`ngrant execute on function public.create_dispatch_draft(uuid, uuid, uuid, text, text) to authenticated;`n"
+    )
+    $clientExecutableGuardIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientExecutableGuardIssues -match "must remain service-role-only")) {
+        Write-Error "Harness self-test failed to detect a client-executable guarded dispatch command."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $usabilityMigrationCopy,
+        [regex]::Replace(
+            $usabilityMigrationText,
+            'arrival_icao text\s*\)',
+            "arrival_icao text,`n    is_usable boolean`n)"
+        )
+    )
+    $clientUsageParameterIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientUsageParameterIssues -match "caller-controlled usage parameter")) {
+        Write-Error "Harness self-test failed to detect a caller-controlled aircraft usage parameter."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260805000100_aircraft_usability_guard.sql") -Destination $usabilityMigrationCopy
     $runtimeText = Get-Content -Raw -Encoding UTF8 $runtimeCopy
     $runtimeText = $runtimeText.Replace(
         '"--env", "SUPABASE_TELEMETRY_DISABLED=1",',
@@ -1980,4 +2198,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040, T0047-T0051 and T0057 repository plus 44 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040, T0047-T0051, T0057 and T0060 repository plus 50 mutation scenarios)."

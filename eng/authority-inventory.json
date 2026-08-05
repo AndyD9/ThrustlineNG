@@ -147,7 +147,9 @@
         "supabase/tests/database/dispatch_draft.test.sql",
         "eng/airports.json",
         "supabase/migrations/20260803000300_bounded_airport_reference.sql",
-        "supabase/tests/database/airport_reference.test.sql"
+        "supabase/tests/database/airport_reference.test.sql",
+        "supabase/migrations/20260805000100_aircraft_usability_guard.sql",
+        "supabase/tests/database/aircraft_usability_guard.test.sql"
       ],
       "evidenceMarkers": [
         "functions/v1/dispatch-draft",
@@ -161,9 +163,12 @@
         "owner A cannot dispatch owner B aircraft",
         "alpha-airport-reference",
         "airports_select_reference",
-        "an unknown departure aerodrome is rejected without naming the reference"
+        "an unknown departure aerodrome is rejected without naming the reference",
+        "not aircraft.is_usable",
+        "a suspended aircraft receives no new dispatch draft",
+        "an unusable aircraft is indistinguishable from a foreign aircraft at dispatch"
       ],
-      "limitations": ["An authenticated bounded endpoint, the server-created idempotent draft, one bounded desktop caller behind an explicit submission and one constant owner-scoped Data API read refreshed after a creation are covered; the desktop declares no client mutation and no ownership filter, RLS flight_dispatches_select_own stays the only selection authority, and no live WebView proof, remote deployment, SimBrief preparation, lifecycle transition, flight runtime or financial impact is implemented.", "The bounded aerodrome reference is server-owned, read-only for authenticated and mutable by no client role. It has no client consumer yet, so it is deliberately absent from clientDataApiReads; the reference stays partial and carries no monetary value."]
+      "limitations": ["An authenticated bounded endpoint, the server-created idempotent draft, one bounded desktop caller behind an explicit submission and one constant owner-scoped Data API read refreshed after a creation are covered; the desktop declares no client mutation and no ownership filter, RLS flight_dispatches_select_own stays the only selection authority, and no live WebView proof, remote deployment, SimBrief preparation, lifecycle transition, flight runtime or financial impact is implemented.", "The bounded aerodrome reference is server-owned, read-only for authenticated and mutable by no client role. It has no client consumer yet, so it is deliberately absent from clientDataApiReads; the reference stays partial and carries no monetary value.", "Draft creation now opposes the end of an aircraft lease: it reads company_aircraft.is_usable on the server-derived row, under lock, and refuses with the message already delivered so that an aircraft out of contract stays indistinguishable from a foreign one. The lease commands remain the only author of that state, and no due-date scheduler exists, so the guard is exact against the recorded state, not against wall-clock time."]
     },
     {
       "id": "flight-runtime",
@@ -174,15 +179,20 @@
       ],
       "evidencePaths": [
         "supabase/migrations/20260803000200_authoritative_flight_start.sql",
-        "supabase/tests/database/flight_start.test.sql"
+        "supabase/tests/database/flight_start.test.sql",
+        "supabase/migrations/20260805000100_aircraft_usability_guard.sql",
+        "supabase/tests/database/aircraft_usability_guard.test.sql"
       ],
       "evidenceMarkers": [
         "start_flight_from_dispatch",
         "flight_dispatches_known_states",
         "flight_start_commands",
-        "owner A cannot start owner B dispatch"
+        "owner A cannot start owner B dispatch",
+        "not aircraft.is_usable",
+        "a draft created while usable cannot depart once usage is suspended",
+        "a start acquired before the usage loss replays the stored response identically"
       ],
-      "limitations": ["Only the server transitions from one owned draft to one server-timed active flight, and from that flight to one of the two terminal states, are covered. No Auth boundary, desktop caller, flight phase detection or resume exists. T0054 broadcasts bounded replay telemetry on the local bridge contract to authenticated loopback subscribers only, without persisting flight state or linking any sample to a company, a flight or the ledger."]
+      "limitations": ["Only the server transitions from one owned draft to one server-timed active flight, and from that flight to one of the two terminal states, are covered. No Auth boundary, desktop caller, flight phase detection or resume exists. T0054 broadcasts bounded replay telemetry on the local bridge contract to authenticated loopback subscribers only, without persisting flight state or linking any sample to a company, a flight or the ledger.", "The flight start now opposes the end of an aircraft lease: it derives the aircraft from the dispatch, locks it last in the documented company, dispatch, aircraft order and refuses a fresh draft-to-active transition on an unusable aircraft with its existing opaque message. A start already acquired replays unchanged, and close_flight is deliberately unguarded so a flight under way stays closeable, per Andy's decision of 4 August 2026."]
     },
     {
       "id": "flight-finalization",
