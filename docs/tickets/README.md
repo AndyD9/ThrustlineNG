@@ -76,7 +76,14 @@ Créer un fichier par ticket à partir de `docs/templates/TICKET.md`.
 | T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Ready |
 | T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Review |
 | T0062 | Réparer le gate d'automatisation des tickets et l'exécuter en CI | Gouvernance | T0055, T0061 | Verify |
-| T0063 | Faire avancer la boucle de tickets sans déclenchement humain | Gouvernance | T0061 fusionné, T0062 non fusionné, décision Andy | Review |
+| T0063 | Faire avancer la boucle de tickets sans déclenchement humain | Gouvernance | T0061 fusionné, T0062 fusionné, décision Andy | Review |
+| T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060, décision Andy | Draft |
+| T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
+| T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
+
+L'identifiant T0064 est réservé par la Pull Request brouillon #113, non fusionnée
+au 5 août 2026 : il n'est pas réutilisé ici et le trou dans la suite est
+volontaire.
 
 ## Vague de tickets vers l'alpha interne
 
@@ -435,5 +442,22 @@ confirmation humaine d'Andy et T0060 cumule `Risk: High`, la sensibilité sécur
 et une de ses décisions — donc la boucle prépare et rapporte sans rien exécuter.
 La tâche planifiée vit dans le profil utilisateur, hors du dépôt, parce qu'elle a
 besoin de PowerShell Windows, pnpm, les worktrees et parfois Docker. T0063 est
-`Review`, empilé sur T0062 non fusionné, et sa tâche planifiée n'a pas encore eu son
-premier run.
+`Review` et sa tâche planifiée n'a pas encore eu son premier run.
+
+T0063 avait d'abord été empilé sur `fix/T0062-ticket-automation-gate-crlf`. Sa
+Pull Request #110 est `MERGED` sur cette base, mais la PR #109 l'avait déjà
+fusionnée dans `main` avant elle : les commits T0063 ne sont donc jamais entrés
+dans la branche par défaut, et `docs/tickets/T0063-*.md` était absent de `main` au
+commit `2b3ebf9`. C'est le motif déjà observé pour les PR #68, #70, #72 et #74.
+Cette Pull Request corrective propage T0063 vers `main` depuis
+`fix/T0063-propager-vers-main`, en conservant les lignes T0065–T0067 arrivées
+entre-temps.
+
+T0065, T0066 et T0067 sortent de la clôture d'apprentissage de la vague T0060, le
+5 août 2026. Ils sont `Draft` et ne corrigent rien au passage : T0065 et T0067
+attendent chacun une décision nommée d'Andy, consignée dans leur propre fichier
+avec sa condition de sortie, et T0066 peut devenir `Ready` sans décision. Les trois
+portent sur des défauts réellement présents dans `main` au commit `c0f16dc`,
+enregistrés en `KI-024`, `KI-025` et `KI-026`; aucun ne dépend de la fusion de la
+Pull Request brouillon #112, sauf T0065 qui doit la suivre pour ne pas rouvrir un
+quatrième conflit sur la même définition de fonction.

@@ -42,10 +42,12 @@ qu'aucune action ne lui revient.
 ## Dependencies
 
 - T0061, fusionné dans `main` au merge `c51f3fe`.
-- T0062, **non fusionné** : cette branche est empilée dessus parce que les deux
-  modifient `tests/ticket-automation/run.ps1`. Condition de sortie : dès que T0062
-  est dans `main`, recibler cette Pull Request sur `main` si l'ascendance le
-  permet, sinon ouvrir une branche de propagation propre sans force-push.
+- T0062, fusionné dans `main` par la PR #109 au merge `c0f16dc`. Cette branche
+  était empilée dessus parce que les deux modifient
+  `tests/ticket-automation/run.ps1`. Sa condition de sortie n'a pas été appliquée :
+  la PR #110 n'a pas été reciblée et a été fusionnée dans sa base, elle-même déjà
+  intégrée. La propagation passe donc par `fix/T0063-propager-vers-main`, sans
+  force-push.
 - Décision d'Andy du 5 août 2026 sur la planification, la cadence et la frontière
   d'autonomie.
 
@@ -293,6 +295,13 @@ un « Run now » manuel les pré-approuve.
   un jour sans run ; le run part au lancement suivant.
 - Cette branche est empilée sur T0062, non fusionnée. Elle ne prouve donc aucune
   livraison dans `main`.
+- Le 5 août 2026, la PR #110 a été fusionnée dans sa base
+  `fix/T0062-ticket-automation-gate-crlf` alors que la PR #109 avait déjà fusionné
+  cette base dans `main`. Son état `MERGED` ne livre donc rien : `main` au commit
+  `2b3ebf9` ne contient ni `docs/tickets/T0063-*.md`, ni la frontière d'autonomie,
+  ni ses six scénarios de gate. C'est le motif des PR #68, #70, #72 et #74, et le
+  suivi de reciblage ci-dessous n'a pas été exécuté à temps. La propagation
+  corrective conserve les lignes d'index T0065–T0067 arrivées entre-temps.
 
 ### Learning candidate LC-2026-007
 
@@ -327,7 +336,12 @@ un « Run now » manuel les pré-approuve.
 
 ### Follow-ups
 
-- Recibler cette Pull Request sur `main` dès que T0062 y est fusionné.
+- Recibler cette Pull Request sur `main` dès que T0062 y est fusionné. **Non
+  exécuté** : la PR #110 a été fusionnée dans sa base. Remplacé par la Pull Request
+  corrective ouverte depuis `fix/T0063-propager-vers-main`.
+- Ajouter un contrôle déterministe qui refuse une Pull Request dont la base n'est
+  pas `main` alors que sa base est déjà intégrée. Cinq occurrences : #68, #70, #72,
+  #74 et #110.
 - Créer un premier ticket réellement autonome — gouvernance ou lecture desktop à
   faible risque — pour que la boucle planifiée ait de quoi exécuter.
 - Ajouter un contrôle déterministe des gardes d'autonomie de l'invite planifiée et
