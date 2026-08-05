@@ -206,6 +206,65 @@ la faire et sur quel environnement ; le ticket reste `Verify`.
 8. Faire relire la PR à Andy ; lui seul peut décider et effectuer le merge.
 9. Choisir le prochain ticket Ready.
 
+## Boucle automatisée des tickets
+
+La skill `/ticket-loop` exécute ce workflow au lieu de le remplacer. Elle est
+déclenchée explicitement, jamais planifiée, et se décompose en trois pièces aux
+responsabilités séparées.
+
+**Le sélecteur est la seule autorité sur ce qui est exécutable.** Aucun agent ne
+décide de la sélection :
+
+```powershell
+pnpm ticket-batch:select
+```
+
+`scripts/select-ticket-batch.ps1` lit les fichiers de tickets et l'index, puis
+rend la capacité de flux restante, les tickets sélectionnés, les tickets différés
+avec leur raison, l'ordre d'intégration et la contention des fichiers de suivi
+partagés. Il sort en échec sur une incohérence de suivi : statut divergent entre
+un fichier et l'index, statut invalide, champ `Status` absent ou dupliqué, ticket
+absent de l'index, dépendance introuvable. Une sortie non nulle interdit toute
+planification comme toute exécution.
+
+Il traite `docs/tickets/README.md`, `docs/CURRENT_STATE.md`,
+`docs/KNOWN_ISSUES.md`, `docs/LEARNINGS.md` et `docs/ROADMAP.md` comme des
+fichiers de suivi partagés : leur présence dans plusieurs `Allowed areas` n'est
+pas une collision, mais elle impose un ordre d'intégration explicite. C'est la
+dérive d'index observée lors des fusions T0043 à T0050.
+
+**Deux workflows séparés par une porte humaine.** Un workflow s'exécute en
+arrière-plan et ne peut pas poser de question ; les décisions réservées à Andy
+sont donc rendues en un seul lot entre les deux :
+
+1. `ticket-plan` établit l'état réellement présent dans `origin/main`, cadre au
+   plus un ticket par flux, écrit un fichier de ticket par proposition puis
+   consolide l'index et rejoue les gates. Il ne commite pas.
+2. Andy répond au lot de décisions. Chaque réponse est reportée datée dans le
+   ticket concerné, qui passe `Ready` seulement si plus aucune décision ne manque.
+3. `ticket-run` sélectionne, implémente chaque ticket dans un worktree dédié sous
+   `.worktrees/`, fait relire le diff poussé par un agent qui ne l'a pas écrit,
+   remédie aux constats bloquants confirmés, puis ferme la boucle d'apprentissage
+   sur une branche dédiée.
+
+**Le mode écriture est explicite.** `ticket-run` ne crée un worktree, une branche,
+un commit ou une Pull Request que si son argument `mode` vaut exactement
+`execute`. Sans cet argument, ou si ses arguments sont illisibles, il rend
+seulement la sélection : il échoue fermé. Cette porte existe parce qu'une
+transmission d'arguments défaillante a fait démarrer une implémentation réelle
+pendant la mise au point de T0061.
+
+**Limites que la boucle ne franchit pas.** Elle ne fusionne aucune Pull Request,
+ne force-push pas, n'utilise jamais `git add .` ni `git add -A`, ne touche pas au
+worktree principal et ne change pas sa branche. Elle ne tranche aucune ambiguïté
+produit, économique, de sécurité, de données, de support ou d'architecture, et ne
+modifie ni `AGENTS.md` ni une ADR acceptée : un apprentissage qui viserait
+`AGENTS.md` est proposé dans le corps de la Pull Request. Le plafond de trois
+tickets `In progress` reste appliqué par le sélecteur.
+
+Toute Pull Request produite par la boucle reste **brouillon**. Une capacité n'est
+livrée que lorsque Andy l'a fusionnée dans `main`.
+
 ## Boucle d'apprentissage
 
 L'apprentissage du dépôt porte sur des faits observables, jamais sur une mémoire

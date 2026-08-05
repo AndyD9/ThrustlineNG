@@ -17,6 +17,42 @@ marqueurs non suivis, y compris après un marqueur valide sur la même ligne.
 Ce gate ne transforme pas une capacité future, un risque accepté ou une preuve
 environnementale manquante en dette résolue.
 
+## Automatisation du cycle des tickets
+
+Depuis la racine :
+
+```powershell
+pnpm ticket-automation:check
+pnpm ticket-batch:select
+```
+
+Le gate T0061 valide `scripts/select-ticket-batch.ps1` sur un dépôt synthétique,
+indépendant des tickets réels, avec 34 assertions et dix mutations négatives :
+statut divergent entre fichier et index, statut invalide, champ `Status` absent,
+ticket absent de l'index, identifiant d'index dupliqué, dépendance revenue en
+`Draft`, collision de zones autorisées entre deux candidats, flux `In progress`
+qui consomme la capacité et réserve ses chemins, ticket forcé alors qu'il n'est
+pas `Ready`, et sélection forcée passée sous forme séparée par des virgules. Le
+scénario de référence vérifie aussi que les fichiers de suivi partagés restent
+hors des collisions tout en étant signalés comme imposant un ordre d'intégration.
+
+Exécuter ce gate sous les **deux** hôtes. Le harnais lance le sélecteur avec
+l'hôte qui l'exécute, et les deux ne passent pas les arguments de la même façon :
+une régression réelle de découpage d'argument n'a été visible que sous
+PowerShell 7.
+
+```powershell
+pwsh -NoProfile -File .\tests\ticket-automation\run.ps1
+```
+
+`pnpm ticket-batch:select` est le contrôle à exécuter avant de planifier ou
+d'exécuter une vague : sa sortie non nulle signale une incohérence de suivi à
+corriger d'abord. Il reste en lecture seule et ne modifie aucun fichier.
+
+Ce gate prouve le sélecteur, pas la qualité du travail des agents. Il ne
+transforme pas une invite de workflow en garantie de comportement, et n'est pas
+exécuté par la CI : `.github/workflows/` est hors des zones autorisées de T0061.
+
 ## Politique de données
 
 Depuis la racine :
