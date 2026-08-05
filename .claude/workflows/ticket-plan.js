@@ -330,8 +330,10 @@ Proposition pour le flux ${proposal.flow}:
 ${JSON.stringify(proposal.proposed, null, 2)}
 
 Procedure:
-1. Determine le prochain identifiant libre en listant docs/tickets/T????-*.md et en prenant
-   le plus grand numero existant plus un. ${index > 0 ? `Les tickets deja ecrits dans cette vague sont: ${written.map((w) => w.id).join(', ')}. N y touche pas et prends le numero suivant.` : ''}
+1. Determine le prochain identifiant libre en listant docs/tickets/T????-*.md ET en verifiant
+   git -C "${REPO}" ls-tree --name-only origin/main docs/tickets/ apres un fetch, puis prends le
+   plus grand numero des deux listes plus un. Un identifiant libre localement peut avoir ete pris
+   par une autre session: l allocation se constate sur origin/main, elle ne se reserve pas. ${index > 0 ? `Les tickets deja ecrits dans cette vague sont: ${written.map((w) => w.id).join(', ')}. N y touche pas et prends le numero suivant.` : ''}
 2. Copie la structure exacte de docs/templates/TICKET.md, sans omettre une section.
 3. Nomme le fichier docs/tickets/TXXXX-slug-en-francais-sans-accent.md.
 4. Renseigne Status: ${proposal.proposed.readyForImplementation && proposal.proposed.decisionsNeeded.length === 0 ? 'Ready' : 'Draft'}.

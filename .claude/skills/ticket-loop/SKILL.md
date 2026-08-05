@@ -133,5 +133,10 @@ Ne jamais conclure qu'une capacité est livrée : elle l'est quand elle est dans
 - **Pile Supabase locale.** C'est un singleton sur `127.0.0.1`. Deux tickets
   backend simultanés ne peuvent pas prouver leurs tests en parallèle : un seul
   ticket backend par vague, sinon déclarer `bloqué par l'environnement`.
+- **Identifiant de ticket déjà pris.** Deux sessions allouent un numéro depuis le
+  même `origin/main` sans réservation. Vérifier l'identifiant contre un
+  `origin/main` fraîchement récupéré juste avant de publier. Si le conflit
+  survient quand même, renuméroter est la réponse normale : résoudre le conflit
+  d'index en **conservant les deux lignes**, jamais en écartant un côté.
 - **`pwsh` absent du `PATH` sandboxé.** Ne pas conclure qu'il est absent de la
   machine : appliquer la procédure de `docs/LEARNINGS.md` (LC-2026-001).

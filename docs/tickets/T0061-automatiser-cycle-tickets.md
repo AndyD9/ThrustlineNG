@@ -264,6 +264,12 @@ est arrivé sous forme de chaîne JSON.
 | `pnpm data-policy:check` | passed — dépôt T0017–T0020 et 6 scénarios |
 | `pnpm authority:check` | passed — 10 étapes, 13 domaines, 3 surfaces, 9 scénarios |
 | `git diff --check` | passed |
+| `pnpm ticket-batch:select` après la fusion de `origin/main` | passed — 61 tickets, T0056 et T0060 sélectionnés, contention signalée sur `docs/tickets/readme.md` |
+
+Cette dernière exécution est la première preuve du sélecteur sur des données
+réelles et non synthétiques : deux tickets `Ready` aux chemins exclusifs disjoints
+sont sélectionnés ensemble, et l'outil signale que tous deux réclament l'index,
+donc qu'ils exigent un ordre d'intégration sérialisé.
 
 Deux candidats d'apprentissage, conservés ici parce que `docs/LEARNINGS.md` est
 hors des `Allowed areas` de ce ticket :
@@ -345,6 +351,39 @@ effectivement protégé le dépôt n'est pas une consigne dans une invite, c'est
 fait que le script s'arrête avant d'agir. Les consignes textuelles n'ont pas été
 sollicitées, puisque l'agent d'implémentation n'a pas eu le temps de travailler.
 
+### Learning candidate LC-2026-005
+
+- Date : 5 août 2026
+- Contexte : T0061, publication de la branche
+- État : Reproduced
+- Symptôme observé : ce ticket a d'abord été écrit et poussé comme `T0060`. La
+  Pull Request était `CONFLICTING` et n'exécutait aucun check. `origin/main`
+  portait déjà un `T0060` différent, « Opposer la fin d'usage d'un avion au
+  dispatch et au départ de vol », créé pendant ce travail par une autre session.
+- Conclusion erronée évitée : « le prochain identifiant libre observé au démarrage
+  reste libre ». L'allocation d'identifiant n'est pas réservée : elle est constatée
+  au moment de la fusion.
+- Diagnostics exécutés : `gh pr view --json mergeable` a donné `CONFLICTING` sans
+  aucun check ; `git merge origin/main` a produit un conflit sur la seule ligne
+  T0060 de l'index ; `git ls-tree origin/main docs/tickets/` a confirmé le fichier
+  concurrent.
+- Cause : Confirmée. Deux sessions allouent un identifiant depuis le même
+  `origin/main` sans réservation partagée.
+- Reproductibilité : déterministe dès que deux tickets sont créés en parallèle.
+- Portée : toute création de ticket, et donc `ticket-plan`, qui choisit son
+  identifiant en listant les fichiers existants.
+- Contournement sûr : vérifier l'identifiant contre `origin/main` fraîchement
+  récupéré juste avant de publier, et traiter la renumérotation comme une étape
+  normale plutôt que comme un incident. Résoudre le conflit d'index en conservant
+  les deux lignes, jamais en écartant un côté.
+- Risques : `ticket-plan` peut produire un identifiant déjà pris. Le coût est une
+  renumérotation, pas une perte, tant que le conflit d'index conserve les deux
+  lignes.
+- Destination proposée : `docs/WORKFLOW.md`, section de la boucle automatisée.
+  Un contrôle déterministe possible serait un gate qui refuse un ticket dont
+  l'identifiant existe déjà dans `origin/main` avec un autre titre.
+- Revalidation : au premier usage réel de `ticket-plan`.
+
 ### Manual verification result
 
 Les cinq étapes sont exécutées. La sélection rend `T0056` seul, avec la capacité
@@ -398,8 +437,11 @@ humains, puisque lui seul peut confirmer une vérification interactive.
   invites et le comportement observé.
 - Ajouter un contrôle déterministe de la garde `mode: "execute"` : un test qui
   échoue si `ticket-run` peut atteindre sa phase d'implémentation sans ce mode.
-- Promouvoir LC-2026-002, LC-2026-003 et LC-2026-004 dans `docs/LEARNINGS.md`,
-  hors des zones autorisées de ce ticket.
+- Promouvoir LC-2026-002 à LC-2026-005 dans `docs/LEARNINGS.md`, hors des zones
+  autorisées de ce ticket.
+- Ajouter à `ticket-plan` un contrôle d'identifiant contre `origin/main` juste
+  avant publication, ou un gate qui refuse un identifiant déjà pris avec un autre
+  titre.
 - Décider si `ticket-automation:check` rejoint la CI, avec le ticket qui touchera
   `.github/workflows/`.
 - Unifier la lecture de l'index entre le sélecteur et le gate de maintenance si un
