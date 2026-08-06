@@ -1,6 +1,6 @@
 # F0002 — Clôturer son vol et encaisser son revenu depuis l'application
 
-Status: Draft
+Status: Blocked
 Owner: Unassigned
 Branch: `feature/f0002-cloturer-son-vol-et-encaisser-son-revenu`
 Phase: 2–4
@@ -37,7 +37,18 @@ décision produit, pas un choix d'implémentation, et c'est la raison du statut
 
 ## Décision attendue d'Andy
 
-Une seule décision bloque cette fonctionnalité. Elle n'est pas prise.
+**Décision prise le 6 août 2026 : option C — attendre la télémétrie.** Le temps
+de vol d'un rapport de clôture ne sera pas saisi par la personne ni déduit par
+une migration : il viendra de la télémétrie reliée au cycle de vol. En
+conséquence, cette fonctionnalité passe `Blocked` — motif : aucune télémétrie
+n'alimente encore `blockMinutes` ; condition de sortie : une fonctionnalité
+dédiée relie la télémétrie du bridge (source replay T0054 d'abord, MSFS réel via
+F0003/T0059 ensuite) au cycle de vol et au rapport de clôture, après quoi les
+jalons ci-dessous sont ajustés et le statut passe `Ready`. Cette fonctionnalité
+de liaison reste à ouvrir ; elle devient le chemin critique du jalon « alpha
+cliquable » après F0001.
+
+Le texte original de la décision est conservé ci-dessous pour référence.
 
 **Qui déclare le temps de vol d'un rapport de clôture, dans l'alpha, tant qu'aucune
 télémétrie n'est reliée au cycle de vol ?**
@@ -67,7 +78,10 @@ statut passe `Ready` et les jalons ci-dessous sont ajustés à l'option retenue.
 - F0001 — la capacité de faire décoller un vol depuis l'application : sans elle,
   aucun vol `active` n'existe côté application à clôturer. **F0001 doit être fusionnée
   avant J1** ;
-- décision d'Andy ci-dessus : non prise.
+- décision d'Andy ci-dessus : **prise le 6 août 2026, option C** ;
+- une fonctionnalité encore à ouvrir qui relie la télémétrie du bridge au cycle
+  de vol et alimente `blockMinutes` (replay T0054 d'abord, MSFS réel ensuite) :
+  c'est le blocage actif.
 
 ## Allowed areas
 
