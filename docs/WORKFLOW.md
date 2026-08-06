@@ -44,6 +44,26 @@ branches, de bases à choisir et de lignes d'index à tenir cohérentes. Au 5 ao
 d'index sans capacité produit, 4 Pull Requests correctives et 5 fusions hors de
 `main`.
 
+## 0.1 Pilotage courant — décision d'Andy du 6 août 2026
+
+Le mode de travail par défaut est la **session interactive avec Andy**, qui
+avance des fonctionnalités complètes vers le jalon « alpha cliquable » défini
+dans `docs/CURRENT_STATE.md`. La boucle automatisée reste disponible sur demande
+explicite d'Andy ; sa tâche planifiée est en pause (voir plus bas).
+
+La validation applique une **rigueur à deux vitesses**, définie dans
+`AGENTS.md` : preuve maximale pour l'argent, les données, l'autorité serveur et
+la sécurité ; typecheck, tests et build pour l'UI et la composition cliente,
+dont la vérification manuelle est le parcours réel dans l'application. Les
+sections suivantes se lisent à travers ce filtre.
+
+Motif : au 6 août 2026, le processus générait son propre travail — tickets de
+réconciliation d'index, récit `CURRENT_STATE.md` de plus de 1 000 lignes,
+trois tickets consécutifs consacrés à automatiser le cycle de tickets — pendant
+qu'aucun parcours WebView live n'était encore prouvé. T0068 a corrigé la
+granularité ; cette décision corrige le mode d'exécution et le coût de
+cérémonie.
+
 ## 1. Préparer la phase
 
 1. Définir le résultat utilisateur.
@@ -298,8 +318,12 @@ sont donc rendues en un seul lot entre les deux :
    d'apprentissage sur une branche dédiée. Une fonctionnalité ne produit qu'une
    Pull Request, quel que soit son nombre de jalons.
 
-**La boucle tourne aussi sans déclenchement humain.** Une tâche planifiée locale
-l'exécute une fois par jour ouvré, tôt le matin. Elle vit hors du dépôt, dans
+**La boucle peut aussi tourner sans déclenchement humain — en pause depuis le
+6 août 2026.** La tâche planifiée est désactivée par la décision de pilotage
+hybride d'Andy ; elle se réactive depuis la section « Scheduled » de
+l'application, sur décision d'Andy uniquement. Quand elle est active, une tâche
+planifiée locale exécute la boucle une fois par jour ouvré, tôt le matin. Elle
+vit hors du dépôt, dans
 `~/.claude/scheduled-tasks/thrustlineng-ticket-loop/`, et ne s'exécute que quand
 l'application est ouverte ; si elle était fermée à l'heure prévue, le run part au
 lancement suivant. Elle a besoin de PowerShell Windows, pnpm, les worktrees et
