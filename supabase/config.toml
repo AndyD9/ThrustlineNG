@@ -400,6 +400,11 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/dispatch-draft/index.ts"
 
+[functions.flight-start]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/flight-start/index.ts"
+
 [analytics]
 enabled = false
 port = 54327

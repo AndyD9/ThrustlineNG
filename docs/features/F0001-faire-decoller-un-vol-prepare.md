@@ -1,7 +1,7 @@
 # F0001 — Faire décoller un vol préparé depuis l'application
 
-Status: Ready
-Owner: Unassigned
+Status: Verify
+Owner: Claude (session interactive du 6 août 2026)
 Branch: `feature/f0001-faire-decoller-un-vol-prepare`
 Phase: 2–4
 Risk: Medium
@@ -96,7 +96,7 @@ Ordonnés. Un commit par jalon, une revue adversariale par jalon sur le diff pou
 
 ### J1 — Le départ de vol derrière une frontière authentifiée
 
-Status: Draft
+Status: Done
 Risk: Medium
 Security-sensitive: Yes
 Autonomous: No
@@ -118,7 +118,7 @@ Autonomous: No
 
 ### J2 — La frontière prouvée sur l'Edge Runtime local réel
 
-Status: Draft
+Status: Done
 Risk: Low
 Security-sensitive: No
 Autonomous: Yes
@@ -138,7 +138,7 @@ Autonomous: Yes
 
 ### J3 — Le départ composé depuis le desktop
 
-Status: Draft
+Status: Done
 Risk: Low
 Security-sensitive: No
 Autonomous: Yes
@@ -158,21 +158,24 @@ Autonomous: Yes
 
 ## Acceptance criteria
 
-- [ ] Un dispatch `draft` possédé peut être démarré depuis l'application, et la
-      liste montre ensuite le vol `active` avec son heure de départ serveur.
-- [ ] Le client ne fournit jamais que `dispatchId` et `idempotencyKey` ; aucun
+- [x] Un dispatch `draft` possédé peut être démarré depuis l'application, et la
+      liste montre ensuite le vol `active` avec son heure de départ serveur
+      (preuve jsdom ; le parcours WebView live reste en vérification manuelle).
+- [x] Le client ne fournit jamais que `dispatchId` et `idempotencyKey` ; aucun
       `owner_id`, état ni horodatage n'est accepté d'un appelant.
-- [ ] Un dispatch inconnu, étranger, déjà actif ou porté par un avion hors contrat
-      rend le même refus public indistinguable.
-- [ ] Un double clic et un retry de la même clé ne créent ni second départ, ni
+- [x] Un dispatch inconnu, étranger, déjà actif ou porté par un avion hors contrat
+      rend le même refus public indistinguable (corps comparés entre eux en J2).
+- [x] Un double clic et un retry de la même clé ne créent ni second départ, ni
       seconde ligne de registre.
-- [ ] La frontière est prouvée sur l'Edge Runtime local réel, pas seulement contre
-      un `fetch` injecté.
-- [ ] `eng/authority-inventory.json` reflète la frontière ajoutée sans élargir
+- [x] La frontière est prouvée sur l'Edge Runtime local réel, pas seulement contre
+      un `fetch` injecté (46 contrôles, 6 août 2026).
+- [x] `eng/authority-inventory.json` reflète la frontière ajoutée sans élargir
       `clientDataApiReads`.
-- [ ] Chaque règle nouvelle du gate est prouvée par au moins une mutation négative.
-- [ ] `SECURITY.md`, `ARCHITECTURE.md`, `QUALITY.md` et `CURRENT_STATE.md` décrivent
-      la capacité livrée et ce qui reste absent.
+- [x] Chaque règle nouvelle du gate est prouvée par au moins une mutation négative
+      (9 mutations flight-start sur les 67 du gate backend).
+- [x] `SECURITY.md`, `ARCHITECTURE.md`, `QUALITY.md` et `CURRENT_STATE.md` décrivent
+      la capacité livrée et ce qui reste absent (`CURRENT_STATE.md` via la version
+      courte de la PR #125, à synchroniser après sa fusion).
 
 ## Security review
 
@@ -256,32 +259,169 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J1
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : `POST /functions/v1/flight-start` accepte un bearer et un
+  corps de 4 Kio strictement limité à `dispatchId` et `idempotencyKey`, vérifie
+  la session auprès d'Auth, refuse l'anonyme, dérive `owner_id` de la réponse
+  Auth, appelle `start_flight_from_dispatch` avec le credential serveur sous
+  timeout de 5 s, et rend la projection `no-store` des cinq champs publics
+  (`aircraftId`, `dispatchId`, `schemaVersion`, `startedAt`, `state`). Tout refus
+  amont rend le même `flight_start_rejected` redigé, sans détail SQL ni
+  distinction inconnu/étranger/déjà actif/avion hors contrat.
+- fichiers modifiés : `supabase/functions/flight-start/{handler.ts,index.ts,handler.test.ts,package.json}`
+  (nouveaux), `supabase/config.toml`, `package.json` (`backend:functions:test`),
+  `tests/backend/run.ps1` (invariants + 8 mutations), `eng/authority-inventory.json`
+  (frontière du domaine `flight-runtime`), `docs/SECURITY.md`, ce fichier et
+  `docs/features/README.md`.
+- commandes et résultats (6 août 2026) : `node --test` sur les quatre handlers —
+  62 tests, 0 échec, dont 16 nouveaux pour `flight-start` ; `tests/backend/run.ps1`
+  — passed, 66 mutations dont 8 nouvelles (owner client, credential non privilégié,
+  état client, corps non borné, timeout retiré, anonyme admis, réponse hors
+  allowlist, scénario de test retiré) ; `tests/authority/run.ps1` — passed ;
+  `tests/data-policy/run.ps1` — passed ; `tests/maintenance/run.ps1` — passed.
+- vérification manuelle : exécutée le 6 août 2026 par le script J2 sur l'Edge
+  Runtime local réel — bearer valide (200, cinq champs), sans bearer (401 sans
+  détail interne), `owner_id` injecté (400 `invalid_request`), corps de 5 Kio
+  (413 `request_too_large`) ; les quatre réponses attendues sont observées.
+- revue et constats traités : revue adversariale du 6 août 2026 par un agent
+  séparé, sur le commit `6de4c8e` — **J1 approuvé, aucun bloquant**. Le seul
+  constat majeur est corrigé dans le jalon : la mutation « refus bavard »
+  promise manquait et l'invariant `flight_start_rejected` était infalsifiable ;
+  l'invariant exige désormais la ligne exacte du refus redigé et une neuvième
+  mutation le rend bavard (`await response.text()`), détectée par le gate
+  (67 mutations). Le reviewer a aussi vérifié le gate sous Windows PowerShell
+  5.1 et pwsh 7 (verts tous les deux) et confirmé chaîne par chaîne que les
+  mutations mordent. Cinq constats mineurs sont consignés en follow-ups.
 
 ### J2
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : `scripts/validate-flight-start-runtime.ps1` enchaîne, sur la
+  pile locale réelle démarrée par T0021, Auth → Edge → RPC pour un avion
+  réellement acheté et un dispatch réellement préparé. Le 6 août 2026, ses
+  **46 contrôles passent sans échec** (run final après remédiation de revue) :
+  bindings loopback avant/après, baseline `0|0|0`, onboarding des deux
+  identités, achat, brouillon, refus redigés et indistinguables — les corps des
+  trois refus (étranger, inconnu, déjà actif) sont comparés entre eux et non
+  vides —, départ nominal à cinq champs `no-store`, `startedAt` parsable, rejeu
+  restituant la réponse acquise octet pour octet sans second départ ni seconde
+  commande (`1|1`), 401 sans bearer sans fuite, 400 champ injecté, 413 corps de
+  5 Kio, état SQL final `1|1|0|1|1` (un vol actif, une commande, possédés par le
+  sujet Auth), refus d'orphaner une compagnie par l'Admin API, identités
+  confinées à la pile jetable. Deux sondes du modèle T0049 sont volontairement
+  absentes — signup public fermé et refus verbeux 23503 derrière la clé
+  privilégiée : propriétés de la pile Auth, hors de cette frontière, déjà
+  prouvées par `validate-dispatch-draft-runtime.ps1` qui reste au dépôt.
+  Le script échoue fermé (baseline non vide → arrêt), ne consigne aucun secret,
+  JWT, email ni détail SQL, et n'ajoute ni handler, ni migration, ni contrat.
+- fichiers modifiés : `scripts/validate-flight-start-runtime.ps1` (nouveau) et ce
+  fichier.
+- commandes et résultats (6 août 2026) : `backend:start` → pile isolée sur
+  127.0.0.1 ; `backend:reset` → 12 migrations + seed ; le script → 46 contrôles,
+  0 échec ; `backend:stop` → pile détruite, seul le cache d'images source-free
+  retenu. Chaque motif de refus est comparé au code public exact, jamais déduit
+  d'un code de sortie (`KI-025` non aggravé).
+- vérification manuelle : le relevé des 45 lignes `PASS`, du décompte final et de
+  l'état SQL a été fait sur la sortie du script pendant le run ; la pile a été
+  détruite ensuite.
+- revue et constats traités : revue adversariale du 6 août 2026 par un agent
+  séparé, sur le commit `6e7467b` — **J2 approuvé, aucun bloquant**. Les deux
+  constats majeurs sont corrigés dans le jalon : le refus « déjà actif » est
+  désormais comparé aux deux autres corps (M1) et le rejeu est comparé octet
+  pour octet à la réponse nominale (M2), avec garde de non-vacuité (m1) ; le
+  script durci repasse à 46 contrôles sans échec sur pile fraîche. L'écart au
+  modèle T0049 (deux sondes hors frontière) est motivé ci-dessus (m2). Restent
+  consignés sans changement : quatre contrôles d'échafaudage `-Condition $true`
+  hérités du modèle (m3) et le 401 sans code public épinglé, corps passerelle
+  hors contrat du handler (m4).
 
 ### J3
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : dans la liste de dispatchs T0053, chaque ligne `draft`
+  porte un contrôle « démarrer ». Le transport `flightStart.ts` est calqué sur
+  `flightDispatch.ts` : cible loopback `http:` uniquement, UUID canoniques
+  validés avant tout réseau, corps strictement `{dispatchId, idempotencyKey}`,
+  timeout 5 s, réponse bornée à 16 Kio et validée par jeu de clés exact des
+  cinq champs publics avec recoupement du `dispatchId`. Le contrôle n'exécute
+  aucun appel au rendu, obtient le bearer à la soumission, conserve la clé
+  d'idempotence pour un retry et la renouvelle si le dispatch change, bloque le
+  double clic, efface la session sur refus Auth, annule sa requête au démontage
+  et relit la liste autoritaire après un départ réussi — l'état affiché vient
+  toujours du serveur. Implémenté par un agent délégué en lecture/écriture sur
+  les seuls chemins desktop ; diff inspecté et validations rejouées par le
+  coordinateur.
+- fichiers modifiés : `apps/desktop/src/features/flight-dispatch/flightStart.ts`,
+  `DispatchStartControl.tsx`, leurs trois fichiers de tests (nouveaux),
+  `DispatchListPanel.tsx` et son test (câblage minimal),
+  `eng/authority-inventory.json` (appelant desktop classé, limitation mise à
+  jour), ce fichier.
+- commandes et résultats (6 août 2026, rejoués par le coordinateur après
+  intégration) : `pnpm frontend:typecheck` — 0 erreur ;
+  `pnpm frontend:test` — 359 tests passés, 2 skipped (57 nouveaux au commit du
+  jalon — le rapport initial disait 48 par erreur, corrigé en revue — plus deux
+  tests de lecture ajoutés en remédiation) ; `pnpm frontend:coverage` —
+  `flightStart.ts` 100 % lignes, global 94,77 % statements ;
+  `pnpm frontend:build` — vert ; `tests/authority/run.ps1` — vert (9 mutations).
+- vérification manuelle : le parcours réel dans l'application (préparer,
+  démarrer, double-cliquer, refus Auth) reste à faire sur la pile locale — il
+  rejoint la vérification de bout en bout de la fonctionnalité, avec T0055.
+- revue et constats traités : revue adversariale du 6 août 2026 par un agent
+  séparé de l'implémenteur, sur le commit `c5586c5` — **J3 approuvé, aucun
+  bloquant**. Le constat majeur est corrigé dans le jalon : l'heure de départ
+  serveur n'était jamais visible en composition réelle (message du contrôle
+  démonté au même commit React que la relecture, et projection de lecture sans
+  `started_at`). La projection T0053 expose désormais `started_at` — validé
+  horodaté pour un vol `active`, nul pour un brouillon, l'invariant serveur
+  T0050 — et la ligne active affiche « départ … UTC » depuis la relecture
+  autoritaire, prouvé par le test de composition. Les constats mineurs sont
+  consignés en follow-ups.
 
 ### Synthèse
 
+La capacité est complète côté code et preuves automatisées : la commande
+`start_flight_from_dispatch` (T0050/T0060/T0065) a gagné sa frontière Edge
+authentifiée (J1, revue et durcie à 67 mutations de gate), la preuve sur l'Edge
+Runtime local réel (J2, 46 contrôles dont rejeu octet pour octet et refus
+comparés entre eux) et son appelant desktop (J3, 359 tests frontend, heure de
+départ serveur relue et affichée). Chaque jalon a été revu adversarialement par
+un agent distinct et ses constats majeurs corrigés avant clôture.
+`SECURITY.md`, `ARCHITECTURE.md`, `QUALITY.md` et l'inventaire d'autorité
+décrivent la capacité et ses limites ; `CURRENT_STATE.md` est mis à jour par la
+PR #125 (version courte) et devra refléter la fusion de cette fonctionnalité.
+
 ### Risks and limitations
 
+- La preuve desktop reste jsdom à `fetch` injecté : le parcours WebView live
+  (préparer → démarrer → double clic → refus Auth) est la vérification humaine
+  restante, à faire avec le parcours T0055.
+- La clé d'idempotence cliente ne survit pas au démontage du contrôle entre un
+  échec et son retry ; le serveur garantit seul l'unicité du départ dans ce cas.
+- La lecture du corps de réponse du transport de départ n'est pas bornée en
+  streaming (héritage du modèle T0052) ; durcissement commun aux quatre
+  frontières consigné en follow-up.
+
 ### Follow-ups
+
+Constats mineurs de la revue adversariale J1 du 6 août 2026, non bloquants :
+
+- une panne Auth 5xx est rendue `401 authentication_required` au lieu de `503`
+  dans les **quatre** frontières Edge ; à corriger d'un coup, pas ici ;
+- les contrôles `config.toml` du gate (`[functions.*] … verify_jwt`) ne sont pas
+  bornés à leur section ; candidat de durcissement commun aux quatre frontières ;
+- test manquant : corps sur-dimensionné en streaming sans `content-length` ;
+- test manquant : variantes de statut amont (403/404/500) dans la preuve
+  d'indistinguabilité des refus ;
+- `ARCHITECTURE.md`, `QUALITY.md` et `CURRENT_STATE.md` restent à mettre à jour
+  à la synthèse de la fonctionnalité (seul `SECURITY.md` est à jour après J1).
+  — Fait à la synthèse pour `ARCHITECTURE.md` et `QUALITY.md` ;
+  `CURRENT_STATE.md` se synchronise après la fusion de la PR #125.
+
+Constats mineurs de la revue adversariale J3 du 6 août 2026, non bloquants :
+
+- borner en streaming la lecture du corps de réponse des transports de mutation
+  (`flightDispatch.ts`, `flightStart.ts`), comme `dispatchList.ts` le fait déjà ;
+- conserver l'intention d'idempotence au-delà du démontage du contrôle (ou
+  accepter la garantie serveur seule, ce qui est l'état actuel documenté) ;
+- exercer la garde `pendingRef` par un test réellement concurrent ;
+- relire la liste autoritaire aussi sur un refus `rejected` (UX) ;
+- retirer l'assertion redondante `queryByText("private-user-token")`.
 
 ### Documentation updated

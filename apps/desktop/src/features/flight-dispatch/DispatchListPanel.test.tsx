@@ -12,6 +12,8 @@ import {
   type CompanyDispatch,
   DispatchListError,
 } from "@/features/flight-dispatch/dispatchList";
+import type { FlightStartCommand } from "@/features/flight-dispatch/DispatchStartControl";
+import type { StartedFlight } from "@/features/flight-dispatch/flightStart";
 
 const config: DesktopConnectionConfig = {
   anonKey: "public-anon-key",
@@ -25,6 +27,7 @@ const dispatch: CompanyDispatch = {
   departureIcao: "LFPG",
   id: "94000000-0000-4000-8000-000000000001",
   schemaVersion: 1,
+  startedAt: null,
   state: "draft",
 };
 const activeDispatch: CompanyDispatch = {
@@ -33,6 +36,7 @@ const activeDispatch: CompanyDispatch = {
   arrivalIcao: "EGLL",
   departureIcao: "LFPO",
   id: "94000000-0000-4000-8000-000000000002",
+  startedAt: "2026-08-04T10:05:00Z",
   state: "active",
 };
 
@@ -247,6 +251,80 @@ describe("DispatchListPanel", () => {
     expect(command).toHaveBeenCalledTimes(2);
     resolve([dispatch]);
     expect(await screen.findByRole("list")).toBeInTheDocument();
+  });
+
+  it("propose le démarrage des seuls brouillons, sans appel au rendu", async () => {
+    const user = userEvent.setup();
+    const startCommand = vi.fn<FlightStartCommand>();
+    render(
+      <DispatchListPanel
+        command={async () => [dispatch, activeDispatch]}
+        config={config}
+        onAuthenticationRequired={vi.fn()}
+        sessionManager={createSessionManager()}
+        startCommand={startCommand}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Afficher mes dispatchs" }));
+    await screen.findByRole("list", { name: "Dispatchs de la compagnie" });
+
+    expect(
+      screen.getByRole("button", { name: "Démarrer le vol · LFPG → LFBO" }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: /Démarrer le vol · LFPO → EGLL/ }),
+    ).not.toBeInTheDocument();
+    expect(startCommand).not.toHaveBeenCalled();
+  });
+
+  it("relit la source autoritaire après un départ réussi, sans état local du vol", async () => {
+    const user = userEvent.setup();
+    const command = vi.fn<DispatchListCommand>()
+      .mockResolvedValueOnce([dispatch])
+      .mockResolvedValueOnce([{ ...dispatch, startedAt: "2026-08-06T10:30:00Z", state: "active" }]);
+    const startedFlight: StartedFlight = {
+      aircraftId: dispatch.aircraftId,
+      dispatchId: dispatch.id,
+      schemaVersion: 1,
+      startedAt: "2026-08-06T10:30:00Z",
+      state: "active",
+    };
+    const startCommand = vi.fn<FlightStartCommand>(async () => startedFlight);
+    render(
+      <DispatchListPanel
+        command={command}
+        config={config}
+        onAuthenticationRequired={vi.fn()}
+        sessionManager={createSessionManager()}
+        startCommand={startCommand}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Afficher mes dispatchs" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Démarrer le vol · LFPG → LFBO" }),
+    );
+
+    expect(await screen.findByText(/En vol/)).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Dispatchs de la compagnie" }))
+      .toHaveTextContent("LFPG → LFBO");
+    expect(screen.getByRole("list", { name: "Dispatchs de la compagnie" }))
+      .toHaveTextContent(/départ .+ UTC/);
+    expect(command).toHaveBeenCalledTimes(2);
+    expect(startCommand).toHaveBeenCalledExactlyOnceWith({
+      accessToken: "private-access-token",
+      anonKey: "public-anon-key",
+      dispatchId: dispatch.id,
+      idempotencyKey: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      ),
+      signal: expect.any(AbortSignal),
+      supabaseUrl: "http://127.0.0.1:54321",
+    });
+    expect(
+      screen.queryByRole("button", { name: /Démarrer le vol/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("annule la lecture au démontage", async () => {

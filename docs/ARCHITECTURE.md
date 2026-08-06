@@ -165,8 +165,18 @@ que la transition `draft` → `active` dans une seule transaction. Un dispatch
 inconnu, étranger ou déjà actif rend le même refus opaque. Le registre privé
 `private.flight_start_commands` lie `(owner_id, idempotency_key)` à l'empreinte
 du payload et n'admet qu'un démarrage par dispatch ; un rejeu identique rend la
-même réponse versionnée à cinq champs. Aucune frontière Auth, appelant desktop,
-télémétrie, clôture ni écriture financière n'est fournie.
+même réponse versionnée à cinq champs.
+
+F0001 fournit sa frontière et son appelant : l'Edge Function `flight-start`,
+quatrième frontière sur le modèle exact de `dispatch-draft` (corps de 4 Kio
+limité à `dispatchId` et `idempotencyKey`, bearer vérifié auprès d'Auth,
+propriétaire dérivé, RPC en `service_role` sous cinq secondes, projection
+`no-store` des cinq champs publics, refus indistinguables), prouvée sur l'Edge
+Runtime local réel ; et, côté desktop, un transport borné à la cible loopback
+plus un contrôle par ligne `draft` de la liste T0053 qui relit la source
+autoritaire après un départ — la lecture expose désormais `started_at` pour un
+vol `active`, validé nul pour un brouillon. Aucune télémétrie, clôture composée
+ni écriture financière n'est fournie par cette capacité.
 
 T0057 ajoute un référentiel d'aérodromes borné par une troisième migration
 append-only qui ne réécrit ni T0047 ni T0050. `public.airports` porte un code
