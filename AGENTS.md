@@ -109,3 +109,9 @@ outil qui sort `0` sans avoir découvert de test ne prouve rien.
 
 Le rapport de fin d'unité donne : statut, fichiers modifiés, commandes et
 résultats réels, risques et limites, branche, commit et Pull Request.
+
+**Tout rapport de fin de tâche se termine par « La suite »** — que la tâche soit
+une unité entière, un jalon ou une simple demande : la prochaine action
+concrète, à qui elle appartient (Andy, l'agent, ou personne si c'est terminé),
+et ce qui la débloque le cas échéant. Un rapport sans suite n'est pas terminé
+(décision d'Andy du 6 août 2026).
