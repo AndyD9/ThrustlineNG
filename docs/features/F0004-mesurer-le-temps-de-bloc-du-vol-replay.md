@@ -46,6 +46,10 @@ au dernier retour au sol de la trace, arrondi à la minute supérieure, minimum
 une minute ; une trace sans retour au sol rend un état « incomplet » sans temps
 de bloc inventé. Le statut passe `Ready`.
 
+**Précision confirmée par Andy le 6 août 2026 (revue J1) :** `completed` exige
+une trace terminée au sol. Un touch-and-go dont la trace finit en vol reste
+`incomplete`, sans temps de bloc, même si un retour au sol a été observé.
+
 ## Dependencies
 
 - T0054 — télémétrie replay bornée sur le contrat local (`Done`) ;
@@ -247,8 +251,7 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   séparé — 0 bloquant, 1 majeur, 7 mineurs. Le majeur (touch-and-go finissant
   en vol rendu `completed` avec un temps arrêté au toucher) est fermé :
   `completed` exige désormais une trace terminée au sol, choix « fail closed »
-  **à confirmer par Andy** s'il préfère la lettre permissive de la règle
-  décidée. Mineurs corrigés : résumé rendu terminal avant l'état du health
+  **confirmé par Andy le 6 août 2026**. Mineurs corrigés : résumé rendu terminal avant l'état du health
   check (ordre de `Transition`), tracker repassé `internal`, cas
   touch-and-go/taxi/départ en vol testés, documentation alignée (interruption
   sans aucun échantillon reste `idle`). Dette notée : le tracker est mono-vol
