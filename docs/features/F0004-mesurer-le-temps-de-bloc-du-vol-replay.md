@@ -3,9 +3,10 @@
 Status: In progress
 Owner: Agent (session du 6 août 2026)
 Branch: `feature/f0004-mesurer-le-temps-de-bloc-du-vol-replay`
-PR: [#128](https://github.com/AndyD9/ThrustlineNG/pull/128) (brouillon, base
-`main` ; checks verts le 6 août 2026 : Windows multi-stack — bridge et budgets
-inclus —, Supabase PostgreSQL 17, Audits/licences/SBOM)
+PR: [#128](https://github.com/AndyD9/ThrustlineNG/pull/128) (ouverte, passée
+« ready for review » le 6 août 2026, base `main` ; checks verts le 6 août 2026
+sur J1 : Windows multi-stack — bridge et budgets inclus —, Supabase
+PostgreSQL 17, Audits/licences/SBOM ; J2–J3 poussés ensuite)
 Phase: 3–4
 Risk: Medium
 Security-sensitive: Yes
