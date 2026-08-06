@@ -3,6 +3,7 @@
 Status: In progress
 Owner: Agent (session du 6 août 2026)
 Branch: `feature/f0004-mesurer-le-temps-de-bloc-du-vol-replay`
+PR: [#128](https://github.com/AndyD9/ThrustlineNG/pull/128) (brouillon, base `main`)
 Phase: 3–4
 Risk: Medium
 Security-sensitive: Yes
