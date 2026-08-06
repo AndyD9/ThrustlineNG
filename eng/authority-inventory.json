@@ -180,6 +180,8 @@
       ],
       "evidencePaths": [
         "supabase/functions/flight-start/handler.ts",
+        "apps/desktop/src/features/flight-dispatch/flightStart.ts",
+        "apps/desktop/src/features/flight-dispatch/DispatchStartControl.tsx",
         "supabase/migrations/20260803000200_authoritative_flight_start.sql",
         "supabase/tests/database/flight_start.test.sql",
         "supabase/migrations/20260805000100_aircraft_usability_guard.sql",
@@ -188,6 +190,7 @@
       "evidenceMarkers": [
         "start_flight_from_dispatch",
         "createFlightStartHandler",
+        "functions/v1/flight-start",
         "flight_start_rejected",
         "flight_dispatches_known_states",
         "flight_start_commands",
@@ -196,7 +199,7 @@
         "a draft created while usable cannot depart once usage is suspended",
         "a start acquired before the usage loss replays identically while the dispatch is active"
       ],
-      "limitations": ["Only the server transitions from one owned draft to one server-timed active flight, and from that flight to one of the two terminal states, are covered. F0001 J1 adds one bounded authenticated Edge boundary in front of the start command, accepting only a dispatch identifier and an idempotency key; it is not yet proven on the local Edge Runtime and has no desktop caller, and no flight phase detection or resume exists. T0054 broadcasts bounded replay telemetry on the local bridge contract to authenticated loopback subscribers only, without persisting flight state or linking any sample to a company, a flight or the ledger.", "The flight start now opposes the end of an aircraft lease: it derives the aircraft from the dispatch, locks it last in the documented company, dispatch, aircraft order and refuses a fresh draft-to-active transition on an unusable aircraft with its existing opaque message. A start already acquired replays unchanged, and close_flight is deliberately unguarded so a flight under way stays closeable, per Andy's decision of 4 August 2026."]
+      "limitations": ["Only the server transitions from one owned draft to one server-timed active flight, and from that flight to one of the two terminal states, are covered. F0001 adds one bounded authenticated Edge boundary in front of the start command, accepting only a dispatch identifier and an idempotency key, proven on the real local Edge Runtime, plus one bounded desktop caller behind an explicit submission that rereads the authoritative list after a start; the desktop proof stays jsdom with injected fetch, no live WebView run exists yet, and no flight phase detection or resume exists. T0054 broadcasts bounded replay telemetry on the local bridge contract to authenticated loopback subscribers only, without persisting flight state or linking any sample to a company, a flight or the ledger.", "The flight start now opposes the end of an aircraft lease: it derives the aircraft from the dispatch, locks it last in the documented company, dispatch, aircraft order and refuses a fresh draft-to-active transition on an unusable aircraft with its existing opaque message. A start already acquired replays unchanged, and close_flight is deliberately unguarded so a flight under way stays closeable, per Andy's decision of 4 August 2026."]
     },
     {
       "id": "flight-finalization",

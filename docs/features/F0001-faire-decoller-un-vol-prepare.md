@@ -138,7 +138,7 @@ Autonomous: Yes
 
 ### J3 — Le départ composé depuis le desktop
 
-Status: Draft
+Status: Review
 Risk: Low
 Security-sensitive: No
 Autonomous: Yes
@@ -332,11 +332,35 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J3
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : dans la liste de dispatchs T0053, chaque ligne `draft`
+  porte un contrôle « démarrer ». Le transport `flightStart.ts` est calqué sur
+  `flightDispatch.ts` : cible loopback `http:` uniquement, UUID canoniques
+  validés avant tout réseau, corps strictement `{dispatchId, idempotencyKey}`,
+  timeout 5 s, réponse bornée à 16 Kio et validée par jeu de clés exact des
+  cinq champs publics avec recoupement du `dispatchId`. Le contrôle n'exécute
+  aucun appel au rendu, obtient le bearer à la soumission, conserve la clé
+  d'idempotence pour un retry et la renouvelle si le dispatch change, bloque le
+  double clic, efface la session sur refus Auth, annule sa requête au démontage
+  et relit la liste autoritaire après un départ réussi — l'état affiché vient
+  toujours du serveur. Implémenté par un agent délégué en lecture/écriture sur
+  les seuls chemins desktop ; diff inspecté et validations rejouées par le
+  coordinateur.
+- fichiers modifiés : `apps/desktop/src/features/flight-dispatch/flightStart.ts`,
+  `DispatchStartControl.tsx`, leurs trois fichiers de tests (nouveaux),
+  `DispatchListPanel.tsx` et son test (câblage minimal),
+  `eng/authority-inventory.json` (appelant desktop classé, limitation mise à
+  jour), ce fichier.
+- commandes et résultats (6 août 2026, rejoués par le coordinateur après
+  intégration) : `pnpm frontend:typecheck` — 0 erreur ;
+  `pnpm frontend:test` — 358 tests passés, 2 skipped (48 nouveaux pour ce
+  jalon) ; `pnpm frontend:coverage` — `flightStart.ts` 100 % lignes, global
+  94,77 % statements ; `pnpm frontend:build` — vert ;
+  `tests/authority/run.ps1` — vert (9 mutations).
+- vérification manuelle : le parcours réel dans l'application (préparer,
+  démarrer, double-cliquer, refus Auth) reste à faire sur la pile locale — il
+  rejoint la vérification de bout en bout de la fonctionnalité, avec T0055.
+- revue et constats traités : revue adversariale demandée sur le diff poussé du
+  jalon, résultat à consigner ici.
 
 ### Synthèse
 

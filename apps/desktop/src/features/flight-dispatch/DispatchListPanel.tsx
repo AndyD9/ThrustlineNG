@@ -9,6 +9,10 @@ import {
   loadDispatchList,
   type LoadDispatchListInput,
 } from "@/features/flight-dispatch/dispatchList";
+import {
+  DispatchStartControl,
+  type FlightStartCommand,
+} from "@/features/flight-dispatch/DispatchStartControl";
 
 export type DispatchListCommand = (
   input: LoadDispatchListInput,
@@ -17,9 +21,11 @@ export type DispatchListCommand = (
 export interface DispatchListPanelProps {
   command?: DispatchListCommand | undefined;
   config: DesktopConnectionConfig;
+  createIdempotencyKey?: (() => string) | undefined;
   onAuthenticationRequired: () => void;
   refreshVersion?: number | undefined;
   sessionManager: DesktopSessionManager;
+  startCommand?: FlightStartCommand | undefined;
 }
 
 type PanelState =
@@ -42,9 +48,11 @@ const createdAtFormatter = new Intl.DateTimeFormat("fr-FR", {
 export function DispatchListPanel({
   command = loadDispatchList,
   config,
+  createIdempotencyKey,
   onAuthenticationRequired,
   refreshVersion = 0,
   sessionManager,
+  startCommand,
 }: DispatchListPanelProps) {
   const titleId = useId();
   const [state, setState] = useState<PanelState>({ kind: "ready" });
@@ -141,6 +149,18 @@ export function DispatchListPanel({
                 {stateLabels[dispatch.state]} ·{" "}
                 {createdAtFormatter.format(new Date(dispatch.createdAt))} UTC
               </span>
+              {dispatch.state === "draft" && (
+                <DispatchStartControl
+                  command={startCommand}
+                  config={config}
+                  createIdempotencyKey={createIdempotencyKey}
+                  dispatchId={dispatch.id}
+                  flightLabel={`${dispatch.departureIcao} → ${dispatch.arrivalIcao}`}
+                  onAuthenticationRequired={onAuthenticationRequired}
+                  onFlightStarted={() => void load()}
+                  sessionManager={sessionManager}
+                />
+              )}
             </li>
           ))}
         </ul>
