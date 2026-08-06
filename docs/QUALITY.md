@@ -709,6 +709,15 @@ résultat ; côté WebView, le rejet des résumés forgés et la classification 
 l'unicité de la commande `flight_summary` et sa signature sans paramètre
 invité.
 
+Depuis F0004 J3, les tests frontend couvrent l'affichage du vol actif : aucune
+lecture au rendu, mesure sur action explicite, états rendus distinctement
+(temps de bloc d'un replay terminé, replay en cours, trace incomplète sans
+temps inventé, indisponibilité en alerte avec retry), rattachement du contrôle
+à la seule ligne `active` de la liste des dispatchs et composition d'accueil
+sans réseau. Les invariants épinglent que le câblage
+`flightSummaryShell.ts` ne transmet au shell que le nom de la commande, sans
+autre argument, et que l'affichage ne recalcule aucun temps dans la WebView.
+
 Depuis la racine :
 
 ```powershell

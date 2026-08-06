@@ -65,6 +65,9 @@ une trace terminée au sol. Un touch-and-go dont la trace finit en vol reste
   restant côté Rust ;
 - `apps/desktop/src/features/flight-dispatch/` — affichage du résumé rattaché
   au vol actif ;
+- `apps/desktop/src/pages/HomePage.tsx` — **ajout au J3, à valider par Andy en
+  revue** : simple passage de la commande de mesure vers la liste des
+  dispatchs, aucune logique ni accès aux données ;
 - `tests/backend/run.ps1` seulement si une règle de gate est ajoutée ;
 - `tests/desktop-shell/run.ps1` et
   `apps/desktop/src/test/security-invariants.test.ts` — **ajout au J2, à
@@ -131,7 +134,7 @@ Autonomous: No
 
 ### J3 — L'application affiche le temps de bloc du vol actif
 
-Status: Draft
+Status: Done
 Risk: Low
 Security-sensitive: No
 Autonomous: Yes
@@ -150,13 +153,13 @@ Autonomous: Yes
 
 - [ ] Une trace replay jouée de bout en bout produit un temps de bloc conforme
       à la règle décidée, visible dans l'application sur le vol actif.
-- [ ] Une trace sans retour au sol rend un état « incomplet » explicite, sans
-      temps de bloc inventé.
-- [ ] Le jeton d'instance et le port du contrat local ne traversent jamais la
-      frontière WebView, prouvé par un test.
-- [ ] Le résumé est additif sur le contrat local : les consommateurs T0054
-      existants sont inchangés.
-- [ ] La documentation décrit la capacité et ses limites (mesure replay
+- [x] Une trace sans retour au sol rend un état « incomplet » explicite, sans
+      temps de bloc inventé (prouvé J1 sur le bridge, affiché J3 sans temps).
+- [x] Le jeton d'instance et le port du contrat local ne traversent jamais la
+      frontière WebView, prouvé par un test (J2, serveur factice côté Rust).
+- [x] Le résumé est additif sur le contrat local : les consommateurs T0054
+      existants sont inchangés (J1, tests bridge 34/34).
+- [x] La documentation décrit la capacité et ses limites (mesure replay
       uniquement, un vol à la fois, serveur toujours autorité du règlement).
 
 ## Security review
@@ -313,16 +316,78 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J3
 
-- résultat obtenu :
+- résultat obtenu : la ligne du vol `active` de « Mes dispatchs » porte
+  `FlightSummaryControl` : lecture du résumé sur action explicite — jamais au
+  rendu, prouvé par test — et quatre états explicites : replay en cours, temps
+  de bloc mesuré en minutes pour un replay terminé, trace incomplète sans
+  temps inventé, indisponibilité en alerte avec retry ; l'état `idle` est rendu
+  « aucun replay mesuré ». Le câblage réel de l'`invoke`, différé par le J2,
+  vit dans `flightSummaryShell.ts` — seul module qui touche
+  `window.__TAURI_INTERNALS__.invoke` et qui ne transmet que le nom de la
+  commande, sans aucun autre argument (invariant testé) ; hors du shell Tauri,
+  l'échec est classé `unavailable`. La WebView ne calcule aucun temps :
+  `blockMinutes` est affiché tel que revalidé par `readFlightSummary`
+  (invariant testé). **Écart de périmètre consigné dans `Allowed areas`** :
+  `HomePage.tsx` passe la commande de mesure à la liste des dispatchs — simple
+  transmission de prop, à valider par Andy en revue.
 - fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+  `apps/desktop/src/features/flight-dispatch/FlightSummaryControl.tsx` et
+  `flightSummaryShell.ts` (nouveaux, avec leurs tests),
+  `DispatchListPanel.tsx`, `apps/desktop/src/pages/HomePage.tsx`,
+  extensions de `DispatchListPanel.test.tsx`, `homeComposition.test.tsx` et
+  `flightSummary.invariants.test.ts`, `docs/ARCHITECTURE.md`,
+  `docs/QUALITY.md`, `docs/CURRENT_STATE.md`, ce fichier et
+  `docs/features/README.md`.
+- commandes et résultats (6 août 2026) : `pnpm frontend:typecheck` — succès ;
+  `pnpm frontend:test` — vitest 401 passés, 2 ignorés préexistants (18
+  nouveaux : contrôle d'affichage, câblage shell, rattachement à la seule
+  ligne active, composition d'accueil sans réseau, invariants J3) ;
+  `pnpm frontend:coverage` — 94,81 % ; `pnpm frontend:build` — succès ;
+  `pnpm authority:check` — passed ; `pnpm maintenance:check` — passed.
+- vérification manuelle : non exécutée à ce jalon — le parcours complet
+  (départ F0001, replay joué, temps de bloc affiché sur le vol actif) reste dû
+  avant la clôture de la fonctionnalité ; J1 et J2 portent leurs preuves
+  manuelles propres.
+- revue et constats traités : à la charge de la revue de la PR #128 ; points
+  prioritaires : l'écart `HomePage.tsx` hors `Allowed areas` initiales et le
+  câblage `__TAURI_INTERNALS__` (API interne de Tauri 2, choisie pour éviter
+  la dépendance `@tauri-apps/api` — à revalider à chaque montée de version).
 
 ### Synthèse
 
+Les trois jalons sont implémentés sur la PR #128 : le bridge mesure le temps
+de bloc selon la règle « mouvement → sol » et l'expose additivement sur le
+contrat local (J1), l'unique commande Tauri `flight_summary` relaie le résumé
+revalidé sans exposer jeton ni port (J2), et l'application affiche le temps de
+bloc sur la ligne du vol actif, sur action explicite et sans aucun calcul côté
+WebView (J3). Restent, avant fusion : le parcours manuel complet (critère
+d'acceptation 1), la revue adversariale de la PR et la décision d'Andy.
+
 ### Risks and limitations
+
+- Le câblage WebView repose sur `window.__TAURI_INTERNALS__.invoke`, API
+  interne de Tauri 2 — le dépôt n'embarque pas `@tauri-apps/api` (pas de
+  nouvelle dépendance) ; à revalider à chaque montée de version de Tauri.
+- Le résumé du bridge est global et mono-vol : la liste l'affiche sur la ligne
+  `active` sans que le bridge connaisse l'identité du dispatch ; l'association
+  est implicite par la contrainte mono-vol de l'alpha (T0050). Une alpha
+  multi-vols devra rattacher le résumé au vol.
+- Le temps mesuré reste une déclaration côté client : `close_flight` conserve
+  `min(déclaré, écoulé serveur)` (T0051).
+- Mesure replay uniquement ; la source native (T0059/F0003) devra revalider la
+  règle sur échantillons réels et réarmer le tracker terminal.
 
 ### Follow-ups
 
+- Parcours manuel complet avant clôture : départ F0001, replay joué, temps de
+  bloc affiché — appartient à la revue de la fonctionnalité (Andy ou session
+  outillée CDP sur la pile locale).
+- F0002 consomme ce résumé pour la clôture depuis l'application.
+- T0059 : réarmement du tracker terminal au redémarrage du publisher (dette
+  J1).
+
 ### Documentation updated
+
+`docs/ARCHITECTURE.md` (affichage J3 et câblage shell), `docs/QUALITY.md`
+(couverture J3), `docs/CURRENT_STATE.md`, `docs/features/README.md` et ce
+fichier.

@@ -418,6 +418,17 @@ WebView, `flightSummary.ts` revalide le même jeu de clés et ne dépend que de 
 fonction `invoke` injectée : ni port, ni jeton, ni chemin de trace ne franchit
 la frontière.
 
+L'affichage (J3) rattache le résumé au vol actif de la liste des dispatchs :
+`FlightSummaryControl`, rendu sur la seule ligne `active`, lit le résumé sur
+action explicite — jamais au rendu — via `readFlightSummary` et le câblage
+`flightSummaryShell.ts`, seul module qui touche
+`window.__TAURI_INTERNALS__.invoke` et qui ne transmet que le nom de la
+commande. La WebView ne calcule aucun temps : `blockMinutes` est affiché tel
+que revalidé, avec des états explicites (replay en cours, temps de bloc
+mesuré, trace incomplète sans temps inventé, indisponibilité). Le résumé étant
+mono-vol par construction (T0050), l'association à la ligne active est
+implicite pour l'alpha.
+
 ## Contrat local T0010
 
 Tauri crée un jeton d'instance aléatoire de 256 bits et réserve un port

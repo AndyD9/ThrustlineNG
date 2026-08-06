@@ -6,6 +6,7 @@ import type { CompanyAircraft } from "@/features/aircraft-fleet/aircraftFleet";
 import type { DesktopConnectionConfig } from "@/features/auth/connectionConfig";
 import { DesktopSessionManager } from "@/features/auth/session";
 import type { DispatchListCommand } from "@/features/flight-dispatch/DispatchListPanel";
+import type { FlightSummaryCommand } from "@/features/flight-dispatch/FlightSummaryControl";
 import type { CompanyDispatch } from "@/features/flight-dispatch/dispatchList";
 import type {
   CreateDispatchDraftInput,
@@ -47,6 +48,12 @@ const persistedDispatch: CompanyDispatch = {
   schemaVersion: 1,
   startedAt: null,
   state: "draft",
+};
+
+const activeFlight: CompanyDispatch = {
+  ...persistedDispatch,
+  startedAt: "2026-08-06T10:30:00Z",
+  state: "active",
 };
 
 const config: DesktopConnectionConfig = {
@@ -178,6 +185,41 @@ describe("composition du dispatch sur l’accueil", () => {
       anonKey: "public-anon-key",
       supabaseUrl: "http://127.0.0.1:54321",
     });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("affiche le temps de bloc mesuré du vol actif, sans réseau ni appel au rendu", async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const flightSummaryCommand = vi.fn<FlightSummaryCommand>(async () => ({
+      blockMinutes: 42,
+      contractVersion: "1",
+      state: "completed",
+    }));
+    render(
+      <HomePage
+        aircraftFleetCommand={async () => fleet}
+        companyPresenceCommand={async () => true}
+        config={config}
+        dispatchListCommand={async () => [activeFlight]}
+        flightSummaryCommand={flightSummaryCommand}
+        onAuthenticationRequired={vi.fn()}
+        onSignOut={vi.fn()}
+        sessionManager={createSessionManager()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Vérifier ma compagnie" }));
+    await user.click(await screen.findByRole("button", { name: "Afficher mes dispatchs" }));
+    await screen.findByRole("list", { name: "Dispatchs de la compagnie" });
+    expect(flightSummaryCommand).not.toHaveBeenCalled();
+
+    await user.click(
+      screen.getByRole("button", { name: "Afficher le temps de bloc · LFPG → LFBO" }),
+    );
+
+    expect(await screen.findByText("Temps de bloc mesuré : 42 min.")).toBeInTheDocument();
+    expect(flightSummaryCommand).toHaveBeenCalledExactlyOnceWith();
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
