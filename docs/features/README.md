@@ -35,7 +35,8 @@ gelée du format précédent.
 | F0001 | Faire décoller un vol préparé depuis l'application | 2–4 | T0050, T0048, T0052–T0053, T0065 fusionné | Done |
 | F0002 | Clôturer son vol et encaisser son revenu depuis l'application | 2–4 | T0051, T0057, F0001 fusionnée, liaison télémétrie → cycle de vol | Blocked |
 | F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | Ready |
-| F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy | Draft |
+| F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Ready |
+| F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | Ready |
 
 Les deux premières fonctionnalités ouvrent le format sur ce qui restait du golden
 path : `start_flight_from_dispatch` et `close_flight` sont livrées dans `main` depuis
@@ -52,9 +53,13 @@ du 6 août 2026 (option C) : le temps de vol d'un rapport de clôture viendra de
 la télémétrie, jamais d'une saisie ni d'une migration. Sa condition de sortie
 est **F0004**, qui mesure le temps de bloc du replay sur le bridge et
 l'achemine jusqu'à l'application sans exposer le contrat local à la WebView.
-F0004 est `Draft` sur une décision nommée d'Andy — la règle de mesure du temps
-de bloc — posée dans son fichier ; c'est le chemin critique du jalon « alpha
-cliquable ».
+F0004 est `Ready` depuis la décision d'Andy du 6 août 2026 — mesure
+« mouvement → sol », arrondie à la minute supérieure, minimum une minute ;
+c'est le chemin critique du jalon « alpha cliquable ». F0005 est `Ready` sur la
+seconde décision du même jour : le canal `internal-alpha` reçoit une CSP
+limitée à `http://127.0.0.1:54321` pendant que le canal public garde
+`connect-src 'none'`, ce qui rendra l'application installée réellement
+cliquable et clôturera T0055.
 
 F0003 sort d'une question d'Andy du 5 août 2026 — « il faut qu'on le trouve nous-même,
 dans l'hypothèse où la personne n'a rien de tout ça » — et d'un relevé qui lui donne

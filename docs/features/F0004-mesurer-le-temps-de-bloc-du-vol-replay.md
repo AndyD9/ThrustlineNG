@@ -1,6 +1,6 @@
 # F0004 — Voir le temps de bloc mesuré de son vol en replay
 
-Status: Draft
+Status: Ready
 Owner: Unassigned
 Branch: `feature/f0004-mesurer-le-temps-de-bloc-du-vol-replay`
 Phase: 3–4
@@ -37,19 +37,18 @@ ni au jeton ni au port (elle reçoit un résumé typé par commande Tauri).
 
 ## Décision attendue d'Andy
 
-**Comment le temps de bloc est-il mesuré sur une trace replay ?** Proposition :
-du premier échantillon en mouvement (vitesse sol non nulle ou airborne) au
-dernier retour au sol de la trace, arrondi à la minute supérieure, minimum une
-minute ; une trace sans retour au sol rend un état « incomplet » sans temps de
-bloc. Condition de sortie : la décision est reportée datée ici, puis le statut
-passe `Ready`.
+**Décision prise le 6 août 2026 : mesure « mouvement → sol ».** Le temps de
+bloc va du premier échantillon en mouvement (vitesse sol non nulle ou airborne)
+au dernier retour au sol de la trace, arrondi à la minute supérieure, minimum
+une minute ; une trace sans retour au sol rend un état « incomplet » sans temps
+de bloc inventé. Le statut passe `Ready`.
 
 ## Dependencies
 
 - T0054 — télémétrie replay bornée sur le contrat local (`Done`) ;
 - T0010 — contrat local REST/SignalR à jeton (`Done`) ;
 - F0001 — départ de vol depuis l'application (fusionnée, PR #124/#126) ;
-- décision d'Andy ci-dessus : non prise.
+- décision d'Andy ci-dessus : **prise le 6 août 2026** (mouvement → sol).
 
 ## Allowed areas
 

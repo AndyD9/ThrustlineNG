@@ -45,9 +45,11 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
 
 ## Unités en cours
 
-- **F0004** (`Draft`) — mesurer le temps de bloc du vol replay (bridge →
-  commande Tauri → affichage), chemin critique du jalon. Une décision d'Andy en
-  attente : la règle de mesure, posée dans son fichier.
+- **F0004** (`Ready`) — mesurer le temps de bloc du vol replay (bridge →
+  commande Tauri → affichage), chemin critique du jalon. Décision de mesure
+  prise le 6 août 2026 : mouvement → sol.
+- **F0005** (`Ready`) — CSP `internal-alpha` limitée au loopback pour rendre
+  l'application installée cliquable et clore T0055 (décision du 6 août 2026).
 - **F0002** (`Blocked`) — clôture et encaissement depuis l'application ;
   débloquée par F0004 (décision d'Andy du 6 août 2026, option C : le temps de
   vol vient de la télémétrie).
@@ -59,10 +61,10 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
 
 1. F0004 — le temps de bloc mesuré du replay (décision de mesure en attente).
 2. F0002 — la clôture depuis l'application, débloquée par F0004.
-3. Le parcours dans l'application **installée** — la vérification qui tient
-   T0055 en `Verify`. Point dur découvert le 6 août 2026 : la CSP de production
-   est `connect-src 'none'`, donc l'app installée ne peut pas joindre l'API
-   locale par conception ; une décision CSP « alpha interne » est requise.
+3. F0005 — le parcours dans l'application **installée**, qui clôt T0055. La
+   CSP de production étant `connect-src 'none'`, Andy a décidé le 6 août 2026
+   un canal `internal-alpha` dont la CSP autorise uniquement
+   `http://127.0.0.1:54321`.
 
 ## Hors du jalon, suivi ailleurs
 
