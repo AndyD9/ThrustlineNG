@@ -30,13 +30,19 @@ priorité basse.
 - **Pas de travail sur le processus lui-même** (workflow, boucle, gates de
   gouvernance) sans demande explicite d'Andy.
 
-## Lecture avant travail
+## Lecture avant travail — le minimum, mesuré
 
 1. ce fichier ;
-2. `docs/CURRENT_STATE.md` — l'état prouvé, tenu court ;
-3. l'unité de travail complète : fonctionnalité `docs/features/` ou ticket
-   encore ouvert de l'archive `docs/tickets/` ;
-4. seulement ensuite, les documents et ADR que l'unité lie.
+2. `docs/CURRENT_STATE.md` — l'état prouvé, tenu sous 200 lignes (le gate de
+   maintenance l'impose) ;
+3. l'unité de travail : en entier à son premier jalon ; aux jalons suivants,
+   seulement l'en-tête, le jalon ouvert, `Allowed areas` et `Do not touch`.
+
+C'est tout. Les documents spécialisés et ADR se lisent **par section**,
+uniquement quand le jalon touche leur domaine — jamais en entier « pour
+contexte ». Budget de règles (décision d'Andy du 6 août 2026) : ce fichier
+tient en deux pages ; une nouvelle règle globale remplace ou condense une
+règle existante, elle ne s'empile pas.
 
 Préséance en cas d'écart : code, migrations et lockfiles de la branche > unité
 active et ADR acceptées > `CURRENT_STATE.md` > documents spécialisés >
@@ -109,3 +115,9 @@ outil qui sort `0` sans avoir découvert de test ne prouve rien.
 
 Le rapport de fin d'unité donne : statut, fichiers modifiés, commandes et
 résultats réels, risques et limites, branche, commit et Pull Request.
+
+**Tout rapport de fin de tâche se termine par « La suite »** — que la tâche soit
+une unité entière, un jalon ou une simple demande : la prochaine action
+concrète, à qui elle appartient (Andy, l'agent, ou personne si c'est terminé),
+et ce qui la débloque le cas échéant. Un rapport sans suite n'est pas terminé
+(décision d'Andy du 6 août 2026).

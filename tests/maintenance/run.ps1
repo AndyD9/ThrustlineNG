@@ -45,6 +45,14 @@ function Get-MaintenanceIssues {
         return $issues
     }
 
+    $currentStatePath = Join-Path $Root 'docs/CURRENT_STATE.md'
+    if (Test-Path -LiteralPath $currentStatePath) {
+        $currentStateLineCount = @(Get-Content -Encoding UTF8 -LiteralPath $currentStatePath).Count
+        if ($currentStateLineCount -gt 200) {
+            $issues.Add("CURRENT_STATE.md exceeds its 200-line budget ($currentStateLineCount lines): keep it one page and move history to docs/archive/.")
+        }
+    }
+
     $knownIssuesText = Get-Content -Raw -Encoding UTF8 -LiteralPath $knownIssuesPath
     if (-not [regex]::IsMatch($knownIssuesText, '(?m)^\| ID \| [^|]+ \| Zone \| [^|]+ \| Preuve \| Ticket cible \| Statut \|\r?$')) {
         $issues.Add('KNOWN_ISSUES.md has an invalid table schema.')
@@ -400,6 +408,14 @@ try {
     if (@(Get-MaintenanceIssues -Root $temporaryRoot).Count -ne 0) {
         throw 'Harness self-test rejected a debt marker linked to a scheduled issue.'
     }
+
+    $currentStateCopy = Join-Path $temporaryRoot 'docs/CURRENT_STATE.md'
+    [System.IO.File]::WriteAllText($currentStateCopy, ("# Fixture" + ("`r`nligne de recit ressuscite par une fusion" * 205)))
+    Assert-MaintenanceIssue -Root $temporaryRoot -Pattern 'CURRENT_STATE.md exceeds its 200-line budget' -FailureMessage 'Harness self-test failed to detect an oversized current state.'
+    Remove-Item -LiteralPath $currentStateCopy
+    if (@(Get-MaintenanceIssues -Root $temporaryRoot).Count -ne 0) {
+        throw 'Harness self-test rejected a fixture without a current state file.'
+    }
 }
 finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
@@ -407,4 +423,4 @@ finally {
     }
 }
 
-Write-Output 'Maintenance checks passed (registry, ticket index, debt markers and 8 mutation scenarios).'
+Write-Output 'Maintenance checks passed (registry, ticket index, debt markers, current-state budget and 9 mutation scenarios).'
