@@ -88,9 +88,6 @@
 | T0062 | Réparer le gate d'automatisation des tickets et l'exécuter en CI | Gouvernance | T0055, T0061 | Verify |
 | T0063 | Faire avancer la boucle de tickets sans déclenchement humain | Gouvernance | T0061 fusionné, T0062 fusionné, décision Andy | Verify |
 | T0064 | Réduire le coût en tokens des charges JSON de la boucle de tickets | Gouvernance | T0061, T0062 fusionnés, T0063 fusionné | Verify |
-| T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060 fusionnée, décision Andy du 5 août 2026 | Ready |
-| T0063 | Faire avancer la boucle de tickets sans déclenchement humain | Gouvernance | T0061 fusionné, T0062 fusionné, décision Andy | Review |
-| T0064 | Réduire le coût en tokens des charges JSON de la boucle de tickets | Gouvernance | T0061, T0062 fusionnés, T0063 fusionné | Review |
 | T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060 fusionnée, décision Andy du 5 août 2026 | Review |
 | T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
 | T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
