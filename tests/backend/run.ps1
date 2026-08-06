@@ -80,6 +80,10 @@ function Get-BackendIssues {
     $dispatchFunctionEntryPath = Join-Path $Root "supabase\functions\dispatch-draft\index.ts"
     $dispatchFunctionTestPath = Join-Path $Root "supabase\functions\dispatch-draft\handler.test.ts"
     $dispatchFunctionPackagePath = Join-Path $Root "supabase\functions\dispatch-draft\package.json"
+    $flightStartFunctionPath = Join-Path $Root "supabase\functions\flight-start\handler.ts"
+    $flightStartFunctionEntryPath = Join-Path $Root "supabase\functions\flight-start\index.ts"
+    $flightStartFunctionTestPath = Join-Path $Root "supabase\functions\flight-start\handler.test.ts"
+    $flightStartFunctionPackagePath = Join-Path $Root "supabase\functions\flight-start\package.json"
     $typesPath = Join-Path $Root "packages\database\src\database.types.ts"
     $startScriptPath = Join-Path $Root "scripts\start-supabase-local.ps1"
     $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
@@ -146,6 +150,10 @@ function Get-BackendIssues {
         $dispatchFunctionEntryPath,
         $dispatchFunctionTestPath,
         $dispatchFunctionPackagePath,
+        $flightStartFunctionPath,
+        $flightStartFunctionEntryPath,
+        $flightStartFunctionTestPath,
+        $flightStartFunctionPackagePath,
         $typesPath,
         $startScriptPath,
         $invokeScriptPath,
@@ -1299,7 +1307,49 @@ function Get-BackendIssues {
             $issues.Add("Missing dispatch draft endpoint test scenario: $marker")
         }
     }
-    Require-Text ([string]$package.scripts.'backend:functions:test') 'company-onboarding/handler\.test\.ts.+aircraft-purchase/handler\.test\.ts.+dispatch-draft/handler\.test\.ts' "The functions test script must execute onboarding, aircraft purchase and dispatch draft handlers."
+    $flightStartFunction = Get-Content -Raw -Encoding UTF8 $flightStartFunctionPath
+    $flightStartFunctionEntry = Get-Content -Raw -Encoding UTF8 $flightStartFunctionEntryPath
+    $flightStartFunctionTests = Get-Content -Raw -Encoding UTF8 $flightStartFunctionTestPath
+    $flightStartFunctionRequirements = @{
+        "bounded request body" = 'MAX_BODY_BYTES = 4_096'
+        "bounded upstream calls" = 'UPSTREAM_TIMEOUT_MILLISECONDS = 5_000'
+        "strict flight start payload" = 'keys\.length !== 2'
+        "Auth session verification" = '/auth/v1/user'
+        "anonymous session rejection" = 'user\.is_anonymous !== false'
+        "service-role flight start RPC" = '/rest/v1/rpc/start_flight_from_dispatch'
+        "owner derived from Auth" = 'owner_id: user\.id'
+        "service credential API key" = 'apikey: configuration\.serviceRoleKey'
+        "service credential bearer" = 'authorization: `Bearer \$\{configuration\.serviceRoleKey\}`'
+        "redacted flight start failure" = 'flight_start_rejected'
+        "allowlisted public response" = 'aircraftId: value\.aircraftId[\s\S]+dispatchId: value\.dispatchId[\s\S]+schemaVersion: 1[\s\S]+startedAt: value\.startedAt[\s\S]+state: "active"'
+        "non-cacheable response" = 'headers\.set\("cache-control", "no-store"\)'
+    }
+    foreach ($entry in $flightStartFunctionRequirements.GetEnumerator()) {
+        Require-Text $flightStartFunction $entry.Value "Flight start endpoint invariant missing: $($entry.Key)."
+    }
+    if ($flightStartFunction -match 'request\.(owner|company|state|started|aircraft)[A-Za-z]*') {
+        $issues.Add("Flight start endpoint must not accept client-controlled owner, company, state, time or aircraft data.")
+    }
+    Require-Text $config '\[functions\.flight-start\][\s\S]+verify_jwt = true[\s\S]+entrypoint = "\./functions/flight-start/index\.ts"' "Flight start Edge function must verify JWTs and register its entrypoint."
+    Require-Text $flightStartFunctionEntry 'Deno\.serve\(createFlightStartHandler\(Deno\.env\.toObject\(\)\)\)' "Flight start handler is not registered with the Edge runtime."
+    foreach ($marker in @(
+        "rejects owner, company, state, time, aircraft and other client-controlled fields",
+        "requires canonical dispatch and idempotency UUIDs",
+        "rejects an invalid or anonymous Auth session",
+        "fails closed when Auth is unavailable",
+        "derives the owner from Auth and sends only the RPC contract",
+        "does not disclose database rejection details",
+        "returns the same redacted refusal for unknown, foreign and already active dispatches",
+        "fails closed when the privileged RPC is unavailable",
+        "fails closed on a malformed or mismatched privileged response",
+        "returns only public fields from a privileged response",
+        "replays the same request without changing the public contract"
+    )) {
+        if (-not $flightStartFunctionTests.Contains($marker)) {
+            $issues.Add("Missing flight start endpoint test scenario: $marker")
+        }
+    }
+    Require-Text ([string]$package.scripts.'backend:functions:test') 'company-onboarding/handler\.test\.ts.+aircraft-purchase/handler\.test\.ts.+dispatch-draft/handler\.test\.ts.+flight-start/handler\.test\.ts' "The functions test script must execute onboarding, aircraft purchase, dispatch draft and flight start handlers."
 
     $seed = Get-Content -Raw -Encoding UTF8 $seedPath
     Require-Text $seed 'pilot-a@thrustline\.invalid' "Synthetic user A is missing."
@@ -1629,6 +1679,10 @@ try {
         "supabase\functions\dispatch-draft\index.ts",
         "supabase\functions\dispatch-draft\handler.test.ts",
         "supabase\functions\dispatch-draft\package.json",
+        "supabase\functions\flight-start\handler.ts",
+        "supabase\functions\flight-start\index.ts",
+        "supabase\functions\flight-start\handler.test.ts",
+        "supabase\functions\flight-start\package.json",
         "packages\database\src\database.types.ts",
         "scripts\start-supabase-local.ps1",
         "scripts\invoke-supabase-local.ps1",
@@ -2118,6 +2172,113 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\dispatch-draft\handler.test.ts") -Destination $dispatchFunctionTestCopy
+    $flightStartFunctionCopy = Join-Path $temporaryRoot "supabase\functions\flight-start\handler.ts"
+    $flightStartFunctionText = Get-Content -Raw -Encoding UTF8 $flightStartFunctionCopy
+    $flightStartFunctionText = $flightStartFunctionText.Replace(
+        "owner_id: user.id,",
+        "owner_id: request.ownerId,"
+    )
+    [System.IO.File]::WriteAllText($flightStartFunctionCopy, $flightStartFunctionText)
+    $clientFlightStartOwnerIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientFlightStartOwnerIssues -match "owner derived from Auth") -or
+        -not ($clientFlightStartOwnerIssues -match "client-controlled owner")) {
+        Write-Error "Harness self-test failed to detect a client-controlled flight start owner."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\flight-start\handler.ts") -Destination $flightStartFunctionCopy
+    $flightStartFunctionText = Get-Content -Raw -Encoding UTF8 $flightStartFunctionCopy
+    $flightStartFunctionText = $flightStartFunctionText.Replace(
+        "apikey: configuration.serviceRoleKey,",
+        "apikey: configuration.anonKey,"
+    )
+    [System.IO.File]::WriteAllText($flightStartFunctionCopy, $flightStartFunctionText)
+    $unprivilegedFlightStartIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unprivilegedFlightStartIssues -match "service credential API key")) {
+        Write-Error "Harness self-test failed to detect an unprivileged flight start RPC call."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\flight-start\handler.ts") -Destination $flightStartFunctionCopy
+    $flightStartFunctionText = Get-Content -Raw -Encoding UTF8 $flightStartFunctionCopy
+    $flightStartFunctionText = $flightStartFunctionText.Replace(
+        "dispatch_id: request.dispatchId,",
+        "dispatch_id: request.dispatchId,`r`n        state: request.state,"
+    )
+    [System.IO.File]::WriteAllText($flightStartFunctionCopy, $flightStartFunctionText)
+    $clientFlightStartStateIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientFlightStartStateIssues -match "client-controlled owner, company, state, time or aircraft")) {
+        Write-Error "Harness self-test failed to detect client-controlled flight start state."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\flight-start\handler.ts") -Destination $flightStartFunctionCopy
+    $flightStartFunctionText = Get-Content -Raw -Encoding UTF8 $flightStartFunctionCopy
+    $flightStartFunctionText = $flightStartFunctionText.Replace(
+        "const MAX_BODY_BYTES = 4_096;",
+        "const MAX_BODY_BYTES = 1_048_576;"
+    )
+    [System.IO.File]::WriteAllText($flightStartFunctionCopy, $flightStartFunctionText)
+    $unboundedFlightStartBodyIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unboundedFlightStartBodyIssues -match "bounded request body")) {
+        Write-Error "Harness self-test failed to detect an unbounded flight start request body."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\flight-start\handler.ts") -Destination $flightStartFunctionCopy
+    $flightStartFunctionText = Get-Content -Raw -Encoding UTF8 $flightStartFunctionCopy
+    $flightStartFunctionText = $flightStartFunctionText.Replace(
+        "const UPSTREAM_TIMEOUT_MILLISECONDS = 5_000;",
+        "const UPSTREAM_TIMEOUT_MILLISECONDS = 500_000;"
+    )
+    [System.IO.File]::WriteAllText($flightStartFunctionCopy, $flightStartFunctionText)
+    $unboundedFlightStartTimeoutIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unboundedFlightStartTimeoutIssues -match "bounded upstream calls")) {
+        Write-Error "Harness self-test failed to detect an unbounded flight start upstream timeout."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\flight-start\handler.ts") -Destination $flightStartFunctionCopy
+    $flightStartFunctionText = Get-Content -Raw -Encoding UTF8 $flightStartFunctionCopy
+    $flightStartFunctionText = $flightStartFunctionText.Replace(
+        "user.is_anonymous !== false",
+        "user.id === undefined"
+    )
+    [System.IO.File]::WriteAllText($flightStartFunctionCopy, $flightStartFunctionText)
+    $anonymousFlightStartIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($anonymousFlightStartIssues -match "anonymous session rejection")) {
+        Write-Error "Harness self-test failed to detect an admitted anonymous flight start session."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\flight-start\handler.ts") -Destination $flightStartFunctionCopy
+    $flightStartFunctionText = Get-Content -Raw -Encoding UTF8 $flightStartFunctionCopy
+    $flightStartFunctionText = $flightStartFunctionText.Replace(
+        "aircraftId: value.aircraftId,",
+        "...(value as Record<string, unknown>),"
+    )
+    [System.IO.File]::WriteAllText($flightStartFunctionCopy, $flightStartFunctionText)
+    $leakyFlightStartResponseIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($leakyFlightStartResponseIssues -match "allowlisted public response")) {
+        Write-Error "Harness self-test failed to detect a flight start response outside the allowlist."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\flight-start\handler.ts") -Destination $flightStartFunctionCopy
+    $flightStartFunctionTestCopy = Join-Path $temporaryRoot "supabase\functions\flight-start\handler.test.ts"
+    $flightStartFunctionTestText = Get-Content -Raw -Encoding UTF8 $flightStartFunctionTestCopy
+    $flightStartFunctionTestText = $flightStartFunctionTestText.Replace(
+        "returns the same redacted refusal for unknown, foreign and already active dispatches",
+        "returns a refusal for dispatches"
+    )
+    [System.IO.File]::WriteAllText($flightStartFunctionTestCopy, $flightStartFunctionTestText)
+    $incompleteFlightStartTestsIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($incompleteFlightStartTestsIssues -match "Missing flight start endpoint test scenario")) {
+        Write-Error "Harness self-test failed to detect an incomplete flight start endpoint contract."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\flight-start\handler.test.ts") -Destination $flightStartFunctionTestCopy
     $economyPolicyCopy = Join-Path $temporaryRoot "eng\economy-policy.json"
     $economyPolicyText = Get-Content -Raw -Encoding UTF8 $economyPolicyCopy
     $economyPolicyText = $economyPolicyText.Replace('"schemaVersion": 1', '"schemaVersion": 2')
@@ -2442,4 +2603,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040, T0047-T0051, T0057, T0060 and T0065 repository plus 58 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040, T0047-T0051, T0057, T0060, T0065 and F0001 repository plus 66 mutation scenarios)."

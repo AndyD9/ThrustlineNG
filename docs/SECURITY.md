@@ -177,9 +177,18 @@ n'admet qu'un démarrage par dispatch. Un rejeu identique rend la même réponse
 une collision de clé échoue ; deux sessions concurrentes sur le même dispatch
 convergent vers un seul vol actif, une seule commande et un seul horodatage.
 `authenticated` conserve une lecture seule filtrée par la compagnie du sujet Auth
-et ne reçoit aucun `execute`. Aucune frontière Auth, appelant desktop,
-télémétrie, clôture, écriture financière, annulation ou preuve Edge runtime n'est
-couverte par ce ticket.
+et ne reçoit aucun `execute`.
+
+L'Edge Function `flight-start` (F0001, J1) refuse tout champ autre que le
+dispatch et l'idempotence dans un corps de 4 Kio. Elle vérifie une session non
+anonyme avec la clé anon, dérive le propriétaire de la réponse Auth et réserve le
+credential `service_role` à l'appel RPC sous timeout. Toute réponse privilégiée
+est validée, recoupée avec le dispatch demandé, projetée sur cinq champs publics
+et marquée `no-store` ; un dispatch inconnu, étranger, déjà actif ou porté par un
+avion hors contrat rend le même refus redigé. La preuve Edge reste injectée et
+synthétique tant que J2 n'a pas rejoué la frontière sur l'Edge Runtime local ;
+aucun appelant desktop, télémétrie, clôture, annulation, cible distante ou donnée
+réelle n'est couvert.
 
 ## Clôture de vol et règlement autoritaires T0051
 

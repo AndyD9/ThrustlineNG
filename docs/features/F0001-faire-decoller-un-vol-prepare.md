@@ -1,7 +1,7 @@
 # F0001 — Faire décoller un vol préparé depuis l'application
 
-Status: Ready
-Owner: Unassigned
+Status: In progress
+Owner: Claude (session interactive du 6 août 2026)
 Branch: `feature/f0001-faire-decoller-un-vol-prepare`
 Phase: 2–4
 Risk: Medium
@@ -96,7 +96,7 @@ Ordonnés. Un commit par jalon, une revue adversariale par jalon sur le diff pou
 
 ### J1 — Le départ de vol derrière une frontière authentifiée
 
-Status: Draft
+Status: Review
 Risk: Medium
 Security-sensitive: Yes
 Autonomous: No
@@ -256,11 +256,30 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J1
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : `POST /functions/v1/flight-start` accepte un bearer et un
+  corps de 4 Kio strictement limité à `dispatchId` et `idempotencyKey`, vérifie
+  la session auprès d'Auth, refuse l'anonyme, dérive `owner_id` de la réponse
+  Auth, appelle `start_flight_from_dispatch` avec le credential serveur sous
+  timeout de 5 s, et rend la projection `no-store` des cinq champs publics
+  (`aircraftId`, `dispatchId`, `schemaVersion`, `startedAt`, `state`). Tout refus
+  amont rend le même `flight_start_rejected` redigé, sans détail SQL ni
+  distinction inconnu/étranger/déjà actif/avion hors contrat.
+- fichiers modifiés : `supabase/functions/flight-start/{handler.ts,index.ts,handler.test.ts,package.json}`
+  (nouveaux), `supabase/config.toml`, `package.json` (`backend:functions:test`),
+  `tests/backend/run.ps1` (invariants + 8 mutations), `eng/authority-inventory.json`
+  (frontière du domaine `flight-runtime`), `docs/SECURITY.md`, ce fichier et
+  `docs/features/README.md`.
+- commandes et résultats (6 août 2026) : `node --test` sur les quatre handlers —
+  62 tests, 0 échec, dont 16 nouveaux pour `flight-start` ; `tests/backend/run.ps1`
+  — passed, 66 mutations dont 8 nouvelles (owner client, credential non privilégié,
+  état client, corps non borné, timeout retiré, anonyme admis, réponse hors
+  allowlist, scénario de test retiré) ; `tests/authority/run.ps1` — passed ;
+  `tests/data-policy/run.ps1` — passed ; `tests/maintenance/run.ps1` — passed.
+- vérification manuelle : reportée à la fin du jalon après revue — les quatre
+  appels (bearer valide, sans bearer, `owner_id` injecté, corps 5 Kio) exigent la
+  pile locale, ils sont rejoués par le script J2 sur l'Edge Runtime réel.
+- revue et constats traités : revue adversariale demandée sur le diff poussé du
+  jalon, résultat à consigner ici.
 
 ### J2
 
