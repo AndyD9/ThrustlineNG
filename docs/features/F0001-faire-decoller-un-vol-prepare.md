@@ -96,7 +96,7 @@ Ordonnés. Un commit par jalon, une revue adversariale par jalon sur le diff pou
 
 ### J1 — Le départ de vol derrière une frontière authentifiée
 
-Status: Review
+Status: Done
 Risk: Medium
 Security-sensitive: Yes
 Autonomous: No
@@ -118,7 +118,7 @@ Autonomous: No
 
 ### J2 — La frontière prouvée sur l'Edge Runtime local réel
 
-Status: Draft
+Status: Review
 Risk: Low
 Security-sensitive: No
 Autonomous: Yes
@@ -275,9 +275,10 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   état client, corps non borné, timeout retiré, anonyme admis, réponse hors
   allowlist, scénario de test retiré) ; `tests/authority/run.ps1` — passed ;
   `tests/data-policy/run.ps1` — passed ; `tests/maintenance/run.ps1` — passed.
-- vérification manuelle : reportée à la fin du jalon après revue — les quatre
-  appels (bearer valide, sans bearer, `owner_id` injecté, corps 5 Kio) exigent la
-  pile locale, ils sont rejoués par le script J2 sur l'Edge Runtime réel.
+- vérification manuelle : exécutée le 6 août 2026 par le script J2 sur l'Edge
+  Runtime local réel — bearer valide (200, cinq champs), sans bearer (401 sans
+  détail interne), `owner_id` injecté (400 `invalid_request`), corps de 5 Kio
+  (413 `request_too_large`) ; les quatre réponses attendues sont observées.
 - revue et constats traités : revue adversariale du 6 août 2026 par un agent
   séparé, sur le commit `6de4c8e` — **J1 approuvé, aucun bloquant**. Le seul
   constat majeur est corrigé dans le jalon : la mutation « refus bavard »
@@ -290,11 +291,31 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J2
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : `scripts/validate-flight-start-runtime.ps1` enchaîne, sur la
+  pile locale réelle démarrée par T0021, Auth → Edge → RPC pour un avion
+  réellement acheté et un dispatch réellement préparé. Le 6 août 2026, ses
+  **45 contrôles passent sans échec** : bindings loopback avant/après, baseline
+  `0|0|0`, onboarding des deux identités, achat, brouillon, refus redigés et
+  indistinguables (dispatch étranger, inconnu, déjà actif — corps identiques),
+  départ nominal à cinq champs `no-store`, `startedAt` parsable, rejeu restituant
+  la réponse acquise sans second départ ni seconde commande (`1|1`), 401 sans
+  bearer sans fuite, 400 champ injecté, 413 corps de 5 Kio, état SQL final
+  `1|1|0|1|1` (un vol actif, une commande, possédés par le sujet Auth), refus
+  d'orphaner une compagnie par l'Admin API, identités confinées à la pile jetable.
+  Le script échoue fermé (baseline non vide → arrêt), ne consigne aucun secret,
+  JWT, email ni détail SQL, et n'ajoute ni handler, ni migration, ni contrat.
+- fichiers modifiés : `scripts/validate-flight-start-runtime.ps1` (nouveau) et ce
+  fichier.
+- commandes et résultats (6 août 2026) : `backend:start` → pile isolée sur
+  127.0.0.1 ; `backend:reset` → 12 migrations + seed ; le script → 45 contrôles,
+  0 échec ; `backend:stop` → pile détruite, seul le cache d'images source-free
+  retenu. Chaque motif de refus est comparé au code public exact, jamais déduit
+  d'un code de sortie (`KI-025` non aggravé).
+- vérification manuelle : le relevé des 45 lignes `PASS`, du décompte final et de
+  l'état SQL a été fait sur la sortie du script pendant le run ; la pile a été
+  détruite ensuite.
+- revue et constats traités : revue adversariale demandée sur le diff poussé du
+  jalon, résultat à consigner ici.
 
 ### J3
 
