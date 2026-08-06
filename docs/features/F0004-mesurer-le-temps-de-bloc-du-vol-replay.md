@@ -1,7 +1,7 @@
 # F0004 — Voir le temps de bloc mesuré de son vol en replay
 
-Status: Ready
-Owner: Unassigned
+Status: In progress
+Owner: Agent (session du 6 août 2026)
 Branch: `feature/f0004-mesurer-le-temps-de-bloc-du-vol-replay`
 Phase: 3–4
 Risk: Medium
@@ -83,7 +83,7 @@ de bloc inventé. Le statut passe `Ready`.
 
 ### J1 — Le bridge mesure le temps de bloc d'une trace replay
 
-Status: Draft
+Status: Done
 Risk: Medium
 Security-sensitive: No
 Autonomous: Yes
@@ -212,11 +212,45 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J1
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : le bridge dérive des échantillons replay validés un résumé
+  de vol — `idle`, `running`, `completed`, `incomplete`, temps de bloc en
+  minutes selon la règle « mouvement → sol » (arrondi supérieur, minimum une
+  minute) — exposé en lecture seule sur `GET /api/v1/flight-summary`, additif
+  et versionné (`contractVersion` 1), derrière le jeton d'instance. Aucun
+  échantillon persisté : le tracker ne retient que deux instants et le dernier
+  état au sol. Sémantique fermée : `completed` exige une trace finie au sol ;
+  un touch-and-go finissant en vol, un taxi seul, une trace vide ou une
+  lecture interrompue restent `incomplete` sans temps inventé.
+- fichiers modifiés : `apps/bridge/Telemetry/FlightSummaryTracker.cs`
+  (nouveau), `apps/bridge/Telemetry/TelemetryPublisher.cs`,
+  `apps/bridge/BridgeContract.cs`, `apps/bridge/BridgeServer.cs`,
+  `tests/bridge/Program.cs` (9 tests), `docs/ARCHITECTURE.md`,
+  `docs/SECURITY.md`, `docs/QUALITY.md`, `docs/CURRENT_STATE.md`, ce fichier
+  et `docs/features/README.md`.
+- commandes et résultats (6 août 2026) : `pnpm bridge:build` — succès,
+  0 avertissement ; `pnpm bridge:test` — 34/34 dont 9 nouveaux (nominale
+  6 minutes exactes, arrondi 100 s → 2 min, plancher 1 min, sans retour au
+  sol, touch-and-go finissant en vol, taxi seul, départ en vol, trace vide,
+  interruption) ; `pnpm bridge:health` — Healthy ;
+  `performance:measure:bridge` puis `check-performance-budgets` — passed ;
+  `pnpm maintenance:check` — passed ; `pnpm authority:check` — passed.
+- vérification manuelle : exécutée le 6 août 2026 sur le binaire publié
+  (win-x64 self-contained) — sans jeton → 401 ; trace dorée T0011 rejouée par
+  un abonné WebSocket réel → `completed`, `blockMinutes: 1` (mouvement à 1 s,
+  retour au sol à 7 s, plancher d'une minute) ; trace tronquée finissant en
+  vol → `incomplete`, `blockMinutes: null` ; corps brut sans jeton ni chemin
+  de trace.
+- revue et constats traités : revue adversariale du 6 août 2026 par un agent
+  séparé — 0 bloquant, 1 majeur, 7 mineurs. Le majeur (touch-and-go finissant
+  en vol rendu `completed` avec un temps arrêté au toucher) est fermé :
+  `completed` exige désormais une trace terminée au sol, choix « fail closed »
+  **à confirmer par Andy** s'il préfère la lettre permissive de la règle
+  décidée. Mineurs corrigés : résumé rendu terminal avant l'état du health
+  check (ordre de `Transition`), tracker repassé `internal`, cas
+  touch-and-go/taxi/départ en vol testés, documentation alignée (interruption
+  sans aucun échantillon reste `idle`). Dette notée : le tracker est mono-vol
+  et définitivement terminal — un futur redémarrage du publisher (T0059)
+  devra le réarmer.
 
 ### J2
 

@@ -482,8 +482,10 @@ T0010, sans nouvelle autorité :
 - la mémoire est bornée par construction : un seul échantillon en attente par
   abonné, aucun tampon cumulatif, et un abonné qui cesse de drainer est
   abandonné après un délai d'envoi borné ;
-- l'état publié se limite à `telemetrySource` et `telemetryState` ; ni chemin de
-  trace, ni version de SDK, ni jeton n'apparaît dans une réponse ou une erreur ;
+- l'état publié se limite à `telemetrySource`, `telemetryState` et, sur
+  `GET /api/v1/flight-summary` (F0004 J1), au résumé dérivé `state` et
+  `blockMinutes` ; ni chemin de trace, ni version de SDK, ni jeton n'apparaît
+  dans une réponse ou une erreur ;
 - aucun jeton, échantillon brut ni chemin utilisateur n'est journalisé : le
   processus ne conserve aucun fournisseur de logs.
 

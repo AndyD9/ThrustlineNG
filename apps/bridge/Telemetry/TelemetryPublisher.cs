@@ -16,6 +16,8 @@ public sealed class TelemetryPublisher : IAsyncDisposable
     private readonly TaskCompletionSource _firstSubscriber =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    private readonly FlightSummaryTracker _summary = new();
+
     private int _state = (int)TelemetryState.Idle;
 
     public TelemetryPublisher(
@@ -41,6 +43,8 @@ public sealed class TelemetryPublisher : IAsyncDisposable
     public TelemetryState State => (TelemetryState)Volatile.Read(ref _state);
 
     public int SubscriberCount => _subscriptions.Count;
+
+    public FlightSummary Summary => _summary.Snapshot();
 
     public void Subscribe(string subscriberId, ITelemetrySink sink)
     {
@@ -122,13 +126,20 @@ public sealed class TelemetryPublisher : IAsyncDisposable
 
     private void Dispatch(FlightSample sample)
     {
+        _summary.Observe(sample);
         foreach (var subscription in _subscriptions.Values)
         {
             subscription.Publish(sample);
         }
     }
 
-    private void Transition(TelemetryState state) => Volatile.Write(ref _state, (int)state);
+    private void Transition(TelemetryState state)
+    {
+        // Le résumé devient terminal avant que l'état soit visible du health
+        // check : qui observe `completed` peut lire un résumé déjà final.
+        _summary.OnPublisherState(state);
+        Volatile.Write(ref _state, (int)state);
+    }
 
     private sealed class Subscription
     {

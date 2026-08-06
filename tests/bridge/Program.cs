@@ -32,6 +32,15 @@ var tests = new (string Name, Func<Task> Execute)[]
     ("telemetry keeps only the latest pending sample", TestTelemetryLatestPendingSample),
     ("telemetry drops a subscriber that stops draining", TestTelemetryStalledSubscriber),
     ("telemetry cancellation releases the adapter", TestTelemetryCancellation),
+    ("flight summary measures movement to the last ground return", TestFlightSummaryNominal),
+    ("flight summary rounds up to the next minute with a one-minute floor", TestFlightSummaryRounding),
+    ("flight summary keeps a trace without ground return incomplete", TestFlightSummaryWithoutGroundReturn),
+    ("flight summary keeps a touch-and-go ending airborne incomplete", TestFlightSummaryTouchAndGo),
+    ("flight summary keeps a taxi-only trace incomplete", TestFlightSummaryTaxiOnly),
+    ("flight summary measures a trace starting airborne", TestFlightSummaryStartsAirborne),
+    ("flight summary keeps an empty trace incomplete", TestFlightSummaryEmptyTrace),
+    ("flight summary reports running then incomplete on interruption", TestFlightSummaryInterruption),
+    ("local contract exposes the flight summary behind the token", TestFlightSummaryContract),
     ("native telemetry source never fails the harness", TestNativeTelemetrySource),
     ("hub streams the synthetic trace to an authenticated subscriber", TestTelemetryContract),
     ("hub refuses an interface other than 127.0.0.1", TestNonLoopbackRefusal),
@@ -561,6 +570,223 @@ static async Task TestTelemetryCancellation()
     Equal(0, publisher.SubscriberCount, "no residual subscriber");
 }
 
+static FlightSample SummarySample(
+    long sequence,
+    int atSeconds,
+    double groundSpeedKnots,
+    bool onGround) =>
+    FlightSample.Create(
+        sequence,
+        DateTimeOffset.UnixEpoch.AddSeconds(atSeconds),
+        48,
+        2,
+        onGround ? 300 : 5_000,
+        groundSpeedKnots,
+        groundSpeedKnots,
+        180,
+        0,
+        onGround);
+
+static async Task<FlightSummary> SummarizeAsync(IReadOnlyList<FlightSample> samples)
+{
+    var adapter = new ScriptedSimConnectAdapter(samples);
+    await using var publisher = new TelemetryPublisher(
+        BridgeTelemetryOptions.Default with { Cadence = TimeSpan.FromMilliseconds(2) },
+        () => adapter);
+    publisher.Subscribe("subscriber", new RecordingTelemetrySink());
+
+    using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+    await publisher.RunAsync(cancellation.Token);
+    Equal(TelemetryState.Completed, publisher.State, "replay completes");
+    return publisher.Summary;
+}
+
+static async Task TestFlightSummaryNominal()
+{
+    var summary = await SummarizeAsync(
+    [
+        SummarySample(0, 0, 0, true),
+        SummarySample(1, 60, 40, true),
+        SummarySample(2, 120, 150, false),
+        SummarySample(3, 420, 60, true),
+        SummarySample(4, 480, 10, true),
+    ]);
+
+    Equal(FlightSummaryState.Completed, summary.State, "completed state");
+    Equal(6, summary.BlockMinutes, "six minutes from first movement to the last ground return");
+}
+
+static async Task TestFlightSummaryRounding()
+{
+    var rounded = await SummarizeAsync(
+    [
+        SummarySample(0, 0, 30, true),
+        SummarySample(1, 10, 150, false),
+        SummarySample(2, 100, 50, true),
+    ]);
+    Equal(FlightSummaryState.Completed, rounded.State, "rounded state");
+    Equal(2, rounded.BlockMinutes, "100 seconds round up to two minutes");
+
+    var floored = await SummarizeAsync(
+    [
+        SummarySample(0, 0, 0, true),
+        SummarySample(1, 1, 120, false),
+        SummarySample(2, 20, 40, true),
+    ]);
+    Equal(FlightSummaryState.Completed, floored.State, "floored state");
+    Equal(1, floored.BlockMinutes, "a short hop keeps the one-minute floor");
+}
+
+static async Task TestFlightSummaryWithoutGroundReturn()
+{
+    var summary = await SummarizeAsync(
+    [
+        SummarySample(0, 0, 0, true),
+        SummarySample(1, 30, 45, true),
+        SummarySample(2, 60, 200, false),
+    ]);
+    Equal(FlightSummaryState.Incomplete, summary.State, "incomplete state");
+    True(summary.BlockMinutes is null, "no invented block time");
+}
+
+static async Task TestFlightSummaryTouchAndGo()
+{
+    var summary = await SummarizeAsync(
+    [
+        SummarySample(0, 0, 0, true),
+        SummarySample(1, 30, 45, true),
+        SummarySample(2, 60, 200, false),
+        SummarySample(3, 120, 80, true),
+        SummarySample(4, 180, 220, false),
+    ]);
+    Equal(
+        FlightSummaryState.Incomplete,
+        summary.State,
+        "a trace ending airborne is never completed, even after a touch-and-go");
+    True(summary.BlockMinutes is null, "no block time stopped at the touch-and-go");
+}
+
+static async Task TestFlightSummaryTaxiOnly()
+{
+    var summary = await SummarizeAsync(
+    [
+        SummarySample(0, 0, 0, true),
+        SummarySample(1, 30, 20, true),
+        SummarySample(2, 90, 15, true),
+        SummarySample(3, 150, 0, true),
+    ]);
+    Equal(
+        FlightSummaryState.Incomplete,
+        summary.State,
+        "a taxi-only trace has no ground return to measure");
+    True(summary.BlockMinutes is null, "no block time without a flight");
+}
+
+static async Task TestFlightSummaryStartsAirborne()
+{
+    var summary = await SummarizeAsync(
+    [
+        SummarySample(0, 0, 250, false),
+        SummarySample(1, 120, 60, true),
+        SummarySample(2, 180, 5, true),
+    ]);
+    Equal(FlightSummaryState.Completed, summary.State, "airborne start still measures");
+    Equal(2, summary.BlockMinutes, "two minutes from the first airborne sample to landing");
+}
+
+static async Task TestFlightSummaryEmptyTrace()
+{
+    var summary = await SummarizeAsync([]);
+    Equal(FlightSummaryState.Incomplete, summary.State, "an empty trace stays explicit");
+    True(summary.BlockMinutes is null, "no block time on an empty trace");
+}
+
+static async Task TestFlightSummaryInterruption()
+{
+    var adapter = new GeneratedSimConnectAdapter(0);
+    await using var publisher = new TelemetryPublisher(
+        BridgeTelemetryOptions.Default with { Cadence = TimeSpan.FromMilliseconds(5) },
+        () => adapter);
+    Equal(FlightSummaryState.Idle, publisher.Summary.State, "idle before any sample");
+
+    var sink = new RecordingTelemetrySink();
+    publisher.Subscribe("subscriber", sink);
+    using var cancellation = new CancellationTokenSource();
+    var run = publisher.RunAsync(cancellation.Token);
+    await WaitUntilAsync(() => sink.Count >= 2, "streaming started");
+    Equal(FlightSummaryState.Running, publisher.Summary.State, "running while samples flow");
+
+    await cancellation.CancelAsync();
+    await run.WaitAsync(TimeSpan.FromSeconds(5));
+    var summary = publisher.Summary;
+    Equal(
+        FlightSummaryState.Incomplete,
+        summary.State,
+        "an interrupted replay never completes the summary");
+    True(summary.BlockMinutes is null, "no block time on an interrupted replay");
+}
+
+static async Task TestFlightSummaryContract()
+{
+    var port = ReservePort();
+    var token = new string('g', 64);
+    var telemetry = BridgeTelemetryOptions.Default with
+    {
+        TracePath = TracePath(),
+        Cadence = TimeSpan.FromMilliseconds(25),
+    };
+    await using var publisher = new TelemetryPublisher(
+        telemetry,
+        TelemetryAdapterFactory.TryCreate(telemetry));
+    using var shutdown = new CancellationTokenSource();
+    using var output = new StringWriter();
+    var run = BridgeServer.RunAsync(
+        new BridgeOptions(port, token, telemetry),
+        output,
+        shutdown.Token,
+        publisher);
+
+    await WaitUntilReady(output);
+    using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+
+    var anonymous = await client.GetAsync(BridgeContract.FlightSummaryPath);
+    Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode, "anonymous summary status");
+
+    client.DefaultRequestHeaders.Add(BridgeContract.TokenHeader, token);
+    var idle = await client.GetStringAsync(BridgeContract.FlightSummaryPath);
+    Contains("\"contractVersion\":\"1\"", idle, "summary contract version");
+    Contains("\"state\":\"idle\"", idle, "summary before the first subscriber");
+    Contains("\"blockMinutes\":null", idle, "no block time before the replay");
+
+    await using var subscriber = await TelemetrySubscriber.ConnectAsync(port, token);
+    for (var expected = 0L; expected < 8; expected++)
+    {
+        _ = await subscriber.ReadSampleAsync(TimeSpan.FromSeconds(10));
+    }
+
+    await WaitUntilAsync(
+        () => publisher.State == TelemetryState.Completed,
+        "replay reaches its last sample");
+    var completed = await client.GetStringAsync(BridgeContract.FlightSummaryPath);
+    Contains("\"state\":\"completed\"", completed, "summary after the replay");
+    Contains("\"blockMinutes\":1", completed, "golden trace rounds up to the one-minute floor");
+    True(!completed.Contains(token, StringComparison.Ordinal), "summary leaks no token");
+    True(
+        !completed.Contains("trace", StringComparison.OrdinalIgnoreCase)
+            && !completed.Contains('\\')
+            && !completed.Contains("synthetic", StringComparison.OrdinalIgnoreCase),
+        "summary leaks no trace path");
+
+    var health = await client.GetStringAsync(BridgeContract.HealthPath);
+    Contains("\"telemetryState\":\"completed\"", health, "health check stays additive");
+
+    shutdown.Cancel();
+    Equal(
+        BridgeApplication.SuccessExitCode,
+        await run.WaitAsync(TimeSpan.FromSeconds(10)),
+        "exit code");
+}
+
 static async Task TestNativeTelemetrySource()
 {
     var options = BridgeTelemetryOptions.Default with
@@ -701,6 +927,7 @@ static Task TestPublicContracts()
         typeof(ITelemetrySink),
         typeof(TelemetryPublisher),
         typeof(BridgeTelemetryOptions),
+        typeof(FlightSummary),
     };
     var exposedTypes = publicContractTypes
         .SelectMany(

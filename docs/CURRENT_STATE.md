@@ -34,7 +34,7 @@ Toutes les preuves sont locales ou CI, sur données synthétiques uniquement
 | Backend | Départ de vol complet : commande serveur, frontière Edge authentifiée prouvée sur l'Edge Runtime réel, rejeu restitué octet pour octet | T0050, T0065, F0001 |
 | Backend | Clôture de vol, règlement au grand livre, réputation informative — **sans frontière Auth** | T0051 |
 | Desktop | Login, onboarding, catalogue/achat, flotte, création et liste de dispatchs, démarrage de vol avec heure serveur | T0037–T0046, T0052, T0053, F0001 |
-| Bridge | Contrat local loopback à jeton, adaptateur SimConnect replay, télémétrie bornée | T0010, T0011, T0054 |
+| Bridge | Contrat local loopback à jeton, adaptateur SimConnect replay, télémétrie bornée, résumé de vol mesuré (temps de bloc) | T0010, T0011, T0054, F0004 J1 |
 | Distribution | Version produit `0.1.0-alpha.1` (source `eng/product-version.json`), NSIS x64 non signé | T0014, T0055 |
 | Socle | Toolchain épinglée, CI multi-stack, supply chain, gates autorité/données/maintenance | T0001–T0030 |
 
@@ -45,9 +45,11 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
 
 ## Unités en cours
 
-- **F0004** (`Ready`) — mesurer le temps de bloc du vol replay (bridge →
+- **F0004** (`In progress`) — mesurer le temps de bloc du vol replay (bridge →
   commande Tauri → affichage), chemin critique du jalon. Décision de mesure
-  prise le 6 août 2026 : mouvement → sol.
+  prise le 6 août 2026 : mouvement → sol. J1 implémenté : le bridge mesure et
+  expose `GET /api/v1/flight-summary` ; restent J2 (commande Tauri) et J3
+  (affichage).
 - **F0005** (`Ready`) — CSP `internal-alpha` limitée au loopback pour rendre
   l'application installée cliquable et clore T0055 (décision du 6 août 2026).
 - **F0002** (`Blocked`) — clôture et encaissement depuis l'application ;
@@ -59,7 +61,8 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
 
 ## Ce qui manque pour l'alpha cliquable
 
-1. F0004 — le temps de bloc mesuré du replay (décision de mesure en attente).
+1. F0004 — le temps de bloc mesuré du replay (J1 mesure sur le bridge ;
+   restent J2 relais Tauri et J3 affichage).
 2. F0002 — la clôture depuis l'application, débloquée par F0004.
 3. F0005 — le parcours dans l'application **installée**, qui clôt T0055. La
    CSP de production étant `connect-src 'none'`, Andy a décidé le 6 août 2026

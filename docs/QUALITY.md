@@ -691,6 +691,13 @@ abonné WebSocket authentifié et refus de toute adresse autre que `127.0.0.1`. 
 harnais n'utilise aucun client SignalR tiers : il parle le protocole JSON du hub
 sur `ClientWebSocket`.
 
+Depuis F0004 J1, il couvre aussi le résumé de vol : mesure nominale mouvement →
+dernier retour au sol, arrondi à la minute supérieure et minimum d'une minute,
+départ en vol mesuré, puis trace sans retour au sol, touch-and-go finissant en
+vol, taxi seul, trace vide et replay interrompu tous rendus `incomplete` sans
+temps inventé, exposition `GET /api/v1/flight-summary` derrière le jeton et
+absence de jeton comme de chemin de trace dans la réponse.
+
 Depuis la racine :
 
 ```powershell
