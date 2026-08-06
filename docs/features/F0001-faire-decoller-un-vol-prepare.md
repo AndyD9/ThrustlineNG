@@ -118,7 +118,7 @@ Autonomous: No
 
 ### J2 — La frontière prouvée sur l'Edge Runtime local réel
 
-Status: Review
+Status: Done
 Risk: Low
 Security-sensitive: No
 Autonomous: Yes
@@ -294,28 +294,41 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 - résultat obtenu : `scripts/validate-flight-start-runtime.ps1` enchaîne, sur la
   pile locale réelle démarrée par T0021, Auth → Edge → RPC pour un avion
   réellement acheté et un dispatch réellement préparé. Le 6 août 2026, ses
-  **45 contrôles passent sans échec** : bindings loopback avant/après, baseline
-  `0|0|0`, onboarding des deux identités, achat, brouillon, refus redigés et
-  indistinguables (dispatch étranger, inconnu, déjà actif — corps identiques),
-  départ nominal à cinq champs `no-store`, `startedAt` parsable, rejeu restituant
-  la réponse acquise sans second départ ni seconde commande (`1|1`), 401 sans
-  bearer sans fuite, 400 champ injecté, 413 corps de 5 Kio, état SQL final
-  `1|1|0|1|1` (un vol actif, une commande, possédés par le sujet Auth), refus
-  d'orphaner une compagnie par l'Admin API, identités confinées à la pile jetable.
+  **46 contrôles passent sans échec** (run final après remédiation de revue) :
+  bindings loopback avant/après, baseline `0|0|0`, onboarding des deux
+  identités, achat, brouillon, refus redigés et indistinguables — les corps des
+  trois refus (étranger, inconnu, déjà actif) sont comparés entre eux et non
+  vides —, départ nominal à cinq champs `no-store`, `startedAt` parsable, rejeu
+  restituant la réponse acquise octet pour octet sans second départ ni seconde
+  commande (`1|1`), 401 sans bearer sans fuite, 400 champ injecté, 413 corps de
+  5 Kio, état SQL final `1|1|0|1|1` (un vol actif, une commande, possédés par le
+  sujet Auth), refus d'orphaner une compagnie par l'Admin API, identités
+  confinées à la pile jetable. Deux sondes du modèle T0049 sont volontairement
+  absentes — signup public fermé et refus verbeux 23503 derrière la clé
+  privilégiée : propriétés de la pile Auth, hors de cette frontière, déjà
+  prouvées par `validate-dispatch-draft-runtime.ps1` qui reste au dépôt.
   Le script échoue fermé (baseline non vide → arrêt), ne consigne aucun secret,
   JWT, email ni détail SQL, et n'ajoute ni handler, ni migration, ni contrat.
 - fichiers modifiés : `scripts/validate-flight-start-runtime.ps1` (nouveau) et ce
   fichier.
 - commandes et résultats (6 août 2026) : `backend:start` → pile isolée sur
-  127.0.0.1 ; `backend:reset` → 12 migrations + seed ; le script → 45 contrôles,
+  127.0.0.1 ; `backend:reset` → 12 migrations + seed ; le script → 46 contrôles,
   0 échec ; `backend:stop` → pile détruite, seul le cache d'images source-free
   retenu. Chaque motif de refus est comparé au code public exact, jamais déduit
   d'un code de sortie (`KI-025` non aggravé).
 - vérification manuelle : le relevé des 45 lignes `PASS`, du décompte final et de
   l'état SQL a été fait sur la sortie du script pendant le run ; la pile a été
   détruite ensuite.
-- revue et constats traités : revue adversariale demandée sur le diff poussé du
-  jalon, résultat à consigner ici.
+- revue et constats traités : revue adversariale du 6 août 2026 par un agent
+  séparé, sur le commit `6e7467b` — **J2 approuvé, aucun bloquant**. Les deux
+  constats majeurs sont corrigés dans le jalon : le refus « déjà actif » est
+  désormais comparé aux deux autres corps (M1) et le rejeu est comparé octet
+  pour octet à la réponse nominale (M2), avec garde de non-vacuité (m1) ; le
+  script durci repasse à 46 contrôles sans échec sur pile fraîche. L'écart au
+  modèle T0049 (deux sondes hors frontière) est motivé ci-dessus (m2). Restent
+  consignés sans changement : quatre contrôles d'échafaudage `-Condition $true`
+  hérités du modèle (m3) et le 401 sans code public épinglé, corps passerelle
+  hors contrat du handler (m4).
 
 ### J3
 

@@ -477,8 +477,12 @@ try {
 
     $foreignRaw = $foreignStart.Raw
     Add-Check -Name "Unknown and foreign dispatch refusals are indistinguishable" `
-        -Condition ($unknownStart.Raw -eq $foreignRaw -and $unknownStart.Status -eq $foreignStart.Status) `
-        -Detail "refusal bodies or statuses diverge"
+        -Condition (
+            -not [string]::IsNullOrWhiteSpace($foreignRaw) -and
+            $unknownStart.Raw -eq $foreignRaw -and
+            $unknownStart.Status -eq $foreignStart.Status
+        ) `
+        -Detail "refusal bodies or statuses diverge, or bodies are empty"
 
     $nominalKey = [Guid]::NewGuid().ToString()
     $nominalBody = New-FlightStartBody -DispatchId $dispatchId -IdempotencyKey $nominalKey
@@ -514,14 +518,9 @@ try {
         -Detail "startedAt is not parseable"
 
     $replay = Invoke-EdgeFunction -Name "flight-start" -BearerToken $ownerToken -RawBody $nominalBody
-    Add-Check -Name "Replaying the same start returns the acquired response unchanged" `
-        -Condition (
-            $replay.Status -eq 200 -and
-            (Get-JsonText -Value $replay.Json -Path "dispatchId") -eq $dispatchId -and
-            (Get-JsonText -Value $replay.Json -Path "startedAt") -eq $nominalStartedAt -and
-            (Get-JsonText -Value $replay.Json -Path "state") -eq "active"
-        ) `
-        -Detail "observed HTTP $($replay.Status)"
+    Add-Check -Name "Replaying the same start returns the acquired response byte for byte" `
+        -Condition ($replay.Status -eq 200 -and $replay.Raw -eq $nominal.Raw) `
+        -Detail "observed HTTP $($replay.Status) or a diverging replay body"
 
     $afterReplay = Get-EngineSqlRow -Sql (
         "select (select count(*) from public.flight_dispatches where state = 'active'), " +
@@ -566,6 +565,9 @@ try {
     Add-RedactedErrorChecks -Name "Second start of the already active dispatch with a new key" `
         -Response $alreadyActive -ExpectedStatus 409 -ExpectedCode "flight_start_rejected" `
         -ForbiddenValues @($dispatchId, $ownerCompanyId, $ownerUserId, $ownerEmail)
+    Add-Check -Name "Already active refusal is indistinguishable from unknown and foreign" `
+        -Condition ($alreadyActive.Raw -eq $foreignRaw) `
+        -Detail "the already-active refusal body diverges from the other refusals"
 
     $finalState = Get-EngineSqlRow -Sql (
         "select (select count(*) from public.flight_dispatches), " +
