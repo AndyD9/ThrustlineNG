@@ -31,40 +31,38 @@ Toutes les preuves sont locales ou CI, sur données synthétiques uniquement
 | Backend | Location d'avion serveur : contrat, échéances, résiliation, garde d'usage opposable | T0032, T0060 |
 | Backend | Grand livre immuable ; export/suppression de compte ; restauration isolée | T0018–T0020 |
 | Backend | Brouillon de dispatch autoritaire + frontière Auth, référentiel de 103 aérodromes | T0047–T0049, T0057 |
-| Backend | Démarrage de vol serveur, rejeu restituant la réponse acquise | T0050, T0065 |
+| Backend | Départ de vol complet : commande serveur, frontière Edge authentifiée prouvée sur l'Edge Runtime réel, rejeu restitué octet pour octet | T0050, T0065, F0001 |
 | Backend | Clôture de vol, règlement au grand livre, réputation informative — **sans frontière Auth** | T0051 |
-| Desktop | Login, onboarding, catalogue/achat, flotte, création et liste de dispatchs | T0037–T0046, T0052, T0053 |
+| Desktop | Login, onboarding, catalogue/achat, flotte, création et liste de dispatchs, démarrage de vol avec heure serveur | T0037–T0046, T0052, T0053, F0001 |
 | Bridge | Contrat local loopback à jeton, adaptateur SimConnect replay, télémétrie bornée | T0010, T0011, T0054 |
 | Distribution | Version produit `0.1.0-alpha.1` (source `eng/product-version.json`), NSIS x64 non signé | T0014, T0055 |
 | Socle | Toolchain épinglée, CI multi-stack, supply chain, gates autorité/données/maintenance | T0001–T0030 |
 
 Limite transverse : les compositions desktop sont prouvées en jsdom avec `fetch`
-injecté. Aucun parcours WebView live de bout en bout n'est encore prouvé —
-c'est précisément l'objet du jalon courant.
+injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
+2026** (app Tauri dev sur la pile locale : login → compagnie → achat → dispatch
+→ départ « En vol » avec l'heure serveur, F0001).
 
 ## Unités en cours
 
-- **F0001** (`In progress`) — faire décoller un vol depuis l'application, sur la
-  branche `feature/f0001-faire-decoller-un-vol-prepare`, PR #124 en brouillon.
-  J1 (frontière Edge `flight-start`) est `Done` après revue adversariale et
-  remédiation ; J2 (preuve sur l'Edge Runtime local réel, 45 contrôles verts le
-  6 août 2026) est en revue ; J3 (composition desktop) reste à ouvrir.
-- **F0002** (`Blocked`) — clôture et encaissement depuis l'application. Décision
-  d'Andy du 6 août 2026 (option C) : le temps de vol viendra de la télémétrie ;
-  la condition de sortie est une fonctionnalité de liaison télémétrie → cycle de
-  vol encore à ouvrir.
+- **F0004** (`Draft`) — mesurer le temps de bloc du vol replay (bridge →
+  commande Tauri → affichage), chemin critique du jalon. Une décision d'Andy en
+  attente : la règle de mesure, posée dans son fichier.
+- **F0002** (`Blocked`) — clôture et encaissement depuis l'application ;
+  débloquée par F0004 (décision d'Andy du 6 août 2026, option C : le temps de
+  vol vient de la télémétrie).
 - **F0003** (`Ready`) — découverte de la bibliothèque SimConnect ou dégradation
   propre ; son J3 attend une décision d'Andy (fourniture de la DLL) et la
   lecture de l'EULA du SDK.
 
 ## Ce qui manque pour l'alpha cliquable
 
-1. F0001 J3 — le départ composé depuis le desktop — puis la fusion de la PR #124.
-2. La liaison télémétrie replay → cycle de vol (fonctionnalité à ouvrir, chemin
-   critique depuis la décision C) pour alimenter `blockMinutes`.
-3. F0002 — la clôture depuis l'application, débloquée par la précédente.
-4. Le parcours interactif réel dans l'application installée — la vérification
-   humaine qui tient T0055 en `Verify`.
+1. F0004 — le temps de bloc mesuré du replay (décision de mesure en attente).
+2. F0002 — la clôture depuis l'application, débloquée par F0004.
+3. Le parcours dans l'application **installée** — la vérification qui tient
+   T0055 en `Verify`. Point dur découvert le 6 août 2026 : la CSP de production
+   est `connect-src 'none'`, donc l'app installée ne peut pas joindre l'API
+   locale par conception ; une décision CSP « alpha interne » est requise.
 
 ## Hors du jalon, suivi ailleurs
 
