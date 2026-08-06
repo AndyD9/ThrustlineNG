@@ -83,15 +83,15 @@
 | T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Done |
 | T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Done |
 | T0059 | Prouver le premier slice SimConnect réel et capturer son corpus | 3 | T0011, T0014–T0015, T0054, ADR-0003, MSFS 2024 installé, décision Andy | Draft |
-| T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Review |
+| T0060 | Opposer la fin d'usage d'un avion au dispatch et au départ de vol | 2 | T0024, T0032 fusionné, T0047, T0050–T0051, T0057, décision Andy | Done |
 | T0061 | Automatiser le cycle des tickets sans déplacer l'autorité d'Andy | Gouvernance | T0027, T0030, T0034, T0055, décision Andy | Done |
 | T0062 | Réparer le gate d'automatisation des tickets et l'exécuter en CI | Gouvernance | T0055, T0061 | Verify |
-| T0063 | Faire avancer la boucle de tickets sans déclenchement humain | Gouvernance | T0061 fusionné, T0062 fusionné, décision Andy | Review |
-| T0064 | Réduire le coût en tokens des charges JSON de la boucle de tickets | Gouvernance | T0061, T0062 fusionnés, T0063 fusionné | Review |
+| T0063 | Faire avancer la boucle de tickets sans déclenchement humain | Gouvernance | T0061 fusionné, T0062 fusionné, décision Andy | Verify |
+| T0064 | Réduire le coût en tokens des charges JSON de la boucle de tickets | Gouvernance | T0061, T0062 fusionnés, T0063 fusionné | Verify |
 | T0065 | Rendre le rejeu d'un départ de vol identique à la réponse acquise | 2 | T0050–T0051, T0060 fusionnée, décision Andy du 5 août 2026 | Review |
 | T0066 | Prouver le motif de refus des courses concurrentes du harnais backend | Gouvernance | T0013, T0029, T0047, T0050–T0051 | Draft |
 | T0067 | Rendre récupérable la pile Supabase locale après un arrêt brutal du moteur | 1 | T0012, T0021, décision Andy | Draft |
-| T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 fusionné, T0064 fusionné, décisions Andy | Review |
+| T0068 | Faire de la fonctionnalité l'unité de suivi, de branche et d'intégration | Gouvernance | T0063 fusionné, T0064 fusionné, décisions Andy | Done |
 
 Aucun identifiant n'est plus réservé hors de cette table : la Pull Request de
 consolidation du 5 août 2026 y inscrit T0063, T0064 et T0068, qui manquaient
@@ -144,10 +144,14 @@ Andy. Aucun tag n'est créé.
 T0054 est `Done` depuis la fusion de la PR #99 dans `main` au merge `3a2c292` le
 4 août 2026 : le flux moteur de vol et bridge publie la télémétrie bornée sur le
 contrat local depuis le replay synthétique. Son prochain ticket est T0059, qui
-fournit la source réelle et son corpus ; il reste `Draft` parce que son prérequis
-physique — MSFS 2024 stable et le SDK SimConnect installés avec une provenance
-vérifiable — n'est pas satisfait sur la machine de validation, et aucune trace
-synthétique ne le contourne.
+fournit la source réelle et son corpus ; il reste `Draft`, mais son motif a changé le
+5 août 2026. L'installation est constatée : MSFS 2024 canal Microsoft Store/Xbox
+`1.7.35.0` et SDK SimConnect `1.5.7` sont présents sur la machine de validation,
+aucune installation Steam ne l'est, et le SDK se trouve hors d'un chemin par défaut —
+ce qui explique probablement le constat inverse précédent. Ce qui reste bloquant est
+la **provenance consignée** qu'exige le ticket, qu'un relevé de chemins n'établit
+pas, plus le choix de l'appareil de référence. Aucune trace synthétique ne contourne
+ce ticket.
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
@@ -440,8 +444,8 @@ collisions de `Allowed areas` en traitant l'index et l'état courant comme des
 fichiers de suivi partagés qui imposent un ordre d'intégration. Le gate
 `pnpm ticket-automation:check` couvre ce comportement sur un dépôt synthétique
 avec dix mutations négatives, sous Windows PowerShell 5.1 comme sous
-PowerShell 7. T0061 est `Review` : il ne livre aucune capacité produit et n'a pas
-encore tourné de bout en bout sur un ticket réel.
+PowerShell 7. T0061 est `Done` depuis la fusion de la PR #108 : il ne livre aucune
+capacité produit et n'a pas encore tourné de bout en bout sur un ticket réel.
 
 T0063 lève le non-objectif de T0061 sur la planification, sur décision d'Andy du
 5 août 2026 : la boucle avance désormais une fois par jour ouvré sans qu'il la
@@ -454,16 +458,18 @@ confirmation humaine d'Andy et T0060 cumule `Risk: High`, la sensibilité sécur
 et une de ses décisions — donc la boucle prépare et rapporte sans rien exécuter.
 La tâche planifiée vit dans le profil utilisateur, hors du dépôt, parce qu'elle a
 besoin de PowerShell Windows, pnpm, les worktrees et parfois Docker. T0063 est
-`Review` et sa tâche planifiée n'a pas encore eu son premier run.
+`Verify` : son implémentation est fusionnée dans `main`, mais sa tâche planifiée n'a
+pas encore eu son premier run, qui appartient à Andy.
 
 T0063 avait d'abord été empilé sur `fix/T0062-ticket-automation-gate-crlf`. Sa
 Pull Request #110 est `MERGED` sur cette base, mais la PR #109 l'avait déjà
 fusionnée dans `main` avant elle : les commits T0063 ne sont donc jamais entrés
 dans la branche par défaut, et `docs/tickets/T0063-*.md` était absent de `main` au
 commit `2b3ebf9`. C'est le motif déjà observé pour les PR #68, #70, #72 et #74.
-Cette Pull Request corrective propage T0063 vers `main` depuis
+La Pull Request corrective #117 a propagé T0063 vers `main` depuis
 `fix/T0063-propager-vers-main`, en conservant les lignes T0065–T0067 arrivées
-entre-temps.
+entre-temps ; elle est fusionnée le 5 août 2026 au merge `f4ea508`, si bien que le
+sélecteur, son gate et la boucle planifiée sont désormais dans la branche par défaut.
 
 T0065, T0066 et T0067 sortent de la clôture d'apprentissage de la vague T0060, le
 5 août 2026, et ne corrigent rien au passage. Les trois portent sur des défauts
@@ -472,9 +478,11 @@ réellement présents dans `main` au commit `c0f16dc`, enregistrés en `KI-024`,
 
 T0065 est `Ready` depuis la décision d'Andy du 5 août 2026, qui retient l'issue A :
 le rejeu d'un départ de vol doit rendre la réponse acquise, la garantie est tenue et
-non réduite. Son exécution reste néanmoins suspendue à la fusion de la Pull Request
-brouillon #112, parce qu'il redéfinit la même fonction et qu'un quatrième conflit
-sur cette définition vivante serait rouvert autrement. T0066 peut devenir `Ready`
+non réduite. Son exécution était suspendue à la fusion de la Pull Request #112, parce
+qu'il redéfinit la même fonction et qu'un quatrième conflit sur cette définition
+vivante serait rouvert autrement ; cette condition est levée depuis la fusion de #112
+dans `main` au merge `56c787a` le 5 août 2026, et T0065 est donc réellement
+exécutable. T0066 peut devenir `Ready`
 sans décision. T0067 attend encore une décision nommée d'Andy, consignée dans son
 fichier avec sa condition de sortie.
 
@@ -491,6 +499,10 @@ un index de 439 lignes, 113 merges, 24 worktrees résiduels, 4 tickets de
 réconciliation d'index sans capacité produit, et 4 à 6 tickets par capacité
 utilisateur — donc autant de bases de branche à choisir, d'où les PR correctives
 #69, #73, #79, #83 et, le 5 août 2026, la PR #110 fusionnée hors de `main`.
-T0068 est `Draft` : la PR #113 touche déjà les mêmes workflows de la boucle. Sa
-dépendance sur T0063 est en revanche satisfaite depuis la PR corrective #117,
-fusionnée au merge `f4ea508` avec ses trois checks verts.
+T0068 est `Done` : sa dépendance sur T0063 est satisfaite par la PR corrective #117,
+fusionnée au merge `f4ea508`, celle sur T0064 par la Pull Request de consolidation
+#118 au merge `db6143a`, et T0068 lui-même est fusionné dans `main` par la **PR #119
+au merge `17ad8a8`** le 5 août 2026, avec ses trois checks verts et son gate
+`ticket-automation:check` réellement exécuté sur le runner Windows. Le 5 août 2026,
+ce gate rejoué sur `main` rend 89 assertions et 27 mutations négatives, et le
+sélecteur rend `Features: 0; tickets: 68; work capacity: 2 of 2`.

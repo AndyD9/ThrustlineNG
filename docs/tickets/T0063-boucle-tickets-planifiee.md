@@ -1,6 +1,6 @@
 # T0063 — Faire avancer la boucle de tickets sans déclenchement humain
 
-Status: Review
+Status: Verify
 Owner: Codex
 Branch: `chore/T0063-boucle-tickets-planifiee`
 Phase: Gouvernance
@@ -266,6 +266,20 @@ recopiait le fichier à la main.
 Cette PR ne prouve aucune livraison dans `main` : elle est empilée sur T0062, elle
 reste brouillon, et sa condition de sortie est le reciblage vers `main` après la
 fusion de T0062. La fusion appartient à Andy.
+
+**Propagation dans `main`.** La condition de sortie ci-dessus est remplie par la
+branche de propagation `fix/T0063-propager-vers-main` : sa **PR #117 est fusionnée
+par Andy le 5 août 2026 à 16 h 31 UTC au merge `f4ea508`**, base `main`. Le
+sélecteur, son gate et la boucle planifiée sont donc présents dans la branche par
+défaut, ce que T0068 a ensuite revérifié comme dépendance satisfaite. Le run CI
+`31025671431` de ce merge est `cancelled` — remplacé par les runs des merges
+suivants — mais les trois checks verts de la PR #117 elle-même portent la preuve, et
+le gate `pnpm ticket-automation:check` est réellement exécuté sur le runner Windows.
+
+Le ticket passe de `Review` à **`Verify`** par la maintenance documentaire du
+5 août 2026 : l'implémentation est fusionnée et revue, et il ne reste que
+l'étape 4 de la vérification manuelle — le premier run réel de la tâche planifiée,
+qui appartient à Andy sur son poste.
 
 ### Manual verification result
 

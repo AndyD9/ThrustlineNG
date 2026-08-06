@@ -15,10 +15,54 @@ rejouable à l'identique sans MSFS.
 
 ## Context
 
-`KI-009`, `KI-011` et `KI-015` sont ouverts pour la même raison physique : MSFS
-2024 et le SDK SimConnect ne sont pas installés avec une provenance vérifiable
-sur la machine de validation. `docs/CURRENT_STATE.md` classe explicitement la
-connexion réelle MSFS/SimConnect comme contrôle non exécutable dans la baseline.
+`KI-009`, `KI-011` et `KI-015` sont ouverts pour la même raison physique : la
+connexion réelle MSFS/SimConnect n'a jamais été exécutée. Ce ticket a été ouvert en
+tenant le prérequis pour absent ; **ce n'est plus exact, et ce paragraphe le
+corrige.**
+
+### Constat du 5 août 2026 sur la machine de validation
+
+Relevé par inspection du système de fichiers, en réponse à une question d'Andy. Les
+deux prérequis matériels sont **installés** :
+
+- **MSFS 2024**, canal **Microsoft Store / Xbox App** : paquet
+  `Microsoft.Limitless_1.7.35.0_x64__8wekyb3d8bbwe` sous
+  `C:\Program Files\WindowsApps`, contenant `FlightSimulator2024.exe` et
+  `gamelaunchhelper.exe`; dossier de paquet
+  `%LOCALAPPDATA%\Packages\Microsoft.Limitless_8wekyb3d8bbwe` et données
+  utilisateur `%APPDATA%\Microsoft Flight Simulator 2024`. **Aucune installation
+  Steam** trouvée dans les trois chemins de bibliothèque standards.
+- **SDK SimConnect officiel, version `1.5.7`** d'après
+  `C:\MSFS2024SDK\version.txt`, avec la structure attendue :
+  `SimConnect SDK\include\SimConnect.h`, `lib\SimConnect.dll`, `lib\SimConnect.lib`,
+  `lib\managed\Microsoft.FlightSimulator.SimConnect.dll`, `lib\static\` et
+  `installer\SimConnect.msi`. Le chemin racine n'est pas un chemin d'installation par
+  défaut, ce qui explique probablement pourquoi la documentation le croyait absent.
+
+Trois constats de ce relevé changent le travail attendu plutôt que le débloquer :
+
+1. **Une deuxième `SimConnect.dll` existe sur la machine**, apportée par un add-on
+   tiers : `C:\BeyondATC\BeyondATC_Data\Plugins\x86_64\SimConnect.dll` et
+   `C:\BeyondATC\BeyondATC_Data\StreamingAssets\SimConnect.dll`. L'exigence §2 —
+   « la DLL réelle est résolue uniquement à l'exécution depuis l'installation du
+   SDK » — devient donc un contrôle à prouver, pas une évidence : un chargement naïf
+   qui trouverait la copie d'un add-on produirait une preuve fausse tout en
+   paraissant réussir. La capture doit consigner le chemin réellement chargé.
+2. **Un dossier de paquet `Microsoft.FlightSimulator_8wekyb3d8bbwe` est aussi
+   présent**, c'est-à-dire la lignée MSFS 2020, `Unsupported` par `ADR-0003`. La
+   capture doit prouver à quelle version elle s'est connectée, et non supposer que
+   la seule session ouverte est celle de 2024.
+3. La version de fichier de `lib\SimConnect.dll` n'est pas renseignée : son
+   `VersionInfo` est vide. La version `1.5.7` provient du SDK, pas de la DLL ; c'est
+   le SDK qu'il faut citer comme référence de version.
+
+Le prérequis restant n'est donc plus l'installation mais la **provenance**, au sens
+de l'exigence §1 de ce ticket : « une déclaration orale ne vaut pas provenance ».
+Un relevé de chemins prouve la présence, pas l'origine.
+
+`T0011` fournit par ailleurs déjà tout l'amont : `docs/CURRENT_STATE.md` classait la
+connexion réelle MSFS/SimConnect comme contrôle non exécutable dans la baseline, ce
+que le même changement corrige.
 
 T0011 fournit `ISimConnectAdapter`, le domaine `FlightSample`, l'adaptateur natif
 confiné et `SimConnectTraceReader` avec une trace synthétique de huit points. Il
@@ -45,11 +89,23 @@ diffusion : il fournit la source réelle que T0054 ne pouvait pas exiger.
 - T0054 — diffusion bornée déjà présente dans `main`, à ne pas rouvrir ;
 - `ADR-0003` — protocole de scénarios, fiches de validation et matrice de
   support ; `ADR-0004` — SDK officiel confiné derrière l'abstraction interne ;
-- prérequis physique bloquant : MSFS 2024 stable publique installé et SDK
-  SimConnect officiel installé, tous deux avec provenance vérifiable ; sans eux
-  le ticket reste `Blocked` et n'est pas contourné par une trace synthétique ;
-- décision d'Andy : canal réellement installé, Microsoft Store/Xbox App ou
-  Steam, et appareil natif retenu pour la capture de référence.
+- prérequis physique : **satisfait quant à l'installation** au 5 août 2026 — MSFS
+  2024 Store/Xbox `1.7.35.0` et SDK SimConnect `1.5.7` sont présents, voir le constat
+  daté du `Context`. Il reste **non satisfait quant à la provenance** : l'exigence §1
+  demande une provenance consignée de l'installation du SDK, et un relevé de chemins
+  ne l'établit pas. Aucune trace synthétique ne contourne ce ticket ;
+- `F0003` — localisation de la bibliothèque cliente SimConnect et dégradation
+  explicite en son absence. **Prérequis découvert le 5 août 2026** : l'exigence §2 de
+  ce ticket suppose une résolution qui n'existe pas encore, et sur une machine
+  d'utilisateur final il n'y a de toute façon rien à résoudre, puisque personne
+  n'installe un SDK de développement. Voir le constat dans cette exigence ;
+- décision d'Andy, en attente, désormais réduite à deux points :
+  1. **la provenance du SDK** — d'où il vient et quand il a été installé, sous une
+     forme consignable et vérifiable, pas une déclaration orale ;
+  2. **l'appareil natif** retenu pour la capture de référence.
+  Le canal n'est plus une question ouverte : seul Microsoft Store / Xbox App est
+  installé, aucune installation Steam n'existe sur cette machine, et `ADR-0003`
+  laisse Steam `Unsupported` faute de fiche par canal.
 
 ## Allowed areas
 
@@ -103,6 +159,18 @@ diffusion : il fournit la source réelle que T0054 ne pouvait pas exiger.
 - Prouver que la publication ne contient ni `SimConnect.dll`, ni assembly du
   SDK, ni binaire hérité, et que la DLL réelle est résolue uniquement à
   l'exécution depuis l'installation du SDK.
+  **Cette exigence suppose une résolution qui n'existe pas, constat du 5 août
+  2026.** `NativeSimConnectAdapter` charge `SimConnect.dll` par
+  `NativeLibrary.TryLoad(..., DllImportSearchPath.SafeDirectories)`, dont les
+  répertoires sont celui de l'application, `System32` et ceux ajoutés
+  explicitement — ni le `PATH`, ni un chemin d'installation du SDK. Or sur la
+  machine de validation, `System32`, `SysWOW64` et `WinSxS` ne contiennent aucun
+  `SimConnect.dll`, le SDK garde la sienne dans `C:\MSFS2024SDK\SimConnect SDK\lib`
+  et le paquet MSFS 2024 n'expose qu'un `SimConnect_internal.dll` sous
+  `WindowsApps`, protégé par ACL et de nom différent. Le chargement échouerait donc
+  **même avec les deux prérequis installés**. La localisation est portée par la
+  fonctionnalité `F0003`, dont la fusion devient un prérequis de ce ticket : sans
+  elle, il n'y a pas de résolution à prouver.
 - Consigner explicitement si l'assembly managé officiel a été nécessaire ou si
   le chemin natif de T0011 suffit sur .NET 10 self-contained. Ce constat est la
   preuve attendue par `KI-015`.
@@ -208,6 +276,16 @@ diffusion : il fournit la source réelle que T0054 ne pouvait pas exiger.
 
 - [ ] MSFS 2024 et le SDK sont installés avec provenance consignée, ou le ticket
       est `Blocked` avec ce motif et sans preuve substituée.
+      **Installation constatée le 5 août 2026** — MSFS 2024 Store/Xbox `1.7.35.0`,
+      SDK SimConnect `1.5.7` — voir le constat daté du `Context`. La moitié
+      « provenance consignée » reste ouverte, donc ce critère n'est pas coché.
+- [ ] La `SimConnect.dll` réellement chargée à l'exécution est celle de
+      l'installation du SDK ou du simulateur, et son chemin est consigné redigé.
+      Une copie apportée par un add-on tiers existe sur la machine de validation :
+      une preuve qui ne relève pas le chemin chargé ne vaut rien.
+- [ ] La session à laquelle la capture s'est connectée est prouvée être MSFS 2024,
+      la lignée MSFS 2020 étant aussi présente sur la machine et `Unsupported` par
+      `ADR-0003`.
 - [ ] Le bridge publié self-contained se connecte réellement à MSFS 2024 et la
       publication ne contient aucun binaire SimConnect.
 - [ ] Le constat de publication du point 2 est consigné et tranche `KI-015`.

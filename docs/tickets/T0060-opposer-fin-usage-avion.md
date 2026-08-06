@@ -1,6 +1,6 @@
 # T0060 — Opposer la fin d'usage d'un avion au dispatch et au départ de vol
 
-Status: Review
+Status: Done
 Owner: Andy
 Branch: `feature/T0060-aircraft-usability-guard`
 Phase: 2
@@ -123,6 +123,16 @@ même si la nouvelle définition perd un de leurs invariants.
   `Backend CI passed: 2 resets, 23 pgTAP files, ... aircraft lease and aircraft
   usability withdrawal, ...`. La dernière réserve du ticket est donc levée par le
   harnais lui-même, et non déduite d'un code de sortie.
+- 5 août 2026, 16 h 08 UTC — **Andy fusionne la PR #112 dans `main` au merge
+  `56c787a`**. La garde d'usage est donc livrée dans la branche par défaut. Le
+  passage à `Done` est fait par la maintenance documentaire du 5 août 2026 : la
+  vérification manuelle du ticket était complète, sa seule réserve — la course
+  concurrente du runner Linux — est prouvée par le journal du job
+  `Supabase PostgreSQL 17` du run `31022037311`, qui rend
+  `Aircraft usability concurrency passed: 2 sessions, 1 temporal command, unusable
+  aircraft, no dispatch and no orphan command.` L'unique critère d'acceptation
+  décoché n'est pas satisfait par ce ticket et **reste porté par T0065**, `Ready`
+  dans l'index et suivi comme `KI-024` : il n'est ni coché, ni abandonné.
 
 ## Dependencies
 

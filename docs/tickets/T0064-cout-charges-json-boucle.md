@@ -1,6 +1,6 @@
 # T0064 — Réduire le coût en tokens des charges JSON de la boucle de tickets
 
-Status: Review
+Status: Verify
 Owner: Unassigned
 Branch: `chore/T0064-cout-charges-boucle`
 Phase: Gouvernance
@@ -182,8 +182,16 @@ Partielle. L'étape 1 est couverte par l'analyse des deux modules. Les étapes 2
 exigent une vague réelle, donc un run de `/ticket-run` en mode `execute` qui crée des
 branches et ouvre des Pull Requests : elles reviennent à Andy sur son poste Windows.
 Le comportement attendu aux étapes 2 et 4 est prouvé au niveau de l'expression, hors
-vague réelle, et non sur une trace de prompt réelle. Le ticket reste en `Review` pour
-cette raison.
+vague réelle, et non sur une trace de prompt réelle.
+
+**Fusion et statut.** La PR #113 n'a pas porté ce ticket jusqu'au bout : c'est la
+Pull Request de consolidation **#118, fusionnée par Andy le 5 août 2026 à 17 h 01 UTC
+au merge `db6143a`**, qui livre ces changements dans `main`, avec ses deux runs verts
+`31028080678` (CI) et `31028080250` (supply chain). Le conflit attendu avec T0063 sur
+les deux workflows et sur l'index a été résolu dans cette consolidation. Le ticket
+passe donc de `Review` à **`Verify`** par la maintenance documentaire du 5 août 2026 :
+il ne reste que les étapes 2 à 4 de la vérification manuelle, qui exigent une vague
+réelle de `/ticket-run` en mode `execute` sur le poste d'Andy.
 
 ### Risks and limitations
 
