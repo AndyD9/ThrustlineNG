@@ -1320,7 +1320,7 @@ function Get-BackendIssues {
         "owner derived from Auth" = 'owner_id: user\.id'
         "service credential API key" = 'apikey: configuration\.serviceRoleKey'
         "service credential bearer" = 'authorization: `Bearer \$\{configuration\.serviceRoleKey\}`'
-        "redacted flight start failure" = 'flight_start_rejected'
+        "redacted flight start failure" = 'throw new HttpError\(409, "flight_start_rejected", "Flight could not be started\."\);'
         "allowlisted public response" = 'aircraftId: value\.aircraftId[\s\S]+dispatchId: value\.dispatchId[\s\S]+schemaVersion: 1[\s\S]+startedAt: value\.startedAt[\s\S]+state: "active"'
         "non-cacheable response" = 'headers\.set\("cache-control", "no-store"\)'
     }
@@ -2265,6 +2265,19 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\flight-start\handler.ts") -Destination $flightStartFunctionCopy
+    $flightStartFunctionText = Get-Content -Raw -Encoding UTF8 $flightStartFunctionCopy
+    $flightStartFunctionText = $flightStartFunctionText.Replace(
+        'throw new HttpError(409, "flight_start_rejected", "Flight could not be started.");',
+        'throw new HttpError(409, "flight_start_rejected", await response.text());'
+    )
+    [System.IO.File]::WriteAllText($flightStartFunctionCopy, $flightStartFunctionText)
+    $chattyFlightStartRefusalIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($chattyFlightStartRefusalIssues -match "redacted flight start failure")) {
+        Write-Error "Harness self-test failed to detect a chatty flight start refusal."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\functions\flight-start\handler.ts") -Destination $flightStartFunctionCopy
     $flightStartFunctionTestCopy = Join-Path $temporaryRoot "supabase\functions\flight-start\handler.test.ts"
     $flightStartFunctionTestText = Get-Content -Raw -Encoding UTF8 $flightStartFunctionTestCopy
     $flightStartFunctionTestText = $flightStartFunctionTestText.Replace(
@@ -2603,4 +2616,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040, T0047-T0051, T0057, T0060, T0065 and F0001 repository plus 66 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040, T0047-T0051, T0057, T0060, T0065 and F0001 repository plus 67 mutation scenarios)."

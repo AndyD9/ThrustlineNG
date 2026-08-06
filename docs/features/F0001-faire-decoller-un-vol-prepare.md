@@ -278,8 +278,15 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 - vérification manuelle : reportée à la fin du jalon après revue — les quatre
   appels (bearer valide, sans bearer, `owner_id` injecté, corps 5 Kio) exigent la
   pile locale, ils sont rejoués par le script J2 sur l'Edge Runtime réel.
-- revue et constats traités : revue adversariale demandée sur le diff poussé du
-  jalon, résultat à consigner ici.
+- revue et constats traités : revue adversariale du 6 août 2026 par un agent
+  séparé, sur le commit `6de4c8e` — **J1 approuvé, aucun bloquant**. Le seul
+  constat majeur est corrigé dans le jalon : la mutation « refus bavard »
+  promise manquait et l'invariant `flight_start_rejected` était infalsifiable ;
+  l'invariant exige désormais la ligne exacte du refus redigé et une neuvième
+  mutation le rend bavard (`await response.text()`), détectée par le gate
+  (67 mutations). Le reviewer a aussi vérifié le gate sous Windows PowerShell
+  5.1 et pwsh 7 (verts tous les deux) et confirmé chaîne par chaîne que les
+  mutations mordent. Cinq constats mineurs sont consignés en follow-ups.
 
 ### J2
 
@@ -302,5 +309,17 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 ### Risks and limitations
 
 ### Follow-ups
+
+Constats mineurs de la revue adversariale J1 du 6 août 2026, non bloquants :
+
+- une panne Auth 5xx est rendue `401 authentication_required` au lieu de `503`
+  dans les **quatre** frontières Edge ; à corriger d'un coup, pas ici ;
+- les contrôles `config.toml` du gate (`[functions.*] … verify_jwt`) ne sont pas
+  bornés à leur section ; candidat de durcissement commun aux quatre frontières ;
+- test manquant : corps sur-dimensionné en streaming sans `content-length` ;
+- test manquant : variantes de statut amont (403/404/500) dans la preuve
+  d'indistinguabilité des refus ;
+- `ARCHITECTURE.md`, `QUALITY.md` et `CURRENT_STATE.md` restent à mettre à jour
+  à la synthèse de la fonctionnalité (seul `SECURITY.md` est à jour après J1).
 
 ### Documentation updated
