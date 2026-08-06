@@ -626,16 +626,10 @@ location, un état ou une échéance.
 La garde est évaluée dans la transaction de la commande, sur une ligne verrouillée,
 dans un ordre documenté — compagnie, dispatch, avion — compatible avec les
 commandes de location, où `public.company_aircraft` est aussi verrouillé en
-dernier. Le rejeu d'une commande de départ déjà acquise reste inchangé : la garde
-ne le refuse jamais et il ne crée pas de second départ, même si l'avion est devenu
-inutilisable entre-temps. Sa réponse n'est en revanche pas stockée verbatim, parce
-que le chemin de rejeu de T0050 la reconstruit depuis la ligne de dispatch
-vivante : si le vol a été clôturé depuis l'acquisition, son champ `state` vaut
-`completed` ou `interrupted` et son `startedAt` est `null`, le trigger
-`private.set_flight_dispatch_started_at` effaçant cet instant dès que l'état quitte
-`active`. La propriété de sécurité visée par ce ticket —
-aucune mise en service d'un avion hors contrat — est intacte ; l'exactitude du
-rejeu est portée par T0065.
+dernier. Le rejeu d'une commande de départ déjà acquise n'est jamais refusé par la
+garde et ne crée pas de second départ, même si l'avion est devenu inutilisable
+entre-temps. Depuis T0065, sa réponse est aussi exactement celle de l'acquisition :
+voir « Contrat d'idempotence d'une commande privilégiée » ci-dessous.
 
 `public.close_flight` n'est pas gardé, sur décision d'Andy du 4 août 2026 : un vol
 déjà parti reste clôturable et réglé, et c'est seulement le brouillon suivant qui
@@ -644,3 +638,39 @@ par rapport à l'état enregistré et non par rapport à l'heure murale, donc un
 peut rester utilisable après sa date réelle d'expiration jusqu'au prochain appel de
 la commande temporelle. Aucune frontière Auth, aucun endpoint, aucun appelant
 desktop, aucune cible distante et aucune donnée réelle ne sont couverts.
+
+## Contrat d'idempotence d'une commande privilégiée T0065
+
+Règle de sécurité, ajoutée le 5 août 2026 sur décision d'Andy — issue A : le rejeu
+d'une commande privilégiée déjà acquise **restitue la réponse rendue à
+l'acquisition**. Il ne la reconstruit pas depuis l'état vivant, et il ne rend jamais
+un état plus récent que celui accordé. Un appelant qui rejoue une clé pour cause de
+réponse perdue reçoit donc l'acquisition, pas une observation de l'état courant.
+
+`public.start_flight_from_dispatch` applique cette règle depuis la migration
+`20260805000200_flight_start_replay_fidelity.sql`. Le chemin de rejeu reconstruit sa
+réponse depuis `private.flight_start_commands` — `aircraft_id`, `dispatch_id` et
+`started_at not null`, écrits dans la transaction qui a accordé le départ — plus le
+littéral `active`, puisque cette ligne de registre n'existe qu'après une transition
+`draft` → `active` réussie. Seul le `schema_version` immuable est encore lu sur la
+ligne de dispatch. Aucune colonne nouvelle n'est conservée, donc aucune donnée
+supplémentaire n'entre dans la politique de rétention.
+
+Deux conséquences de sécurité sont voulues. Un rejeu ne devient pas un canal
+d'observation de l'état courant d'un vol : il ne dit plus si le vol a été clôturé,
+ni comment. Et la garde d'usage T0060 reste après ce chemin, donc un départ déjà
+accordé garde sa réponse même après la fin d'usage de l'avion, sans jamais créer un
+second départ, une seconde ligne de registre ou une écriture financière.
+
+Le gate backend interdit, contre ce nouveau fichier, toute lecture de `state`,
+`started_at` ou `closed_at` de la ligne de dispatch vivante dans le chemin de rejeu,
+et il exige que la garde d'usage reste placée après lui. Le pgTAP
+`flight_start_replay_fidelity.test.sql` place la clôture **avant** le rejeu, ce que le
+gate vérifie aussi : le scénario T0050 rejouait avant la clôture et ne pouvait donc
+pas échouer sur cet écart. `KI-024` est résolu par ce ticket.
+
+L'écart initial portait sur un seul champ des cinq, pas deux : `KI-024` annonçait un
+`startedAt` remis à `null` par `private.set_flight_dispatch_started_at`, mais T0051
+avait déjà redéfini ce trigger pour qu'un état terminal conserve son instant de
+départ. La règle ne dépend pas de ce trigger : elle interdit la lecture vivante
+elle-même, donc un changement futur du trigger ne peut pas rouvrir l'écart.

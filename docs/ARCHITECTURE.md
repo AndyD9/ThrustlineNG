@@ -467,17 +467,25 @@ acquis alors que l'avion était utilisable n'est jamais refusé par la garde et 
 crée pas de second départ, celle-ci ne s'appliquant qu'à la transition fraîche
 `draft` → `active`.
 
-Ce chemin de rejeu reste celui livré par T0050, inchangé, et il reconstruit sa
-réponse depuis la ligne de dispatch vivante au lieu de la relire d'un
-enregistrement : `aircraftId`, `dispatchId` et `schemaVersion` sont bien ceux de
-l'acquisition, mais `state` suit l'état courant du dispatch et `startedAt` est
-remis à `null` par le trigger `private.set_flight_dispatch_started_at` dès que cet
-état quitte `active`. Après une clôture, le rejeu d'une commande acquise rend donc
-`state = 'completed'` et `startedAt = null`. Ce n'est pas une réponse stockée
-verbatim. T0065 tranche s'il faut la restituer — `private.flight_start_commands`
-conserve déjà l'avion, le dispatch et l'instant de départ acquis, seul endroit où
-ce dernier survit à la clôture — ou réduire la garantie à l'absence de second
-départ.
+Ce chemin de rejeu **restitue** la réponse acquise depuis T0065, livré par la
+migration `20260805000200_flight_start_replay_fidelity.sql` : `aircraftId`,
+`dispatchId` et `startedAt` viennent du registre `private.flight_start_commands`,
+écrit dans la transaction même qui a accordé le départ, `state` est le littéral
+`active` — la ligne de registre n'existant qu'après une transition réussie — et
+seul le `schema_version` immuable est encore lu sur la ligne de dispatch. Le rejeu
+ne lit donc aucun champ qu'une clôture déplace ou effacerait, et rend les cinq
+champs de l'acquisition même après un `close_flight`. Aucune colonne n'a été
+ajoutée pour cela.
+
+Avant T0065, ce chemin reconstruisait sa réponse depuis la ligne de dispatch
+vivante et son `state` suivait l'état courant : après une clôture, le rejeu rendait
+`completed` au lieu de `active`. `KI-024` décrivait aussi un `startedAt` remis à
+`null` par `private.set_flight_dispatch_started_at`, ce qui n'était plus vrai :
+T0051 avait déjà redéfini ce trigger pour qu'un état terminal conserve
+`old.started_at`, et sa contrainte l'exige non nul. Un seul champ sur cinq dérivait
+donc réellement, ce que la preuve pgTAP du 5 août 2026 constate. La restitution ne
+dépend en revanche pas de ce trigger, si bien qu'une migration future qui le
+changerait ne peut pas rouvrir l'écart.
 
 `public.close_flight` n'est pas gardé, sur décision d'Andy du 4 août 2026 : un vol
 déjà en cours reste clôturable et réglé même après la fin de la location, sinon un

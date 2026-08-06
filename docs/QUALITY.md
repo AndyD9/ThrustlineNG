@@ -231,12 +231,12 @@ Ubuntu, le cycle de reset tente sinon de recréer PostgreSQL alors que son port
 est encore occupé. Le chargement Deno réel reste une preuve Windows séparée.
 
 `backend:reset` inclut explicitement `--local`. `backend:test` doit découvrir
-les vingt-trois fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
-découvert n'est pas une réussite. Les 539 assertions couvrent le cycle de compte
+les vingt-quatre fichiers pgTAP et conclure par `Result: PASS`; un code 0 sans test
+découvert n'est pas une réussite. Les 552 assertions couvrent le cycle de compte
 T0018, le replay T0019, le grand livre T0020, l'onboarding T0022, l'achat
 T0029, le dispatch T0047, le démarrage de vol T0050, le référentiel
-d'aérodromes T0057, la clôture de vol T0051, la location T0032 et l'opposabilité
-de la fin d'usage T0060. `backend:test` s'exécute sur les sources copiées dans le
+d'aérodromes T0057, la clôture de vol T0051, la location T0032, l'opposabilité
+de la fin d'usage T0060 et la restitution du rejeu de départ T0065. `backend:test` s'exécute sur les sources copiées dans le
 runtime isolé par `backend:start` : après avoir modifié une migration, un seed ou
 un fichier pgTAP, relancer `backend:start` avant de conclure, sinon la commande
 rejoue silencieusement la version précédente. Le job CI
@@ -922,9 +922,8 @@ rejeu d'un départ acquis avant la perte d'usage rend une réponse identique tan
 que le dispatch est encore `active` — la garde ne s'applique donc pas à une
 commande déjà acquise —, et que `anon` comme `authenticated` restent privés
 d'`execute` sur les deux commandes et d'`update` sur `public.company_aircraft`.
-Le rejeu d'un départ postérieur à la clôture du vol n'est pas couvert : la réponse
-est reconstruite depuis la ligne de dispatch vivante, donc son `state` suit cette
-ligne et son `startedAt` y est `null`. T0065 porte cette exactitude.
+Le rejeu d'un départ postérieur à la clôture du vol n'était pas couvert par T0060 ;
+il l'est par T0065, dont la preuve est décrite plus bas.
 
 Mesure du 5 août 2026, sous Windows 11, Docker Desktop 29.6.2 et PostgreSQL 17 :
 deux resets consécutifs appliquent les onze migrations livrées puis la douzième,
@@ -964,3 +963,53 @@ dispatch et tient la ligne d'avion quatre secondes, comme les courses de locatio
 d'achat, de dispatch et de clôture déjà en place ; l'état attendu après la course
 est `0|0|0|1` — aucun brouillon, aucune commande orpheline, avion inutilisable et
 une seule commande temporelle.
+
+## Preuve de restitution du rejeu de départ T0065
+
+T0065 ajoute un fichier pgTAP, `flight_start_replay_fidelity.test.sql`, qui porte le
+total backend à 24 fichiers et 552 assertions. Un run qui ne découvre que les
+23 fichiers antérieurs n'est pas une preuve T0065. Son ordre est sa valeur : le
+scénario T0050 rejoue **avant** `close_flight` et ne peut donc pas échouer sur
+`KI-024`, tandis que celui-ci clôture d'abord — un vol `completed` et un vol
+`interrupted` — puis rejoue. Le gate vérifie cet ordre plutôt que de le confier à
+une consigne de revue.
+
+Mesure du 5 août 2026, sous Windows 11, Docker Desktop 29.6.2 et PostgreSQL 17 :
+deux resets consécutifs appliquent les douze migrations livrées puis la treizième,
+`20260805000200_flight_start_replay_fidelity.sql`, et 24 fichiers /
+**552 assertions réellement découvertes** concluent par `Result: PASS`, soit
+13 assertions nouvelles. `backend:types:check` rend `Database types match the local
+schema.` : la migration ne remplace qu'un corps de fonction.
+
+Le gate backend passe avec **58 scénarios de mutation**, dont huit nouveaux :
+`state` rejoué depuis la ligne vivante, `startedAt` rejoué depuis la ligne vivante,
+`aircraftId` reconstruit depuis le dispatch au lieu du registre, garde d'usage T0060
+retirée de la redéfinition, transition élargie au-delà de `draft`, `execute` accordé
+à `authenticated`, scénario pgTAP manquant, et scénario qui ne clôture jamais le vol
+avant d'affirmer le rejeu. Parce que c'est la troisième redéfinition de
+`start_flight_from_dispatch`, la même série réaffirme contre le nouveau fichier les
+invariants T0050 et la garde T0060 : empreinte de payload, refus de collision de
+clé, registre privé, transition `draft` seule, blocage d'un compte en suppression,
+verrou de compagnie dérivé du serveur, verrou de l'avion et refus opaque. Un contrôle
+de position exige que la garde d'usage reste après le chemin de rejeu, et un contrôle
+de contenu interdit dans ce chemin toute lecture de `state`, `started_at` ou
+`closed_at` de la ligne de dispatch vivante.
+
+Vérification manuelle du même jour, sur **état réellement commité** hors transaction
+annulée : un départ acquis rend `state = active` et un `startedAt` serveur ; la
+clôture rend `completed`, `distanceNm = 168.28` et `settledAmountMinor = 35194` ; la
+ligne de dispatch vivante rend ensuite `completed | departure kept | closed` ; le
+rejeu de la même clé rend une réponse **identique champ par champ** à l'acquisition,
+avec `state = active` ; l'état final est `1|1|0|1|2|43035194` — une commande de
+départ, un dispatch, aucun vol actif, un rapport, deux écritures et un solde
+inchangé par le rejeu ; un départ frais du dispatch clôturé reste refusé par
+`Dispatch is unavailable for flight start.`
+
+Deux limites sont consignées. Le fichier pgTAP de T0065 n'est pas nommé dans la liste
+explicite de `scripts/ci/test-backend.ps1`, hors des `Allowed areas` du ticket : il
+est bien exécuté et un échec ferait tomber `Result: PASS`, mais son nom et le
+décompte « twenty-three » de ce script restent à mettre à jour par un suivi. Et
+`backend:test` s'exécute sur les sources copiées dans le runtime isolé par
+`backend:start` : après modification d'un fichier pgTAP, `backend:reset` seul rejoue
+l'ancienne copie et peut faire croire à un échec — ou à une réussite — qui n'est plus
+celui du fichier de travail. Constaté le 5 août 2026 pendant ce ticket.
