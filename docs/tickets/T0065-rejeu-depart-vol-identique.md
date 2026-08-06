@@ -1,6 +1,6 @@
 # T0065 — Rendre le rejeu d'un départ de vol identique à la réponse acquise
 
-Status: Ready
+Status: Review
 Owner: Andy
 Branch: `fix/T0065-rejeu-depart-vol-identique`
 Phase: 2
@@ -25,15 +25,23 @@ conservée.
 
 Conséquence : un départ acquis alors que le dispatch était `active` puis clôturé
 par `public.close_flight` T0051 rend, au rejeu de la même clé, l'état `completed`
-et non l'état rendu à l'acquisition. Le champ `startedAt` suit la même dépendance à
-l'état vivant, et de façon plus brutale que l'état : le trigger
-`private.set_flight_dispatch_started_at` du même fichier de migration, lignes 21 à
-43, exécute `new.started_at := null` dès que `new.state` n'est pas `active`. Une
-contrainte `flight_dispatches_started_at_matches_state` impose d'ailleurs cette
-nullité. Le rejeu d'une commande acquise rend donc, après clôture,
-`state = 'completed'` **et** `startedAt = null` — deux champs sur cinq, dont un
-effacé et non seulement périmé. Vérifié le 5 août 2026 sur `origin/main` au commit
-`c0f16dc`.
+et non l'état rendu à l'acquisition.
+
+**Correction de constat du 5 août 2026, au moment de l'implémentation.** Ce
+paragraphe annonçait aussi un `startedAt` nul, donc deux champs dérivants sur cinq :
+c'est faux sur la pile réelle, et l'implémentation l'a découvert en échouant sur son
+propre test. Le trigger `private.set_flight_dispatch_started_at` de
+`20260803000200_authoritative_flight_start.sql` exécute bien
+`new.started_at := null` dès que l'état quitte `active`, mais **T0051 l'a redéfini**
+dans `20260804000100_authoritative_flight_settlement.sql` lignes 64 à 100 : un état
+terminal conserve désormais `new.started_at := old.started_at`, et la contrainte
+`flight_dispatches_started_at_matches_state` réécrite lignes 30 à 33 exige au
+contraire que `started_at` soit **non nul** pour `completed` et `interrupted`. Une
+lecture vivante après clôture rend donc `('completed', started_at not null,
+closed_at not null)`, prouvé par pgTAP le 5 août 2026. Un seul champ sur cinq dérive,
+`state`, et le constat initial confondait la définition livrée par T0050 avec la
+définition vivante. La décision d'Andy n'est pas affectée : l'issue A corrige la
+dépendance elle-même, pas seulement ses symptômes observables aujourd'hui.
 
 Trois champs sont en revanche réellement stables, parce qu'aucune commande livrée
 ne les modifie après la création du brouillon : `aircraftId`, `dispatchId` et
@@ -152,21 +160,31 @@ passe `Ready`. Son exécution reste suspendue à la fusion de #112.
 
 - [x] La décision d'Andy est reportée datée dans ce ticket avant toute
       implémentation : issue A, le 5 août 2026.
-- [ ] La Pull Request #112 est fusionnée avant le début de l'implémentation, pour
+- [x] La Pull Request #112 est fusionnée avant le début de l'implémentation, pour
       qu'aucune quatrième redéfinition concurrente de `create_dispatch_draft` et
       `start_flight_from_dispatch` ne soit ouverte en même temps.
-- [ ] Un départ acquis, puis un vol clôturé, puis un rejeu de la même clé : le
+      Fusionnée par Andy le 5 août 2026 à 16 h 08 UTC au merge `56c787a`, vérifié
+      avant la création de la branche, elle-même partie de `origin/main` au merge
+      `17ad8a8`.
+- [x] Un départ acquis, puis un vol clôturé, puis un rejeu de la même clé : le
       rejeu rend les cinq champs de la réponse acquise, `state` valant `active` et
       `startedAt` l'instant du départ, prouvé par un pgTAP dont l'ordre place la
       clôture **avant** le rejeu.
-- [ ] Aucun second départ, aucune seconde ligne de registre, aucun effet financier
+      13 assertions dans `flight_start_replay_fidelity.test.sql`, pour un vol
+      `completed` et un vol `interrupted`, plus la vérification manuelle sur état
+      commité.
+- [x] Aucun second départ, aucune seconde ligne de registre, aucun effet financier
       n'est créé par le rejeu.
-- [ ] `docs/SECURITY.md`, `docs/ARCHITECTURE.md` et `docs/QUALITY.md` décrivent la
+      Trois rejeux laissent `3|1|2|3` en pgTAP — commandes de départ, vol actif,
+      rapports, écritures — et l'état commité rend `1|1|0|1|2|43035194`.
+- [x] `docs/SECURITY.md`, `docs/ARCHITECTURE.md` et `docs/QUALITY.md` décrivent la
       même garantie que le code, sans exception résiduelle : ils portent aujourd'hui
       la reconstruction, ils doivent porter la restitution.
-- [ ] `KI-024` passe `Resolved` en citant ce ticket.
-- [ ] Deux resets consécutifs, tous les pgTAP, les types et les gates passent avec
+- [x] `KI-024` passe `Resolved` en citant ce ticket.
+- [x] Deux resets consécutifs, tous les pgTAP, les types et les gates passent avec
       des décomptes réellement découverts et consignés.
+      24 fichiers / 552 assertions `Result: PASS`, types inchangés, gate backend à
+      58 mutations, gates autorité, données et maintenance verts.
 
 ## Security review
 
@@ -236,18 +254,176 @@ garantie étant alors écrite dans `docs/SECURITY.md`.
 
 ## Completion Report
 
-À remplir après implémentation.
-
 ### Summary
+
+Une seule migration append-only,
+`supabase/migrations/20260805000200_flight_start_replay_fidelity.sql`, redéfinit
+`public.start_flight_from_dispatch` pour la troisième fois et ne change que son
+chemin de rejeu. Son horodatage a été vérifié au moment de l'implémentation contre
+`origin/main` au merge `17ad8a8` : le dernier fichier présent est
+`20260805000100_aircraft_usability_guard.sql`, donc `20260805000200` lui est
+strictement supérieur. `public.create_dispatch_draft` n'est pas redéfinie et sa
+définition vivante reste dans le fichier T0060 ; le gate le vérifie.
+
+Le rejeu reconstruit sa réponse depuis `private.flight_start_commands` :
+`aircraftId` et `startedAt` viennent de ses colonnes, `dispatchId` de sa clé, et
+`state` est le littéral `active` — cette ligne n'existant qu'après une transition
+`draft` → `active` réussie. Seul le `schema_version` immuable est encore lu sur la
+ligne de dispatch. Conformément à l'exigence, **aucune colonne n'est ajoutée** : le
+registre conservait déjà tout le nécessaire.
+
+Le constat d'ouverture a été corrigé en cours d'implémentation, et c'est le test qui
+l'a révélé : `KI-024` annonçait deux champs dérivants, `state` et un `startedAt`
+effacé. Sur la pile réelle, un seul dérive. T0051 avait déjà redéfini
+`private.set_flight_dispatch_started_at` pour qu'un état terminal conserve
+`old.started_at`, et sa contrainte l'exige non nul. La correction est reportée dans
+`Context`, dans `KI-024` et dans les trois documents. La restitution ne dépend pas de
+ce trigger, donc un changement futur ne peut pas rouvrir l'écart — c'est précisément
+ce que l'issue A achète.
 
 ### Files changed
 
+- `supabase/migrations/20260805000200_flight_start_replay_fidelity.sql` — nouvelle
+  migration append-only : restitution du rejeu, invariants T0050 et garde T0060
+  restatés, commentaire de table sur l'autorité du registre ;
+- `supabase/tests/database/flight_start_replay_fidelity.test.sql` — nouveau fichier
+  pgTAP, 13 assertions réellement découvertes, clôture avant rejeu ;
+- `tests/backend/run.ps1` — chemins attendus, série d'invariants T0065, interdiction
+  de lecture vivante dans le chemin de rejeu, contrôle de position de la garde,
+  marqueurs de scénarios, contrôle d'ordre clôture/rejeu, exclusion du nouveau
+  fichier de la garde append-only T0060, huit mutations négatives nouvelles et ligne
+  de résumé ;
+- `docs/SECURITY.md` — nouvelle section « Contrat d'idempotence d'une commande
+  privilégiée T0065 » et réalignement de la réserve de la section T0060 ;
+- `docs/ARCHITECTURE.md` — réalignement du chemin de rejeu sur la restitution ;
+- `docs/QUALITY.md` — décompte porté à 24 fichiers / 552 assertions et nouvelle
+  section de preuve T0065 ;
+- `docs/KNOWN_ISSUES.md` — `KI-024` passe `Resolved` avec sa correction de constat ;
+- `docs/CURRENT_STATE.md` — état prouvé de T0065 ;
+- ce ticket et `docs/tickets/README.md`.
+
+Aucun fichier de `packages/database/src/` n'est modifié : `backend:types:check` rend
+`Database types match the local schema.`, la migration ne remplaçant qu'un corps de
+fonction.
+
 ### Commands and results
+
+Exécutées le 5 août 2026 depuis `.worktrees/t0065`, sur
+`fix/T0065-rejeu-depart-vol-identique` partie de `origin/main` au merge `17ad8a8`,
+sous Windows 11, Docker Desktop 29.6.2 et PostgreSQL 17.
+
+| Commande | Résultat |
+| --- | --- |
+| `pwsh -NoProfile -File .\tests\backend\run.ps1` | passed — 58 mutations négatives |
+| `pnpm backend:start` | passed |
+| `pnpm backend:reset` (deux fois consécutives) | passed — treize migrations appliquées, seed rejoué |
+| `pnpm backend:test` | passed — `Files=24, Tests=552`, `Result: PASS` |
+| `pnpm backend:types:check` | passed — `Database types match the local schema.` |
+| `pnpm authority:check` | passed — 10 étapes, 13 domaines, 3 surfaces, 9 mutations |
+| `pnpm data-policy:check` | passed — 6 mutations |
+| `pnpm maintenance:check` | passed — 8 mutations |
+| `pnpm backend:stop` | passed |
+| `git diff --check` | passed |
+
+Le premier `backend:test` a **échoué**, sur l'assertion 2 de ce ticket et non sur la
+restitution : elle attendait `started_at is null` après clôture. C'est ce que le
+ticket annonçait ; ce n'est pas ce que la pile fait. L'assertion a été corrigée dans
+le sens de la réalité mesurée, pas l'inverse, et la correction est documentée.
 
 ### Manual verification result
 
+Réalisée le 5 août 2026 sur la pile locale, **sur état réellement commité** hors
+transaction annulée, en suivant les cinq étapes du ticket. Identité `.invalid`
+synthétique, aucune donnée réelle, aucun secret consigné.
+
+1. Pile réinitialisée, compagnie créée, avion possédé, ouverture de grand livre à
+   `43000000` unités mineures en `EUR`.
+2. Brouillon créé puis vol démarré. Réponse acquise :
+   `{"state": "active", "startedAt": "2026-08-05T18:47:14.983718+00:00",
+   "aircraftId": "c1300000-…-000000000001", "dispatchId": "72ee27e6-…-24a39326931f",
+   "schemaVersion": 1}`.
+3. `public.close_flight` rend `completed`, `distanceNm = 168.28` et
+   `settledAmountMinor = 35194`. La ligne de dispatch vivante rend ensuite
+   `completed | departure kept | closed`.
+4. Rejeu de la même clé d'idempotence : `replay_is_identical = t`,
+   `replayed_state = active`, et les quatre autres champs identiques un par un.
+5. État final commité `1|1|0|1|2|43035194` : une commande de départ, un dispatch,
+   aucun vol actif, un rapport, deux écritures et un solde inchangé par le rejeu. Un
+   départ frais du dispatch clôturé reste refusé par
+   `Dispatch is unavailable for flight start.`
+
+La pile a ensuite été arrêtée sans sauvegarde. Aucun contrôle de ce ticket ne
+dépend du runner CI Linux : la course concurrente reste celle de T0060, déjà prouvée.
+
 ### Risks and limitations
+
+- **Troisième redéfinition.** `start_flight_from_dispatch` est réécrite une fois de
+  plus, ce qui est le coût assumé de l'issue A. Le piège de `LC-2026-002` est traité
+  de front : la série T0065 du gate réaffirme contre le nouveau fichier l'empreinte
+  de payload, le refus de collision, le registre privé, la transition `draft` seule,
+  le blocage d'un compte en suppression, les deux verrous dérivés du serveur, la
+  garde d'usage T0060 et son refus opaque. Sans cela, ces invariants auraient perdu
+  leur gate au moment même où leur définition changeait de fichier.
+- **Le fichier pgTAP n'est pas nommé dans le harnais CI.**
+  `scripts/ci/test-backend.ps1` liste explicitement les fichiers attendus et annonce
+  « twenty-three » ; il est hors des `Allowed areas` de ce ticket et n'a donc pas été
+  touché. Conséquence bornée : le nouveau fichier est bien exécuté par
+  `supabase test db` et un échec ferait tomber `Result: PASS`, que le harnais exige,
+  mais son nom n'est pas une condition explicite. Suivi ci-dessous.
+- **Le rejeu ne dit plus l'état courant.** C'est voulu et c'est la garantie
+  demandée : un appelant qui voudrait connaître l'état d'un vol doit le lire, pas
+  rejouer une commande. Aucun consommateur n'existe encore, la frontière Auth du
+  départ de vol n'étant pas livrée.
+- **Aucune frontière Auth, endpoint, appelant desktop ou cible distante** n'est
+  ajoutée, conformément aux non-goals.
+- **Coût cumulatif du motif de redéfinition en bloc.** La garde d'usage T0060 est
+  désormais déclarée dans deux fichiers, et la garde append-only du gate exclut ces
+  deux fichiers nommément. Une quatrième redéfinition devra s'y ajouter, sans quoi le
+  gate la refusera — ce qui est le comportement voulu, mais chaque redéfinition
+  alourdit la série d'invariants restatés. Le constat est consigné ici plutôt que
+  corrigé opportunément.
+- **Un rejeu affirme `active` par construction, pas par lecture.** Si une future
+  commande écrivait une ligne de `private.flight_start_commands` sans transition
+  réussie, le littéral deviendrait faux. Le gate ne peut pas prouver cette propriété
+  d'écriture, seulement que la ligne est insérée après la mise à jour d'état dans
+  cette définition ; c'est le seul endroit du dépôt qui écrit ce registre.
 
 ### Follow-ups
 
+- Nommer `flight_start_replay_fidelity.test.sql` dans la liste explicite de
+  `scripts/ci/test-backend.ps1` et corriger son décompte « twenty-three », hors
+  `Allowed areas` de ce ticket.
+- Étendre la même règle d'idempotence aux autres commandes privilégiées dont le
+  rejeu reconstruit sa réponse depuis un état vivant, si un audit en trouve : ce
+  ticket n'a corrigé que le départ de vol.
+
+### Learning candidate LC-2026-008
+
+- Date : 5 août 2026
+- Contexte : T0065, pile Supabase locale isolée
+- État : Reproduced
+- Symptôme observé : après correction d'un fichier pgTAP, `pnpm backend:reset` puis
+  `pnpm backend:test` rejouent l'**ancienne** version du test. Le message d'échec
+  citait encore le libellé d'assertion supprimé.
+- Conclusion erronée évitée : « ma correction est fausse ». Le fichier corrigé
+  n'était simplement pas dans le conteneur.
+- Diagnostics exécutés : le libellé d'échec ne correspondait plus au fichier de
+  travail ; `Copy-SupabaseProjectToEngine` n'est appelée que par
+  `scripts/start-supabase-local.ps1`, jamais par l'action `Reset` de
+  `scripts/invoke-supabase-local.ps1`.
+- Cause : Confirmée. Les sources Supabase sont copiées dans le moteur isolé au
+  démarrage seulement ; `Reset` rejoue le contenu déjà présent dans le conteneur.
+- Reproductibilité : déterministe pour toute modification de `supabase/` après un
+  `backend:start`.
+- Règle candidate : après toute modification sous `supabase/`, enchaîner
+  `backend:stop` puis `backend:start` avant `backend:reset` et `backend:test`. Le
+  risque n'est pas seulement de perdre du temps : une assertion affaiblie et jamais
+  recopiée produirait un **faux succès**. `docs/QUALITY.md` porte déjà la version
+  courte de cette règle pour les migrations et les seeds ; ce ticket l'étend aux
+  fichiers de test et en documente le mode d'échec.
+
 ### Documentation updated
+
+`docs/SECURITY.md`, `docs/ARCHITECTURE.md`, `docs/QUALITY.md`,
+`docs/KNOWN_ISSUES.md`, `docs/CURRENT_STATE.md`, ce ticket et
+`docs/tickets/README.md`.

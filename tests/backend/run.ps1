@@ -39,6 +39,7 @@ function Get-BackendIssues {
     $settlementMigrationPath = Join-Path $Root "supabase\migrations\20260804000100_authoritative_flight_settlement.sql"
     $leaseMigrationPath = Join-Path $Root "supabase\migrations\20260804000200_authoritative_aircraft_lease.sql"
     $usabilityMigrationPath = Join-Path $Root "supabase\migrations\20260805000100_aircraft_usability_guard.sql"
+    $replayMigrationPath = Join-Path $Root "supabase\migrations\20260805000200_flight_start_replay_fidelity.sql"
     $airportsPath = Join-Path $Root "eng\airports.json"
     $settlementPolicyPath = Join-Path $Root "eng\flight-settlement-policy.json"
     $seedPath = Join-Path $Root "supabase\seed.sql"
@@ -65,6 +66,7 @@ function Get-BackendIssues {
     $leaseStructureTestPath = Join-Path $Root "supabase\tests\database\aircraft_lease_structure.test.sql"
     $leaseTestPath = Join-Path $Root "supabase\tests\database\aircraft_lease.test.sql"
     $usabilityTestPath = Join-Path $Root "supabase\tests\database\aircraft_usability_guard.test.sql"
+    $replayTestPath = Join-Path $Root "supabase\tests\database\flight_start_replay_fidelity.test.sql"
     $onboardingFunctionPath = Join-Path $Root "supabase\functions\company-onboarding\handler.ts"
     $onboardingFunctionPolicyPath = Join-Path $Root "supabase\functions\company-onboarding\economy-policy.json"
     $onboardingFunctionEntryPath = Join-Path $Root "supabase\functions\company-onboarding\index.ts"
@@ -103,6 +105,7 @@ function Get-BackendIssues {
         $settlementMigrationPath,
         $leaseMigrationPath,
         $usabilityMigrationPath,
+        $replayMigrationPath,
         $airportsPath,
         $settlementPolicyPath,
         $seedPath,
@@ -129,6 +132,7 @@ function Get-BackendIssues {
         $leaseStructureTestPath,
         $leaseTestPath,
         $usabilityTestPath,
+        $replayTestPath,
         $onboardingFunctionPath,
         $onboardingFunctionPolicyPath,
         $onboardingFunctionEntryPath,
@@ -1029,13 +1033,121 @@ function Get-BackendIssues {
     if ($presentMigrationNames -notcontains $usabilityMigrationName) {
         $issues.Add("The aircraft usability guard must arrive by its own append-only migration: $usabilityMigrationName")
     }
+    # T0060 delivered the guard, T0065 redefines the same command a third time and
+    # therefore restates it. Both files are expected to carry the guard and are
+    # excluded here; every other migration that mentions it still fails, so the
+    # guard cannot reappear in a file whose invariants nothing reaffirms.
+    $replayMigrationName = [System.IO.Path]::GetFileName($replayMigrationPath)
     foreach ($existingMigration in $presentMigrations) {
-        if ($existingMigration.Name -eq $usabilityMigrationName) {
+        if ($existingMigration.Name -eq $usabilityMigrationName -or
+            $existingMigration.Name -eq $replayMigrationName) {
             continue
         }
         if ((Get-Content -Raw -Encoding UTF8 $existingMigration.FullName) -match 'not aircraft\.is_usable') {
             $issues.Add("The aircraft usability guard must arrive by a new append-only migration: $($existingMigration.Name)")
         }
+    }
+
+    # T0065 — the replay of an acquired flight start restitutes the acquired
+    # response. This is the third wholesale redefinition of
+    # start_flight_from_dispatch, so LC-2026-002 applies exactly as it did for
+    # T0060: this series pins the restitution AND reaffirms, against this new
+    # file, every T0050 invariant and the T0060 usability guard, whose living
+    # definition moved here.
+    $replayMigration = Get-Content -Raw -Encoding UTF8 $replayMigrationPath
+    $replayRequirements = @{
+        "replayed aircraft comes from the registry" = "'aircraftId', existing_command\.aircraft_id"
+        "replayed dispatch comes from the registry" = "'dispatchId', existing_command\.dispatch_id"
+        "replayed departure instant comes from the registry" = "'startedAt', existing_command\.started_at"
+        "replayed state is the acquired literal" = "'state', 'active'"
+        "replayed schema version stays immutable" = 'select dispatches\.schema_version[\s\S]{0,160}into strict acquired_schema_version'
+        "five-field replay response" = "'aircraftId'[\s\S]{0,200}'dispatchId'[\s\S]{0,200}'schemaVersion'[\s\S]{0,200}'startedAt'[\s\S]{0,200}'state'"
+        "reaffirmed T0050 payload fingerprint" = 'extensions\.digest\('
+        "reaffirmed T0050 payload collision refusal" = "message = 'Idempotency key was already used with a different payload\.'"
+        "reaffirmed T0050 start registry" = 'private\.flight_start_commands'
+        "reaffirmed T0050 draft-only transition" = "dispatch\.state <> 'draft'"
+        "reaffirmed T0050 deletion block" = 'private\.account_is_active\(start_flight_from_dispatch\.owner_id\)'
+        "reaffirmed T0050 server-derived company lock" = 'where companies\.owner_id = start_flight_from_dispatch\.owner_id[\s\S]{0,80}for update'
+        "reaffirmed T0060 aircraft lock" = 'where aircraft_rows\.id = dispatch\.aircraft_id[\s\S]{0,200}aircraft_rows\.company_id = company\.id[\s\S]{0,120}for update'
+        "reaffirmed T0060 usage guard" = "if not found or not aircraft\.is_usable then[\s\S]{0,120}raise object_not_in_prerequisite_state using[\s\S]{0,120}message = 'Dispatch is unavailable for flight start\.'"
+        "service-only flight start" = 'grant execute on function public\.start_flight_from_dispatch\(uuid, uuid, uuid\) to service_role'
+        "empty search path" = "set search_path = ''"
+    }
+    foreach ($entry in $replayRequirements.GetEnumerator()) {
+        Require-Text $replayMigration $entry.Value "Flight start replay invariant missing: $($entry.Key)."
+    }
+    if ($replayMigration -match '(?i)grant\s+execute\s+on\s+function\s+public\.start_flight_from_dispatch\([^;]+\)\s+to\s+(anon|authenticated)') {
+        $issues.Add("The redefined flight start command must remain service-role-only.")
+    }
+    if ($replayMigration -match '(?i)create or replace function public\.create_dispatch_draft') {
+        $issues.Add("The replay restitution must not redefine the dispatch draft command.")
+    }
+    if ($replayMigration -match '(?i)(alter|drop)\s+(table|function|trigger)') {
+        $issues.Add("The replay restitution must arrive by definition replacement only, never by altering delivered objects.")
+    }
+    $replayStartBody = [regex]::Match(
+        $replayMigration,
+        '(?s)create or replace function public\.start_flight_from_dispatch.*?\r?\n\$\$;'
+    ).Value
+    $replayReturnIndex = $replayStartBody.IndexOf("'startedAt', existing_command.started_at")
+    $replayGuardIndex = $replayStartBody.IndexOf("not aircraft.is_usable")
+    if ($replayReturnIndex -lt 0 -or $replayGuardIndex -lt 0 -or
+        $replayGuardIndex -lt $replayReturnIndex) {
+        $issues.Add("The usability guard must stay after the replay restitution so an acquired start keeps its response.")
+    }
+    # The whole point of KI-024: the replay path must not read a field the closure
+    # moves or erases. Everything between the registry lookup and its return is
+    # scanned for a living read of the dispatch state, departure or closing time.
+    $replaySegment = $replayStartBody
+    $registryIndex = $replaySegment.IndexOf("from private.flight_start_commands")
+    $freshPathIndex = $replaySegment.IndexOf("where dispatches.id = start_flight_from_dispatch.dispatch_id")
+    if ($registryIndex -ge 0 -and $freshPathIndex -gt $registryIndex) {
+        $replayPath = $replaySegment.Substring($registryIndex, $freshPathIndex - $registryIndex)
+        foreach ($livingRead in @(
+            "dispatch.state",
+            "dispatch.started_at",
+            "dispatch.closed_at",
+            "dispatches.state",
+            "dispatches.started_at",
+            "dispatches.closed_at",
+            "into strict dispatch"
+        )) {
+            if ($replayPath.Contains($livingRead)) {
+                $issues.Add("The replay path must not read the living dispatch row: $livingRead")
+            }
+        }
+    }
+    else {
+        $issues.Add("The replay path must look the granted command up in its private registry before returning.")
+    }
+
+    $replayTests = Get-Content -Raw -Encoding UTF8 $replayTestPath
+    foreach ($marker in @(
+        "the acquisition returns the active state before any closure",
+        "the closed dispatch really loses the state a living read would return",
+        "a start acquired then closed as completed replays the acquired response verbatim",
+        "the replayed state is the acquired active state, never the terminal one",
+        "the replayed departure instant comes from the registry, not from a living read",
+        "the replayed aircraft comes from the registry written by the granting transaction",
+        "a start acquired then closed as interrupted replays the acquired response verbatim",
+        "a start of a still active flight keeps replaying identically",
+        "the three replays create no second start, no second report and no financial effect",
+        "an acquired key replayed against another dispatch is still rejected after the closure",
+        "a fresh start of a closed dispatch is still refused by the draft-only transition",
+        "the redefined command stays out of reach of authenticated"
+    )) {
+        if (-not $replayTests.Contains($marker)) {
+            $issues.Add("Missing flight start replay test scenario: $marker")
+        }
+    }
+    # The delivered T0050 scenario replays before close_flight, so it can never
+    # fail on KI-024. The order is the proof here, and it is checked rather than
+    # left to a review instruction.
+    $replayClosureIndex = $replayTests.IndexOf("public.close_flight(")
+    $replayAssertionIndex = $replayTests.IndexOf("replays the acquired response verbatim")
+    if ($replayClosureIndex -lt 0 -or $replayAssertionIndex -lt 0 -or
+        $replayClosureIndex -gt $replayAssertionIndex) {
+        $issues.Add("The replay scenario must close the flight before asserting the replayed response.")
     }
 
     $usabilityTests = Get-Content -Raw -Encoding UTF8 $usabilityTestPath
@@ -1478,6 +1590,7 @@ try {
         "supabase\migrations\20260804000100_authoritative_flight_settlement.sql",
         "supabase\migrations\20260804000200_authoritative_aircraft_lease.sql",
         "supabase\migrations\20260805000100_aircraft_usability_guard.sql",
+        "supabase\migrations\20260805000200_flight_start_replay_fidelity.sql",
         "supabase\seed.sql",
         "supabase\tests\database\companies_structure.test.sql",
         "supabase\tests\database\companies_rls.test.sql",
@@ -1502,6 +1615,7 @@ try {
         "supabase\tests\database\aircraft_lease_structure.test.sql",
         "supabase\tests\database\aircraft_lease.test.sql",
         "supabase\tests\database\aircraft_usability_guard.test.sql",
+        "supabase\tests\database\flight_start_replay_fidelity.test.sql",
         "supabase\functions\company-onboarding\handler.ts",
         "supabase\functions\company-onboarding\economy-policy.json",
         "supabase\functions\company-onboarding\index.ts",
@@ -2199,6 +2313,117 @@ try {
     }
 
     Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260805000100_aircraft_usability_guard.sql") -Destination $usabilityMigrationCopy
+    $replayMigrationCopy = Join-Path $temporaryRoot "supabase\migrations\20260805000200_flight_start_replay_fidelity.sql"
+    $replayMigrationText = Get-Content -Raw -Encoding UTF8 $replayMigrationCopy
+    $replayTestCopy = Join-Path $temporaryRoot "supabase\tests\database\flight_start_replay_fidelity.test.sql"
+    $replayTestText = Get-Content -Raw -Encoding UTF8 $replayTestCopy
+
+    [System.IO.File]::WriteAllText(
+        $replayMigrationCopy,
+        $replayMigrationText.Replace(
+            "'state', 'active'",
+            "'state', dispatch.state"
+        )
+    )
+    $livingStateIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($livingStateIssues -match "must not read the living dispatch row: dispatch\.state")) {
+        Write-Error "Harness self-test failed to detect a replay that returns the living dispatch state."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $replayMigrationCopy,
+        $replayMigrationText.Replace(
+            "'startedAt', existing_command.started_at",
+            "'startedAt', dispatch.started_at"
+        )
+    )
+    $livingDepartureIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($livingDepartureIssues -match "must not read the living dispatch row: dispatch\.started_at")) {
+        Write-Error "Harness self-test failed to detect a replay that returns the erasable departure instant."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $replayMigrationCopy,
+        $replayMigrationText.Replace(
+            "'aircraftId', existing_command.aircraft_id",
+            "'aircraftId', dispatch.aircraft_id"
+        )
+    )
+    $livingAircraftIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($livingAircraftIssues -match "replayed aircraft comes from the registry")) {
+        Write-Error "Harness self-test failed to detect a replay that rebuilds the aircraft from the living dispatch."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $replayMigrationCopy,
+        [regex]::Replace(
+            $replayMigrationText,
+            "not found or not aircraft\.is_usable then(\s*raise object_not_in_prerequisite_state using\s*message = 'Dispatch is unavailable for flight start\.')",
+            'not found then$1'
+        )
+    )
+    $droppedGuardIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($droppedGuardIssues -match "reaffirmed T0060 usage guard")) {
+        Write-Error "Harness self-test failed to detect a redefinition that drops the aircraft usability guard."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $replayMigrationCopy,
+        $replayMigrationText.Replace(
+            "dispatch.state <> 'draft'",
+            "dispatch.state in ('draft', 'completed')"
+        )
+    )
+    $draftOnlyIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($draftOnlyIssues -match "reaffirmed T0050 draft-only transition")) {
+        Write-Error "Harness self-test failed to detect a redefinition that widens the draft-only transition."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $replayMigrationCopy,
+        $replayMigrationText +
+            "`ngrant execute on function public.start_flight_from_dispatch(uuid, uuid, uuid) to authenticated;`n"
+    )
+    $clientExecutableReplayIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($clientExecutableReplayIssues -match "must remain service-role-only")) {
+        Write-Error "Harness self-test failed to detect a client-executable redefined flight start command."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\migrations\20260805000200_flight_start_replay_fidelity.sql") -Destination $replayMigrationCopy
+
+    [System.IO.File]::WriteAllText(
+        $replayTestCopy,
+        $replayTestText.Replace(
+            "a start acquired then closed as completed replays the acquired response verbatim",
+            "a start acquired replays the acquired response verbatim"
+        )
+    )
+    $missingReplayScenarioIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($missingReplayScenarioIssues -match "Missing flight start replay test scenario")) {
+        Write-Error "Harness self-test failed to detect a missing replay scenario."
+        exit 1
+    }
+
+    [System.IO.File]::WriteAllText(
+        $replayTestCopy,
+        $replayTestText.Replace(
+            "select public.close_flight(",
+            "select public.close_flight_disabled("
+        )
+    )
+    $unorderedReplayIssues = @(Get-BackendIssues -Root $temporaryRoot)
+    if (-not ($unorderedReplayIssues -match "must close the flight before asserting the replayed response")) {
+        Write-Error "Harness self-test failed to detect a replay scenario that never closes the flight."
+        exit 1
+    }
+
+    Copy-Item -Force -LiteralPath (Join-Path $repositoryRoot "supabase\tests\database\flight_start_replay_fidelity.test.sql") -Destination $replayTestCopy
     $runtimeText = Get-Content -Raw -Encoding UTF8 $runtimeCopy
     $runtimeText = $runtimeText.Replace(
         '"--env", "SUPABASE_TELEMETRY_DISABLED=1",',
@@ -2217,4 +2442,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040, T0047-T0051, T0057 and T0060 repository plus 50 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040, T0047-T0051, T0057, T0060 and T0065 repository plus 58 mutation scenarios)."

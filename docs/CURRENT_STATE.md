@@ -9,6 +9,10 @@ Statut : T0009, T0012–T0031, T0033–T0054, T0057, T0058, T0060, T0061 et T006
 `main` — respectivement par les PR #109, #117 au merge `f4ea508` et #118 au merge
 `db6143a` — et il ne reste que des vérifications qui appartiennent à Andy, dont le
 premier run réel de la tâche planifiée et une vague réelle de la boucle. T0053 est
+Dernière revue documentaire : 4 août 2026 (version produit canonique et alpha
+technique interne T0055, après la clôture de T0051 dans `main`, elle-même à la
+suite de celles de T0053, T0054 et T0058).
+Statut : T0009, T0012–T0031, T0033–T0054, T0057 et T0058 sont `Done`. T0053 est
 livré dans `main` par la PR #96 au merge `87c4eec`, T0054 par la PR #99 au merge
 `3a2c292`, T0058 par la PR #98 au merge `2a07113` et T0051 par la PR #102 au merge
 `c0972fa`, chacun avec ses trois checks verts. Le flux backend du golden path va
@@ -20,6 +24,8 @@ prouvés localement, son parcours interactif d'alpha reste à confirmer. T0056 e
 constatés présents sur la machine de validation, sans installation Steam. Ce qui
 reste bloquant est la provenance consignée du SDK et le choix de l'appareil de
 référence.
+`Ready` et T0059 est `Draft` faute d'un MSFS 2024 et d'un SDK SimConnect
+installés avec provenance vérifiable.
 T0050 est livré dans `main`
 par la PR #89 au merge `6577125`, où le job Linux `Supabase PostgreSQL 17`
 réussit ; le job `Windows multi-stack` du même run échoue sur la seule ligne
@@ -234,6 +240,8 @@ provisionner staging/production et sans autoriser de donnée utilisateur réelle
   `SimConnect.dll` existe aussi sur cette machine, si bien qu'une preuve devra
   consigner le chemin réellement chargé. Le replay synthétique automatisé T0011 ne
   remplace toujours pas une trace réelle avec provenance.
+- Connexion réelle à MSFS/SimConnect et parcours de vol : MSFS absent. Le replay
+  synthétique automatisé T0011 ne remplace pas une trace réelle avec provenance.
 - Déploiement de l'Edge Function et validation cloud : projet/identifiants
   Supabase absents.
 - Build installable signé, installation, mise à jour et rollback : aucun
@@ -617,6 +625,7 @@ passent. La convergence concurrente appartient au harnais CI Linux et reste à
 confirmer sur la PR. `company_aircraft.is_usable` était autoritaire mais lu par
 aucune commande de dispatch : cette dette est fermée par T0060, livré dans `main`
 par la PR #112 au merge `56c787a`.
+aucune commande de dispatch : cette dette est fermée par T0060, sur sa branche.
 Aucun ordonnanceur, endpoint, desktop, déploiement distant ou donnée réelle
 n'est fourni par T0032.
 
@@ -920,6 +929,7 @@ avec 5, 6 et 8 mutations négatives. Le bundle ne contient ni credential de test
 ni référence privilégiée, ni accès Data API.
 
 T0060 rend opposable, livré dans `main` par la PR #112 au merge `56c787a`, la
+T0060 rend opposable, sur sa branche `feature/T0060-aircraft-usability-guard`, la
 fin d'usage d'un avion. Une douzième migration append-only,
 `20260805000100_aircraft_usability_guard.sql`, redéfinit en bloc
 `create_dispatch_draft` et `start_flight_from_dispatch` pour qu'elles lisent
@@ -959,6 +969,14 @@ de la commande temporelle.
 La Pull Request #112 porte ces changements avec ses **trois checks
 verts** : `Audits, licences and SBOM` en 3 min 19 s, `Supabase PostgreSQL 17` en
 4 min 04 s et `Windows multi-stack` en 17 min 31 s. Le job Linux lève la seule
+ni appelant desktop, ni cible distante, ni donnée réelle, et rien n'est encore
+fusionné dans `main`. La garde est exacte par rapport à l'état enregistré, pas par
+rapport à l'heure murale : sans ordonnanceur, un avion peut rester utilisable après
+sa date réelle d'expiration jusqu'au prochain appel de la commande temporelle.
+
+La Pull Request brouillon #112 porte ces changements avec ses **trois checks
+verts** : `Audits, licences and SBOM` en 3 min 50 s, `Supabase PostgreSQL 17` en
+3 min 32 s et `Windows multi-stack` en 17 min 19 s. Le job Linux lève la seule
 réserve du ticket, la course entre la commande temporelle et la création d'un
 brouillon n'étant pas exécutable sous Windows : il rend
 `Aircraft usability concurrency passed: 2 sessions, 1 temporal command, unusable
@@ -966,6 +984,9 @@ aircraft, no dispatch and no orphan command.` puis `Backend CI passed: 2 resets,
 23 pgTAP files, ... aircraft lease and aircraft usability withdrawal, ...`. Andy a
 fusionné cette PR dans `main` au merge `56c787a` le 5 août 2026 ; T0060 est `Done`,
 et son unique critère décoché reste porté par T0065.
+23 pgTAP files, ... aircraft lease and aircraft usability withdrawal, ...`. Ces
+checks verts ne valent pas fusion : T0060 reste `Review` et le merge appartient à
+Andy.
 
 ## Autorité des mutations du golden path
 
@@ -1160,6 +1181,72 @@ depuis l'application : `close_flight` est livré dans `main` par T0051 mais rest
 frontière Auth ni appelant desktop, ce qui en fait le dernier slice vertical du golden
 path — frontière Edge, validation sur le runtime local réel puis composition desktop —
 et la validation en usage du format de T0068. Son ouverture appartient à Andy.
+## Garde d'usage d'un avion : en Pull Request brouillon, pas dans `main`
+
+Au 5 août 2026, `origin/main` au commit `c0f16dc` ne porte aucun consommateur de
+`public.company_aircraft.is_usable` : la colonne n'apparaît que dans la migration
+de location `20260804000200_authoritative_aircraft_lease.sql` et dans son fichier
+pgTAP. La garantie « pas d'usage hors contrat » reste donc autoritaire dans les
+données et **non opposable** à la création d'un brouillon de dispatch comme au
+départ d'un vol.
+
+T0060 ferme cet écart sur la branche `feature/T0060-aircraft-usability-guard`, pas
+dans `main`. Sa Pull Request #112 est **brouillon** : base `main`, head
+`feature/T0060-aircraft-usability-guard`, état `MERGEABLE`, cinq commits. Ses trois
+checks sont verts sur son commit de tête `03db4b8` — `Supabase PostgreSQL 17` en
+3 min 24 s, `Audits, licences and SBOM` en 3 min 58 s et `Windows multi-stack` en
+16 min 23 s — et l'étaient déjà sur le commit de code `2cefbf6`. Ses preuves
+locales du 5 août 2026, deux resets consécutifs puis 23 fichiers et 539 assertions
+pgTAP, `backend:check` à 50 mutations négatives et types inchangés, portent sur
+cette branche et sur rien d'autre. Des checks verts ne livrent aucune capacité :
+le merge appartient exclusivement à Andy, et cette section ne décrira une capacité
+de `main` qu'après sa fusion.
+
+Deux découvertes de cette vague concernaient en revanche `main` lui-même et ont été
+suivies comme dettes : le rejeu d'un départ de vol ne rendait pas une réponse stockée
+(`KI-024`, **résolu** par T0065 ci-dessous) et les courses concurrentes du harnais
+backend concluent sur un code de sortie sans vérifier le motif du refus (`KI-025`,
+porté par T0066).
+
+## Restitution du rejeu d'un départ de vol T0065
+
+T0065 rend, sur sa branche `fix/T0065-rejeu-depart-vol-identique`, le rejeu d'un
+départ de vol identique à la réponse acquise. Une treizième migration append-only,
+`20260805000200_flight_start_replay_fidelity.sql`, redéfinit
+`public.start_flight_from_dispatch` pour la troisième fois et ne change que son
+chemin de rejeu : `aircraftId` et `startedAt` viennent des colonnes de
+`private.flight_start_commands`, `dispatchId` de sa clé, `state` est le littéral
+`active` puisque cette ligne n'existe qu'après une transition réussie, et seul le
+`schema_version` immuable est encore lu sur la ligne de dispatch. Aucune colonne
+n'est ajoutée et `public.create_dispatch_draft` n'est pas redéfinie.
+
+Le constat d'ouverture est corrigé par la mesure : `KI-024` annonçait deux champs
+dérivants, dont un `startedAt` effacé par
+`private.set_flight_dispatch_started_at`. T0051 avait déjà redéfini ce trigger pour
+qu'un état terminal conserve son instant de départ, et sa contrainte l'exige non nul.
+Un seul champ sur cinq dérivait donc, `state`. La restitution ne dépend pas de ce
+trigger, si bien qu'une migration future qui le changerait ne peut pas rouvrir
+l'écart.
+
+Le 5 août 2026, deux resets consécutifs puis 24 fichiers / 552 assertions pgTAP
+concluent par `Result: PASS`, soit 13 assertions nouvelles dont l'ordre place la
+clôture avant le rejeu ; `backend:types:check` rend `Database types match the local
+schema.`; le gate backend passe avec 58 mutations négatives, dont huit nouvelles ; les
+gates autorité, données et maintenance passent. La vérification manuelle du même
+jour, sur état réellement commité, rend un départ acquis à `active`, une clôture à
+`completed` réglée `35194` unités mineures pour 168,28 NM, une ligne de dispatch
+vivante `completed | departure kept | closed`, un rejeu identique champ par champ avec
+`state = active`, un état final `1|1|0|1|2|43035194` et un départ frais du dispatch
+clôturé toujours refusé.
+
+Cette tranche n'ajoute ni frontière Auth, ni endpoint, ni appelant desktop, ni cible
+distante, ni donnée réelle, et rien n'est encore fusionné dans `main`. Une limite est
+consignée : le nouveau fichier pgTAP n'est pas nommé dans la liste explicite de
+`scripts/ci/test-backend.ps1`, hors des `Allowed areas` du ticket ; il est bien
+exécuté et un échec ferait tomber `Result: PASS`, mais son nom reste à ajouter par un
+suivi.
+
+## Prochain ticket recommandé
 
 T0043 à T0050 sont livrés dans `main`, y compris la preuve locale réelle
 Auth → Edge Runtime → `create_dispatch_draft` et le démarrage serveur d'un vol
@@ -1188,6 +1275,19 @@ T0032 consigne la décision explicite d'Andy du 4 août 2026 et reste `Verify` :
 les deux resets, les 502 assertions pgTAP, les types et les quatre gates statiques
 sont verts en local, et sa fusion dans `main` est acquise depuis la PR #105 ; sa
 garantie « pas d'usage hors contrat » est rendue opposable par T0060.
+son prochain ticket est T0059, qui reste `Draft` faute du prérequis physique
+MSFS 2024 et SDK SimConnect installés avec provenance vérifiable. Le transverse
+T0055 est livré dans `main` par la PR #104 : la version produit canonique, sa
+propagation, son gate et le package non signé nommé sont en place, et seul le
+parcours interactif d'alpha reste à confirmer par Andy. T0056 est encore
+`Ready`. La location T0032 a reçu ses décisions produit le 4 août 2026 et est en
+revue sur sa branche dédiée ; la persistance Windows
+reste un ticket de sécurité séparé avant tout stockage de refresh token.
+
+T0032 consigne la décision explicite d'Andy du 4 août 2026 et passe en `Review` :
+les deux resets, les 502 assertions pgTAP, les types et les quatre gates statiques
+sont verts en local, et seules les courses concurrentes du harnais CI Linux
+restent à confirmer sur sa PR.
 T0011 reste `Verify` jusqu'aux essais réels Windows 11/MSFS
 2024 exigés par ADR-0003. Les autres dettes ouvertes restent priorisées par
 sévérité dans `KNOWN_ISSUES.md`.
