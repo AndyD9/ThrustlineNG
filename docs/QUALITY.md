@@ -698,6 +698,17 @@ vol, taxi seul, trace vide et replay interrompu tous rendus `incomplete` sans
 temps inventé, exposition `GET /api/v1/flight-summary` derrière le jeton et
 absence de jeton comme de chemin de trace dans la réponse.
 
+Depuis F0004 J2, les tests desktop couvrent le relais du résumé : côté Rust, la
+validation stricte de la réponse du bridge (jeu de clés exact, version, états
+fermés, cohérence du temps de bloc), les statuts non-200 et les réponses
+malformées rendus en catégories fixes, et — contre un serveur factice — la
+preuve que le jeton authentifie la requête sans jamais traverser dans le
+résultat ; côté WebView, le rejet des résumés forgés et la classification des
+échecs sans relayer leur contenu. Les invariants du shell
+(`tests/desktop-shell/run.ps1` et `security-invariants.test.ts`) épinglent
+l'unicité de la commande `flight_summary` et sa signature sans paramètre
+invité.
+
 Depuis la racine :
 
 ```powershell

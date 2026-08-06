@@ -55,9 +55,11 @@ est **F0004**, qui mesure le temps de bloc du replay sur le bridge et
 l'achemine jusqu'à l'application sans exposer le contrat local à la WebView.
 F0004 est `In progress` depuis la décision d'Andy du 6 août 2026 — mesure
 « mouvement → sol », arrondie à la minute supérieure, minimum une minute ;
-c'est le chemin critique du jalon « alpha cliquable ». Son J1 est implémenté :
-le bridge mesure le temps de bloc et l'expose sur
-`GET /api/v1/flight-summary`, derrière le jeton du contrat local. F0005 est `Ready` sur la
+c'est le chemin critique du jalon « alpha cliquable ». Ses J1 et J2 sont
+implémentés : le bridge mesure le temps de bloc et l'expose sur
+`GET /api/v1/flight-summary` derrière le jeton du contrat local, et l'unique
+commande Tauri `flight_summary` relaie le résumé revalidé à la WebView sans
+exposer jeton ni port ; reste J3, l'affichage sur le vol actif. F0005 est `Ready` sur la
 seconde décision du même jour : le canal `internal-alpha` reçoit une CSP
 limitée à `http://127.0.0.1:54321` pendant que le canal public garde
 `connect-src 'none'`, ce qui rendra l'application installée réellement

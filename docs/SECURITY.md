@@ -493,6 +493,33 @@ La source native reste facultative. Son absence donne l'état `unavailable` et
 n'ouvre aucun chemin de secours : elle n'est jamais requise par la CI et
 n'accorde aucune capacité à la WebView.
 
+## Relais du résumé de vol F0004 J2
+
+La WebView est un client non fiable ; le résumé de vol traverse la frontière
+Tauri ↔ WebView par l'unique commande IPC du shell, `flight_summary`, sous les
+contrôles suivants :
+
+- le port loopback et le jeton d'instance restent des champs privés du
+  processus Rust ; ils n'apparaissent ni dans la réponse, ni dans les erreurs,
+  ni dans un log — le shell ne journalise rien ;
+- la commande n'accepte aucun paramètre fourni par la WebView : la cible est
+  fixée par construction au bridge de l'instance, une page compromise ne peut
+  ni choisir une autre cible ni faire fuiter le jeton par l'appel ;
+- la réponse du bridge est revalidée avant de traverser : jeu de clés
+  strictement égal à `{contractVersion, state, blockMinutes}`, version `1`
+  exigée, états fermés, temps de bloc entier positif présent seulement si
+  l'état est `completed` — un résumé forgé ou élargi est rejeté ;
+- la lecture est sans effet et bornée (16 KiB, délais de connexion et
+  d'entrée/sortie) ; les échecs se réduisent aux deux catégories fixes
+  `unavailable` et `invalid-response` ;
+- les tests du shell et du frontend épinglent l'unicité de la commande, sa
+  signature sans paramètre invité, la non-traversée du jeton et du port
+  (serveur factice en test Rust) et le rejet des clés inconnues des deux côtés
+  de la frontière.
+
+Le temps de bloc relayé reste une déclaration du point de vue du serveur :
+`close_flight` conserve `min(déclaré, écoulé serveur)` (T0051).
+
 ## Frontière locale T0010
 
 Le bridge exige un port dynamique loopback et un jeton hexadécimal de 256 bits.
@@ -504,7 +531,9 @@ n'est pas transmis à React.
 Le desktop part d'une autorité nulle côté page :
 
 - capability limitée à la fenêtre `main`, avec zéro permission ;
-- aucun plugin Tauri et aucune commande `#[tauri::command]` ;
+- aucun plugin Tauri ; une seule commande `#[tauri::command]`, le relais en
+  lecture seule `flight_summary` (F0004 J2, section dédiée), sans paramètre
+  fourni par la WebView ;
 - aucune ressource distante ou requête réseau ;
 - décorations Windows natives et devtools désactivés en production ;
 - aucun accès aux fichiers, processus, presse-papiers, notifications ou URL.

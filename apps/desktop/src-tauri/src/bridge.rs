@@ -6,8 +6,14 @@ use std::{
     sync::Mutex,
 };
 
+use crate::flight_summary::{self, FlightSummary, FlightSummaryFailure};
+
 pub struct BridgeSupervisor {
     child: Mutex<Option<Child>>,
+    // The local contract coordinates never leave this process: the WebView
+    // only ever sees the validated summary returned by `read_flight_summary`.
+    port: u16,
+    token: String,
 }
 
 impl BridgeSupervisor {
@@ -32,7 +38,13 @@ impl BridgeSupervisor {
 
         Ok(Self {
             child: Mutex::new(Some(child)),
+            port,
+            token,
         })
+    }
+
+    pub fn read_flight_summary(&self) -> Result<FlightSummary, FlightSummaryFailure> {
+        flight_summary::read(self.port, &self.token)
     }
 
     pub fn stop(&self) {

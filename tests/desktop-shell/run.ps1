@@ -24,7 +24,13 @@ Assert-True ($cargo -notmatch '(?m)^\s*tauri-plugin-') 'Aucun plugin Tauri n’e
 Assert-True ($cargo -match 'tauri\s*=\s*\{[^}]*version\s*=\s*"=2\.11\.5"') 'Le crate Tauri doit être épinglé à 2.11.5.'
 Assert-True ($capability.windows.Count -eq 1 -and $capability.windows[0] -eq 'main') 'La capability doit cibler uniquement main.'
 Assert-True ($capability.permissions.Count -eq 0) 'Le shell statique ne requiert aucune permission invitée.'
-Assert-True ($rust -notmatch '#\s*\[\s*tauri::command') 'Aucune commande IPC applicative n’est autorisée.'
+# F0004 J2 : l’unique commande IPC autorisée est flight_summary — lecture seule,
+# asynchrone, sans aucun paramètre fourni par la WebView.
+$commandAttributes = [regex]::Matches($rust, '#\s*\[\s*tauri::command')
+$commands = [regex]::Matches($rust, '#\s*\[\s*tauri::command\s*\]\s*(?:pub\s+)?async\s+fn\s+(\w+)\s*\(([^)]*)\)')
+Assert-True ($commandAttributes.Count -eq 1 -and $commands.Count -eq 1) 'La seule commande IPC applicative autorisée est flight_summary (F0004 J2).'
+Assert-True ($commands.Count -eq 1 -and $commands[0].Groups[1].Value -eq 'flight_summary') 'La seule commande IPC applicative autorisée est flight_summary (F0004 J2).'
+Assert-True ($commands.Count -eq 1 -and $commands[0].Groups[2].Value -match '^\s*app\s*:\s*tauri::AppHandle\s*,?\s*$') 'flight_summary ne doit accepter aucun paramètre fourni par la WebView.'
 Assert-True ($html -notmatch '(?i)(https?:|//[^/])') 'Le HTML ne doit charger aucune ressource distante.'
 Assert-True ($html -match '(?i)<script\s+type="module"\s+src="/src/main\.tsx"></script>') 'Le seul script HTML doit être le point d’entrée Vite local.'
 Assert-True ($html -notmatch '(?i)<script(?!\s+type="module"\s+src="/src/main\.tsx"></script>)') 'Aucun autre script HTML n’est autorisé.'

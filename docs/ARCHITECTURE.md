@@ -406,6 +406,18 @@ premier échantillon. La réponse
 jamais présentée comme complète. Le temps mesuré reste une déclaration côté
 client : `close_flight` conserve `min(déclaré, écoulé serveur)` (T0051).
 
+Le relais vers la WebView (J2) est l'unique commande IPC du shell :
+`flight_summary`, asynchrone, en lecture seule et sans aucun paramètre fourni
+par la WebView. Le processus Rust — seul détenteur du port et du jeton
+d'instance — interroge `GET /api/v1/flight-summary` sur le contrat local, puis
+revalide la réponse par jeu de clés strict (exactement `contractVersion`,
+`state`, `blockMinutes`, version `1`, états fermés, temps de bloc cohérent avec
+l'état) avant de la faire traverser. Les échecs se réduisent à deux catégories
+fixes, `unavailable` et `invalid-response`, sans contenu dynamique. Côté
+WebView, `flightSummary.ts` revalide le même jeu de clés et ne dépend que de la
+fonction `invoke` injectée : ni port, ni jeton, ni chemin de trace ne franchit
+la frontière.
+
 ## Contrat local T0010
 
 Tauri crée un jeton d'instance aléatoire de 256 bits et réserve un port

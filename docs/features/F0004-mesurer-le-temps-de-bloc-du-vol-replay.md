@@ -66,6 +66,12 @@ une trace terminée au sol. Un touch-and-go dont la trace finit en vol reste
 - `apps/desktop/src/features/flight-dispatch/` — affichage du résumé rattaché
   au vol actif ;
 - `tests/backend/run.ps1` seulement si une règle de gate est ajoutée ;
+- `tests/desktop-shell/run.ps1` et
+  `apps/desktop/src/test/security-invariants.test.ts` — **ajout au J2, à
+  valider par Andy en revue** : ces deux harnais interdisaient toute commande
+  `#[tauri::command]` (baseline T0007), or le résultat J2 est précisément la
+  première commande ; la règle est resserrée, pas retirée — exactement une
+  commande, `flight_summary`, sans paramètre invité ;
 - `docs/SECURITY.md`, `docs/ARCHITECTURE.md`, `docs/QUALITY.md`,
   `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md` ;
 - ce fichier et `docs/features/README.md`.
@@ -109,7 +115,7 @@ Autonomous: Yes
 
 ### J2 — Tauri relaie le résumé sans exposer le contrat local
 
-Status: Draft
+Status: Done
 Risk: Medium
 Security-sensitive: Yes
 Autonomous: No
@@ -260,11 +266,50 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J2
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : l'unique commande IPC du shell, `flight_summary` —
+  asynchrone, lecture seule, aucun paramètre fourni par la WebView — lit
+  `GET /api/v1/flight-summary` sur le contrat local. Le port et le jeton
+  restent des champs privés du superviseur Rust (le client HTTP est un
+  `TcpStream` std en HTTP/1.0 borné à 16 KiB avec délais, sans nouvelle
+  dépendance réseau ; seuls `serde`/`serde_json`, déjà transitifs de Tauri,
+  deviennent des dépendances directes épinglées). La réponse est revalidée
+  par jeu de clés strict avant de traverser : exactement `{contractVersion,
+  state, blockMinutes}`, version `1`, états fermés, temps de bloc entier ≥ 1
+  seulement si `completed`. Les échecs se réduisent à `unavailable` et
+  `invalid-response`, sans contenu dynamique. Côté WebView,
+  `flightSummary.ts` revalide le même contrat et ne dépend que d'une fonction
+  `invoke` injectée (le câblage réel appartient à J3). La capability reste à
+  zéro permission. **Écart de périmètre consigné dans `Allowed areas`** : les
+  deux harnais d'invariants du shell interdisaient toute commande IPC et ont
+  été resserrés au strict périmètre J2 (une seule commande, `flight_summary`,
+  sans paramètre invité) — à valider par Andy en revue.
+- fichiers modifiés : `apps/desktop/src-tauri/src/flight_summary.rs`
+  (nouveau), `apps/desktop/src-tauri/src/bridge.rs`,
+  `apps/desktop/src-tauri/src/lib.rs`, `apps/desktop/src-tauri/Cargo.toml`,
+  `Cargo.lock` (+2 lignes),
+  `apps/desktop/src/features/flight-dispatch/flightSummary.ts` (+ tests et
+  invariants, nouveaux), `apps/desktop/src/test/security-invariants.test.ts`,
+  `tests/desktop-shell/run.ps1`, `docs/SECURITY.md`, `docs/ARCHITECTURE.md`,
+  `docs/QUALITY.md`, `docs/CURRENT_STATE.md`, ce fichier et
+  `docs/features/README.md`.
+- commandes et résultats (6 août 2026) : `pnpm desktop:check` — succès
+  (typecheck, fmt, check, clippy `-D warnings`) ; `pnpm desktop:test` —
+  vitest 383/383 (dont 24 nouveaux sur le résumé), cargo 15/15 (dont 12
+  nouveaux : validation stricte, non-200, port fermé, serveur factice
+  prouvant que le jeton authentifie la requête sans traverser dans le
+  résultat), invariants du shell conformes ; `pnpm frontend:typecheck` —
+  succès ; `pnpm frontend:coverage` — 94,87 % ; `pnpm desktop:build` —
+  succès ; `pnpm authority:check` et `pnpm maintenance:check` — passed.
+- vérification manuelle : exécutée le 6 août 2026 sur l'app Tauri dev (bridge
+  publié win-x64 via `THRUSTLINE_BRIDGE_PATH`, WebView2 inspectée par CDP) :
+  `invoke('flight_summary')` depuis la WebView rend
+  `{"contractVersion":"1","state":"idle","blockMinutes":null}` ; aucun jeton
+  hexadécimal ni port dynamique dans le résultat ; les outils réseau ne
+  voient que le transport IPC interne `http://ipc.localhost/flight_summary`,
+  jamais le port du bridge.
+- revue et constats traités : revue adversariale à la charge de la PR #128 ;
+  points à examiner en priorité : l'assouplissement borné des deux harnais
+  d'invariants et le parseur HTTP/1.0 manuel de `flight_summary.rs`.
 
 ### J3
 
