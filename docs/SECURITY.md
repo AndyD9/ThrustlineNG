@@ -185,10 +185,15 @@ anonyme avec la clé anon, dérive le propriétaire de la réponse Auth et rése
 credential `service_role` à l'appel RPC sous timeout. Toute réponse privilégiée
 est validée, recoupée avec le dispatch demandé, projetée sur cinq champs publics
 et marquée `no-store` ; un dispatch inconnu, étranger, déjà actif ou porté par un
-avion hors contrat rend le même refus redigé. La preuve Edge reste injectée et
-synthétique tant que J2 n'a pas rejoué la frontière sur l'Edge Runtime local ;
-aucun appelant desktop, télémétrie, clôture, annulation, cible distante ou donnée
-réelle n'est couvert.
+avion hors contrat rend le même refus redigé. J2 prouve la frontière sur l'Edge
+Runtime local réel (46 contrôles, rejeu restitué octet pour octet, refus
+comparés entre eux). J3 ajoute l'unique appelant desktop : un transport borné à
+la cible loopback qui n'envoie que le dispatch et l'idempotence, et un contrôle
+qui obtient le bearer à la soumission, bloque le double clic, efface la session
+sur refus Auth et relit la liste autoritaire après un départ — l'état affiché,
+heure de départ serveur comprise, vient toujours de cette relecture. La preuve
+desktop reste jsdom à `fetch` injecté ; aucun parcours WebView live, télémétrie,
+clôture, annulation, cible distante ou donnée réelle n'est couvert.
 
 ## Clôture de vol et règlement autoritaires T0051
 

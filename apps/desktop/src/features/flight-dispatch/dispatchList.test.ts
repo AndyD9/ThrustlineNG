@@ -14,8 +14,10 @@ const rawDispatch = {
   departure_icao: "LFPG",
   id: "93000000-0000-4000-8000-0000000000a1",
   schema_version: 1,
+  started_at: null,
   state: "draft",
 };
+const startedAt = "2026-08-04T10:05:00.000000+00:00";
 const expectedResource = "/rest/" + "v1/flight_dispatches";
 
 function response(body: unknown, init: ResponseInit = {}) {
@@ -55,6 +57,7 @@ describe("loadDispatchList", () => {
       departureIcao: "LFPG",
       id: rawDispatch.id,
       schemaVersion: 1,
+      startedAt: null,
       state: "draft",
     }]);
 
@@ -67,7 +70,7 @@ describe("loadDispatchList", () => {
     expect(Object.fromEntries(endpoint.searchParams)).toEqual({
       limit: "50",
       order: "created_at.desc,id.desc",
-      select: "id,aircraft_id,departure_icao,arrival_icao,state,created_at,schema_version",
+      select: "id,aircraft_id,departure_icao,arrival_icao,state,created_at,started_at,schema_version",
     });
     for (const forbidden of ["company_id", "owner_id", "aircraft_id", "id", "state"]) {
       expect(endpoint.searchParams.has(forbidden)).toBe(false);
@@ -90,12 +93,22 @@ describe("loadDispatchList", () => {
     await expect(loadDispatchList(input, fetchReturning([]))).resolves.toEqual([]);
   });
 
-  it("accepte un dispatch déjà actif", async () => {
+  it("accepte un dispatch déjà actif et expose son heure de départ serveur", async () => {
     const result = await loadDispatchList(
       input,
-      fetchReturning([{ ...rawDispatch, state: "active" }]),
+      fetchReturning([{ ...rawDispatch, state: "active", started_at: startedAt }]),
     );
     expect(result[0]?.state).toBe("active");
+    expect(result[0]?.startedAt).toBe(startedAt);
+  });
+
+  it("refuse un vol actif sans heure de départ et un brouillon qui en porte une", async () => {
+    await expect(
+      loadDispatchList(input, fetchReturning([{ ...rawDispatch, state: "active" }])),
+    ).rejects.toMatchObject({ failure: "invalid-response" });
+    await expect(
+      loadDispatchList(input, fetchReturning([{ ...rawDispatch, started_at: startedAt }])),
+    ).rejects.toMatchObject({ failure: "invalid-response" });
   });
 
   it("accepte la limite exacte et refuse une ligne de plus", async () => {

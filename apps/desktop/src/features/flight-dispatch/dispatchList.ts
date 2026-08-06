@@ -6,10 +6,10 @@ const DISPATCH_LIMIT = 50;
 const HEADER_LIMIT_BYTES = 8_192;
 
 const DISPATCH_SELECT =
-  "id,aircraft_id,departure_icao,arrival_icao,state,created_at,schema_version";
+  "id,aircraft_id,departure_icao,arrival_icao,state,created_at,started_at,schema_version";
 const DISPATCH_ORDER = "created_at.desc,id.desc";
 const DISPATCH_KEYS =
-  "aircraft_id,arrival_icao,created_at,departure_icao,id,schema_version,state";
+  "aircraft_id,arrival_icao,created_at,departure_icao,id,schema_version,started_at,state";
 
 export const DISPATCH_STATES = ["active", "draft"] as const;
 
@@ -27,6 +27,7 @@ export interface CompanyDispatch {
   departureIcao: string;
   id: string;
   schemaVersion: 1;
+  startedAt: string | null;
   state: DispatchState;
 }
 
@@ -170,7 +171,10 @@ function parseDispatch(value: unknown): CompanyDispatch {
     !isDispatchState(record.state) ||
     typeof record.created_at !== "string" ||
     !isCanonicalTimestamp(record.created_at) ||
-    record.schema_version !== 1
+    record.schema_version !== 1 ||
+    (record.state === "active"
+      ? typeof record.started_at !== "string" || !isCanonicalTimestamp(record.started_at)
+      : record.started_at !== null)
   ) {
     throw new DispatchListError("invalid-response");
   }
@@ -182,6 +186,7 @@ function parseDispatch(value: unknown): CompanyDispatch {
     departureIcao: record.departure_icao,
     id: record.id,
     schemaVersion: 1,
+    startedAt: record.state === "active" ? (record.started_at as string) : null,
     state: record.state,
   };
 }

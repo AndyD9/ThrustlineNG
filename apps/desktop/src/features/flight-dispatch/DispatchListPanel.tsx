@@ -148,6 +148,11 @@ export function DispatchListPanel({
               <span>
                 {stateLabels[dispatch.state]} ·{" "}
                 {createdAtFormatter.format(new Date(dispatch.createdAt))} UTC
+                {dispatch.state === "active" && dispatch.startedAt !== null && (
+                  <>
+                    {" "}· départ {createdAtFormatter.format(new Date(dispatch.startedAt))} UTC
+                  </>
+                )}
               </span>
               {dispatch.state === "draft" && (
                 <DispatchStartControl

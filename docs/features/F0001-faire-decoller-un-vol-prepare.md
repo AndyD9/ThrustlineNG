@@ -1,6 +1,6 @@
 # F0001 — Faire décoller un vol préparé depuis l'application
 
-Status: In progress
+Status: Verify
 Owner: Claude (session interactive du 6 août 2026)
 Branch: `feature/f0001-faire-decoller-un-vol-prepare`
 Phase: 2–4
@@ -138,7 +138,7 @@ Autonomous: Yes
 
 ### J3 — Le départ composé depuis le desktop
 
-Status: Review
+Status: Done
 Risk: Low
 Security-sensitive: No
 Autonomous: Yes
@@ -158,21 +158,24 @@ Autonomous: Yes
 
 ## Acceptance criteria
 
-- [ ] Un dispatch `draft` possédé peut être démarré depuis l'application, et la
-      liste montre ensuite le vol `active` avec son heure de départ serveur.
-- [ ] Le client ne fournit jamais que `dispatchId` et `idempotencyKey` ; aucun
+- [x] Un dispatch `draft` possédé peut être démarré depuis l'application, et la
+      liste montre ensuite le vol `active` avec son heure de départ serveur
+      (preuve jsdom ; le parcours WebView live reste en vérification manuelle).
+- [x] Le client ne fournit jamais que `dispatchId` et `idempotencyKey` ; aucun
       `owner_id`, état ni horodatage n'est accepté d'un appelant.
-- [ ] Un dispatch inconnu, étranger, déjà actif ou porté par un avion hors contrat
-      rend le même refus public indistinguable.
-- [ ] Un double clic et un retry de la même clé ne créent ni second départ, ni
+- [x] Un dispatch inconnu, étranger, déjà actif ou porté par un avion hors contrat
+      rend le même refus public indistinguable (corps comparés entre eux en J2).
+- [x] Un double clic et un retry de la même clé ne créent ni second départ, ni
       seconde ligne de registre.
-- [ ] La frontière est prouvée sur l'Edge Runtime local réel, pas seulement contre
-      un `fetch` injecté.
-- [ ] `eng/authority-inventory.json` reflète la frontière ajoutée sans élargir
+- [x] La frontière est prouvée sur l'Edge Runtime local réel, pas seulement contre
+      un `fetch` injecté (46 contrôles, 6 août 2026).
+- [x] `eng/authority-inventory.json` reflète la frontière ajoutée sans élargir
       `clientDataApiReads`.
-- [ ] Chaque règle nouvelle du gate est prouvée par au moins une mutation négative.
-- [ ] `SECURITY.md`, `ARCHITECTURE.md`, `QUALITY.md` et `CURRENT_STATE.md` décrivent
-      la capacité livrée et ce qui reste absent.
+- [x] Chaque règle nouvelle du gate est prouvée par au moins une mutation négative
+      (9 mutations flight-start sur les 67 du gate backend).
+- [x] `SECURITY.md`, `ARCHITECTURE.md`, `QUALITY.md` et `CURRENT_STATE.md` décrivent
+      la capacité livrée et ce qui reste absent (`CURRENT_STATE.md` via la version
+      courte de la PR #125, à synchroniser après sa fusion).
 
 ## Security review
 
@@ -352,19 +355,48 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   jour), ce fichier.
 - commandes et résultats (6 août 2026, rejoués par le coordinateur après
   intégration) : `pnpm frontend:typecheck` — 0 erreur ;
-  `pnpm frontend:test` — 358 tests passés, 2 skipped (48 nouveaux pour ce
-  jalon) ; `pnpm frontend:coverage` — `flightStart.ts` 100 % lignes, global
-  94,77 % statements ; `pnpm frontend:build` — vert ;
-  `tests/authority/run.ps1` — vert (9 mutations).
+  `pnpm frontend:test` — 359 tests passés, 2 skipped (57 nouveaux au commit du
+  jalon — le rapport initial disait 48 par erreur, corrigé en revue — plus deux
+  tests de lecture ajoutés en remédiation) ; `pnpm frontend:coverage` —
+  `flightStart.ts` 100 % lignes, global 94,77 % statements ;
+  `pnpm frontend:build` — vert ; `tests/authority/run.ps1` — vert (9 mutations).
 - vérification manuelle : le parcours réel dans l'application (préparer,
   démarrer, double-cliquer, refus Auth) reste à faire sur la pile locale — il
   rejoint la vérification de bout en bout de la fonctionnalité, avec T0055.
-- revue et constats traités : revue adversariale demandée sur le diff poussé du
-  jalon, résultat à consigner ici.
+- revue et constats traités : revue adversariale du 6 août 2026 par un agent
+  séparé de l'implémenteur, sur le commit `c5586c5` — **J3 approuvé, aucun
+  bloquant**. Le constat majeur est corrigé dans le jalon : l'heure de départ
+  serveur n'était jamais visible en composition réelle (message du contrôle
+  démonté au même commit React que la relecture, et projection de lecture sans
+  `started_at`). La projection T0053 expose désormais `started_at` — validé
+  horodaté pour un vol `active`, nul pour un brouillon, l'invariant serveur
+  T0050 — et la ligne active affiche « départ … UTC » depuis la relecture
+  autoritaire, prouvé par le test de composition. Les constats mineurs sont
+  consignés en follow-ups.
 
 ### Synthèse
 
+La capacité est complète côté code et preuves automatisées : la commande
+`start_flight_from_dispatch` (T0050/T0060/T0065) a gagné sa frontière Edge
+authentifiée (J1, revue et durcie à 67 mutations de gate), la preuve sur l'Edge
+Runtime local réel (J2, 46 contrôles dont rejeu octet pour octet et refus
+comparés entre eux) et son appelant desktop (J3, 359 tests frontend, heure de
+départ serveur relue et affichée). Chaque jalon a été revu adversarialement par
+un agent distinct et ses constats majeurs corrigés avant clôture.
+`SECURITY.md`, `ARCHITECTURE.md`, `QUALITY.md` et l'inventaire d'autorité
+décrivent la capacité et ses limites ; `CURRENT_STATE.md` est mis à jour par la
+PR #125 (version courte) et devra refléter la fusion de cette fonctionnalité.
+
 ### Risks and limitations
+
+- La preuve desktop reste jsdom à `fetch` injecté : le parcours WebView live
+  (préparer → démarrer → double clic → refus Auth) est la vérification humaine
+  restante, à faire avec le parcours T0055.
+- La clé d'idempotence cliente ne survit pas au démontage du contrôle entre un
+  échec et son retry ; le serveur garantit seul l'unicité du départ dans ce cas.
+- La lecture du corps de réponse du transport de départ n'est pas bornée en
+  streaming (héritage du modèle T0052) ; durcissement commun aux quatre
+  frontières consigné en follow-up.
 
 ### Follow-ups
 
@@ -379,5 +411,17 @@ Constats mineurs de la revue adversariale J1 du 6 août 2026, non bloquants :
   d'indistinguabilité des refus ;
 - `ARCHITECTURE.md`, `QUALITY.md` et `CURRENT_STATE.md` restent à mettre à jour
   à la synthèse de la fonctionnalité (seul `SECURITY.md` est à jour après J1).
+  — Fait à la synthèse pour `ARCHITECTURE.md` et `QUALITY.md` ;
+  `CURRENT_STATE.md` se synchronise après la fusion de la PR #125.
+
+Constats mineurs de la revue adversariale J3 du 6 août 2026, non bloquants :
+
+- borner en streaming la lecture du corps de réponse des transports de mutation
+  (`flightDispatch.ts`, `flightStart.ts`), comme `dispatchList.ts` le fait déjà ;
+- conserver l'intention d'idempotence au-delà du démontage du contrôle (ou
+  accepter la garantie serveur seule, ce qui est l'état actuel documenté) ;
+- exercer la garde `pendingRef` par un test réellement concurrent ;
+- relire la liste autoritaire aussi sur un refus `rejected` (UX) ;
+- retirer l'assertion redondante `queryByText("private-user-token")`.
 
 ### Documentation updated

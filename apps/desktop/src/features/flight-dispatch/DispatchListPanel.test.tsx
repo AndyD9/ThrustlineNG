@@ -27,6 +27,7 @@ const dispatch: CompanyDispatch = {
   departureIcao: "LFPG",
   id: "94000000-0000-4000-8000-000000000001",
   schemaVersion: 1,
+  startedAt: null,
   state: "draft",
 };
 const activeDispatch: CompanyDispatch = {
@@ -35,6 +36,7 @@ const activeDispatch: CompanyDispatch = {
   arrivalIcao: "EGLL",
   departureIcao: "LFPO",
   id: "94000000-0000-4000-8000-000000000002",
+  startedAt: "2026-08-04T10:05:00Z",
   state: "active",
 };
 
@@ -280,7 +282,7 @@ describe("DispatchListPanel", () => {
     const user = userEvent.setup();
     const command = vi.fn<DispatchListCommand>()
       .mockResolvedValueOnce([dispatch])
-      .mockResolvedValueOnce([{ ...dispatch, state: "active" }]);
+      .mockResolvedValueOnce([{ ...dispatch, startedAt: "2026-08-06T10:30:00Z", state: "active" }]);
     const startedFlight: StartedFlight = {
       aircraftId: dispatch.aircraftId,
       dispatchId: dispatch.id,
@@ -307,6 +309,8 @@ describe("DispatchListPanel", () => {
     expect(await screen.findByText(/En vol/)).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Dispatchs de la compagnie" }))
       .toHaveTextContent("LFPG → LFBO");
+    expect(screen.getByRole("list", { name: "Dispatchs de la compagnie" }))
+      .toHaveTextContent(/départ .+ UTC/);
     expect(command).toHaveBeenCalledTimes(2);
     expect(startCommand).toHaveBeenCalledExactlyOnceWith({
       accessToken: "private-access-token",

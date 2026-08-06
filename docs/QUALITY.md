@@ -437,6 +437,20 @@ propriétaire est refusée par `companies_owner_id_fkey`, donc la destruction de
 pile est le seul nettoyage ; et `pnpm backend:test` exige une base fraîchement
 réinitialisée.
 
+Preuve F0001 J2 du 6 août 2026 : `scripts/validate-flight-start-runtime.ps1`
+exécute 46 contrôles sans échec sur la même pile, selon la méthode T0049. Après
+onboarding, achat et brouillon réels, le départ nominal rend exactement les cinq
+champs publics `aircraftId, dispatchId, schemaVersion, startedAt, state` avec
+`state: active` et `Cache-Control: no-store`; le rejeu de la même clé restitue
+la réponse acquise octet pour octet sans second départ ni seconde commande. Les
+corps des trois refus — dispatch étranger, inconnu, déjà actif — sont comparés
+entre eux et identiques (`409 flight_start_rejected`). Sans bearer : 401 sans
+détail interne ; un champ injecté : 400 `invalid_request`; un corps de 5 Kio :
+413 `request_too_large`. L'état SQL final est `1|1|0|1|1` — un vol actif, une
+commande, possédés par le sujet Auth — et la pile jetable est détruite ensuite.
+Le gate backend passe avec 67 mutations, dont 9 pour cette frontière ; les
+tests de fonctions passent à 62.
+
 Preuve T0050 du 3 août 2026 : `backend:check` passe avec 30 mutations, dont
 quatre nouvelles qui détectent un démarrage exécutable par un client, un
 troisième état de vol, un horodatage de départ fourni par l'appelant et la
