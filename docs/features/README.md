@@ -32,7 +32,7 @@ gelée du format précédent.
 
 | ID | Titre | Phase | Dépend de | Statut |
 | --- | --- | --- | --- | --- |
-| F0001 | Faire décoller un vol préparé depuis l'application | 2–4 | T0050, T0048, T0052–T0053, T0065 fusionné | Verify |
+| F0001 | Faire décoller un vol préparé depuis l'application | 2–4 | T0050, T0048, T0052–T0053, T0065 fusionné | Done |
 | F0002 | Clôturer son vol et encaisser son revenu depuis l'application | 2–4 | T0051, T0057, F0001 fusionnée, liaison télémétrie → cycle de vol | Blocked |
 | F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | Ready |
 
@@ -43,9 +43,11 @@ authentifiée ni appelant. Chacune est donc un slice vertical de trois jalons �
 frontière Edge, validation sur l'Edge Runtime local réel, composition desktop — au
 lieu des quatre à six tickets que le format précédent aurait produits.
 
-F0001 est `Ready` : aucune décision n'est en attente, et sa seule condition d'ordre
-est la fusion de la PR #121 (T0065), qui change le contrat de rejeu que sa projection
-publique doit refléter. F0002 est `Blocked` depuis la décision d'Andy du 6 août
+F0001 est `Done` depuis le 6 août 2026 : trois jalons livrés et revus
+adversarialement (frontière Edge, preuve sur l'Edge Runtime local réel,
+composition desktop), et parcours WebView live vérifié par Andy — login,
+compagnie, achat, dispatch, départ « En vol » avec l'heure serveur. La capacité
+n'est livrée qu'à la fusion de sa PR #124. F0002 est `Blocked` depuis la décision d'Andy du 6 août
 2026 (option C) : le temps de vol d'un rapport de clôture viendra de la télémétrie,
 jamais d'une saisie ni d'une migration. Sa condition de sortie est une
 fonctionnalité encore à ouvrir qui relie la télémétrie du bridge (replay T0054

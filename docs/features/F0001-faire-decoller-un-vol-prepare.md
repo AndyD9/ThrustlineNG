@@ -1,7 +1,8 @@
 # F0001 — Faire décoller un vol préparé depuis l'application
 
-Status: Verify
+Status: Done
 Owner: Claude (session interactive du 6 août 2026)
+Note: la capacité n'est livrée qu'à la fusion de la PR #124 par Andy.
 Branch: `feature/f0001-faire-decoller-un-vol-prepare`
 Phase: 2–4
 Risk: Medium
@@ -231,7 +232,22 @@ pnpm maintenance:check
 
 ## Manual verification
 
-Une vérification par jalon, 5–10 minutes chacune.
+**Exécutée par Andy le 6 août 2026, dans l'application Tauri en mode dev sur la
+pile locale réelle** : login avec une identité synthétique provisionnée par
+l'Admin API, création de compagnie, achat d'un avion du catalogue, flotte
+relue, brouillon de dispatch préparé, puis « Démarrer le vol » — la ligne passe
+« En vol » avec l'heure de départ serveur. C'est le premier parcours WebView
+live du projet.
+
+Le parcours a débusqué et fait corriger en route : le watcher Vite qui mourait
+en `EBUSY` sur `src-tauri/target` (corrigé dans `vite.config.ts`) ; et une pile
+locale qui servait la copie des fonctions prise à son démarrage, d'où un 404
+sur `flight-start` jusqu'au redémarrage de la pile — consigné en apprentissage
+ci-dessous. Le mode dev exige `THRUSTLINE_BRIDGE_PATH` vers un bridge publié et
+`apps/desktop/.env.local`, deux prérequis qu'aucun document ne décrivait ;
+outillage et documentation en follow-up.
+
+Détail initial des vérifications par jalon :
 
 1. J1 : appeler la fonction avec un bearer valide, sans bearer, avec un
    `owner_id` ajouté au corps et avec un corps de 5 Kio ; confirmer les quatre
@@ -352,7 +368,11 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   `DispatchStartControl.tsx`, leurs trois fichiers de tests (nouveaux),
   `DispatchListPanel.tsx` et son test (câblage minimal),
   `eng/authority-inventory.json` (appelant desktop classé, limitation mise à
-  jour), ce fichier.
+  jour), ce fichier. Découvert pendant la vérification manuelle :
+  `apps/desktop/vite.config.ts` gagne `server.watch.ignored` sur `src-tauri/`
+  — sans lui, le premier `pnpm desktop:dev` meurt en `EBUSY` quand le watcher
+  Vite rencontre un binaire que cargo est en train d'écrire. Les 359 tests,
+  dont l'invariant de sécurité qui inspecte cette config, repassent.
 - commandes et résultats (6 août 2026, rejoués par le coordinateur après
   intégration) : `pnpm frontend:typecheck` — 0 erreur ;
   `pnpm frontend:test` — 359 tests passés, 2 skipped (57 nouveaux au commit du
@@ -423,5 +443,19 @@ Constats mineurs de la revue adversariale J3 du 6 août 2026, non bloquants :
 - exercer la garde `pendingRef` par un test réellement concurrent ;
 - relire la liste autoritaire aussi sur un refus `rejected` (UX) ;
 - retirer l'assertion redondante `queryByText("private-user-token")`.
+
+Issus du parcours live d'Andy du 6 août 2026 :
+
+- **Apprentissage (candidat LEARNINGS)** : l'Edge Runtime local sert la copie
+  des sources prise au démarrage de la pile, pas le worktree vivant. Une
+  fonction ajoutée après `backend:start` rend `404 Function not found` jusqu'à
+  un cycle `backend:stop`/`backend:start`/`backend:reset`. Diagnostic : sonder
+  `POST /functions/v1/<nom>` sans auth — 401 = chargée, 404 = absente.
+- Outiller/documenter le lancement dev du parcours complet : bridge publié +
+  `THRUSTLINE_BRIDGE_PATH` + `apps/desktop/.env.local` (URL loopback + clé anon)
+  + identité synthétique via l'Admin API. Aujourd'hui, rien de tout cela n'est
+  dans `SETUP.md`.
+- UX : le formulaire de préparation de dispatch n'apparaît qu'après « Afficher
+  ma flotte » avec au moins un avion — invisible et indevinable avant.
 
 ### Documentation updated
