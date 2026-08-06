@@ -352,7 +352,11 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   `DispatchStartControl.tsx`, leurs trois fichiers de tests (nouveaux),
   `DispatchListPanel.tsx` et son test (câblage minimal),
   `eng/authority-inventory.json` (appelant desktop classé, limitation mise à
-  jour), ce fichier.
+  jour), ce fichier. Découvert pendant la vérification manuelle :
+  `apps/desktop/vite.config.ts` gagne `server.watch.ignored` sur `src-tauri/`
+  — sans lui, le premier `pnpm desktop:dev` meurt en `EBUSY` quand le watcher
+  Vite rencontre un binaire que cargo est en train d'écrire. Les 359 tests,
+  dont l'invariant de sécurité qui inspecte cette config, repassent.
 - commandes et résultats (6 août 2026, rejoués par le coordinateur après
   intégration) : `pnpm frontend:typecheck` — 0 erreur ;
   `pnpm frontend:test` — 359 tests passés, 2 skipped (57 nouveaux au commit du

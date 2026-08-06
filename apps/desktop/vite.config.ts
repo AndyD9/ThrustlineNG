@@ -31,6 +31,11 @@ export default defineConfig(({ mode }) => {
       host: "127.0.0.1",
       port: 1420,
       strictPort: true,
+      watch: {
+        // Le watcher ne doit jamais entrer dans src-tauri : cargo y écrit des
+        // binaires verrouillés pendant `tauri dev`, ce qui tue Vite en EBUSY.
+        ignored: ["**/src-tauri/**"],
+      },
     },
     build: {
       outDir: "dist",
