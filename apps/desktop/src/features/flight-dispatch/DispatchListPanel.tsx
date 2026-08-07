@@ -13,6 +13,10 @@ import {
   DispatchStartControl,
   type FlightStartCommand,
 } from "@/features/flight-dispatch/DispatchStartControl";
+import {
+  FlightSummaryControl,
+  type FlightSummaryCommand,
+} from "@/features/flight-dispatch/FlightSummaryControl";
 
 export type DispatchListCommand = (
   input: LoadDispatchListInput,
@@ -26,6 +30,7 @@ export interface DispatchListPanelProps {
   refreshVersion?: number | undefined;
   sessionManager: DesktopSessionManager;
   startCommand?: FlightStartCommand | undefined;
+  summaryCommand?: FlightSummaryCommand | undefined;
 }
 
 type PanelState =
@@ -53,6 +58,7 @@ export function DispatchListPanel({
   refreshVersion = 0,
   sessionManager,
   startCommand,
+  summaryCommand,
 }: DispatchListPanelProps) {
   const titleId = useId();
   const [state, setState] = useState<PanelState>({ kind: "ready" });
@@ -154,6 +160,12 @@ export function DispatchListPanel({
                   </>
                 )}
               </span>
+              {dispatch.state === "active" && (
+                <FlightSummaryControl
+                  command={summaryCommand}
+                  flightLabel={`${dispatch.departureIcao} → ${dispatch.arrivalIcao}`}
+                />
+              )}
               {dispatch.state === "draft" && (
                 <DispatchStartControl
                   command={startCommand}

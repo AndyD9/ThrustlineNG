@@ -17,18 +17,26 @@ describe("invariants frontend et Tauri", () => {
     expect(sources).not.toMatch(/@import\s+url/i);
   });
 
-  it("conserve une capability vide et aucune commande ou plugin Tauri", () => {
+  it("conserve une capability vide, aucun plugin et la seule commande flight_summary", () => {
     const capability = JSON.parse(
       read("apps/desktop/src-tauri/capabilities/default.json"),
     ) as { permissions: unknown[] };
     const rustSources = [
       read("apps/desktop/src-tauri/src/lib.rs"),
       read("apps/desktop/src-tauri/src/main.rs"),
+      read("apps/desktop/src-tauri/src/bridge.rs"),
+      read("apps/desktop/src-tauri/src/flight_summary.rs"),
       read("apps/desktop/src-tauri/Cargo.toml"),
     ].join("\n");
 
     expect(capability.permissions).toEqual([]);
-    expect(rustSources).not.toMatch(/#\[tauri::command\]/);
+    // F0004 J2 : exactement une commande IPC, en lecture seule, sans
+    // paramètre fourni par la WebView (son seul argument est l'AppHandle).
+    const commands = rustSources.match(/#\[tauri::command\]/g) ?? [];
+    expect(commands).toHaveLength(1);
+    expect(rustSources).toMatch(
+      /#\[tauri::command\]\s*async fn flight_summary\(\s*app: tauri::AppHandle,?\s*\)/,
+    );
     expect(rustSources).not.toMatch(/tauri-plugin-/);
   });
 

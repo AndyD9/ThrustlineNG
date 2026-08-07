@@ -28,6 +28,7 @@ import {
   type DispatchDraftCommand,
   FlightDispatchPanel,
 } from "@/features/flight-dispatch/FlightDispatchPanel";
+import type { FlightSummaryCommand } from "@/features/flight-dispatch/FlightSummaryControl";
 import { StatusCard } from "@/shared/ui/StatusCard";
 
 export interface HomePageProps {
@@ -39,6 +40,7 @@ export interface HomePageProps {
   config: DesktopConnectionConfig;
   dispatchDraftCommand?: DispatchDraftCommand | undefined;
   dispatchListCommand?: DispatchListCommand | undefined;
+  flightSummaryCommand?: FlightSummaryCommand | undefined;
   onAuthenticationRequired: () => void;
   onSignOut: () => void;
   sessionManager: DesktopSessionManager;
@@ -53,6 +55,7 @@ export function HomePage({
   config,
   dispatchDraftCommand,
   dispatchListCommand,
+  flightSummaryCommand,
   onAuthenticationRequired,
   onSignOut,
   sessionManager,
@@ -126,6 +129,7 @@ export function HomePage({
             onAuthenticationRequired={onAuthenticationRequired}
             refreshVersion={dispatchRefreshVersion}
             sessionManager={sessionManager}
+            summaryCommand={flightSummaryCommand}
           />
           <AircraftCatalogPanel
             command={aircraftCatalogCommand}

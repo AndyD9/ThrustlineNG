@@ -13,6 +13,7 @@ import {
   DispatchListError,
 } from "@/features/flight-dispatch/dispatchList";
 import type { FlightStartCommand } from "@/features/flight-dispatch/DispatchStartControl";
+import type { FlightSummaryCommand } from "@/features/flight-dispatch/FlightSummaryControl";
 import type { StartedFlight } from "@/features/flight-dispatch/flightStart";
 
 const config: DesktopConnectionConfig = {
@@ -325,6 +326,41 @@ describe("DispatchListPanel", () => {
     expect(
       screen.queryByRole("button", { name: /Démarrer le vol/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it("propose la mesure du temps de bloc au seul vol actif, sans appel au rendu", async () => {
+    const user = userEvent.setup();
+    const summaryCommand = vi.fn<FlightSummaryCommand>(async () => ({
+      blockMinutes: 42,
+      contractVersion: "1",
+      state: "completed",
+    }));
+    render(
+      <DispatchListPanel
+        command={async () => [dispatch, activeDispatch]}
+        config={config}
+        onAuthenticationRequired={vi.fn()}
+        sessionManager={createSessionManager()}
+        summaryCommand={summaryCommand}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Afficher mes dispatchs" }));
+    await screen.findByRole("list", { name: "Dispatchs de la compagnie" });
+
+    expect(
+      screen.getByRole("button", { name: "Afficher le temps de bloc · LFPO → EGLL" }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: /Afficher le temps de bloc · LFPG → LFBO/ }),
+    ).not.toBeInTheDocument();
+    expect(summaryCommand).not.toHaveBeenCalled();
+
+    await user.click(
+      screen.getByRole("button", { name: "Afficher le temps de bloc · LFPO → EGLL" }),
+    );
+    expect(await screen.findByText("Temps de bloc mesuré : 42 min.")).toBeInTheDocument();
+    expect(summaryCommand).toHaveBeenCalledExactlyOnceWith();
   });
 
   it("annule la lecture au démontage", async () => {

@@ -35,7 +35,7 @@ gelée du format précédent.
 | F0001 | Faire décoller un vol préparé depuis l'application | 2–4 | T0050, T0048, T0052–T0053, T0065 fusionné | Done |
 | F0002 | Clôturer son vol et encaisser son revenu depuis l'application | 2–4 | T0051, T0057, F0001 fusionnée, liaison télémétrie → cycle de vol | Blocked |
 | F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | Ready |
-| F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Ready |
+| F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | In progress |
 | F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | Ready |
 
 Les deux premières fonctionnalités ouvrent le format sur ce qui restait du golden
@@ -53,9 +53,16 @@ du 6 août 2026 (option C) : le temps de vol d'un rapport de clôture viendra de
 la télémétrie, jamais d'une saisie ni d'une migration. Sa condition de sortie
 est **F0004**, qui mesure le temps de bloc du replay sur le bridge et
 l'achemine jusqu'à l'application sans exposer le contrat local à la WebView.
-F0004 est `Ready` depuis la décision d'Andy du 6 août 2026 — mesure
+F0004 est `In progress` depuis la décision d'Andy du 6 août 2026 — mesure
 « mouvement → sol », arrondie à la minute supérieure, minimum une minute ;
-c'est le chemin critique du jalon « alpha cliquable ». F0005 est `Ready` sur la
+c'est le chemin critique du jalon « alpha cliquable ». Ses trois jalons sont
+implémentés sur la PR #128 : le bridge mesure le temps de bloc et l'expose sur
+`GET /api/v1/flight-summary` derrière le jeton du contrat local (J1), l'unique
+commande Tauri `flight_summary` relaie le résumé revalidé à la WebView sans
+exposer jeton ni port (J2), et l'application affiche le temps de bloc sur la
+ligne du vol actif, sur action explicite et sans calcul côté WebView (J3) ;
+restent le parcours manuel complet, la revue adversariale et la fusion par
+Andy. F0005 est `Ready` sur la
 seconde décision du même jour : le canal `internal-alpha` reçoit une CSP
 limitée à `http://127.0.0.1:54321` pendant que le canal public garde
 `connect-src 'none'`, ce qui rendra l'application installée réellement

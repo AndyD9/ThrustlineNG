@@ -384,6 +384,51 @@ champs additifs, sans chemin de fichier, version de SDK ni jeton. Aucun
 échantillon n'est persisté, relié à une compagnie, à un vol ou au grand livre, et
 la WebView n'a toujours aucun accès au canal.
 
+## Résumé de vol mesuré F0004 J1
+
+Le bridge dérive des mêmes échantillons validés un résumé de vol exposé en
+lecture seule sur `GET /api/v1/flight-summary`, derrière le même jeton
+d'instance. `FlightSummaryTracker` observe le flux au moment de la diffusion,
+sans persister aucun échantillon : il ne retient que le premier instant en
+mouvement (vitesse sol non nulle ou airborne), le dernier retour au sol et le
+dernier état au sol observé.
+
+La règle décidée le 6 août 2026 s'applique à la fin du replay : temps de bloc du
+premier échantillon en mouvement au dernier retour au sol de la trace, arrondi à
+la minute supérieure, minimum une minute. Les états sont `idle` (aucun
+échantillon observé), `running` (échantillons en cours), `completed` (trace
+finie **au sol** et temps mesuré) et `incomplete` — aucun temps inventé — pour
+tout le reste : trace finie sans retour au sol ou finissant en vol même après
+un toucher, taxi seul sans décollage, trace vide, lecture interrompue après un
+premier échantillon. La réponse
+`{contractVersion, state, blockMinutes}` est additive : le health check,
+`telemetry.v1` et ses bornes T0054 sont inchangés, et une lecture tronquée n'est
+jamais présentée comme complète. Le temps mesuré reste une déclaration côté
+client : `close_flight` conserve `min(déclaré, écoulé serveur)` (T0051).
+
+Le relais vers la WebView (J2) est l'unique commande IPC du shell :
+`flight_summary`, asynchrone, en lecture seule et sans aucun paramètre fourni
+par la WebView. Le processus Rust — seul détenteur du port et du jeton
+d'instance — interroge `GET /api/v1/flight-summary` sur le contrat local, puis
+revalide la réponse par jeu de clés strict (exactement `contractVersion`,
+`state`, `blockMinutes`, version `1`, états fermés, temps de bloc cohérent avec
+l'état) avant de la faire traverser. Les échecs se réduisent à deux catégories
+fixes, `unavailable` et `invalid-response`, sans contenu dynamique. Côté
+WebView, `flightSummary.ts` revalide le même jeu de clés et ne dépend que de la
+fonction `invoke` injectée : ni port, ni jeton, ni chemin de trace ne franchit
+la frontière.
+
+L'affichage (J3) rattache le résumé au vol actif de la liste des dispatchs :
+`FlightSummaryControl`, rendu sur la seule ligne `active`, lit le résumé sur
+action explicite — jamais au rendu — via `readFlightSummary` et le câblage
+`flightSummaryShell.ts`, seul module qui touche
+`window.__TAURI_INTERNALS__.invoke` et qui ne transmet que le nom de la
+commande. La WebView ne calcule aucun temps : `blockMinutes` est affiché tel
+que revalidé, avec des états explicites (replay en cours, temps de bloc
+mesuré, trace incomplète sans temps inventé, indisponibilité). Le résumé étant
+mono-vol par construction (T0050), l'association à la ligne active est
+implicite pour l'alpha.
+
 ## Contrat local T0010
 
 Tauri crée un jeton d'instance aléatoire de 256 bits et réserve un port

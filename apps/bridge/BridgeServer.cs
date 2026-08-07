@@ -58,6 +58,17 @@ public static class BridgeServer
                     "healthy",
                     Describe(telemetry.Source),
                     Describe(telemetry.State))));
+        app.MapGet(
+            BridgeContract.FlightSummaryPath,
+            () =>
+            {
+                var summary = telemetry.Summary;
+                return Results.Json(
+                    new FlightSummaryResponse(
+                        BridgeContract.Version,
+                        Describe(summary.State),
+                        summary.BlockMinutes));
+            });
         app.MapHub<BridgeHub>(BridgeContract.HubPath);
 
         await app.StartAsync(shutdownToken).ConfigureAwait(false);
@@ -110,9 +121,23 @@ public static class BridgeServer
             _ => "idle",
         };
 
+    private static string Describe(FlightSummaryState state) =>
+        state switch
+        {
+            FlightSummaryState.Running => "running",
+            FlightSummaryState.Completed => "completed",
+            FlightSummaryState.Incomplete => "incomplete",
+            _ => "idle",
+        };
+
     private sealed record HealthResponse(
         string ContractVersion,
         string Status,
         string TelemetrySource,
         string TelemetryState);
+
+    private sealed record FlightSummaryResponse(
+        string ContractVersion,
+        string State,
+        int? BlockMinutes);
 }
