@@ -1,7 +1,7 @@
 # F0002 — Clôturer son vol et encaisser son revenu depuis l'application
 
-Status: Blocked
-Owner: Unassigned
+Status: In progress
+Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0002-cloturer-son-vol-et-encaisser-son-revenu`
 Phase: 2–4
 Risk: High
@@ -48,6 +48,18 @@ jalons ci-dessous sont ajustés et le statut passe `Ready`. Cette fonctionnalit�
 de liaison reste à ouvrir ; elle devient le chemin critique du jalon « alpha
 cliquable » après F0001.
 
+**Condition de sortie levée le 7 août 2026.** La fonctionnalité de liaison est
+F0004, fusionnée dans `main` par la PR #128 : le bridge mesure le temps de bloc
+du replay et l'expose sur `GET /api/v1/flight-summary`, l'unique commande Tauri
+`flight_summary` relaie le résumé revalidé à la WebView, et l'application
+affiche le temps de bloc mesuré du vol actif. Le rapport de clôture de l'alpha
+est donc fixé par l'option C : `outcome: "completed"` et `blockMinutes` issu du
+résumé mesuré (`state: "completed"` côté bridge), jamais d'une saisie. Une
+clôture `interrupted` depuis l'application n'a pas de déclencheur télémétrique
+décidé : elle reste hors périmètre de l'alpha et `close_flight` la garde côté
+serveur. Les jalons ci-dessous sont ajustés en conséquence et le statut passe
+`In progress` sur demande d'Andy du 7 août 2026 (« IMPLEMENTE F0002 »).
+
 Le texte original de la décision est conservé ci-dessous pour référence.
 
 **Qui déclare le temps de vol d'un rapport de clôture, dans l'alpha, tant qu'aucune
@@ -79,13 +91,15 @@ statut passe `Ready` et les jalons ci-dessous sont ajustés à l'option retenue.
   aucun vol `active` n'existe côté application à clôturer. **F0001 doit être fusionnée
   avant J1** ;
 - décision d'Andy ci-dessus : **prise le 6 août 2026, option C** ;
-- une fonctionnalité encore à ouvrir qui relie la télémétrie du bridge au cycle
-  de vol et alimente `blockMinutes` (replay T0054 d'abord, MSFS réel ensuite) :
-  c'est le blocage actif.
+- F0004 — la liaison télémétrie → cycle de vol qui alimente `blockMinutes`
+  (mesure du replay T0054, résumé `flight_summary` relayé à l'application) :
+  **fusionnée dans `main` par la PR #128, le blocage est levé**.
 
 ## Allowed areas
 
-À confirmer une fois la décision prise. Périmètre prévu :
+Confirmées le 7 août 2026 : l'option C n'exige aucune migration, le périmètre
+prévu est retenu tel quel (plus `tests/backend/run.ps1` qui y figurait déjà
+pour les mutations nouvelles du gate) :
 
 - `supabase/functions/flight-close/` (nouveau) ;
 - `supabase/config.toml` ;
@@ -120,12 +134,14 @@ frontière ajoutée.
 
 ## Jalons
 
-Provisoires : ordonnés et bornés, mais à ajuster à l'option retenue. Ils ne sont pas
-exécutables tant que le statut est `Draft`.
+Ajustés le 7 août 2026 à l'option C : le rapport envoyé par l'application est
+`{ outcome: "completed", blockMinutes }` où `blockMinutes` vient du résumé
+mesuré F0004 ; la frontière J1 accepte le contrat complet de `close_flight`
+(issue fermée, mesures facultatives bornées) mais l'alpha n'a qu'un appelant.
 
 ### J1 — La clôture derrière une frontière authentifiée
 
-Status: Draft
+Status: Ready
 Risk: High
 Security-sensitive: Yes
 Autonomous: No
@@ -143,7 +159,7 @@ Autonomous: No
 
 ### J2 — La frontière prouvée sur l'Edge Runtime local réel
 
-Status: Draft
+Status: Ready
 Risk: Low
 Security-sensitive: No
 Autonomous: Yes
@@ -159,15 +175,17 @@ Autonomous: Yes
 
 ### J3 — La clôture composée depuis le desktop
 
-Status: Draft
+Status: Ready
 Risk: Medium
 Security-sensitive: No
 Autonomous: No
 
 - résultat : un vol `active` possédé peut être clôturé depuis l'application, avec
-  l'issue et le rapport que la décision d'Andy aura fixés ; le montant réglé et le
-  nouvel état sont affichés depuis la réponse serveur, la flotte et la liste des
-  dispatchs sont relues, un double clic et un retry ne règlent jamais deux fois.
+  le rapport fixé par l'option C : `outcome: "completed"` et `blockMinutes` issu
+  du résumé mesuré F0004 (`state: "completed"`), la clôture restant impossible
+  tant que la mesure n'existe pas ; le montant réglé et le nouvel état sont
+  affichés depuis la réponse serveur, la flotte et la liste des dispatchs sont
+  relues, un double clic et un retry ne règlent jamais deux fois.
 - frontière : desktop React.
 - validations : typecheck, tests, couverture, build, `authority:check`.
 - revue : vérifier qu'aucun montant n'est calculé côté client, même pour affichage.
@@ -212,8 +230,18 @@ Jalon concerné : **J1**, et à revalider en J3 pour l'affichage.
 
 ## Automated validation
 
-À compléter une fois la décision prise ; forme attendue identique à celle de F0001,
-avec `backend:test` en plus si l'option B impose une migration.
+L'option C n'impose aucune migration : la forme est identique à celle de F0001.
+
+- `pnpm backend:functions:test` — tests unitaires du handler `flight-close` ;
+- `pnpm backend:check` — invariants statiques, dont les mutations nouvelles de
+  la frontière de clôture ;
+- `pnpm authority:check` — l'inventaire d'autorité gagne la frontière ;
+- `pnpm data-policy:check` — aucune donnée réelle, aucun secret ;
+- `pnpm maintenance:check` — documentation et dettes cohérentes ;
+- J2 : `scripts/validate-flight-close-runtime.ps1` sur la pile locale réelle
+  (`pnpm backend:start`/`backend:reset` avant, `pnpm backend:stop` après) ;
+- J3 : `pnpm frontend:typecheck`, `pnpm frontend:test`, `pnpm frontend:coverage`,
+  `pnpm frontend:build`.
 
 ## Manual verification
 
