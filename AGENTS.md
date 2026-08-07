@@ -13,7 +13,7 @@ transitions métier ; compatibilité Windows 11, MSFS 2024 et SimConnect ;
 maintenabilité. Ne jamais sacrifier une priorité haute pour accélérer une
 priorité basse.
 
-## Pilotage courant — décision d'Andy du 6 août 2026
+## Pilotage courant — décisions d'Andy des 6–7 août 2026
 
 - **Jalon : l'alpha cliquable.** Un parcours complet dans la vraie application
   installée, sur la pile Supabase locale : login → compagnie → achat → dispatch
@@ -29,6 +29,14 @@ priorité basse.
   est le parcours réel dans l'application, pas une checklist dédiée.
 - **Pas de travail sur le processus lui-même** (workflow, boucle, gates de
   gouvernance) sans demande explicite d'Andy.
+- **Design UI : pas d'interface générique d'IA (7 août).** Tout travail UI ou
+  animation lit d'abord `.claude/skills/emil-design-eng/SKILL.md`, puis le
+  skill spécialisé utile dans `.claude/skills/` (`animate`,
+  `review-animations`, `improve-animations`, `find-animation-opportunities`,
+  `apple-design`, `pick-ui-library`, `prototype`, `animation-vocabulary`).
+  Ces fichiers sont des copies du dépôt `emilkowalski/skills` : mise à jour
+  par re-copie depuis l'upstream, pas d'édition locale ; les invariants
+  ThrustlineNG priment en cas de conflit.
 
 ## Lecture avant travail — le minimum, mesuré
 
