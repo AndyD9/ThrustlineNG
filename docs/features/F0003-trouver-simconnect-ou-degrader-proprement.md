@@ -1,8 +1,11 @@
 # F0003 — Trouver SimConnect nous-mêmes, ou le dire proprement
 
-Status: Ready
-Owner: Unassigned
+Status: In progress
+Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0003-trouver-simconnect-ou-degrader-proprement`
+Avancement: J1 `Done` le 7 août 2026 ; J2 `In progress` — sa moitié bridge
+(champs de santé additifs) est livrée avec J1, sa moitié desktop est bloquée
+par une décision d'Andy (voir la note du jalon J2) ; J3 `Draft`, inchangé.
 Phase: 3
 Risk: Medium
 Security-sensitive: Yes
@@ -131,7 +134,7 @@ l'option retenue, reportées datées dans cette section.
 
 ### J1 — La bibliothèque est localisée par une sonde bornée, ou déclarée absente
 
-Status: Draft
+Status: Done
 Risk: Medium
 Security-sensitive: Yes
 Autonomous: No
@@ -158,7 +161,22 @@ Autonomous: No
 
 ### J2 — L'état indisponible est visible et actionnable
 
-Status: Draft
+Status: In progress
+
+**Note du 7 août 2026 — moitié bloquée par une décision d'Andy.** La moitié
+bridge de ce jalon est livrée avec J1 : le health check versionné expose
+`nativeLibrary` et `nativeLibraryOrigin` en champs additifs, sans chemin ni
+version de SDK. La moitié desktop est **inexécutable dans les `Allowed areas`
+de cette unité** : la WebView n'a aucun accès au health check du bridge (le
+superviseur ne le consomme pas), la seule surface IPC est `flight_summary`
+dont le vocabulaire d'états est fermé des deux côtés, et l'étendre relève de
+`apps/desktop/src-tauri/` et du gate `tests/desktop-shell/run.ps1` — tous deux
+hors des zones autorisées ici. Deux issues possibles, au choix d'Andy :
+étendre les `Allowed areas` de cette unité (nouvelle commande fermée ou champ
+additif du relais, avec l'évolution du gate du shell), ou porter ce câblage
+dans F0007, qui retravaille déjà la relation superviseur ↔ bridge (KI-027).
+Rien n'est affiché de trompeur en attendant : l'application assemblée utilise
+la source replay, jamais `native`.
 Risk: Low
 Security-sensitive: No
 Autonomous: Yes
@@ -194,20 +212,38 @@ Autonomous: No
 
 ## Acceptance criteria
 
-- [ ] Sur une machine avec le SDK installé hors chemin par défaut, le bridge trouve
-      la bibliothèque et s'y connecte — ce qui est impossible aujourd'hui.
-- [ ] Sur une machine sans MSFS et sans SDK, le bridge démarre, reste sain, rend un
+- [x] Sur une machine avec le SDK installé hors chemin par défaut, le bridge trouve
+      la bibliothèque et s'y connecte — ce qui est impossible aujourd'hui. — J1,
+      7 août 2026 : `located/sdk` sur la machine de validation via la
+      déclaration `MSFS_SDK`, et le chargement réel (exports résolus) est
+      prouvé par le harnais sur la DLL du SDK ; la session MSFS réelle reste
+      T0059.
+- [x] Sur une machine sans MSFS et sans SDK, le bridge démarre, reste sain, rend un
       état `unavailable` explicite et un diagnostic actionnable, et ne plante pas.
-- [ ] Une copie de la bibliothèque présente ailleurs que dans les sources listées
+      — J1 : prouvé au harnais et sur le bridge publié (processus sans
+      déclaration SDK).
+- [x] Une copie de la bibliothèque présente ailleurs que dans les sources listées
       n'est jamais chargée implicitement, et ce refus est prouvé par un test.
-- [ ] Aucune recherche par `PATH`, répertoire courant ou balayage de disque n'existe
-      dans le code livré.
-- [ ] Aucun message, journal ou champ de health check ne divulgue un chemin
-      utilisateur complet, une version de SDK ou un jeton.
-- [ ] Les capacités déjà livrées restent utilisables sans télémétrie.
+      — J1 : test « a library outside the closed list is never located »
+      (copie exposée par `PATH` et répertoire courant), rejoué en manuel sur le
+      bridge publié.
+- [x] Aucune recherche par `PATH`, répertoire courant ou balayage de disque n'existe
+      dans le code livré. — J1 : `DllImportSearchPath.SafeDirectories` retiré,
+      chargement par chemin absolu seul.
+- [x] Aucun message, journal ou champ de health check ne divulgue un chemin
+      utilisateur complet, une version de SDK ou un jeton. — J1 : assertions
+      dédiées du harnais sur la santé et le diagnostic.
+- [ ] Les capacités déjà livrées restent utilisables sans télémétrie. — J2,
+      vérification dans l'application, en attente de la décision d'Andy sur la
+      moitié desktop.
 - [ ] `docs/SUPPORT.md` et `docs/SECURITY.md` décrivent la sonde, son ordre et son
       refus ; le scénario 14 d'`ADR-0003` gagne son cas « bibliothèque absente ».
-- [ ] J3 n'est pas commencé sans la décision d'Andy et les termes de l'EULA cités.
+      — SUPPORT et SECURITY : fait en J1. L'ajout au scénario 14 d'`ADR-0003`
+      est **hors des `Allowed areas` de cette unité** (`docs/decisions/` absent
+      de la liste) et contredirait la règle « une ADR ne se modifie que par une
+      ADR » : à trancher par Andy.
+- [x] J3 n'est pas commencé sans la décision d'Andy et les termes de l'EULA cités.
+      — Respecté : J3 est intact, aucun binaire n'entre dans le dépôt.
 
 ## Security review
 
@@ -284,19 +320,81 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J1
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : la bibliothèque cliente est localisée par
+  `SimConnectLibraryLocator`, une sonde à liste ordonnée et fermée — chemin
+  explicite `--simconnect-library` (absolu, borné, nommant exactement
+  `SimConnect.dll`, fichier réel sans point de réanalyse, fourni-mais-invalide
+  ne retombe sur rien), répertoire de l'application, puis installation du SDK
+  déclarée par le système (`MSFS2024_SDK` puis `MSFS_SDK`, déclaration pendante
+  ignorée). Le chargement se fait par chemin absolu, sans
+  `DllImportSearchPath.SafeDirectories`, sans `PATH` ni répertoire courant.
+  Sans bibliothèque, le processus reste démarré : la source native rend
+  `unavailable` dès le démarrage — distinct de `idle`, visible sans abonné,
+  jamais requalifié par un réarmement — et un diagnostic actionnable sans
+  chemin est écrit. La moitié bridge de J2 est livrée ici : le health check
+  gagne `nativeLibrary` et `nativeLibraryOrigin` en champs additifs.
+- fichiers modifiés : `apps/bridge/SimConnect/SimConnectLibraryLocator.cs`
+  (nouveau), `NativeSimConnectAdapter.cs`, `BridgeOptions.cs`,
+  `BridgeApplication.cs` (usage), `BridgeServer.cs`,
+  `Telemetry/BridgeTelemetryOptions.cs`, `Telemetry/TelemetryAdapterFactory.cs`,
+  `Telemetry/TelemetryPublisher.cs`, `tests/bridge/Program.cs`,
+  `docs/SECURITY.md`, `docs/SUPPORT.md`, `docs/ARCHITECTURE.md`,
+  `docs/KNOWN_ISSUES.md` (KI-031 résolue, KI-032 acceptée), ce fichier,
+  `docs/features/README.md`, `docs/CURRENT_STATE.md`.
+- commandes et résultats : `pnpm bridge:build` 0 avertissement, 0 erreur ;
+  `pnpm bridge:test` **44/44**, dont sept scénarios nouveaux (ordre de la
+  liste fermée ; chemin explicite sans repli ; déclaration SDK pendante
+  ignorée au profit de la suivante ; copie exposée par `PATH` et répertoire
+  courant jamais localisée ; option refusée hors source native, en relatif ou
+  sur un autre nom de binaire ; source native sans bibliothèque `unavailable`
+  avant tout abonné et après réarmement ; champs de santé additifs sans
+  divulgation de chemin) ; `pnpm bridge:health` `Healthy`/`0` ;
+  `pnpm performance:check:build` vert (frontend et desktop Release
+  reconstruits dans ce worktree) ; `pnpm maintenance:check` vert.
+- vérification manuelle : exécutée le 7 août 2026 sur le bridge **publié**,
+  trois scénarios. 1) Machine réelle : le SDK 1.5.7 est déclaré par `MSFS_SDK`
+  (hors de tout répertoire cherché par l'ancien chargeur) et la déclaration
+  machine `MSFS2024_SDK` pend vers un répertoire disparu — santé
+  `nativeLibrary=located`, `nativeLibraryOrigin=sdk`, `telemetryState=idle` :
+  exactement le cas que l'ancien chargeur ne pouvait pas réussir, avec la
+  déclaration pendante correctement ignorée. 2) Processus sans déclaration SDK
+  (équivalent du répertoire renommé, sans mutation du disque) plus une copie
+  factice de `SimConnect.dll` exposée par `PATH` : santé
+  `unavailable`/`none`, diagnostic `SIMCONNECT_LIBRARY unavailable: install
+  the MSFS 2024 SDK or pass --simconnect-library...` sans aucun chemin, la
+  copie hors liste jamais chargée. 3) Chemin explicite vers la DLL du SDK :
+  `located`/`explicit`. Le chargement réel de la DLL (exports résolus) est
+  prouvé par le harnais sur ce poste via l'adaptateur natif.
+- revue et constats traités : le vecteur de détournement de DLL a guidé
+  chaque choix — pas de repli depuis un chemin explicite invalide, nom de
+  fichier imposé, refus des points de réanalyse, chemin uniquement par la
+  ligne de commande du superviseur (la WebView n'a aucun accès), aucun chemin
+  dans la santé, le diagnostic ou les erreurs (assertions dédiées). La règle
+  T0011 « répertoires Windows sûrs » de `docs/SECURITY.md` est remplacée par
+  la liste fermée, explicitement datée. Constat consigné plutôt que corrigé :
+  le critère « ADR-0003 scénario 14 » est hors `Allowed areas` (voir critères).
 
 ### J2
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : **moitié livrée, moitié bloquée.** Le health check expose
+  l'état de localisation en champs additifs (`nativeLibrary`,
+  `nativeLibraryOrigin`) sans chemin, version de SDK ni jeton — livré avec J1
+  et prouvé au harnais. L'affichage desktop « télémétrie indisponible » est
+  bloqué par le périmètre de l'unité : voir la note du jalon — la WebView n'a
+  aucun chemin vers cet état sans toucher `apps/desktop/src-tauri/` et le gate
+  du shell, hors `Allowed areas`. Décision d'Andy attendue (étendre l'unité,
+  ou porter le câblage dans F0007).
+- fichiers modifiés : aucun fichier frontend — rien n'est affiché de trompeur
+  en attendant, l'application assemblée n'utilisant jamais la source `native`.
+- commandes et résultats : la moitié bridge est couverte par les preuves J1 ;
+  les gates frontend de ce jalon n'ont pas été exécutés, aucun code frontend
+  n'ayant changé.
+- vérification manuelle : à faire quand la moitié desktop sera débloquée
+  (état « télémétrie indisponible » dans l'application, capacités livrées
+  intactes).
+- revue et constats traités : aucun état dégradé ne se présente comme une
+  réussite — `unavailable` est distinct de `idle` jusque dans la santé, et un
+  réarmement ne le requalifie pas ; aucun kill switch introduit.
 
 ### J3
 

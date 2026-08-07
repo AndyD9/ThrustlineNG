@@ -34,7 +34,7 @@ gelée du format précédent.
 | --- | --- | --- | --- | --- |
 | F0001 | Faire décoller un vol préparé depuis l'application | 2–4 | T0050, T0048, T0052–T0053, T0065 fusionné | Done |
 | F0002 | Clôturer son vol et encaisser son revenu depuis l'application | 2–4 | T0051, T0057, F0001 fusionnée, F0004 fusionnée | Done |
-| F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | Ready |
+| F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | In progress |
 | F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Done |
 | F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | Done |
 | F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | Done |
@@ -110,17 +110,23 @@ abonné, cadence de rejeu) en découlent.
 
 F0003 sort d'une question d'Andy du 5 août 2026 — « il faut qu'on le trouve nous-même,
 dans l'hypothèse où la personne n'a rien de tout ça » — et d'un relevé qui lui donne
-raison plus durement que prévu : le bridge charge `SimConnect.dll` par
+raison plus durement que prévu : le bridge chargeait `SimConnect.dll` par
 `DllImportSearchPath.SafeDirectories`, qui ne regarde ni le `PATH` ni un chemin
-d'installation du SDK, si bien que le chargement échouerait **même sur la machine de
-validation**, où MSFS 2024 et le SDK `1.5.7` sont pourtant installés. Et une machine
-d'utilisateur final n'a rien à trouver, puisque personne n'installe un SDK de
-développement. Elle est `Ready` parce que ses deux premiers jalons — sonde bornée et
-état dégradé explicite — n'attendent aucune décision ; seul son J3, qui fournit la
-bibliothèque à une machine sans SDK, dépend d'une décision d'Andy et de la lecture de
-l'EULA du SDK. C'est exactement ce que le format T0068 permet : une fonctionnalité
-exécutable dont un jalon tardif reste bloqué, au lieu d'un ticket entier bloqué par sa
-dernière étape.
+d'installation du SDK, si bien que le chargement échouait **même sur la machine de
+validation**, où MSFS 2024 et le SDK `1.5.7` sont pourtant installés. Elle est
+`In progress` depuis le 7 août 2026 : son J1 est `Done` — sonde à liste
+ordonnée et fermée (chemin explicite, répertoire de l'application, installation
+du SDK déclarée par le système), chargement par chemin absolu, état
+`unavailable` dès le démarrage sans bibliothèque, 44 tests bridge et
+vérification manuelle sur le bridge publié (KI-031 résolue). Son J2 est à
+moitié livré (champs de santé additifs) et à moitié bloqué : l'affichage
+desktop « télémétrie indisponible » exige `apps/desktop/src-tauri/` et le gate
+du shell, hors des `Allowed areas` de l'unité — décision d'Andy attendue
+(étendre l'unité, ou porter le câblage dans F0007). Son J3, qui fournit la
+bibliothèque à une machine sans SDK, dépend d'une décision d'Andy et de la
+lecture de l'EULA du SDK. C'est exactement ce que le format T0068 permet : une
+fonctionnalité exécutable dont un jalon tardif reste bloqué, au lieu d'un
+ticket entier bloqué par sa dernière étape.
 
 ## Transition
 

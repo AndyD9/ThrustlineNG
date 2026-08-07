@@ -388,15 +388,21 @@ La source est choisie par option explicite du processus, `replay` par défaut :
 
 ```text
 --telemetry-source replay|native   --telemetry-trace <fichier JSONL>
+--simconnect-library <chemin absolu de SimConnect.dll>   (source native seule)
 ```
 
 Sans trace, l'état reste `idle` et rien n'est publié ; c'est le cas du lancement
-actuel par Tauri, qui ne passe que `--port`. La source `native` reste facultative
-et son absence de SDK devient l'état `unavailable` sans faire échouer le
-processus. Le health check expose `telemetrySource` et `telemetryState` comme
-champs additifs, sans chemin de fichier, version de SDK ni jeton. Aucun
-échantillon n'est persisté, relié à une compagnie, à un vol ou au grand livre, et
-la WebView n'a toujours aucun accès au canal.
+actuel par Tauri, qui ne passe que `--port`. La source `native` reste
+facultative : sa bibliothèque cliente est localisée par la sonde bornée de
+F0003 J1 (chemin explicite, répertoire de l'application, puis installation du
+SDK déclarée par le système — voir `docs/SECURITY.md`), et une machine sans
+bibliothèque rend l'état `unavailable` dès le démarrage sans faire échouer le
+processus. Le health check expose `telemetrySource`, `telemetryState` et,
+depuis F0003, `nativeLibrary` (`located`, `unavailable`, `not-required`) et
+`nativeLibraryOrigin` (`explicit`, `application`, `sdk`, `none`) comme champs
+additifs, sans chemin de fichier, version de SDK ni jeton. Aucun échantillon
+n'est persisté, relié à une compagnie, à un vol ou au grand livre, et la
+WebView n'a toujours aucun accès au canal.
 
 ## Résumé de vol mesuré F0004 J1
 

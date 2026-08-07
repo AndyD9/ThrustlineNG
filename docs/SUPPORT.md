@@ -113,6 +113,16 @@ Un blocage ou kill switch n'est autorisé qu'en cas de risque réel de corruptio
 double clôture, perte de données ou sécurité. La lecture et la récupération des
 données doivent rester disponibles autant que possible.
 
+Une bibliothèque cliente SimConnect introuvable suit la même règle (F0003 J1) :
+le bridge démarre, reste sain, rend l'état `unavailable` — distinct de `idle` —
+et son diagnostic dit quoi installer (le SDK MSFS 2024, ou un chemin explicite
+`--simconnect-library`) sans divulguer de chemin utilisateur. La sonde ne
+consulte que des sources dignes de confiance, dans l'ordre : chemin explicite,
+répertoire de l'application, installation du SDK déclarée par le système
+(`MSFS2024_SDK` puis `MSFS_SDK`) ; une copie apportée par un tiers hors de ces
+sources n'est jamais chargée. Compagnie, catalogue, achat, dispatch et flotte
+restent utilisables sans télémétrie.
+
 ## Ce qui est testé
 
 La première promotion d'un canal vers `Supported` exige les 14 scénarios :
