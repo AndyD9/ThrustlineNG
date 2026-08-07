@@ -206,21 +206,25 @@
       "status": "server-authoritative",
       "coverage": "partial",
       "serverBoundaries": [
+        "supabase/functions/flight-close/handler.ts",
         "public.close_flight"
       ],
       "evidencePaths": [
         "eng/flight-settlement-policy.json",
+        "supabase/functions/flight-close/handler.ts",
         "supabase/migrations/20260804000100_authoritative_flight_settlement.sql",
         "supabase/tests/database/flight_settlement.test.sql"
       ],
       "evidenceMarkers": [
         "close_flight",
+        "createFlightCloseHandler",
+        "flight_close_rejected",
         "flight_reports",
         "flight_close_commands",
         "alpha-flight-settlement",
         "a second closure of the same flight is rejected"
       ],
-      "limitations": ["Only the server closure of one owned active flight is covered: one terminal state, one bounded versioned report, one net credit and one reputation event in a single transaction. The report contract accepts a closed outcome, a bounded declared block time and optional bounded measurements only; the amount, the currency, the distance, the retained block time and the multiplier are recomputed or derived by the server. No Auth boundary, desktop caller, cancellation, SimBrief or telemetry-driven closure exists."]
+      "limitations": ["Only the closure of one owned active flight is covered: one terminal state, one bounded versioned report, one net credit and one reputation event in a single transaction. The report contract accepts a closed outcome, a bounded declared block time and optional bounded measurements only; the amount, the currency, the distance, the retained block time and the multiplier are recomputed or derived by the server. F0002 adds one bounded authenticated Edge boundary in front of the closure command, accepting only a dispatch identifier, an idempotency key and the strictly allowlisted report, and projecting only public fields without the ledger entry identifier. No cancellation, SimBrief or interrupted-outcome caller exists; the alpha desktop caller closes a completed measured replay only."]
     },
     {
       "id": "finance",
@@ -230,6 +234,7 @@
         "public.post_company_opening_balance",
         "supabase/functions/aircraft-purchase/handler.ts",
         "public.purchase_aircraft",
+        "supabase/functions/flight-close/handler.ts",
         "public.close_flight",
         "public.lease_aircraft",
         "public.process_aircraft_lease",
@@ -245,12 +250,13 @@
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql",
         "eng/flight-settlement-policy.json",
+        "supabase/functions/flight-close/handler.ts",
         "supabase/migrations/20260804000100_authoritative_flight_settlement.sql",
         "supabase/tests/database/flight_settlement.test.sql",
         "supabase/migrations/20260804000200_authoritative_aircraft_lease.sql",
         "supabase/tests/database/aircraft_lease.test.sql"
       ],
-      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft", "flight_settlement", "alpha-flight-settlement", "aircraft_lease_rent", "process_aircraft_lease"],
+      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft", "createFlightCloseHandler", "flight_settlement", "alpha-flight-settlement", "aircraft_lease_rent", "process_aircraft_lease"],
       "limitations": ["Opening, bounded authenticated catalogue read, one-off aircraft purchase, the single net flight settlement and the versioned lease rents are covered as separate components; routed composition, live connectivity and other financial commands are not defined. The settlement scale is an alpha decision protected by a floor and a per-flight cap, not a measured economic balance. Lease catch-up is manual service-role execution only; no scheduler and no routed lease endpoint exist."]
     },
     {
