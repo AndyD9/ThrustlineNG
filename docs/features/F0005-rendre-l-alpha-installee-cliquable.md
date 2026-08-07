@@ -3,6 +3,10 @@
 Status: In progress
 Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0005-rendre-l-alpha-installee-cliquable`
+PR: [#133](https://github.com/AndyD9/ThrustlineNG/pull/133) (brouillon, base
+`main` ; J1 implémenté et validé, `main` rapatriée après les fusions de F0002
+et F0006 ; restent J2 — le package installé et le parcours humain — la revue
+et la fusion par Andy)
 Phase: 4
 Risk: High
 Security-sensitive: Yes
