@@ -61,9 +61,10 @@ implémentés sur la PR #128 : le bridge mesure le temps de bloc et l'expose sur
 `GET /api/v1/flight-summary` derrière le jeton du contrat local (J1), l'unique
 commande Tauri `flight_summary` relaie le résumé revalidé à la WebView sans
 exposer jeton ni port (J2), et l'application affiche le temps de bloc sur la
-ligne du vol actif, sur action explicite et sans calcul côté WebView (J3) ;
-restent le parcours manuel complet, la revue adversariale et la fusion par
-Andy. F0005 est `Ready` sur la
+ligne du vol actif, sur action explicite et sans calcul côté WebView (J3). Le
+parcours manuel complet a été exécuté le 7 août 2026 et la revue adversariale
+rendue (constats corrigés sur la branche) ; restent la revue finale d'Andy et
+la fusion. F0005 est `Ready` sur la
 seconde décision du même jour : le canal `internal-alpha` reçoit une CSP
 limitée à `http://127.0.0.1:54321` pendant que le canal public garde
 `connect-src 'none'`, ce qui rendra l'application installée réellement

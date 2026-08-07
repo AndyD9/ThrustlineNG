@@ -120,6 +120,15 @@ export function DispatchListPanel({
   }, [command, config.anonKey, config.supabaseUrl, onAuthenticationRequired, sessionManager]);
 
   useEffect(() => () => abortControllerRef.current?.abort(), []);
+
+  // Le résumé du bridge est global et sans identité de vol : il ne peut être
+  // rattaché à une ligne que lorsqu'un seul vol est actif (l'exclusivité
+  // serveur est par avion, pas par compagnie). La clôture, qui envoie ce
+  // résumé comme rapport, suit la même garde.
+  const activeCount =
+    state.kind === "loaded"
+      ? state.dispatches.filter((dispatch) => dispatch.state === "active").length
+      : 0;
   useEffect(() => {
     if (
       refreshVersion > handledRefreshVersionRef.current &&
@@ -168,7 +177,7 @@ export function DispatchListPanel({
                   </>
                 )}
               </span>
-              {dispatch.state === "active" && (
+              {dispatch.state === "active" && activeCount === 1 && (
                 <>
                   <FlightSummaryControl
                     command={summaryCommand}

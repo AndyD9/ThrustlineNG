@@ -50,8 +50,10 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
   prise le 6 août 2026 : mouvement → sol. J1–J3 implémentés sur la PR #128 :
   le bridge mesure et expose `GET /api/v1/flight-summary`, l'unique commande
   Tauri `flight_summary` relaie le résumé revalidé sans exposer jeton ni port,
-  et l'application affiche le temps de bloc sur la ligne du vol actif ;
-  restent le parcours manuel complet, la revue et la fusion.
+  et l'application affiche le temps de bloc sur la ligne du vol actif. Le
+  parcours manuel complet a été exécuté le 7 août 2026 et la revue
+  adversariale rendue (constats corrigés sur la branche) ; restent la revue
+  finale d'Andy et la fusion.
 - **F0005** (`Ready`) — CSP `internal-alpha` limitée au loopback pour rendre
   l'application installée cliquable et clore T0055 (décision du 6 août 2026).
 - **F0002** (`In progress`) — clôture et encaissement depuis l'application ;
@@ -64,8 +66,8 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
 
 ## Ce qui manque pour l'alpha cliquable
 
-1. F0004 — le temps de bloc mesuré du replay (J1–J3 implémentés sur la
-   PR #128 ; restent parcours manuel, revue et fusion).
+1. F0004 — le temps de bloc mesuré du replay (J1–J3 implémentés et parcours
+   manuel exécuté, PR #128 ; restent la revue finale d'Andy et la fusion).
 2. F0002 — la clôture depuis l'application, débloquée par la fusion de F0004
    et en cours depuis le 7 août 2026.
 3. F0005 — le parcours dans l'application **installée**, qui clôt T0055. La

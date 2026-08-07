@@ -439,9 +439,13 @@ action explicite — jamais au rendu — via `readFlightSummary` et le câblage
 `window.__TAURI_INTERNALS__.invoke` et qui ne transmet que le nom de la
 commande. La WebView ne calcule aucun temps : `blockMinutes` est affiché tel
 que revalidé, avec des états explicites (replay en cours, temps de bloc
-mesuré, trace incomplète sans temps inventé, indisponibilité). Le résumé étant
-mono-vol par construction (T0050), l'association à la ligne active est
-implicite pour l'alpha.
+mesuré, trace incomplète sans temps inventé, indisponibilité). Le résumé du
+bridge est global et sans identité de vol, et l'exclusivité serveur des
+dispatchs ouverts est **par avion** (index
+`flight_dispatches_one_open_per_aircraft`, T0051), pas par compagnie : deux
+vols actifs sont possibles. L'affichage est donc fail-closed — le contrôle de
+mesure n'est rendu que lorsqu'exactement un vol est actif ; au-delà, aucune
+mesure n'est proposée plutôt qu'un temps attribuable au mauvais vol.
 
 ## Contrat local T0010
 
