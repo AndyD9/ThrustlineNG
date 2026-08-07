@@ -93,8 +93,14 @@ jalon par jalon — cycle détaillé dans `docs/WORKFLOW.md`.
 - Implémenter uniquement l'unité ; respecter `Allowed areas` et `Do not touch`.
 - Consigner toute découverte hors périmètre dans `docs/KNOWN_ISSUES.md` avec
   preuve et sévérité, sans la corriger au passage.
-- S'arrêter et demander à Andy dès qu'une ambiguïté touche le produit,
-  l'économie, la sécurité, les données, le support ou l'architecture.
+- **Décider seul par défaut (décision d'Andy du 7 août 2026).** Devant une
+  ambiguïté, choisir l'option la plus sûre — puis, à sûreté égale, la plus
+  performante —, la mettre en œuvre et consigner l'hypothèse dans le rapport,
+  plutôt qu'attendre une réponse. Andy n'est sollicité qu'en dernier recours :
+  aucune option ne respecte les invariants ; l'acte est irréversible ou sort du
+  dépôt (merge, publication, dépense, données réelles) ; ou c'est un choix
+  produit qu'aucune preuve du dépôt ne tranche. Une question qui peut attendre
+  le rapport n'interrompt pas le travail.
 - Le champ `Status` du fichier de l'unité fait foi ; son index
   (`docs/features/README.md` ou `docs/tickets/README.md`) doit refléter le même
   statut dans le même changement.
@@ -121,11 +127,26 @@ outil qui sort `0` sans avoir découvert de test ne prouve rien.
   ne jamais inventer une branche, une base ou un résultat de CI.
 - **La revue finale et le merge appartiennent exclusivement à Andy.**
 
+## Fin de tâche
+
 Le rapport de fin d'unité donne : statut, fichiers modifiés, commandes et
 résultats réels, risques et limites, branche, commit et Pull Request.
 
-**Tout rapport de fin de tâche se termine par « La suite »** — que la tâche soit
-une unité entière, un jalon ou une simple demande : la prochaine action
-concrète, à qui elle appartient (Andy, l'agent, ou personne si c'est terminé),
-et ce qui la débloque le cas échéant. Un rapport sans suite n'est pas terminé
-(décision d'Andy du 6 août 2026).
+**Tout rapport se termine par « La suite »** — unité entière, jalon ou simple
+demande : la prochaine action concrète, à qui elle appartient (Andy, l'agent, ou
+personne si c'est terminé), et ce qui la débloque (6 août 2026) — **puis par un
+prompt de reprise** dans un bloc de code, copiable tel quel dans une nouvelle
+session (7 août 2026). Il donne des pointeurs et l'état, jamais le contenu des
+documents :
+
+```
+Reprends ThrustlineNG. Lis AGENTS.md, docs/CURRENT_STATE.md, puis
+<fichier de l'unité> (en-tête + jalon <N> + Allowed areas / Do not touch).
+Branche <nom>, worktree <chemin>, dernier commit <sha>, PR <url ou aucune>.
+Fait : <une ligne>. Reste : <la prochaine action concrète>.
+Validations passées : <commandes → résultat>. À rejouer : <commandes>.
+Pièges : <ce qui a coûté du temps ou peut se re-casser>.
+Décide seul selon AGENTS.md ; ne fusionne pas.
+```
+
+Un rapport sans suite ni prompt de reprise n'est pas terminé.
