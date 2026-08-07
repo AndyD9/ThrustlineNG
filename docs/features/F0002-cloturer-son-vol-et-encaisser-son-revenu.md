@@ -3,6 +3,9 @@
 Status: In progress
 Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0002-cloturer-son-vol-et-encaisser-son-revenu`
+PR: [#131](https://github.com/AndyD9/ThrustlineNG/pull/131) (brouillon, base
+`main` ; J1–J3 implémentés, restent le parcours manuel, la revue et la fusion
+par Andy)
 Phase: 2–4
 Risk: High
 Security-sensitive: Yes
