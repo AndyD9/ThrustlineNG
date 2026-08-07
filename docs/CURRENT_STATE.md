@@ -66,12 +66,19 @@ d'entretien) est **acceptée**, revalidée par la vérification manuelle J1 à c
 
 ## Ce qui manque pour l'alpha cliquable
 
-1. F0007 (KI-027) — le vol en replay mesuré et la clôture dans l'application
-   **installée** : l'alpha assemblée ne produit aucune mesure sans harnais
-   externe ; son J1 attend la décision d'Andy sur l'origine de la trace. C'est le
-   dernier trou du jalon, et cette décision produit est ce qui le débloque. F0007
-   porte aussi, depuis le 7 août 2026, la moitié desktop de F0003 J2 — même
-   surface superviseur ↔ WebView.
+1. F0007 (`Ready` depuis le 7 août 2026) — **le golden path installé doit se
+   terminer.** La décision produit d'Andy est prise : option C, l'alpha n'embarque
+   aucune trace et ne mesure donc pas par elle-même ; la mesure arrive avec MSFS
+   réel (T0059, F0003 J3), et KI-027 passe `Accepted`. Mais l'option C laissait
+   l'alpha bloquée au départ : sans mesure, `FlightCloseControl` échoue fermé et
+   demande de « terminer le replay », qui n'existe pas dans cette version, en
+   laissant le dispatch « En vol » sans sortie. F0007 livre donc trois choses : la
+   barrière du premier abonné retirée du chemin de mesure (elle bloquerait T0059 à
+   l'identique), une application qui énonce qu'elle ne mesure pas — ce qui absorbe
+   la moitié desktop de F0003 J2, même surface superviseur ↔ WebView — et un chemin
+   d'**abandon** de vol (`outcome: "interrupted"`, `blockMinutes: 0`) qui existe
+   déjà côté serveur et base, sans fonction Edge ni migration, et sans inventer
+   aucun temps de bloc.
 
 Le câblage du golden path est complet dans `main` depuis la fusion de F0006 —
 départ, mesure rattachée et réarmable, clôture et règlement au grand livre,

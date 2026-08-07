@@ -108,14 +108,18 @@ l'option retenue, reportées datées dans cette section.
 - `apps/bridge/BridgeHealth.cs` et `apps/bridge/BridgeOptions.cs` — état et option de
   chemin explicite ;
 - `tests/bridge/` — scénarios de localisation, de refus et de dégradation ;
-- ~~`apps/desktop/src/` — restitution de l'état indisponible, en J2 seulement~~ —
-  **retiré le 7 août 2026** : la restitution desktop est portée dans F0007, qui
-  possède déjà le superviseur et le gate du shell dont elle dépend ;
 - `docs/SECURITY.md`, `docs/ARCHITECTURE.md`, `docs/QUALITY.md`, `docs/SUPPORT.md`,
   `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md` ;
 - ce fichier et `docs/features/README.md` ;
 - pour J3 uniquement et selon l'option retenue : le layout de publication et
   l'installateur.
+
+**Retrait du 7 août 2026 :** la restitution desktop de l'état indisponible
+(`apps/desktop/src/`) a quitté cette liste avec la moitié desktop de J2, portée
+dans F0007. Le retrait est réel et non décoratif : le sélecteur lit ces chemins
+pour détecter les collisions de zones entre unités concurrentes, et laisser la
+ligne — même raturée — aurait empêché F0007 de démarrer en parallèle de cette
+unité.
 
 ## Do not touch
 
@@ -261,10 +265,18 @@ Autonomous: No
 
 **Critère porté hors de cette unité, décision d'Andy du 7 août 2026 :** « les
 capacités déjà livrées restent utilisables sans télémétrie » quitte cette liste
-pour celle de **F0007**, avec la moitié desktop de J2. Sa vérification exige une
-application assemblée qui sélectionne une source de télémétrie — ce qu'aucune
-version de l'alpha ne fait aujourd'hui, et ce que F0007 livre. Cette unité ne
-gate donc plus dessus.
+pour celle de **F0007**, avec la moitié desktop de J2. Cette unité ne gate donc
+plus dessus.
+
+Précision du même jour, une fois l'option C tranchée pour F0007 : **l'alpha ne
+sélectionnera jamais la source `native`**, puisqu'elle n'embarque aucune trace et
+n'active aucune télémétrie. Le cas « bibliothèque cliente absente → télémétrie
+indisponible » n'est donc pas observable dans le parcours humain de l'alpha : il se
+prouve par un contrôle déterministe du shell, et sa vérification humaine attend
+MSFS réel (T0059) ou J3 de cette unité. Ce que F0007 rend visible dans l'alpha,
+c'est l'énoncé honnête « cette version ne mesure pas le temps de bloc » — une
+cause distincte, que son vocabulaire d'états ne confond pas avec la bibliothèque
+manquante.
 
 ## Security review
 

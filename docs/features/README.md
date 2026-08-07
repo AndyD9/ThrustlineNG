@@ -38,7 +38,7 @@ gelée du format précédent.
 | F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Done |
 | F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | Done |
 | F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | Done |
-| F0007 | Mesurer un vol sans harnais externe | 3–4 | F0004, F0006 et F0003 J1 fusionnées, décision d'Andy sur l'origine de la trace **non prise** | Draft |
+| F0007 | Finir son vol dans l'alpha, et dire honnêtement pourquoi elle ne mesure pas | 3–4 | F0004, F0006 et F0003 J1 fusionnées, décisions d'Andy prises le 7 août 2026 (option C, chemin d'abandon) | Ready |
 
 Les deux premières fonctionnalités ouvrent le format sur ce qui restait du golden
 path : `start_flight_from_dispatch` et `close_flight` sont livrées dans `main` depuis
@@ -97,19 +97,32 @@ loopback) et se désinstalle sans résidu — ce qui clôt T0055. Le parcours
 s'arrête au départ : mesure et clôture dans l'application installée relèvent
 de KI-027, porté par F0007.
 
-F0007 est `Draft` et porte **KI-027**, le dernier trou entre « l'alpha cliquable »
-et « l'alpha qui mesure » : l'application intégrée ne produit pas de temps de
-bloc par elle-même. Trois maillons manquent, et un seul suffit à tuer la chaîne
-— le superviseur ne passe aucune trace au bridge, l'adaptateur replay n'existe
-pas sans `--telemetry-trace`, et la publication attend un premier abonné
-SignalR que rien ne crée. Elle reste `Draft` parce que son premier jalon dépend
-d'une décision produit qu'Andy n'a pas prise : **d'où vient la trace de
-l'alpha ?** — trace dorée embarquée, trace choisie par la personne, ou pas de
-trace du tout jusqu'à MSFS réel. Les deux autres décisions (qui crée le premier
-abonné, cadence de rejeu) en découlent. Depuis le 7 août 2026 elle porte aussi la
-moitié desktop de **F0003 J2** — l'état « télémétrie indisponible » dans
-l'application : c'est la même surface superviseur ↔ WebView, et la faire évoluer
-deux fois aurait dupliqué l'IPC et le gate du shell sur les mêmes fichiers.
+F0007 est `Ready` depuis le 7 août 2026, et elle a **changé de sujet ce jour-là**.
+Elle portait **KI-027** — l'application intégrée ne produit pas de temps de bloc
+par elle-même — et visait « mesurer un vol sans harnais externe ». Andy a tranché
+sa décision bloquante, l'origine de la trace de l'alpha : **option C, pas de trace
+du tout**. Les options écartées étaient la trace dorée embarquée (l'alpha aurait
+toujours mesuré le même vol synthétique) et la trace choisie par la personne (une
+frontière d'entrée utilisateur vers le bridge et un accès au système de fichiers
+que le shell n'a pas). La mesure arrive donc avec MSFS réel, T0059 et F0003 J3, et
+KI-027 passe `Accepted` : un état produit assumé, pas un défaut à corriger.
+
+Ce choix a révélé une conséquence dure, constatée dans le code avant d'être
+consignée : sans mesure, `FlightCloseControl` échoue fermé et affiche « terminez le
+replay puis réessayez » — un conseil impossible dans une version sans replay — en
+laissant le dispatch « En vol » sans aucune sortie. **L'alpha aurait été cliquable
+jusqu'au départ, et bloquée là.** Andy a donc tranché la suite le même jour :
+l'application gagne un chemin d'**abandon** de vol. Il ne coûte ni fonction Edge ni
+migration — `outcome: "interrupted"` avec `blockMinutes: 0`, le plancher de
+règlement et le delta de réputation existent déjà côté serveur et base — et il
+n'invente aucun temps de bloc, donc la décision du 6 août 2026 tient.
+
+F0007 livre maintenant trois choses : la barrière du premier abonné retirée du
+chemin de mesure (elle bloquerait T0059 à l'identique, donc elle se corrige
+maintenant qu'elle est prouvable au harnais) ; une application qui dit ce qu'elle
+sait mesurer — ce qui absorbe la **moitié desktop de F0003 J2**, même surface
+superviseur ↔ WebView ; et un golden path installé qui se termine. L'identifiant,
+le nom de fichier et la branche ne changent pas, pour ne casser aucune référence.
 
 F0003 sort d'une question d'Andy du 5 août 2026 — « il faut qu'on le trouve nous-même,
 dans l'hypothèse où la personne n'a rien de tout ça » — et d'un relevé qui lui donne
