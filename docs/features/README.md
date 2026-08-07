@@ -37,7 +37,7 @@ gelée du format précédent.
 | F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | Ready |
 | F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Done |
 | F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | Done |
-| F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | Verify |
+| F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | Done |
 | F0007 | Mesurer un vol sans harnais externe | 3–4 | F0004 et F0006 fusionnées, décision d'Andy sur l'origine de la trace **non prise** | Draft |
 
 Les deux premières fonctionnalités ouvrent le format sur ce qui restait du golden
@@ -69,16 +69,19 @@ portés par **F0006**, ouverte sur la décision de séquencement d'Andy du 7 ao�
 2026 (« go 1 ») ; F0002 ayant finalement été fusionnée la première, le
 branchement de sa clôture sur la mesure rattachée est porté par F0006.
 
-F0006 est `Verify` et **livrée dans `main`** (PR #132, fusionnée le 7 août
+F0006 est `Done` et **livrée dans `main`** (PR #132, fusionnée le 7 août
 2026) : ses trois jalons sont `Done` — le bridge mesure par générations
 réarmables, Tauri rattache la génération armée au dispatch sans exposer ni
 jeton ni génération, l'application arme au départ et échoue fermé sur toute
 mesure non rattachée — plus le branchement de la clôture F0002 absorbé après la
-fusion de la PR #131. Elle est `Verify` et non `Done` parce que son propre
-compte rendu laisse une chose ouverte : le parcours manuel deux-vols-d'affilée,
-qui appartient à Andy. KI-028 est `Resolved` dans `docs/KNOWN_ISSUES.md`
-depuis la PR #136 (fusionnée le 7 août 2026), qui a appris au gate de
-maintenance les références `FXXXX` sur décision d'Andy.
+fusion de la PR #131. Le parcours manuel deux-vols-d'affilée, dernière chose
+ouverte de son compte rendu, a été exécuté le 7 août 2026 sur le harnais
+replay d'un build dev (deux vols dans la même session, générations 2 et 3,
+chaque mesure attribuée à la ligne de son vol, clôture du premier vol au
+passage) — résultat consigné dans le Completion Report de son J3. KI-028 est
+`Resolved` dans `docs/KNOWN_ISSUES.md` depuis la PR #136 (fusionnée le 7 août
+2026), qui a appris au gate de maintenance les références `FXXXX` sur décision
+d'Andy.
 
 F0005 est `Done` sur la
 seconde décision du même jour : le canal `internal-alpha` reçoit une CSP

@@ -195,3 +195,13 @@ du PTY documentée les 27 et 28 juillet sans modifier le produit.
 - modifications préexistantes exclues : aucune ;
 - état final : implémentation présente dans `main`, smoke test console Windows
   terminé le 3 août 2026 ; ticket `Done`.
+
+## Revalidation du 7 août 2026 (T0056)
+
+Le ticket était déjà `Done` (preuve du 3 août 2026 ci-dessus) ; T0056 le
+listait encore comme `Verify` au moment de sa rédaction. Revalidation datée
+sur la machine de validation, commit `8e6bf8d` : le binaire publié
+self-contained rend `Healthy` avec le code `0` pour `--health-check`, l'aide
+d'usage sur la sortie d'erreur avec le code `2` pour `--unknown`, et
+`pnpm bridge:health` rend `Healthy`/`0`. La preuve Ctrl+C/Ctrl+Break du
+3 août 2026 reste celle qui fait foi ; elle n'a pas été rejouée.

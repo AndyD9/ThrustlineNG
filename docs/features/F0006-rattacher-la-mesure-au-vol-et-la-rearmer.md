@@ -1,14 +1,16 @@
 # F0006 — Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols
 
-Status: Verify
+Status: Done
 Owner: Andy (vérification manuelle)
 Branch: `feature/f0006-rattacher-la-mesure-au-vol-et-la-rearmer`
 PR: [#132](https://github.com/AndyD9/ThrustlineNG/pull/132) **fusionnée** par
 Andy le 7 août 2026 — J1–J3 livrés dans `main`, **plus le branchement de la
-clôture F0002**, absorbé ici après la fusion de la PR #131 le même jour. Il ne
-reste que le parcours manuel deux-vols-d'affilée, qui appartient à Andy : d'où
-`Verify` et non `Done`. Si ce parcours a déjà été déroulé, le statut passe
-`Done` en consignant son résultat dans le Completion Report de J3.
+clôture F0002**, absorbé ici après la fusion de la PR #131 le même jour. Le
+parcours manuel deux-vols-d'affilée a été exécuté le 7 août 2026 par la
+session agent, sur instruction du passage de relais d'Andy, sur le harnais
+replay d'un build dev (KI-027 interdit toute mesure sur le build installé) ;
+son résultat est consigné dans le Completion Report de J3 — d'où le passage
+`Verify` → `Done`, porté par la branche `docs/f0006-verification-deux-vols`.
 Phase: 3–4
 Risk: Medium
 Security-sensitive: Yes
@@ -162,8 +164,9 @@ Autonomous: No
 
 - [x] Deux vols d'affilée dans la même session produisent deux mesures
       distinctes, chacune attribuée à son dispatch (tests bridge « rearm opens
-      a fresh measurement », panneau à deux vols actifs ; le parcours manuel
-      sur harnais replay reste à Andy).
+      a fresh measurement », panneau à deux vols actifs ; parcours manuel sur
+      harnais replay exécuté le 7 août 2026 — générations 2 et 3, chaque
+      mesure sur la ligne de son vol, détail au Completion Report de J3).
 - [x] Une relecture après un vol suivant ne rend jamais la mesure du vol
       précédent comme si elle appartenait au vol courant (rattachement `null`
       sur génération changée, affichage fail-closed).
@@ -278,8 +281,20 @@ Aucune donnée persistée nulle part.
 - commandes et résultats : typecheck vert, 427 tests frontend verts,
   couverture 94,86 % lignes / 90,13 % branches, build vert,
   `authority:check`, `data-policy:check`, `maintenance:check` verts.
-- vérification manuelle : à faire par Andy — scénario deux-vols-d'affilée sur
-  le harnais replay (méthode du parcours F0004 du 7 août 2026).
+- vérification manuelle : **exécutée le 7 août 2026** (session agent, sur
+  instruction du passage de relais d'Andy) — scénario deux-vols-d'affilée sur
+  le harnais replay (méthode du parcours F0004 du 7 août 2026 : wrapper
+  `THRUSTLINE_BRIDGE_PATH` injectant la trace dorée, abonné SignalR externe
+  persistant, WebView pilotée par CDP), build dev sur le code de `main`
+  (`9f9b54c`), pile locale réinitialisée. Vol 1 LFPG → LFBO : départ, résumé
+  « Mesure armée : aucun replay mesuré pour l'instant. », replay génération 2
+  → « Temps de bloc mesuré : 1 min. » sur la ligne du vol 1, clôture réussie
+  (dispatch `completed`, `closed_at` posé, vérifié par REST). Vol 2
+  LFBO → LFPG dans la même session de l'application : le départ réarme et
+  rattache (résumé « Replay en cours » attribué au vol 2 — la mesure terminée
+  du vol 1 ne s'affiche jamais pour lui), replay génération 3 → « Temps de
+  bloc mesuré : 1 min. » sur la ligne du vol 2. Balayage anti-fuite sur le DOM
+  final : ni jeton, ni port, ni chaîne hex 64, ni génération.
 - revue et constats traités : une mesure d'un vol précédent ne peut plus
   s'afficher pour un autre vol — prouvé sur le panneau à deux vols actifs et
   sur le contrôle avec rattachement divergent ou nul.

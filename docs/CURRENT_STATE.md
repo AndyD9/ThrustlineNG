@@ -48,31 +48,27 @@ KI-027/F0007).
 
 ## Unités en cours
 
-- **F0006** (`Verify`) — rattacher la mesure de vol à son dispatch et la
-  réarmer entre deux vols : **livrée dans `main`** (PR #132, fusionnée le
-  7 août 2026), y compris le branchement de la clôture F0002. Ne reste que le
-  parcours manuel deux-vols-d'affilée, qui appartient à Andy.
 - **F0003** (`Ready`) — découverte de la bibliothèque SimConnect ou dégradation
   propre ; son J3 attend une décision d'Andy (fourniture de la DLL) et la
   lecture de l'EULA du SDK.
 
 ## Ce qui manque pour l'alpha cliquable
 
-1. La vérification deux-vols-d'affilée de F0006 (code livré dans `main`,
-   vérifiable uniquement sur un build dev — KI-027).
-2. F0007 (KI-027) — le vol en replay mesuré et la clôture dans l'application
+1. F0007 (KI-027) — le vol en replay mesuré et la clôture dans l'application
    **installée** : l'alpha assemblée ne produit aucune mesure sans harnais
    externe ; son J1 attend la décision d'Andy sur l'origine de la trace.
 
 Le câblage du golden path est complet dans `main` depuis la fusion de F0006 —
-départ, mesure rattachée et réarmable, clôture et règlement au grand livre — et
-le parcours installé est prouvé jusqu'au départ depuis F0005 J2 (7 août 2026).
+départ, mesure rattachée et réarmable, clôture et règlement au grand livre,
+vérifié deux-vols-d'affilée sur harnais replay le 7 août 2026 — et le parcours
+installé est prouvé jusqu'au départ depuis F0005 J2 (7 août 2026).
 
 ## Hors du jalon, suivi ailleurs
 
 - MSFS réel et SimConnect natif : T0059 (`Draft`, matériel/SDK) et F0003.
-- Vérifications historiques : T0056 (`Ready`, appartient à Andy) ; T0062–T0064
-  (`Verify`, vérifications d'Andy sur la boucle, aujourd'hui en pause).
+- Vérifications historiques : T0056 exécutée le 7 août 2026 (T0007 et T0008
+  `Done` sous confirmation d'Andy à la fusion) ; T0062–T0064 (`Verify`,
+  vérifications d'Andy sur la boucle, aujourd'hui en pause).
 - Cloud, staging, production, signature, updater, rollback : phase 6.
 - Dettes et risques : `docs/KNOWN_ISSUES.md`, priorisés par sévérité.
 
