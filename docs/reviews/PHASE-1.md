@@ -67,10 +67,14 @@ cachée n'est nécessaire aux tests et builds automatisés.
 
 Ces éléments restent ouverts sans invalider le gate de reproductibilité :
 
-- T0007 : checklist interactive complète et scénario WebView2 absent sur VM ;
+- T0007 : checklist interactive complète — **exécutée le 7 août 2026 par
+  T0056** (preuve datée dans le ticket) ; reste le scénario WebView2 absent
+  sur VM propre, bloqué par l'environnement de la machine de validation ;
 - T0008 : focus, zoom 200 %, réduction des animations et inspection
-  console/réseau ;
-- T0009 : Ctrl+C depuis une console Windows native ;
+  console/réseau — **exécutés le 7 août 2026 par T0056** (preuve datée dans
+  le ticket) ;
+- T0009 : Ctrl+C depuis une console Windows native — **levé le 3 août 2026**
+  (preuve Ctrl+Break consignée dans le ticket, revalidation datée par T0056) ;
 - T0011 : essais MSFS 2024 réels Store/Xbox App et Steam, attendus pour la
   phase 3 et la promotion des canaux ;
 - T0012 / `KI-017` : Docker Desktop 29.6.2 publie Supabase hors loopback sur la

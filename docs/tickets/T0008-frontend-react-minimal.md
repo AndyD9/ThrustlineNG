@@ -1,6 +1,6 @@
 # T0008 — Créer le frontend React minimal
 
-Status: Verify
+Status: Done
 Owner: Andy
 Branch: `foundation/t0008-react-frontend`
 Phase: 1
@@ -633,3 +633,35 @@ Indiquer séparément pour chaque dépôt :
 - blocages éventuels.
 
 L'agent crée ou met à jour la PR de manière autonome, mais ne la merge jamais.
+
+## Vérification interactive du 7 août 2026 (T0056)
+
+Exécutée par la session agent sur instruction du passage de relais d'Andy, sur
+la machine de validation (Windows 11 Pro 26200), commit `8e6bf8d`, build
+Release, WebView pilotée par CDP. La confirmation finale appartient à Andy par
+la revue et la fusion de la PR de T0056. Le frontend vérifié est celui
+d'aujourd'hui (login, onboarding, achat, dispatch), qui a remplacé la baseline
+deux-routes historique : la checklist est interprétée sur l'application
+actuelle.
+
+- **Campagne de mesure rejouée** (`pnpm frontend:measure`, rapports
+  `artifacts/t0008/frontend-measurements.json` et
+  `tauri-shell-measurements.json`) : typecheck 4,296 s, tests 11,265 s,
+  bundle 304 769 o bruts / 89 206 o gzip (un chunk JS de 294 712 o), delta
+  runtime vs T0007 consigné dans le rapport ; cinq lancements froids (médiane
+  88,5 ms) et cinq chauds (94,7 ms), dix cycles propres, zéro orphelin.
+- **Routes** : `#/route-inconnue` rend « Page introuvable » avec le lien
+  « Retour à l'accueil » ; retour à la route connue vérifié.
+- **Écran d'erreur sûr** : non exécuté interactivement — l'application
+  actuelle n'expose plus de déclencheur d'erreur de test ; le comportement de
+  `AppErrorBoundary` (écran sûr, aucune donnée envoyée, bouton Recharger)
+  reste prouvé par `AppErrorBoundary.test.tsx`.
+- **Focus clavier** : Tab parcourt email → mot de passe → bouton de connexion
+  puis boucle ; `document.activeElement` relevé à chaque pas.
+- **Zoom 200 %** : émulé par CDP (`visualViewport.scale` = 2), contenu rendu.
+  Les raccourcis de zoom WebView2 restent désactivés par configuration.
+- **Réduction des animations** : `prefers-reduced-motion: reduce` émulé par
+  CDP, `matchMedia` le confirme côté page et le rendu reste intact.
+- **Console et réseau** : zéro erreur/avertissement console et zéro requête
+  hors origines internes de la WebView sur l'ensemble du parcours.
+- **Fermeture** : par la fenêtre principale, zéro processus orphelin.

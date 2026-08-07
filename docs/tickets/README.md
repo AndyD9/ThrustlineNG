@@ -30,8 +30,8 @@
 | T0004 | Définir la matrice de support Windows et MSFS | 0 | T0001–T0003 | Done |
 | T0005 | Sélectionner la stack cible et ses versions compatibles | 0 | T0001–T0004 | Done |
 | T0006 | Épingler les runtimes et créer la source de versions | 1 | T0005 | Done |
-| T0007 | Créer le shell Tauri minimal et mesurer son empreinte | 1 | T0006 | Verify |
-| T0008 | Créer le frontend React minimal | 1 | T0006–T0007 | Verify |
+| T0007 | Créer le shell Tauri minimal et mesurer son empreinte | 1 | T0006 | Done |
+| T0008 | Créer le frontend React minimal | 1 | T0006–T0007 | Done |
 | T0009 | Créer le bridge .NET minimal | 1 | T0006 | Done |
 | T0010 | Établir le contrat local et le health check | 1 | T0007–T0009 | Done |
 | T0011 | Créer l'adaptateur SimConnect et le replay | 1–3 | T0009–T0010 | Verify |
@@ -79,7 +79,7 @@
 | T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Done |
 | T0054 | Publier la télémétrie bornée du bridge sur le contrat local | 3 | T0010–T0011, T0015 | Done |
 | T0055 | Fixer la source canonique de version produit et livrer l'alpha technique interne | 1–6 | T0006, T0014–T0015, T0043–T0048 | Done |
-| T0056 | Clôturer les vérifications interactives T0007 à T0009 | 1 | T0007–T0009, T0015, décision Andy | Ready |
+| T0056 | Clôturer les vérifications interactives T0007 à T0009 | 1 | T0007–T0009, T0015, décision Andy | Done |
 | T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Done |
 | T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Done |
 | T0059 | Prouver le premier slice SimConnect réel et capturer son corpus | 3 | T0011, T0014–T0015, T0054, ADR-0003, MSFS 2024 installé, décision Andy | Draft |
@@ -141,6 +141,18 @@ installée — impossible par conception tant que la CSP de production restait
 de F0005 (J2) : login → compagnie → achat, puis dispatch et départ, sur la pile
 locale. Aucun tag n'est créé.
 
+T0056 est `Done` depuis le 7 août 2026 : les campagnes de mesure T0007 et
+T0008 ont été rejouées sur la machine de validation (cinq lancements froids et
+cinq chauds chacune, dix cycles propres, zéro orphelin, rapports sous
+`artifacts/`), les checklists interactives exécutées dans la WebView réelle
+pilotée par CDP (titre, redimensionnement, routes, focus, zoom 200 % émulé,
+réduction des animations, console et réseau vierges), et le bridge revalidé
+`Healthy`/`0` sur le binaire publié. T0009 était déjà `Done` depuis le 3 août.
+Chaque ticket porte sa preuve datée ; le seul contrôle non exécuté — WebView2
+absent sur VM propre — est consigné comme bloqué par l'environnement dans
+T0007. La confirmation finale des contrôles humains appartient à Andy par la
+revue et la fusion de la PR de T0056.
+
 T0054 est `Done` depuis la fusion de la PR #99 dans `main` au merge `3a2c292` le
 4 août 2026 : le flux moteur de vol et bridge publie la télémétrie bornée sur le
 contrat local depuis le replay synthétique. Son prochain ticket est T0059, qui
@@ -155,7 +167,10 @@ ce ticket.
 
 Les branches T0006 à T0008 sont présentes dans l'ascendance technique de T0009.
 T0006 est `Done` depuis sa preuve clean-clone du 30 juillet 2026. T0007 et T0008
-restent en vérification tant que leurs contrôles humains ne sont pas clos. T0009
+sont `Done` depuis le 7 août 2026 : T0056 a rejoué leurs campagnes de mesure
+(cycles propres, zéro orphelin) et exécuté leurs checklists interactives, avec
+preuves datées dans chaque ticket ; seul le scénario WebView2 absent sur VM
+propre reste consigné comme bloqué par l'environnement. T0009
 est `Done` depuis le smoke test console Windows du 3 août 2026 : état prêt,
 annulation console, sortie `0` et aucun processus restant.
 T0011 possède un replay synthétique automatisé et

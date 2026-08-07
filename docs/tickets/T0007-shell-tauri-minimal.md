@@ -1,6 +1,6 @@
 # T0007 — Créer le shell Tauri minimal et mesurer son empreinte
 
-Status: Verify
+Status: Done
 Owner: Andy
 Branch: `foundation/t0007-tauri-shell`
 Phase: 1
@@ -570,3 +570,40 @@ Indiquer séparément pour chaque dépôt :
 - résultat du push s'il est autorisé.
 
 Ne jamais utiliser `git add .` ou `git add -A`.
+
+## Vérification interactive du 7 août 2026 (T0056)
+
+Exécutée par la session agent sur instruction du passage de relais d'Andy, sur
+la machine de validation (Windows 11 Pro 26200), commit `8e6bf8d`, build
+Release. La confirmation finale appartient à Andy par la revue et la fusion de
+la PR de T0056.
+
+- **Campagne de mesure T0015 rejouée** (`pnpm desktop:measure`, rapport
+  `artifacts/t0007/tauri-shell-measurements.json`) : cinq lancements froids
+  (min 85,3 / médiane 90,4 / max 102 ms d'affichage), cinq chauds (79,8 /
+  86 / 91,3 ms), dix cycles lancement/fermeture tous `cleanExit` et
+  `cleanBridgeExit`, **zéro orphelin** desktop et bridge, un seul processus
+  bridge et un seul processus WebView2 par lancement, fenêtre réellement
+  affichée (le protocole échoue sinon).
+- **Fenêtre** : titre `Thrustline` ; redimensionnement réel appliqué
+  (900 × 650 constaté par `GetWindowRect`). Limite de méthode : la contrainte
+  de minimum 800 × 600 ne s'oppose pas à un `MoveWindow` programmatique —
+  `WM_GETMINMAXINFO` ne borne que le redimensionnement interactif, que cette
+  session ne peut pas simuler à la souris ; ce n'est pas un défaut produit.
+- **Zoom 200 %** : émulé par CDP (`visualViewport.scale` = 2), contenu rendu
+  et lisible. Les raccourcis de zoom WebView2 restent désactivés par
+  configuration Tauri (défaut), le zoom d'accessibilité relève de l'OS.
+- **Réseau et console** : sur tout le parcours CDP (login, route inconnue,
+  focus), zéro requête hors origines internes de la WebView et zéro
+  erreur/avertissement console.
+- **Exécutable Release lancé réellement** (celui produit par la campagne),
+  fermé par sa fenêtre principale, bridge éteint, zéro orphelin.
+- **CSP, capabilities et dépendances** : CSP de production
+  `connect-src 'none'` inchangée dans `tauri.conf.json` (et, depuis F0005 J1,
+  épinglée par canal avec contrôle sur l'exécutable produit) ; unique
+  capability `main-shell` à zéro permission sur la seule fenêtre `main` ;
+  `devtools: false` ; versions Tauri 2.11.5 / CLI 2.11.4 conformes aux pins.
+- **Non exécuté — bloqué par l'environnement** : le scénario WebView2 absent
+  sur VM propre ; aucune VM propre n'est disponible sur la machine de
+  validation. Ce point reste le seul différé, sans invalider la baseline
+  (l'installateur T0014 documente le prérequis WebView2 Evergreen).

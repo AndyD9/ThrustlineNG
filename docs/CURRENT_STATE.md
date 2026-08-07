@@ -66,8 +66,9 @@ installé est prouvé jusqu'au départ depuis F0005 J2 (7 août 2026).
 ## Hors du jalon, suivi ailleurs
 
 - MSFS réel et SimConnect natif : T0059 (`Draft`, matériel/SDK) et F0003.
-- Vérifications historiques : T0056 (`Ready`, appartient à Andy) ; T0062–T0064
-  (`Verify`, vérifications d'Andy sur la boucle, aujourd'hui en pause).
+- Vérifications historiques : T0056 exécutée le 7 août 2026 (T0007 et T0008
+  `Done` sous confirmation d'Andy à la fusion) ; T0062–T0064 (`Verify`,
+  vérifications d'Andy sur la boucle, aujourd'hui en pause).
 - Cloud, staging, production, signature, updater, rollback : phase 6.
 - Dettes et risques : `docs/KNOWN_ISSUES.md`, priorisés par sévérité.
 
