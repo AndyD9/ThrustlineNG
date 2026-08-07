@@ -37,6 +37,20 @@ F0006 a rendu le tracker réarmable et rattaché la mesure à son vol ; F0002
 consomme cette mesure pour la clôture. Le seul trou restant entre « l'alpha
 cliquable » et « l'alpha qui mesure » est celui-ci.
 
+**Ajout du 7 août 2026 — la moitié desktop de F0003 J2 est portée ici.** F0003 J1
+a livré la sonde SimConnect bornée et exposé l'état de localisation dans le health
+check du bridge (`nativeLibrary` : `located`/`unavailable`/`not-required` ;
+`nativeLibraryOrigin` : `explicit`/`application`/`sdk`/`none`). L'affichage
+« télémétrie indisponible » dans l'application était inexécutable dans les
+`Allowed areas` de F0003 : le superviseur ne consomme pas le health check, la seule
+surface IPC est `flight_summary` dont le vocabulaire d'états est fermé des deux
+côtés, et l'étendre relève de `apps/desktop/src-tauri/` et du gate
+`tests/desktop-shell/run.ps1`. Andy a tranché : ce câblage vient ici, parce que
+cette unité possède déjà ces fichiers et que sa décision 2 pose exactement la même
+question — qui parle au bridge, le superviseur ou la WebView. Une seule évolution
+de la surface IPC sert donc les deux besoins : l'origine de la mesure et
+l'indisponibilité de la télémétrie.
+
 ## Décisions réservées à Andy
 
 Aucun jalon ne démarre avant la première : elle détermine les deux autres.
@@ -62,6 +76,8 @@ Aucun jalon ne démarre avant la première : elle détermine les deux autres.
 
 - F0004 fusionnée — mesure, contrat local, commande `flight_summary` ;
 - F0006 fusionnée — générations réarmables et rattachement au dispatch ;
+- F0003 J1 fusionnée — champs de santé `nativeLibrary` et `nativeLibraryOrigin`,
+  consommés par la moitié desktop portée ici le 7 août 2026 ;
 - **décision d'Andy sur l'origine de la trace : non prise** — veto d'autonomie ;
 - T0054 : l'invariant « le bridge ne connaît ni compagnie, ni dispatch, ni grand
   livre » ne bouge pas.
@@ -71,10 +87,14 @@ Aucun jalon ne démarre avant la première : elle détermine les deux autres.
 - `apps/desktop/src-tauri/src/bridge.rs` et le superviseur ;
 - `apps/bridge/` — publication de télémétrie et adaptateur replay ;
 - `tests/bridge/`, `tests/desktop-shell/run.ps1`, `apps/desktop/src/test/` ;
+- `apps/desktop/src/` — restitution de l'état « télémétrie indisponible », ajouté
+  le 7 août 2026 avec la moitié desktop de F0003 J2 ;
 - `apps/desktop/src-tauri/tauri.package.conf.json` si la trace devient ressource ;
 - `docs/SECURITY.md`, `docs/ARCHITECTURE.md`, `docs/QUALITY.md`,
   `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md` pour clore KI-027 ;
-- ce fichier et `docs/features/README.md`.
+- ce fichier, `docs/features/README.md`, et
+  `docs/features/F0003-trouver-simconnect-ou-degrader-proprement.md` pour cocher le
+  critère qui lui a été porté.
 
 ## Do not touch
 
@@ -116,12 +136,22 @@ Autonomous: No
 
 - résultat : le superviseur Tauri lance le bridge avec la source de trace
   décidée en décision 1, sans exposer ni jeton ni chemin à la WebView. Un
-  contrôle déterministe échoue si la WebView peut influencer ce chemin.
-- frontière : superviseur Rust, packaging si la trace devient une ressource.
+  contrôle déterministe échoue si la WebView peut influencer ce chemin. **Ajout du
+  7 août 2026 (moitié desktop de F0003 J2)** : la même évolution de surface porte
+  l'état de disponibilité de la télémétrie jusqu'à la WebView — vocabulaire fermé
+  des deux côtés, dérivé des champs `nativeLibrary` / `nativeLibraryOrigin` du
+  health check, **sans jamais relayer chemin, version de SDK ni jeton**. Le
+  superviseur reste le seul à lire le health check.
+- frontière : superviseur Rust, surface IPC, packaging si la trace devient une
+  ressource.
 - validations : `pnpm desktop:check`, `pnpm desktop:test`,
-  `pnpm windows:package:check`.
+  `pnpm windows:package:check`, plus `pnpm bridge:test` pour les champs de santé
+  consommés.
 - revue : chercher tout chemin par lequel une entrée utilisateur atteindrait
-  l'argument de trace, et toute lecture de fichier hors du périmètre décidé.
+  l'argument de trace, et toute lecture de fichier hors du périmètre décidé ; et,
+  sur l'état de disponibilité, vérifier qu'aucun chemin local, version de SDK ni
+  jeton ne traverse vers la WebView, et qu'un état dégradé ne se présente jamais
+  comme une réussite.
 
 ### J3 — L'alpha installée mesure son vol
 
@@ -147,6 +177,16 @@ Autonomous: No
       port, prouvé par un contrôle déterministe.
 - [ ] Deux vols d'affilée restent correctement attribués.
 - [ ] KI-027 passe `Resolved` en référençant F0007.
+- [ ] **Porté de F0003 J2 le 7 août 2026** — quand la source de télémétrie
+      sélectionnée n'a pas de bibliothèque cliente, l'application affiche un état
+      accessible « télémétrie indisponible » disant quoi installer, sans divulguer
+      chemin, version de SDK ni jeton, et cet état ne se présente jamais comme une
+      réussite.
+- [ ] **Porté de F0003 J2 le 7 août 2026** — les capacités déjà livrées restent
+      utilisables sans télémétrie : compagnie, catalogue, achat, dispatch et flotte,
+      conformément à `docs/SUPPORT.md`, et aucun kill switch n'est introduit là où
+      `SUPPORT.md` l'interdit. À consigner daté dans la note de portage de F0003
+      (section `Acceptance criteria`), qui pointe ici.
 
 ## Security review
 
@@ -159,7 +199,10 @@ Jalon concerné : **J2**.
 - validation/autorisation : le chemin de trace est décidé par le superviseur,
   jamais reçu de la WebView ; contrôle déterministe avec mutation négative ;
 - atomicité/idempotence : sans objet (lecture) ;
-- logs/vie privée : aucun chemin local ni jeton journalisé.
+- logs/vie privée : aucun chemin local ni jeton journalisé ; et l'état de
+  disponibilité relayé à la WebView (porté de F0003 J2) reste un vocabulaire fermé
+  — jamais le chemin de la bibliothèque, sa version de SDK ni le jeton du contrat
+  local.
 
 ## Maintenance review
 
@@ -190,6 +233,9 @@ pnpm maintenance:check
    qu'aucun chemin ne traverse vers la WebView.
 3. Bout en bout : dérouler le golden path dans l'alpha installée, deux vols
    d'affilée, sans processus externe.
+4. J2, porté de F0003 J2 : lancer l'application avec la source `native` et sans
+   bibliothèque cliente, constater l'état « télémétrie indisponible » et que
+   compagnie, catalogue, achat, dispatch et flotte restent utilisables.
 
 ## Rollback
 

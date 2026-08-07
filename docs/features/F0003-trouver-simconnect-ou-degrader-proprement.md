@@ -3,9 +3,11 @@
 Status: In progress
 Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0003-trouver-simconnect-ou-degrader-proprement`
-Avancement: J1 `Done` le 7 août 2026 ; J2 `In progress` — sa moitié bridge
-(champs de santé additifs) est livrée avec J1, sa moitié desktop est bloquée
-par une décision d'Andy (voir la note du jalon J2) ; J3 `Draft`, inchangé.
+Avancement: J1 `Done` le 7 août 2026 ; J2 `Done` le 7 août 2026 sur son
+périmètre restant — sa moitié bridge (champs de santé additifs) est livrée avec
+J1, sa moitié desktop est **portée dans F0007** sur décision d'Andy du 7 août
+2026 (voir la note du jalon J2) ; J3 `Draft`, inchangé, en attente de la
+décision de fourniture de la DLL et de la lecture de l'EULA.
 Phase: 3
 Risk: Medium
 Security-sensitive: Yes
@@ -106,7 +108,9 @@ l'option retenue, reportées datées dans cette section.
 - `apps/bridge/BridgeHealth.cs` et `apps/bridge/BridgeOptions.cs` — état et option de
   chemin explicite ;
 - `tests/bridge/` — scénarios de localisation, de refus et de dégradation ;
-- `apps/desktop/src/` — restitution de l'état indisponible, en J2 seulement ;
+- ~~`apps/desktop/src/` — restitution de l'état indisponible, en J2 seulement~~ —
+  **retiré le 7 août 2026** : la restitution desktop est portée dans F0007, qui
+  possède déjà le superviseur et le gate du shell dont elle dépend ;
 - `docs/SECURITY.md`, `docs/ARCHITECTURE.md`, `docs/QUALITY.md`, `docs/SUPPORT.md`,
   `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md` ;
 - ce fichier et `docs/features/README.md` ;
@@ -161,34 +165,43 @@ Autonomous: No
 
 ### J2 — L'état indisponible est visible et actionnable
 
-Status: In progress
+Status: Done
 
-**Note du 7 août 2026 — moitié bloquée par une décision d'Andy.** La moitié
-bridge de ce jalon est livrée avec J1 : le health check versionné expose
-`nativeLibrary` et `nativeLibraryOrigin` en champs additifs, sans chemin ni
-version de SDK. La moitié desktop est **inexécutable dans les `Allowed areas`
-de cette unité** : la WebView n'a aucun accès au health check du bridge (le
-superviseur ne le consomme pas), la seule surface IPC est `flight_summary`
+**Décision d'Andy du 7 août 2026 — la moitié desktop est portée dans F0007.**
+La moitié bridge de ce jalon est livrée avec J1 : le health check versionné
+expose `nativeLibrary` et `nativeLibraryOrigin` en champs additifs, sans chemin
+ni version de SDK. La moitié desktop était **inexécutable dans les `Allowed
+areas` de cette unité** : la WebView n'a aucun accès au health check du bridge
+(le superviseur ne le consomme pas), la seule surface IPC est `flight_summary`
 dont le vocabulaire d'états est fermé des deux côtés, et l'étendre relève de
 `apps/desktop/src-tauri/` et du gate `tests/desktop-shell/run.ps1` — tous deux
-hors des zones autorisées ici. Deux issues possibles, au choix d'Andy :
-étendre les `Allowed areas` de cette unité (nouvelle commande fermée ou champ
-additif du relais, avec l'évolution du gate du shell), ou porter ce câblage
-dans F0007, qui retravaille déjà la relation superviseur ↔ bridge (KI-027).
-Rien n'est affiché de trompeur en attendant : l'application assemblée utilise
-la source replay, jamais `native`.
+hors des zones autorisées ici.
+
+Andy a tranché : ce câblage va dans **F0007**, plutôt que d'étendre l'unité.
+Raisons consignées : F0007 porte déjà `apps/desktop/src-tauri/src/bridge.rs`,
+le superviseur, `tests/desktop-shell/run.ps1` et `apps/desktop/src/test/` dans
+ses `Allowed areas`, et sa décision 2 pose exactement la même question — qui
+parle au bridge, le superviseur ou la WebView ; étendre F0003 dupliquerait ce
+travail IPC et l'évolution du gate du shell sur les mêmes fichiers, avec
+conflit probable ; et l'affichage n'est de toute façon pas vérifiable tant que
+l'application assemblée ne sélectionne aucune source de télémétrie, ce qui est
+précisément l'objet de F0007. Rien n'est affiché de trompeur en attendant :
+l'application assemblée n'utilise jamais la source `native`.
+
+Ce jalon est donc `Done` sur son périmètre restant, et F0007 gagne le critère
+d'acceptation correspondant.
 Risk: Low
 Security-sensitive: No
 Autonomous: Yes
 
 - résultat : le health check versionné expose l'état de localisation en champs
-  additifs, sans divulguer chemin, version de SDK ni jeton, et le desktop affiche un
-  état accessible « télémétrie indisponible » avec ce qu'il faut installer. Aucune
-  fonctionnalité déjà livrée n'est bloquée par cette absence : compagnie, catalogue,
-  achat, dispatch et flotte restent utilisables, conformément à `docs/SUPPORT.md`.
-- frontière : health check du bridge, puis desktop.
-- validations : `pnpm bridge:test`, `pnpm frontend:typecheck`, `pnpm frontend:test`,
-  `pnpm frontend:coverage`, `pnpm frontend:build`, `pnpm authority:check`.
+  additifs, sans divulguer chemin, version de SDK ni jeton. L'affichage desktop
+  « télémétrie indisponible » et la vérification que compagnie, catalogue, achat,
+  dispatch et flotte restent utilisables sans télémétrie — conformément à
+  `docs/SUPPORT.md` — sont **portés dans F0007** (décision du 7 août 2026).
+- frontière : health check du bridge.
+- validations : `pnpm bridge:test`, `pnpm bridge:health`. Les gates frontend de la
+  moitié desktop partent avec elle dans F0007.
 - revue : vérifier qu'aucun état dégradé ne se présente comme une réussite, et qu'un
   kill switch n'est pas introduit là où `SUPPORT.md` l'interdit.
 
@@ -233,17 +246,25 @@ Autonomous: No
 - [x] Aucun message, journal ou champ de health check ne divulgue un chemin
       utilisateur complet, une version de SDK ou un jeton. — J1 : assertions
       dédiées du harnais sur la santé et le diagnostic.
-- [ ] Les capacités déjà livrées restent utilisables sans télémétrie. — J2,
-      vérification dans l'application, en attente de la décision d'Andy sur la
-      moitié desktop.
-- [ ] `docs/SUPPORT.md` et `docs/SECURITY.md` décrivent la sonde, son ordre et son
-      refus ; le scénario 14 d'`ADR-0003` gagne son cas « bibliothèque absente ».
-      — SUPPORT et SECURITY : fait en J1. L'ajout au scénario 14 d'`ADR-0003`
-      est **hors des `Allowed areas` de cette unité** (`docs/decisions/` absent
-      de la liste) et contredirait la règle « une ADR ne se modifie que par une
-      ADR » : à trancher par Andy.
+- [x] `docs/SUPPORT.md` et `docs/SECURITY.md` décrivent la sonde, son ordre et son
+      refus. — J1. **Décision d'Andy du 7 août 2026 : le volet « scénario 14
+      d'`ADR-0003` » est retiré de ce critère.** Trois raisons consignées :
+      `docs/decisions/` est hors des `Allowed areas` de cette unité ; le README
+      des ADR pose qu'une ADR acceptée ne se réécrit pas, seule une ADR nouvelle
+      la remplace ; et une bibliothèque absente n'est pas le cas « variable
+      absente, invalide ou corrompue » du scénario 14 — c'est un cran plus tôt,
+      au niveau du prérequis, pas de la donnée. Les scénarios 1–14 étant la barre
+      de promotion d'un canal vers `Supported`, y toucher ici contredirait le
+      `Do not touch` de cette unité. Suivi en `Follow-ups`.
 - [x] J3 n'est pas commencé sans la décision d'Andy et les termes de l'EULA cités.
       — Respecté : J3 est intact, aucun binaire n'entre dans le dépôt.
+
+**Critère porté hors de cette unité, décision d'Andy du 7 août 2026 :** « les
+capacités déjà livrées restent utilisables sans télémétrie » quitte cette liste
+pour celle de **F0007**, avec la moitié desktop de J2. Sa vérification exige une
+application assemblée qui sélectionne une source de télémétrie — ce qu'aucune
+version de l'alpha ne fait aujourd'hui, et ce que F0007 livre. Cette unité ne
+gate donc plus dessus.
 
 ## Security review
 
@@ -271,8 +292,12 @@ Jalons concernés : **J1** et **J3**.
   actuel ne peut réussir sur aucune machine où le SDK n'est pas dans un répertoire
   cherché ;
 - dette créée ou aggravée : une liste de sources est une liste à tenir à jour quand
-  MSFS ou le SDK changent d'emplacement. À consigner comme telle, avec sa condition
-  de revalidation ;
+  MSFS ou le SDK changent d'emplacement. Consignée en `KI-032`, **acceptée par Andy
+  le 7 août 2026** (statut `Accepted`) avec sa condition de revalidation : rejouer
+  la vérification manuelle J1 à chaque mise à jour majeure du SDK MSFS ou changement
+  de canal MSFS. L'alternative — découverte élargie ou lecture de registre —
+  rouvrirait le vecteur de détournement de DLL que J1 ferme, et n'est donc pas
+  ouverte en échange ;
 - règle de sécurité ajoutée : l'ordre de localisation et le refus d'une source non
   listée deviennent une règle de `docs/SECURITY.md` ;
 - contrôle manuel à automatiser : la dégradation sans MSFS doit être un test, pas une
@@ -303,8 +328,9 @@ pnpm maintenance:check
    `unavailable`, le processus toujours sain et le diagnostic actionnable.
 2. J1 : déposer une `SimConnect.dll` factice dans un répertoire non listé et
    confirmer qu'elle **n'est pas** chargée.
-3. J2 : dans l'application, confirmer l'état « télémétrie indisponible » et que
-   compagnie, catalogue, achat, dispatch et flotte restent utilisables.
+3. ~~J2 : dans l'application, confirmer l'état « télémétrie indisponible » et que
+   compagnie, catalogue, achat, dispatch et flotte restent utilisables.~~ —
+   **portée dans F0007** le 7 août 2026 avec la moitié desktop de J2.
 4. J3 : selon l'option retenue.
 
 ## Rollback
@@ -372,26 +398,28 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   dans la santé, le diagnostic ou les erreurs (assertions dédiées). La règle
   T0011 « répertoires Windows sûrs » de `docs/SECURITY.md` est remplacée par
   la liste fermée, explicitement datée. Constat consigné plutôt que corrigé :
-  le critère « ADR-0003 scénario 14 » est hors `Allowed areas` (voir critères).
+  le critère « ADR-0003 scénario 14 » était hors `Allowed areas` — **tranché par
+  Andy le 7 août 2026, retiré du critère et suivi en `Follow-ups`** (voir
+  critères).
 
 ### J2
 
-- résultat obtenu : **moitié livrée, moitié bloquée.** Le health check expose
-  l'état de localisation en champs additifs (`nativeLibrary`,
-  `nativeLibraryOrigin`) sans chemin, version de SDK ni jeton — livré avec J1
-  et prouvé au harnais. L'affichage desktop « télémétrie indisponible » est
-  bloqué par le périmètre de l'unité : voir la note du jalon — la WebView n'a
-  aucun chemin vers cet état sans toucher `apps/desktop/src-tauri/` et le gate
-  du shell, hors `Allowed areas`. Décision d'Andy attendue (étendre l'unité,
-  ou porter le câblage dans F0007).
+- résultat obtenu : **la moitié bridge est livrée, la moitié desktop est portée
+  dans F0007.** Le health check expose l'état de localisation en champs additifs
+  (`nativeLibrary`, `nativeLibraryOrigin`) sans chemin, version de SDK ni jeton
+  — livré avec J1 et prouvé au harnais. L'affichage desktop « télémétrie
+  indisponible » n'avait aucun chemin vers la WebView sans toucher
+  `apps/desktop/src-tauri/` et le gate du shell, hors `Allowed areas` :
+  **décision d'Andy du 7 août 2026 — porter ce câblage dans F0007** plutôt
+  qu'étendre l'unité, F0007 possédant déjà ces fichiers et posant la même
+  question dans sa décision 2. Ce jalon est `Done` sur son périmètre restant.
 - fichiers modifiés : aucun fichier frontend — rien n'est affiché de trompeur
   en attendant, l'application assemblée n'utilisant jamais la source `native`.
 - commandes et résultats : la moitié bridge est couverte par les preuves J1 ;
-  les gates frontend de ce jalon n'ont pas été exécutés, aucun code frontend
-  n'ayant changé.
-- vérification manuelle : à faire quand la moitié desktop sera débloquée
-  (état « télémétrie indisponible » dans l'application, capacités livrées
-  intactes).
+  les gates frontend n'ont pas été exécutés, aucun code frontend n'ayant changé,
+  et ils partent avec la moitié desktop dans F0007.
+- vérification manuelle : portée dans F0007 (état « télémétrie indisponible »
+  dans l'application, capacités livrées intactes).
 - revue et constats traités : aucun état dégradé ne se présente comme une
   réussite — `unavailable` est distinct de `idle` jusque dans la santé, et un
   réarmement ne le requalifie pas ; aucun kill switch introduit.
@@ -409,5 +437,24 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 ### Risks and limitations
 
 ### Follow-ups
+
+- **Matrice de validation d'`ADR-0003`** — le cas « bibliothèque cliente
+  SimConnect absente » n'entre pas dans le scénario 14 (« variable absente,
+  invalide ou corrompue ») : il se situe un cran plus tôt, au niveau du
+  prérequis. Décision d'Andy du 7 août 2026 : **aucune modification d'`ADR-0003`
+  ici**, ni depuis cette unité ni par réécriture. L'extension de la matrice
+  passera par une **ADR nouvelle**, au moment de la première promotion d'un canal
+  vers `Supported` (T0059, puis F0003 J3 selon l'option retenue) — écrire cette
+  ADR maintenant fixerait une barre de promotion pour une capacité qu'aucune
+  machine utilisateur ne peut atteindre tant que J3 n'est pas tranché.
+- **Moitié desktop de J2** — portée dans **F0007** le 7 août 2026 : affichage
+  « télémétrie indisponible » et vérification que les capacités livrées restent
+  utilisables sans télémétrie. Elle dépend du câblage superviseur ↔ bridge que
+  F0007 J2 livre déjà.
+- **KI-032** — acceptée par Andy le 7 août 2026 (statut `Accepted`) : la liste
+  fermée de sources reste une dette d'entretien assumée, revalidée par la
+  vérification manuelle J1 à chaque mise à jour majeure du SDK ou changement de
+  canal MSFS. Aucune découverte élargie n'est ouverte en échange — elle rouvrirait
+  le vecteur de détournement de DLL que J1 ferme.
 
 ### Documentation updated

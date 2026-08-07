@@ -38,7 +38,7 @@ gelée du format précédent.
 | F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Done |
 | F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | Done |
 | F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | Done |
-| F0007 | Mesurer un vol sans harnais externe | 3–4 | F0004 et F0006 fusionnées, décision d'Andy sur l'origine de la trace **non prise** | Draft |
+| F0007 | Mesurer un vol sans harnais externe | 3–4 | F0004, F0006 et F0003 J1 fusionnées, décision d'Andy sur l'origine de la trace **non prise** | Draft |
 
 Les deux premières fonctionnalités ouvrent le format sur ce qui restait du golden
 path : `start_flight_from_dispatch` et `close_flight` sont livrées dans `main` depuis
@@ -106,7 +106,10 @@ SignalR que rien ne crée. Elle reste `Draft` parce que son premier jalon dépen
 d'une décision produit qu'Andy n'a pas prise : **d'où vient la trace de
 l'alpha ?** — trace dorée embarquée, trace choisie par la personne, ou pas de
 trace du tout jusqu'à MSFS réel. Les deux autres décisions (qui crée le premier
-abonné, cadence de rejeu) en découlent.
+abonné, cadence de rejeu) en découlent. Depuis le 7 août 2026 elle porte aussi la
+moitié desktop de **F0003 J2** — l'état « télémétrie indisponible » dans
+l'application : c'est la même surface superviseur ↔ WebView, et la faire évoluer
+deux fois aurait dupliqué l'IPC et le gate du shell sur les mêmes fichiers.
 
 F0003 sort d'une question d'Andy du 5 août 2026 — « il faut qu'on le trouve nous-même,
 dans l'hypothèse où la personne n'a rien de tout ça » — et d'un relevé qui lui donne
@@ -118,15 +121,26 @@ validation**, où MSFS 2024 et le SDK `1.5.7` sont pourtant installés. Elle est
 ordonnée et fermée (chemin explicite, répertoire de l'application, installation
 du SDK déclarée par le système), chargement par chemin absolu, état
 `unavailable` dès le démarrage sans bibliothèque, 44 tests bridge et
-vérification manuelle sur le bridge publié (KI-031 résolue). Son J2 est à
-moitié livré (champs de santé additifs) et à moitié bloqué : l'affichage
-desktop « télémétrie indisponible » exige `apps/desktop/src-tauri/` et le gate
-du shell, hors des `Allowed areas` de l'unité — décision d'Andy attendue
-(étendre l'unité, ou porter le câblage dans F0007). Son J3, qui fournit la
-bibliothèque à une machine sans SDK, dépend d'une décision d'Andy et de la
-lecture de l'EULA du SDK. C'est exactement ce que le format T0068 permet : une
-fonctionnalité exécutable dont un jalon tardif reste bloqué, au lieu d'un
-ticket entier bloqué par sa dernière étape.
+vérification manuelle sur le bridge publié (KI-031 résolue). Son J2 est `Done`
+sur son périmètre restant : la moitié bridge est livrée (champs de santé
+additifs), et sa moitié desktop est **portée dans F0007** sur décision d'Andy du
+7 août 2026 — l'affichage « télémétrie indisponible » exige
+`apps/desktop/src-tauri/` et le gate du shell, que F0007 possède déjà et dont sa
+décision 2 pose la même question. Son J3, qui fournit la bibliothèque à une
+machine sans SDK, dépend d'une décision d'Andy et de la lecture de l'EULA du SDK,
+et reste la seule chose qui garde l'unité ouverte. C'est exactement ce que le
+format T0068 permet : une fonctionnalité exécutable dont un jalon tardif reste
+bloqué, au lieu d'un ticket entier bloqué par sa dernière étape.
+
+Les deux autres décisions d'Andy du 7 août 2026, prises en marge de F0003 J1 :
+l'extension de la matrice de validation d'`ADR-0003` au cas « bibliothèque
+cliente absente » **ne se fait pas depuis F0003** — une ADR acceptée ne se
+réécrit pas, et le cas n'est pas celui du scénario 14 (« variable absente,
+invalide ou corrompue ») mais un cran plus tôt, au niveau du prérequis ;
+l'extension passera par une ADR nouvelle au moment de la première promotion d'un
+canal vers `Supported`. Et `KI-032` — la liste fermée de sources est une dette
+d'entretien — est **acceptée** telle quelle, sans travail correctif ouvert :
+élargir la découverte rouvrirait le vecteur de détournement de DLL que J1 ferme.
 
 ## Transition
 

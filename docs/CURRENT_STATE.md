@@ -50,15 +50,28 @@ KI-027/F0007).
 
 - **F0003** (`In progress`) — découverte de la bibliothèque SimConnect ou
   dégradation propre. J1 `Done` le 7 août 2026 : sonde bornée, chargement par
-  chemin absolu, état `unavailable` explicite, champs de santé additifs. J2 à
-  moitié bloqué (affichage desktop hors `Allowed areas` — décision d'Andy) ;
-  J3 attend sa décision (fourniture de la DLL) et la lecture de l'EULA du SDK.
+  chemin absolu, état `unavailable` explicite, champs de santé additifs. J2
+  `Done` sur son périmètre restant : sa moitié desktop est **portée dans F0007**
+  sur décision d'Andy du 7 août 2026, F0007 possédant déjà le superviseur et le
+  gate du shell dont elle dépend. J3 attend sa décision (fourniture de la DLL) et
+  la lecture de l'EULA du SDK — c'est la seule chose qui garde F0003 ouverte.
+
+Décisions d'Andy du 7 août 2026, en marge de F0003 J1 : la moitié desktop de J2
+va dans F0007 (ci-dessus) ; l'extension de la matrice de validation d'`ADR-0003`
+au cas « bibliothèque absente » **n'est pas faite ici** — elle passera par une ADR
+nouvelle au moment de la première promotion d'un canal vers `Supported`, une ADR
+acceptée ne se réécrivant pas ; `KI-032` (liste fermée de sources, dette
+d'entretien) est **acceptée**, revalidée par la vérification manuelle J1 à chaque
+évolution du SDK.
 
 ## Ce qui manque pour l'alpha cliquable
 
 1. F0007 (KI-027) — le vol en replay mesuré et la clôture dans l'application
    **installée** : l'alpha assemblée ne produit aucune mesure sans harnais
-   externe ; son J1 attend la décision d'Andy sur l'origine de la trace.
+   externe ; son J1 attend la décision d'Andy sur l'origine de la trace. C'est le
+   dernier trou du jalon, et cette décision produit est ce qui le débloque. F0007
+   porte aussi, depuis le 7 août 2026, la moitié desktop de F0003 J2 — même
+   surface superviseur ↔ WebView.
 
 Le câblage du golden path est complet dans `main` depuis la fusion de F0006 —
 départ, mesure rattachée et réarmable, clôture et règlement au grand livre,
