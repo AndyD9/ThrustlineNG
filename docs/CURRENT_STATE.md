@@ -61,9 +61,13 @@ distribuer le Software et son exception renvoie à un « distributable code » q
 ni avec l'application ni par son installateur. Décision d'Andy : option C, ne rien
 fournir et le dire. Conséquence dominante, consignée en **`KI-033` (`High`)** : la
 télémétrie live n'est atteignable que par qui installe volontairement le SDK MSFS
-ou désigne une copie qu'il possède via `--simconnect-library`. Seule
-l'autorisation écrite prévue au §2 de l'EULA lèverait cela ; la démarche appartient
-à Andy et n'est pas engagée.
+ou désigne une copie qu'il possède via `--simconnect-library`. Précision du même
+jour : **la clause porte sur la distribution, pas sur le prix** — « share » et
+« lend » y sont nommés, donc gratuit ne change rien — mais elle suppose un tiers,
+donc l'usage interne sur des machines contrôlées n'est pas concerné et le chemin
+natif se développe et se teste sans restriction. L'autorisation écrite prévue au §2
+de l'EULA est requise **avant le premier canal externe** ; la démarche appartient à
+Andy et n'est pas engagée.
 
 Les deux autres décisions d'Andy du 7 août 2026, en marge de F0003 J1 : la moitié
 desktop de J2 va dans F0007 ; l'extension de la matrice de validation d'`ADR-0003`

@@ -123,7 +123,44 @@ provide for supplements ») ne fournit rien ici, dans le SDK 1.5.7 tel qu'instal
 composant du Software (§2(e)). **B — non permise, même clause** : le `.msi` est un
 composant du Software, l'embarquer dans un installateur c'est « share, publish,
 distribute » ; qu'un fichier porte un nom de redistribuable ne crée aucun droit, et
-le texte n'en accorde aucun. **C — retenue**, seule option que ce texte autorise.
+le texte n'en accorde aucun. **C — retenue.**
+
+### Précision du 7 août 2026 : la clause porte sur la distribution, pas sur le prix
+
+Andy a soulevé que Thrustline n'est pas distribué contre paiement. Le texte ne
+retient pas ce critère : §2(e) interdit « **share**, publish, distribute, or
+**lend** the Software » — « share » et « lend » sont précisément des transferts sans
+contrepartie, nommés à côté de « distribute » — et §1(b) interdit « any external
+distribution » du sample content sans réserve commerciale. **Gratuit ne crée donc
+aucune permission.**
+
+Mais le critère qui compte est ailleurs, et il change la portée réelle : **distribué
+contre non distribué.** §2(e) suppose un transfert vers un tiers. Or l'alpha n'est
+pas distribuée : `docs/SUPPORT.md` pose que l'installateur non signé « ne doit pas
+être distribué hors validation interne ». Donc :
+
+- **usage interne, sur des machines qu'Andy contrôle : §2(e) n'est pas déclenché.**
+  Rien n'est partagé, publié, distribué, prêté ni transféré. Installer le SDK,
+  copier `SimConnect.dll` localement, la placer dans un layout de publication qui ne
+  quitte pas l'interne, ou la désigner par `--simconnect-library` : aucune de ces
+  actions n'est une distribution. **Rien ne bride le développement ni les tests du
+  chemin natif** — y compris sur une machine interne sans SDK.
+- **premier build remis à quelqu'un qui n'est pas Andy, même gratuitement :** §2(e)
+  s'applique, et A comme B redeviennent des distributions non permises.
+
+L'option C reste donc la conclusion **pour tout canal externe**, et l'autorisation
+écrite prévue au §2 devient une **condition de sortie du premier canal externe**,
+non un préalable au travail d'aujourd'hui. Cette autorisation est vraisemblablement
+facile à obtenir : à peu près tout add-on MSFS livre sa copie de `SimConnect.dll`
+— le relevé du 5 août 2026 en trouve une déposée par BeyondATC sur la machine de
+validation. Une pratique répandue n'est pas un droit, mais elle indique qu'une
+demande a de bonnes chances d'aboutir, ce qui rend la voie propre peu coûteuse
+comparée au risque de s'en passer.
+
+**Ce qui n'est pas fait ici, et pourquoi :** aucun contournement de la clause n'est
+inscrit dans le produit ni dans cette documentation. Redistribuer sciemment en
+dehors du périmètre ci-dessus est une décision juridique qui appartient à Andy et à
+un conseil, pas une option d'ingénierie à consigner comme acquise.
 
 **Réserve posée honnêtement** : ce n'est pas un avis juridique, et la lecture
 repose sur une **absence** (aucun grant de distributable code). Solide, mais si le
@@ -584,8 +621,8 @@ un SDK de développement, ou pointe une copie qu'il possède déjà. C'est consi
 
 ### Risks and limitations
 
-- **La télémétrie live n'est atteignable par presque aucun utilisateur final**, et
-  aucun chemin que nous contrôlons ne change cela : la redistribution est interdite,
+- **La télémétrie live n'est atteignable par presque aucun utilisateur final**, dès
+  lors qu'un build sort de l'interne : la redistribution y est interdite,
   et MSFS 2024 n'expose sur la machine qu'un `SimConnect_internal.dll` — nom
   différent, protégé par ACL, qui n'est pas la bibliothèque cliente. C'est `KI-033`,
   et c'est la limitation dominante de cette unité.
@@ -605,13 +642,16 @@ un SDK de développement, ou pointe une copie qu'il possède déjà. C'est consi
 
 ### Follow-ups
 
-- **Autorisation écrite de Microsoft — décision d'Andy, non prise.** Le §2 de l'EULA
-  réserve explicitement « unless otherwise approved in writing by Microsoft ». C'est
-  la seule voie qui rouvrirait l'option A ou B, et donc la seule qui rendrait la
-  télémétrie live atteignable par un utilisateur ordinaire. Demander cette
-  autorisation est une démarche produit et juridique, pas une tâche d'ingénierie :
-  elle appartient à Andy. Tant qu'elle n'est pas engagée, `KI-033` reste ouverte et
-  l'alpha n'a pas de télémétrie live pour ses utilisateurs.
+- **Autorisation écrite de Microsoft — condition du premier canal externe, non
+  engagée.** Le §2 de l'EULA réserve explicitement « unless otherwise approved in
+  writing by Microsoft ». C'est la seule voie qui rouvrirait l'option A ou B, et donc
+  la seule qui rendrait la télémétrie live atteignable par un utilisateur ordinaire.
+  Précision du 7 août 2026 : ce n'est **pas** un préalable au travail interne — tant
+  que rien ne quitte les machines d'Andy, §2(e) n'est pas déclenché et le chemin
+  natif se développe et se teste sans restriction. L'autorisation devient nécessaire
+  au moment où un build est remis à quelqu'un d'autre, **même gratuitement** :
+  « share » et « lend » sont nommés dans la clause. Démarche produit et juridique,
+  pas d'ingénierie ; elle appartient à Andy, et `KI-033` reste ouverte jusque-là.
 
 - **Matrice de validation d'`ADR-0003`** — le cas « bibliothèque cliente
   SimConnect absente » n'entre pas dans le scénario 14 (« variable absente,

@@ -86,13 +86,19 @@ l'utilisateur n'a rien à installer** : ni SDK .NET, ni outils de développement
 SDK MSFS.
 
 **Précision du 7 août 2026 — la télémétrie live est l'exception, et elle est
-contractuelle.** Thrustline ne peut pas fournir la bibliothèque cliente
-SimConnect : l'EULA du SDK MSFS n'accorde aucun droit de redistribution (§2(e), sans
-grant de « distributable code » au §1), donc ni `SimConnect.dll` ni le redistribuable
-`SimConnect.msi` ne peuvent être livrés avec l'application ni par son installateur.
-Conséquence à énoncer sans la minimiser : **la télémétrie live n'existe que sur une
-machine qui possède déjà cette bibliothèque**, par l'une de ces deux voies, toutes
-deux volontaires :
+contractuelle.** Thrustline ne peut pas **livrer** la bibliothèque cliente
+SimConnect à ses utilisateurs : l'EULA du SDK MSFS n'accorde aucun droit de
+redistribution (§2(e), sans grant de « distributable code » au §1), donc ni
+`SimConnect.dll` ni le redistribuable `SimConnect.msi` ne peuvent accompagner
+l'application ni son installateur. La clause ne dépend pas du prix — elle nomme
+« share » et « lend » à côté de « distribute », donc une diffusion gratuite est
+couverte — mais elle suppose un transfert vers un tiers : elle s'applique dès le
+premier build remis à quelqu'un d'autre, et pas au poste de travail interne, où rien
+n'est distribué.
+
+Conséquence à énoncer sans la minimiser : **pour un utilisateur, la télémétrie live
+n'existe que sur une machine qui possède déjà cette bibliothèque**, par l'une de ces
+deux voies, toutes deux volontaires :
 
 - la personne a installé le SDK MSFS 2024 elle-même — c'est un SDK de
   développement, et personne ne l'installe pour jouer ;
@@ -104,7 +110,8 @@ compagnie, catalogue, achat, dispatch, flotte, départ et clôture. MSFS 2024
 n'expose sur la machine qu'un `SimConnect_internal.dll` — nom différent, protégé
 par ACL — qui n'est pas la bibliothèque cliente et n'est jamais chargé. Cette
 limitation est suivie en `KI-033` ; seule une autorisation écrite de Microsoft,
-prévue au §2 de l'EULA, la lèverait.
+prévue au §2 de l'EULA, la lèverait, et elle est requise avant le premier canal
+externe.
 
 ## Profils matériels
 

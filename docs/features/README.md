@@ -144,12 +144,19 @@ s'est terminé autrement que prévu : l'EULA du SDK, fournie par Andy et lue,
 **n'accorde aucun droit de redistribution** — §2(e) interdit de distribuer le
 Software, et son exception « distributable code, subject to the terms above »
 renvoie à un grant que les huit alinéas du §1 ne contiennent pas. Ni
-`SimConnect.dll` ni le redistribuable `SimConnect.msi` ne peuvent donc être livrés.
-Andy a retenu l'**option C** : ne rien fournir, et le dire. La conséquence produit
-est consignée en `KI-033` (`High`) — la télémétrie live n'est atteignable que par
-qui installe volontairement le SDK MSFS ou désigne une copie qu'il possède via
-`--simconnect-library` ; seule l'autorisation écrite prévue au §2 de l'EULA la
-lèverait, et cette démarche appartient à Andy.
+`SimConnect.dll` ni le redistribuable `SimConnect.msi` ne peuvent donc être livrés
+aux utilisateurs. Andy a retenu l'**option C** : ne rien fournir, et le dire. La
+conséquence produit est consignée en `KI-033` (`High`) — la télémétrie live n'est
+atteignable que par qui installe volontairement le SDK MSFS ou désigne une copie
+qu'il possède via `--simconnect-library`.
+
+Précision du même jour, sur remarque d'Andy : **la clause porte sur la distribution,
+pas sur le prix.** §2(e) nomme « share » et « lend » à côté de « distribute », donc
+une diffusion gratuite est couverte ; mais elle suppose un transfert vers un tiers,
+et l'alpha n'est pas distribuée. L'usage interne — installer le SDK, copier la
+bibliothèque, la désigner par chemin explicite — n'est donc pas concerné, et rien ne
+bride le développement ni les tests du chemin natif. L'autorisation écrite prévue au
+§2 devient une condition **du premier canal externe**, non un préalable actuel.
 
 C'est exactement ce que le format T0068 permet : une unité qui livre sa capacité
 technique en entier — la bibliothèque est trouvée, son absence est dite proprement —
