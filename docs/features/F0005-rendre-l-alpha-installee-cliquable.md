@@ -3,10 +3,12 @@
 Status: In progress
 Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0005-rendre-l-alpha-installee-cliquable`
-PR: [#133](https://github.com/AndyD9/ThrustlineNG/pull/133) (brouillon, base
-`main` ; J1 implémenté et validé, `main` rapatriée après les fusions de F0002
-et F0006 ; restent J2 — le package installé et le parcours humain — la revue
-et la fusion par Andy)
+PR: [#133](https://github.com/AndyD9/ThrustlineNG/pull/133) **fusionnée** par
+Andy le 7 août 2026 — J1 livré dans `main`. Le contrôle de CSP sur l'exécutable
+produit et la correction du compte rendu ci-dessous sont arrivés après cette
+fusion : ils suivent dans une PR distincte, depuis la branche
+`fix/f0005-j1-csp-embarquee-artefact`. Reste J2 — le package installé et le
+parcours humain — qui appartient à Andy.
 Phase: 4
 Risk: High
 Security-sensitive: Yes
