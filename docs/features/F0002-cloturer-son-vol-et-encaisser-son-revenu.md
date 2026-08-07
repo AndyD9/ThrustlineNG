@@ -340,6 +340,19 @@ frontend, six mutations négatives de gate.
 
 ### Risks and limitations
 
+- **KI-027 / KI-028 (relevées par la revue F0004, fusionnées le 7 août 2026
+  après l'implémentation des jalons)** : l'application intégrée ne produit pas
+  encore de mesure par elle-même (KI-027 : pas de trace ni d'abonné sans
+  harnais externe), et le résumé du bridge ne porte aucune identité de vol avec
+  un tracker non réarmable (KI-028). La clôture suit la garde de la PR #130 —
+  résumé et clôture ne sont rendus que lorsqu'un seul vol est actif — mais des
+  vols successifs dans la même session du bridge peuvent encore relire la
+  mesure du vol précédent, bornée par `min(déclaré, écoulé)` côté serveur.
+  KI-028 consigne la décision d'Andy du 7 août 2026 : le rattachement
+  résumé ↔ vol et le réarmement du tracker sont des prérequis de F0002 —
+  **la fusion de cette PR attend donc la décision d'Andy sur le séquencement**
+  (câblage du cycle de vol d'abord, ou clôture livrée sous la garde d'un seul
+  vol par session avec le câblage en unité suivante).
 - La clôture depuis l'application exige un résumé mesuré `completed` : un replay
   interrompu ou une trace incomplète laisse le vol `active`, et la clôture
   `interrupted` reste réservée au serveur — un déclencheur télémétrique pour ce

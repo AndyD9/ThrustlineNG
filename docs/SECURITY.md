@@ -257,6 +257,9 @@ clôturer sans mesure complète, n'envoie que `outcome: "completed"` et le
 signé (une nouvelle mesure ouvre une nouvelle intention au lieu d'entrer en
 collision avec le payload enregistré), affiche montant, devise et temps retenu
 depuis la seule réponse serveur et relit flotte et dispatchs après la clôture.
+Le résumé du bridge n'ayant pas d'identité de vol (KI-028), résumé et clôture
+ne sont rendus que lorsqu'un seul vol est actif, et la mesure d'un vol
+précédent de la même session bridge reste bornée par `min(déclaré, écoulé)`.
 La preuve desktop reste jsdom à `fetch` injecté ; aucune clôture `interrupted`
 depuis l'application, annulation, cible distante ni donnée réelle n'est
 couverte.
