@@ -35,8 +35,11 @@ function Get-MaintenanceIssues {
     $knownIssuesPath = Join-Path $Root 'docs/KNOWN_ISSUES.md'
     $ticketIndexPath = Join-Path $Root 'docs/tickets/README.md'
     $ticketsRoot = Join-Path $Root 'docs/tickets'
+    # T0068 : l'unité de suivi est la fonctionnalité. Une dette peut donc être
+    # résolue par une `FXXXX` autant que par un ticket d'archive `TXXXX`.
+    $featuresRoot = Join-Path $Root 'docs/features'
 
-    foreach ($requiredPath in @($knownIssuesPath, $ticketIndexPath, $ticketsRoot)) {
+    foreach ($requiredPath in @($knownIssuesPath, $ticketIndexPath, $ticketsRoot, $featuresRoot)) {
         if (-not (Test-Path -LiteralPath $requiredPath)) {
             $issues.Add("Missing maintenance input: $requiredPath")
         }
@@ -100,13 +103,23 @@ function Get-MaintenanceIssues {
             }
         }
         if ($status -eq 'Resolved') {
-            $ticketIds = @([regex]::Matches($target, 'T\d{4}') | ForEach-Object { $_.Value })
-            if ($ticketIds.Count -eq 0) {
-                $issues.Add("Resolved issue $id must reference a ticket.")
+            # Une dette résolue cite l'unité qui l'a résolue : un ticket
+            # d'archive `TXXXX` sous `docs/tickets`, ou une fonctionnalité
+            # `FXXXX` sous `docs/features`. Chaque référence doit résoudre vers
+            # exactement un fichier de son répertoire — une dette ne peut pas se
+            # déclarer résolue par une unité qui n'existe pas.
+            $unitIds = @([regex]::Matches($target, '[TF]\d{4}') | ForEach-Object { $_.Value })
+            if ($unitIds.Count -eq 0) {
+                $issues.Add("Resolved issue $id must reference a ticket or a feature.")
             }
-            foreach ($ticketId in $ticketIds) {
-                if (@(Get-ChildItem -LiteralPath $ticketsRoot -Filter "$ticketId-*.md" -File).Count -ne 1) {
-                    $issues.Add("Resolved issue $id references missing or ambiguous ticket $ticketId.")
+            foreach ($unitId in $unitIds) {
+                $isFeature = $unitId.StartsWith('F')
+                $unitRoot = if ($isFeature) { $featuresRoot } else { $ticketsRoot }
+                $unitLabel = if ($isFeature) { 'feature' } else { 'ticket' }
+                if (@(Get-ChildItem -LiteralPath $unitRoot -Filter "$unitId-*.md" -File).Count -ne 1) {
+                    $issues.Add(
+                        "Resolved issue $id references missing or ambiguous $unitLabel $unitId."
+                    )
                 }
             }
         }
@@ -241,6 +254,12 @@ function Copy-MaintenanceFixture {
     Copy-Item -LiteralPath (Join-Path $SourceRoot 'docs/tickets/README.md') -Destination (Join-Path $DestinationRoot 'docs/tickets/README.md')
     Get-ChildItem -LiteralPath (Join-Path $SourceRoot 'docs/tickets') -Filter 'T*.md' -File |
         Copy-Item -Destination (Join-Path $DestinationRoot 'docs/tickets')
+    # Les fonctionnalités résolvent les dettes au même titre que les tickets :
+    # la fixture doit donc les porter, sinon une entrée `Resolved` citant une
+    # `FXXXX` réelle serait rejetée dans le harnais alors qu'elle est valide.
+    New-Item -ItemType Directory -Force -Path (Join-Path $DestinationRoot 'docs/features') | Out-Null
+    Get-ChildItem -LiteralPath (Join-Path $SourceRoot 'docs/features') -Filter 'F*.md' -File |
+        Copy-Item -Destination (Join-Path $DestinationRoot 'docs/features')
     New-Item -ItemType Directory -Force -Path (Join-Path $DestinationRoot 'apps/fixture') | Out-Null
 }
 
@@ -382,6 +401,26 @@ try {
     [System.IO.File]::WriteAllText($knownIssuesCopy, $knownText)
     Assert-MaintenanceIssue -Root $temporaryRoot -Pattern "$fixtureIssueId has no evidence" -FailureMessage 'Harness self-test failed to detect missing evidence.'
 
+    # Aucune mutation ne couvrait la règle des entrées `Resolved` avant que
+    # celle-ci n'apprenne les `FXXXX` : les deux chemins d'échec sont désormais
+    # prouvés — une dette résolue sans unité citée, et une dette résolue par une
+    # unité qui n'existe pas.
+    Reset-KnownIssuesFixture -SourceRoot $repositoryRoot -DestinationPath $knownIssuesCopy -FixtureIssueId $fixtureIssueId
+    $knownText = Get-Content -Raw -Encoding UTF8 -LiteralPath $knownIssuesCopy
+    $fixtureIssueRow = ([regex]::Match($knownText, "(?m)^\| $([regex]::Escape($fixtureIssueId)) .+$")).Value
+    $unreferencedResolvedRow = $fixtureIssueRow.Replace('| Harness self-test | Scheduled |', '| Harness self-test | Resolved |')
+    $knownText = $knownText.Replace($fixtureIssueRow, $unreferencedResolvedRow)
+    [System.IO.File]::WriteAllText($knownIssuesCopy, $knownText)
+    Assert-MaintenanceIssue -Root $temporaryRoot -Pattern "Resolved issue $fixtureIssueId must reference a ticket or a feature" -FailureMessage 'Harness self-test failed to detect a resolved issue citing no unit.'
+
+    Reset-KnownIssuesFixture -SourceRoot $repositoryRoot -DestinationPath $knownIssuesCopy -FixtureIssueId $fixtureIssueId
+    $knownText = Get-Content -Raw -Encoding UTF8 -LiteralPath $knownIssuesCopy
+    $fixtureIssueRow = ([regex]::Match($knownText, "(?m)^\| $([regex]::Escape($fixtureIssueId)) .+$")).Value
+    $missingFeatureRow = $fixtureIssueRow.Replace('| Harness self-test | Scheduled |', '| F9999 | Resolved |')
+    $knownText = $knownText.Replace($fixtureIssueRow, $missingFeatureRow)
+    [System.IO.File]::WriteAllText($knownIssuesCopy, $knownText)
+    Assert-MaintenanceIssue -Root $temporaryRoot -Pattern "Resolved issue $fixtureIssueId references missing or ambiguous feature F9999" -FailureMessage 'Harness self-test failed to detect a resolved issue citing a missing feature.'
+
     Reset-KnownIssuesFixture -SourceRoot $repositoryRoot -DestinationPath $knownIssuesCopy -FixtureIssueId $fixtureIssueId
     $knownText = Get-Content -Raw -Encoding UTF8 -LiteralPath $knownIssuesCopy
     $firstRow = ([regex]::Match($knownText, '(?m)^\| KI-001 .+$')).Value
@@ -423,4 +462,4 @@ finally {
     }
 }
 
-Write-Output 'Maintenance checks passed (registry, ticket index, debt markers, current-state budget and 9 mutation scenarios).'
+Write-Output 'Maintenance checks passed (registry, ticket and feature references, debt markers, current-state budget and 11 mutation scenarios).'
