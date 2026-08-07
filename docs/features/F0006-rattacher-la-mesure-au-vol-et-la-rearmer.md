@@ -67,6 +67,10 @@ port ni la génération.
 - `apps/bridge/` (télémétrie, contrat local, serveur) et `tests/bridge/` ;
 - `apps/desktop/src-tauri/src/` (commandes `flight_summary` et
   `flight_summary_arm`) ;
+- `tests/desktop-shell/run.ps1` — la règle « une seule commande IPC » de
+  F0004 J2 devient « deux commandes fermées », avec la signature exacte de
+  chacune (ajouté aux Allowed areas le 7 août 2026 : omission de rédaction,
+  le gate évolue avec l'unité qui le concerne) ;
 - `apps/desktop/src/features/flight-dispatch/` ;
 - `eng/authority-inventory.json` ;
 - `docs/SECURITY.md`, `docs/ARCHITECTURE.md`, `docs/QUALITY.md`,

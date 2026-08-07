@@ -6,7 +6,7 @@ use std::{
     sync::Mutex,
 };
 
-use crate::flight_summary::{self, FlightSummary, FlightSummaryFailure};
+use crate::flight_summary::{self, ArmedFlightSummary, FlightSummary, FlightSummaryFailure};
 
 pub struct BridgeSupervisor {
     child: Mutex<Option<Child>>,
@@ -14,6 +14,15 @@ pub struct BridgeSupervisor {
     // only ever sees the validated summary returned by `read_flight_summary`.
     port: u16,
     token: String,
+    // The measurement attachment: which dispatch the armed generation
+    // measures. Kept in-process only — the bridge stays free of any business
+    // identity, and the WebView never sees the generation itself.
+    attachment: Mutex<Option<Attachment>>,
+}
+
+struct Attachment {
+    dispatch_id: String,
+    generation: u64,
 }
 
 impl BridgeSupervisor {
@@ -40,11 +49,42 @@ impl BridgeSupervisor {
             child: Mutex::new(Some(child)),
             port,
             token,
+            attachment: Mutex::new(None),
         })
     }
 
     pub fn read_flight_summary(&self) -> Result<FlightSummary, FlightSummaryFailure> {
-        flight_summary::read(self.port, &self.token)
+        let reading = flight_summary::read(self.port, &self.token)?;
+        let attached_dispatch_id = self.attachment.lock().ok().and_then(|guard| {
+            guard.as_ref().and_then(|attachment| {
+                (attachment.generation == reading.generation)
+                    .then(|| attachment.dispatch_id.clone())
+            })
+        });
+        Ok(FlightSummary::from_reading(reading, attached_dispatch_id))
+    }
+
+    /// Arms a fresh measurement for one dispatch: the bridge is rearmed under
+    /// a new generation, then the attachment is recorded in-process. The
+    /// dispatch identifier is the only WebView input and is validated before
+    /// anything else happens.
+    pub fn arm_flight_summary(
+        &self,
+        dispatch_id: &str,
+    ) -> Result<ArmedFlightSummary, FlightSummaryFailure> {
+        if !flight_summary::is_canonical_dispatch_id(dispatch_id) {
+            return Err(FlightSummaryFailure::Rejected);
+        }
+
+        let generation = flight_summary::rearm(self.port, &self.token)?;
+        let Ok(mut guard) = self.attachment.lock() else {
+            return Err(FlightSummaryFailure::Unavailable);
+        };
+        *guard = Some(Attachment {
+            dispatch_id: dispatch_id.to_owned(),
+            generation,
+        });
+        Ok(ArmedFlightSummary::new(dispatch_id.to_owned()))
     }
 
     pub fn stop(&self) {
