@@ -38,6 +38,7 @@ gelée du format précédent.
 | F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Done |
 | F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | In progress |
 | F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | Verify |
+| F0007 | Mesurer un vol sans harnais externe | 3–4 | F0004 et F0006 fusionnées, décision d'Andy sur l'origine de la trace **non prise** | Draft |
 
 Les deux premières fonctionnalités ouvrent le format sur ce qui restait du golden
 path : `start_flight_from_dispatch` et `close_flight` sont livrées dans `main` depuis
@@ -90,6 +91,17 @@ d'allowlist dans le script de packaging, CSP inscrite au manifeste, huit
 mutations négatives, et un contrôle qui relit la CSP réellement embarquée dans
 l'exécutable produit. Son J2, le package installé parcouru à la main,
 appartient à Andy.
+
+F0007 est `Draft` et porte **KI-027**, le dernier trou entre « l'alpha cliquable »
+et « l'alpha qui mesure » : l'application intégrée ne produit pas de temps de
+bloc par elle-même. Trois maillons manquent, et un seul suffit à tuer la chaîne
+— le superviseur ne passe aucune trace au bridge, l'adaptateur replay n'existe
+pas sans `--telemetry-trace`, et la publication attend un premier abonné
+SignalR que rien ne crée. Elle reste `Draft` parce que son premier jalon dépend
+d'une décision produit qu'Andy n'a pas prise : **d'où vient la trace de
+l'alpha ?** — trace dorée embarquée, trace choisie par la personne, ou pas de
+trace du tout jusqu'à MSFS réel. Les deux autres décisions (qui crée le premier
+abonné, cadence de rejeu) en découlent.
 
 F0003 sort d'une question d'Andy du 5 août 2026 — « il faut qu'on le trouve nous-même,
 dans l'hypothèse où la personne n'a rien de tout ça » — et d'un relevé qui lui donne
