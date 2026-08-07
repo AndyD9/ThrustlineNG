@@ -25,11 +25,14 @@ public sealed class TelemetryPublisher : IAsyncDisposable
     private TaskCompletionSource? _rearmSignal;
 
     private int _state = (int)TelemetryState.Idle;
+    private readonly bool _nativeSourceUnavailable;
+    private readonly SimConnectLibraryLocation _nativeLibrary;
 
     public TelemetryPublisher(
         BridgeTelemetryOptions options,
         Func<ISimConnectAdapter>? adapterFactory,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        SimConnectLibraryLocation? nativeLibrary = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         if (!options.IsBounded)
@@ -42,9 +45,22 @@ public sealed class TelemetryPublisher : IAsyncDisposable
         _options = options;
         _adapterFactory = adapterFactory;
         _timeProvider = timeProvider ?? TimeProvider.System;
+        _nativeLibrary = nativeLibrary ?? SimConnectLibraryLocation.Unavailable;
+
+        // Une source native sans bibliothèque localisée est indisponible dès
+        // le démarrage — distinct de « idle », visible sans attendre le
+        // premier abonné, et un réarmement ne la requalifie jamais.
+        _nativeSourceUnavailable =
+            options.Source == TelemetrySource.Native && adapterFactory is null;
+        if (_nativeSourceUnavailable)
+        {
+            _state = (int)TelemetryState.Unavailable;
+        }
     }
 
     public TelemetrySource Source => _options.Source;
+
+    public SimConnectLibraryLocation NativeLibrary => _nativeLibrary;
 
     public TelemetryState State => (TelemetryState)Volatile.Read(ref _state);
 
@@ -81,7 +97,9 @@ public sealed class TelemetryPublisher : IAsyncDisposable
 
             _generation++;
             _summary = new FlightSummaryTracker();
-            Volatile.Write(ref _state, (int)TelemetryState.Idle);
+            Volatile.Write(
+                ref _state,
+                (int)(_nativeSourceUnavailable ? TelemetryState.Unavailable : TelemetryState.Idle));
             _rearmPending = true;
             _rearmSignal?.TrySetResult();
             generation = _generation;

@@ -1,3 +1,4 @@
+using Thrustline.Bridge.SimConnect;
 using Thrustline.Bridge.Telemetry;
 
 namespace Thrustline.Bridge;
@@ -12,6 +13,7 @@ public sealed record BridgeOptions(
     public const string PortArgument = "--port";
     public const string TelemetrySourceArgument = "--telemetry-source";
     public const string TelemetryTraceArgument = "--telemetry-trace";
+    public const string SimConnectLibraryArgument = "--simconnect-library";
 
     public static bool TryParse(
         IReadOnlyList<string> arguments,
@@ -29,10 +31,12 @@ public sealed record BridgeOptions(
 
         var source = TelemetrySource.Replay;
         string? tracePath = null;
+        string? libraryPath = null;
         var parsedPort = 0;
         var seenPort = false;
         var seenSource = false;
         var seenTrace = false;
+        var seenLibrary = false;
 
         for (var index = 0; index < arguments.Count; index += 2)
         {
@@ -52,6 +56,11 @@ public sealed record BridgeOptions(
                     tracePath = value;
                     seenTrace = true;
                     break;
+                case SimConnectLibraryArgument
+                    when !seenLibrary && SimConnectLibraryLocator.HasTrustedShape(value):
+                    libraryPath = value;
+                    seenLibrary = true;
+                    break;
                 default:
                     return false;
             }
@@ -59,13 +68,19 @@ public sealed record BridgeOptions(
 
         if (!seenPort
             || parsedPort is not (>= MinimumPort and <= MaximumPort)
-            || (tracePath is not null && source != TelemetrySource.Replay))
+            || (tracePath is not null && source != TelemetrySource.Replay)
+            || (libraryPath is not null && source != TelemetrySource.Native))
         {
             return false;
         }
 
         port = parsedPort;
-        telemetry = BridgeTelemetryOptions.Default with { Source = source, TracePath = tracePath };
+        telemetry = BridgeTelemetryOptions.Default with
+        {
+            Source = source,
+            TracePath = tracePath,
+            SimConnectLibraryPath = libraryPath,
+        };
         return telemetry.IsBounded;
     }
 
