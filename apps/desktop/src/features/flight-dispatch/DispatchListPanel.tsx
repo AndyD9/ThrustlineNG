@@ -15,6 +15,10 @@ import {
   type FlightSummaryArmCommand,
 } from "@/features/flight-dispatch/DispatchStartControl";
 import {
+  FlightCloseControl,
+  type FlightCloseCommand,
+} from "@/features/flight-dispatch/FlightCloseControl";
+import {
   FlightSummaryControl,
   type FlightSummaryCommand,
 } from "@/features/flight-dispatch/FlightSummaryControl";
@@ -25,10 +29,12 @@ export type DispatchListCommand = (
 
 export interface DispatchListPanelProps {
   armCommand?: FlightSummaryArmCommand | undefined;
+  closeCommand?: FlightCloseCommand | undefined;
   command?: DispatchListCommand | undefined;
   config: DesktopConnectionConfig;
   createIdempotencyKey?: (() => string) | undefined;
   onAuthenticationRequired: () => void;
+  onFlightClosed?: (() => void) | undefined;
   refreshVersion?: number | undefined;
   sessionManager: DesktopSessionManager;
   startCommand?: FlightStartCommand | undefined;
@@ -54,10 +60,12 @@ const createdAtFormatter = new Intl.DateTimeFormat("fr-FR", {
 
 export function DispatchListPanel({
   armCommand,
+  closeCommand,
   command = loadDispatchList,
   config,
   createIdempotencyKey,
   onAuthenticationRequired,
+  onFlightClosed,
   refreshVersion = 0,
   sessionManager,
   startCommand,
@@ -165,14 +173,31 @@ export function DispatchListPanel({
                 )}
               </span>
               {dispatch.state === "active" && (
-                // La mesure n'est parlée que pour le dispatch auquel elle est
-                // rattachée (F0006) : le contrôle échoue fermé sur toute
-                // mesure d'un autre vol ou d'une session non armée.
-                <FlightSummaryControl
-                  command={summaryCommand}
-                  dispatchId={dispatch.id}
-                  flightLabel={`${dispatch.departureIcao} → ${dispatch.arrivalIcao}`}
-                />
+                // La mesure et la clôture ne sont parlées que pour le dispatch
+                // auquel la mesure est rattachée (F0006) : chaque contrôle
+                // échoue fermé sur toute mesure d'un autre vol ou d'une
+                // session non armée.
+                <>
+                  <FlightSummaryControl
+                    command={summaryCommand}
+                    dispatchId={dispatch.id}
+                    flightLabel={`${dispatch.departureIcao} → ${dispatch.arrivalIcao}`}
+                  />
+                  <FlightCloseControl
+                    command={closeCommand}
+                    config={config}
+                    createIdempotencyKey={createIdempotencyKey}
+                    dispatchId={dispatch.id}
+                    flightLabel={`${dispatch.departureIcao} → ${dispatch.arrivalIcao}`}
+                    onAuthenticationRequired={onAuthenticationRequired}
+                    onFlightClosed={() => {
+                      onFlightClosed?.();
+                      void load();
+                    }}
+                    sessionManager={sessionManager}
+                    summaryCommand={summaryCommand}
+                  />
+                </>
               )}
               {dispatch.state === "draft" && (
                 <DispatchStartControl

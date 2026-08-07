@@ -405,6 +405,11 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/flight-start/index.ts"
 
+[functions.flight-close]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/flight-close/index.ts"
+
 [analytics]
 enabled = false
 port = 54327

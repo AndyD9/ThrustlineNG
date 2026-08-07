@@ -25,6 +25,7 @@ import {
   type DispatchListCommand,
   DispatchListPanel,
 } from "@/features/flight-dispatch/DispatchListPanel";
+import type { FlightCloseCommand } from "@/features/flight-dispatch/FlightCloseControl";
 import {
   type DispatchDraftCommand,
   FlightDispatchPanel,
@@ -41,6 +42,7 @@ export interface HomePageProps {
   config: DesktopConnectionConfig;
   dispatchDraftCommand?: DispatchDraftCommand | undefined;
   dispatchListCommand?: DispatchListCommand | undefined;
+  flightCloseCommand?: FlightCloseCommand | undefined;
   flightSummaryArmCommand?: FlightSummaryArmCommand | undefined;
   flightSummaryCommand?: FlightSummaryCommand | undefined;
   onAuthenticationRequired: () => void;
@@ -57,6 +59,7 @@ export function HomePage({
   config,
   dispatchDraftCommand,
   dispatchListCommand,
+  flightCloseCommand,
   flightSummaryArmCommand,
   flightSummaryCommand,
   onAuthenticationRequired,
@@ -72,6 +75,10 @@ export function HomePage({
   const handleFleetLoaded = useCallback((aircraft: CompanyAircraft[]) => setFleet(aircraft), []);
   const handleDraftCreated = useCallback(
     () => setDispatchRefreshVersion((version) => version + 1),
+    [],
+  );
+  const handleFlightClosed = useCallback(
+    () => setFleetRefreshVersion((version) => version + 1),
     [],
   );
 
@@ -128,9 +135,11 @@ export function HomePage({
           )}
           <DispatchListPanel
             armCommand={flightSummaryArmCommand}
+            closeCommand={flightCloseCommand}
             command={dispatchListCommand}
             config={config}
             onAuthenticationRequired={onAuthenticationRequired}
+            onFlightClosed={handleFlightClosed}
             refreshVersion={dispatchRefreshVersion}
             sessionManager={sessionManager}
             summaryCommand={flightSummaryCommand}

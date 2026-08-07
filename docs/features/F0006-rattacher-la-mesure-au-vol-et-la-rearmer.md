@@ -4,8 +4,9 @@ Status: In progress
 Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0006-rattacher-la-mesure-au-vol-et-la-rearmer`
 PR: [#132](https://github.com/AndyD9/ThrustlineNG/pull/132) (brouillon, base
-`main` ; J1–J3 implémentés, restent le parcours manuel deux-vols-d'affilée,
-la revue et la fusion par Andy — puis le branchement de F0002/PR #131)
+`main` ; J1–J3 implémentés **plus le branchement de la clôture F0002**,
+absorbé ici après la fusion de la PR #131 le 7 août 2026 ; restent le
+parcours manuel deux-vols-d'affilée, la revue et la fusion par Andy)
 Phase: 3–4
 Risk: Medium
 Security-sensitive: Yes
@@ -93,8 +94,10 @@ port ni la génération.
   (trace replay fournie au bridge par le superviseur, premier abonné créé par
   l'application) : gap distinct, avec ses propres décisions produit (d'où vient
   la trace de l'alpha ?), suivi par sa propre unité ;
-- la consommation de la mesure rattachée par la clôture : c'est le branchement
-  de F0002 (PR #131) après fusion de cette unité ;
+- ~~la consommation de la mesure rattachée par la clôture~~ — **réintégrée le
+  7 août 2026** : Andy a fusionné F0002 (PR #131) avant cette unité, le
+  branchement est donc porté ici — la clôture exige `attachedDispatchId` égal
+  au vol clôturé ;
 - MSFS réel (F0003/T0059), détection de phases, reprise après crash.
 
 ## Jalons
@@ -299,10 +302,19 @@ WebView. Trois jalons, trois commits ; 37 tests bridge, 21 tests Rust,
 - KI-027 reste ouvert : sans harnais externe, l'application intégrée ne
   produit toujours pas de mesure par elle-même.
 
+### Branchement de la clôture (absorbé après la fusion de la PR #131)
+
+F0002 ayant été fusionnée avant cette unité, le branchement prévu en
+follow-up est porté ici : `FlightCloseControl` exige
+`attachedDispatchId === dispatchId` avant d'envoyer le rapport (nouvel état
+`unattached`, alerte dédiée, aucun appel réseau) ; résumé et clôture sont
+rendus sur chaque ligne `active` sous le rattachement exact, qui remplace la
+garde « un seul vol actif » de la PR #130. Prouvé par les tests du contrôle
+(mesure d'un autre vol et mesure sans rattachement refusées localement) —
+495 tests frontend verts sur l'arbre fusionné.
+
 ### Follow-ups
 
-- Brancher la clôture F0002 (PR #131) sur `attachedDispatchId` après fusion :
-  exiger le rattachement au dispatch clôturé avant d'envoyer le rapport.
 - KI-027 : unité dédiée à la production autonome d'une mesure (trace replay
   fournie par le superviseur, premier abonné créé par l'application).
 
