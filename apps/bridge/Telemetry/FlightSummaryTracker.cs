@@ -13,6 +13,14 @@ public enum FlightSummaryState
 public sealed record FlightSummary(FlightSummaryState State, int? BlockMinutes);
 
 /// <summary>
+/// Lecture cohérente d'une session de mesure : le résumé et la génération qui
+/// l'a produit, pris ensemble sous le même verrou. La génération est un entier
+/// local sans aucune identité métier — le rattachement à un vol appartient au
+/// processus Tauri, jamais au bridge.
+/// </summary>
+public sealed record FlightSummaryReading(FlightSummary Summary, int Generation);
+
+/// <summary>
 /// Dérive le résumé de vol des échantillons déjà validés, sans en persister
 /// aucun : seuls deux instants et le dernier état au sol sont retenus.
 /// Règle décidée le 6 août 2026 (F0004) : le temps de bloc va du premier
