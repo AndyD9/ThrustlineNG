@@ -98,7 +98,7 @@ port ni la génération.
 
 ### J1 — Le bridge mesure par générations réarmables
 
-Status: Ready
+Status: Done
 Risk: Medium
 Security-sensitive: Yes
 Autonomous: No
@@ -116,7 +116,7 @@ Autonomous: No
 
 ### J2 — Tauri arme, rattache et ne laisse rien fuir
 
-Status: Ready
+Status: Done
 Risk: Medium
 Security-sensitive: Yes
 Autonomous: No
@@ -133,7 +133,7 @@ Autonomous: No
 
 ### J3 — L'application arme au départ et affiche la mesure rattachée
 
-Status: Ready
+Status: Done
 Risk: Low
 Security-sensitive: No
 Autonomous: No
@@ -152,15 +152,19 @@ Autonomous: No
 
 ## Acceptance criteria
 
-- [ ] Deux vols d'affilée dans la même session produisent deux mesures
-      distinctes, chacune attribuée à son dispatch.
-- [ ] Une relecture après un vol suivant ne rend jamais la mesure du vol
-      précédent comme si elle appartenait au vol courant.
-- [ ] Réarmer en pleine mesure est refusé et ne perd rien.
-- [ ] Le jeton, le port et la génération ne traversent jamais la WebView ;
+- [x] Deux vols d'affilée dans la même session produisent deux mesures
+      distinctes, chacune attribuée à son dispatch (tests bridge « rearm opens
+      a fresh measurement », panneau à deux vols actifs ; le parcours manuel
+      sur harnais replay reste à Andy).
+- [x] Une relecture après un vol suivant ne rend jamais la mesure du vol
+      précédent comme si elle appartenait au vol courant (rattachement `null`
+      sur génération changée, affichage fail-closed).
+- [x] Réarmer en pleine mesure est refusé et ne perd rien (409, mesure
+      poursuivie, prouvé au harnais bridge).
+- [x] Le jeton, le port et la génération ne traversent jamais la WebView ;
       aucune identité métier n'entre dans le bridge.
-- [ ] Le réarmement exige le jeton du contrat local.
-- [ ] La documentation décrit la capacité livrée et ce qui reste absent
+- [x] Le réarmement exige le jeton du contrat local (401 anonyme au harnais).
+- [x] La documentation décrit la capacité livrée et ce qui reste absent
       (KI-027).
 
 ## Security review
@@ -220,32 +224,88 @@ Aucune donnée persistée nulle part.
 
 ### J1
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : le résumé du contrat local porte une `generation` ;
+  `POST /api/v1/flight-summary/rearm` (jeton requis) refuse en pleine mesure
+  (409) et ouvre sinon une session neuve — tracker recréé, génération
+  incrémentée, source replay rejouée par le service de publication en boucle.
+- fichiers modifiés : `TelemetryPublisher.cs`, `TelemetryPublicationService.cs`,
+  `FlightSummaryTracker.cs` (lecture `FlightSummaryReading`),
+  `BridgeContract.cs`, `BridgeServer.cs`, `tests/bridge/Program.cs`.
+- commandes et résultats : `pnpm bridge:build` 0 avertissement ;
+  `pnpm bridge:test` 37/37, dont trois cas nouveaux (réarmement refusé en
+  streaming, deux vols d'affilée sous deux générations, contrat HTTP du rearm
+  avec 401 anonyme et second `completed` en génération 2).
+- vérification manuelle : relevé des 37 PASS du harnais.
+- revue et constats traités : `RunAsync` garde sa sémantique une-passe (aucun
+  test existant réécrit) ; c'est le service hôte qui boucle. Un signal de
+  réarmement précédant l'attente est consommé sans perte (`_rearmPending`).
 
 ### J2
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : `flight_summary_arm(dispatchId)` valide l'UUID canonique,
+  réarme le bridge et mémorise génération ↔ dispatch en mémoire du processus ;
+  `flight_summary` projette `attachedDispatchId` (`null` sur génération
+  inconnue ou changée). Ni jeton, ni port, ni génération ne traversent.
+- fichiers modifiés : `flight_summary.rs`, `bridge.rs`, `lib.rs`,
+  `tests/desktop-shell/run.ps1` (deux commandes fermées, signatures exactes).
+- commandes et résultats : `cargo test` 21/21 ; `pnpm desktop:check`
+  (typecheck, fmt, check, clippy -D warnings) vert ; harnais du shell vert.
+- vérification manuelle : néant (couverte par les serveurs factices Rust).
+- revue et constats traités : la génération est absente du type sérialisable
+  qui traverse (`FlightSummary`), pas seulement omise — un test épingle sa
+  non-traversée ; le refus 409 du bridge remonte en catégorie fermée
+  `rejected`.
 
 ### J3
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : le départ d'un vol arme la mesure pour son dispatch (échec
+  non bloquant, jamais avant un départ réussi) ; l'affichage n'attribue une
+  mesure qu'à la ligne rattachée et échoue fermé sinon — la garde « un seul
+  vol actif » de la PR #130 est remplacée par le rattachement exact.
+- fichiers modifiés : `flightSummary.ts` (+`attachedDispatchId`),
+  `flightSummaryArm.ts` (nouveau), `flightSummaryShell.ts` (invoke à
+  arguments), `FlightSummaryControl.tsx`, `DispatchStartControl.tsx`,
+  `DispatchListPanel.tsx`, `HomePage.tsx`, `security-invariants.test.ts`,
+  tests associés, `eng/authority-inventory.json`.
+- commandes et résultats : typecheck vert, 427 tests frontend verts,
+  couverture 94,86 % lignes / 90,13 % branches, build vert,
+  `authority:check`, `data-policy:check`, `maintenance:check` verts.
+- vérification manuelle : à faire par Andy — scénario deux-vols-d'affilée sur
+  le harnais replay (méthode du parcours F0004 du 7 août 2026).
+- revue et constats traités : une mesure d'un vol précédent ne peut plus
+  s'afficher pour un autre vol — prouvé sur le panneau à deux vols actifs et
+  sur le contrôle avec rattachement divergent ou nul.
 
 ### Synthèse
 
+Les deux prérequis de F0002 consignés par KI-028 sont livrés : le tracker se
+réarme par générations et la mesure est rattachée à son vol, sans qu'aucune
+identité métier n'entre dans le bridge ni qu'aucun secret ne traverse la
+WebView. Trois jalons, trois commits ; 37 tests bridge, 21 tests Rust,
+427 tests frontend.
+
 ### Risks and limitations
+
+- Le rattachement vit en mémoire du processus Tauri : un redémarrage de
+  l'application le perd — le vol reste mesurable en réarmant (nouveau départ
+  impossible : armer à nouveau exige... le départ ; en pratique la mesure du
+  vol en cours est perdue au redémarrage, comme avant F0006).
+- Une WebView compromise peut armer un dispatch arbitraire : le rattachement
+  est une attribution d'affichage, jamais une autorité financière — le serveur
+  conserve `min(déclaré, écoulé)` et l'appartenance du dispatch (T0051).
+- KI-027 reste ouvert : sans harnais externe, l'application intégrée ne
+  produit toujours pas de mesure par elle-même.
 
 ### Follow-ups
 
+- Brancher la clôture F0002 (PR #131) sur `attachedDispatchId` après fusion :
+  exiger le rattachement au dispatch clôturé avant d'envoyer le rapport.
+- KI-027 : unité dédiée à la production autonome d'une mesure (trace replay
+  fournie par le superviseur, premier abonné créé par l'application).
+
 ### Documentation updated
+
+`docs/SECURITY.md` (contrat local par générations, deux commandes IPC),
+`docs/ARCHITECTURE.md` (section « Cycle de mesure rattaché et réarmable »),
+`docs/QUALITY.md` (preuves F0006), `docs/KNOWN_ISSUES.md` (KI-028 résolue par
+F0006), `docs/CURRENT_STATE.md`, `docs/features/README.md`, ce fichier.

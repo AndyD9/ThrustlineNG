@@ -483,9 +483,15 @@ T0010, sans nouvelle autorité :
   abonné, aucun tampon cumulatif, et un abonné qui cesse de drainer est
   abandonné après un délai d'envoi borné ;
 - l'état publié se limite à `telemetrySource`, `telemetryState` et, sur
-  `GET /api/v1/flight-summary` (F0004 J1), au résumé dérivé `state` et
-  `blockMinutes` ; ni chemin de trace, ni version de SDK, ni jeton n'apparaît
+  `GET /api/v1/flight-summary` (F0004 J1, puis F0006 J1), au résumé dérivé
+  `state`, `blockMinutes` et à un entier local `generation` ; ni chemin de
+  trace, ni version de SDK, ni jeton, ni aucune identité métier n'apparaît
   dans une réponse ou une erreur ;
+- `POST /api/v1/flight-summary/rearm` (F0006 J1) exige le même jeton que le
+  reste du contrat, est refusé (409) pendant un streaming pour ne jamais
+  effacer une mesure en cours, et ouvre sinon une session neuve : tracker
+  recréé, génération incrémentée, source replay rejouée — deux vols d'affilée
+  produisent deux mesures distinctes ;
 - aucun jeton, échantillon brut ni chemin utilisateur n'est journalisé : le
   processus ne conserve aucun fournisseur de logs.
 
@@ -493,32 +499,40 @@ La source native reste facultative. Son absence donne l'état `unavailable` et
 n'ouvre aucun chemin de secours : elle n'est jamais requise par la CI et
 n'accorde aucune capacité à la WebView.
 
-## Relais du résumé de vol F0004 J2
+## Relais du résumé de vol F0004 J2, rattachement F0006 J2
 
 La WebView est un client non fiable ; le résumé de vol traverse la frontière
-Tauri ↔ WebView par l'unique commande IPC du shell, `flight_summary`, sous les
-contrôles suivants :
+Tauri ↔ WebView par deux commandes IPC fermées, `flight_summary` et
+`flight_summary_arm`, sous les contrôles suivants :
 
-- le port loopback et le jeton d'instance restent des champs privés du
-  processus Rust ; ils n'apparaissent ni dans la réponse, ni dans les erreurs,
-  ni dans un log — le shell ne journalise rien ;
-- la commande n'accepte aucun paramètre fourni par la WebView : la cible est
-  fixée par construction au bridge de l'instance, une page compromise ne peut
-  ni choisir une autre cible ni faire fuiter le jeton par l'appel ;
+- le port loopback, le jeton d'instance **et la génération de mesure** restent
+  des champs privés du processus Rust ; ils n'apparaissent ni dans une
+  réponse, ni dans les erreurs, ni dans un log — le shell ne journalise rien ;
+- `flight_summary` n'accepte aucun paramètre fourni par la WebView ;
+  `flight_summary_arm` n'accepte qu'un identifiant de dispatch en UUID
+  canonique, validé côté Rust avant tout effet : la cible reste fixée par
+  construction au bridge de l'instance ;
 - la réponse du bridge est revalidée avant de traverser : jeu de clés
-  strictement égal à `{contractVersion, state, blockMinutes}`, version `1`
-  exigée, états fermés, temps de bloc entier positif présent seulement si
-  l'état est `completed` — un résumé forgé ou élargi est rejeté ;
+  strictement égal à `{contractVersion, state, blockMinutes, generation}` côté
+  contrat local, projeté vers la WebView en
+  `{contractVersion, state, blockMinutes, attachedDispatchId}` — le
+  rattachement est résolu en mémoire du processus (génération armée ↔
+  dispatch) et rendu `null` sur toute génération inconnue ou changée ; un
+  résumé forgé ou élargi est rejeté ;
 - la lecture est sans effet et bornée (16 KiB, délais de connexion et
-  d'entrée/sortie) ; les échecs se réduisent aux deux catégories fixes
-  `unavailable` et `invalid-response` ;
-- les tests du shell et du frontend épinglent l'unicité de la commande, sa
-  signature sans paramètre invité, la non-traversée du jeton et du port
+  d'entrée/sortie) ; l'armement rejoue la source replay et se réduit, comme la
+  lecture, aux catégories fixes `unavailable`, `invalid-response` et
+  `rejected` (réarmement refusé en pleine mesure) ;
+- les tests du shell et du frontend épinglent le nombre exact de commandes et
+  leurs signatures, la non-traversée du jeton, du port et de la génération
   (serveur factice en test Rust) et le rejet des clés inconnues des deux côtés
   de la frontière.
 
-Le temps de bloc relayé reste une déclaration du point de vue du serveur :
-`close_flight` conserve `min(déclaré, écoulé serveur)` (T0051).
+Le rattachement est une attribution d'affichage, jamais une autorité
+financière : une WebView compromise peut armer un dispatch arbitraire, mais le
+temps de bloc relayé reste une déclaration du point de vue du serveur —
+`close_flight` conserve `min(déclaré, écoulé serveur)` et vérifie
+l'appartenance du dispatch (T0051).
 
 ## Frontière locale T0010
 
@@ -531,9 +545,10 @@ n'est pas transmis à React.
 Le desktop part d'une autorité nulle côté page :
 
 - capability limitée à la fenêtre `main`, avec zéro permission ;
-- aucun plugin Tauri ; une seule commande `#[tauri::command]`, le relais en
-  lecture seule `flight_summary` (F0004 J2, section dédiée), sans paramètre
-  fourni par la WebView ;
+- aucun plugin Tauri ; deux commandes `#[tauri::command]` fermées : le relais
+  en lecture seule `flight_summary` sans paramètre fourni par la WebView, et
+  l'armement `flight_summary_arm` limité à un identifiant de dispatch validé
+  (F0004 J2 puis F0006 J2, section dédiée) ;
 - aucune ressource distante ou requête réseau ;
 - décorations Windows natives et devtools désactivés en production ;
 - aucun accès aux fichiers, processus, presse-papiers, notifications ou URL.
