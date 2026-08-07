@@ -40,7 +40,10 @@ function Wait-Until {
 function Get-AuthenticodeStatus {
     param([Parameter(Mandatory = $true)][string]$Path)
 
-    $powerShell7 = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue
+    # Même ambiguïté que dans le script de build : plusieurs `pwsh.exe` sur le
+    # PATH rendraient `.Source` sous forme de tableau.
+    $powerShell7 = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
     if ($null -ne $powerShell7) {
         $previousTarget = $env:THRUSTLINE_AUTHENTICODE_TARGET
         try {
