@@ -1,6 +1,11 @@
-# F0007 — Mesurer un vol sans harnais externe
+# F0007 — Finir son vol dans l'alpha, et dire honnêtement pourquoi elle ne mesure pas
 
-Status: Draft
+Status: Ready
+Séquencement: `Ready` mais **différée par le sélecteur** tant que F0003 est
+`In progress` — collision de zone sur `docs/ARCHITECTURE.md`, que les deux unités
+réclament légitimement. C'est donc la sortie de F0003 (son J3, qui attend la
+lecture de l'EULA du SDK) qui libère un démarrage en parallèle ; en pilotage
+interactif, Andy peut la lancer sans attendre le sélecteur.
 Owner: Unassigned
 Branch: `feature/f0007-mesurer-un-vol-sans-harnais-externe`
 Phase: 3–4
@@ -10,9 +15,18 @@ Autonomous: No
 
 ## Goal
 
-La personne qui installe l'alpha et déroule le golden path voit un temps de bloc
-mesuré **sans rien lancer d'autre que l'application** — aujourd'hui la mesure
-n'apparaît qu'avec un harnais externe.
+La personne qui installe l'alpha déroule le golden path **jusqu'au bout** : elle
+part en vol, et elle peut le finir. L'application lui dit franchement que cette
+version ne mesure pas le temps de bloc et pourquoi, au lieu de lui demander de
+terminer un replay qui n'existe pas.
+
+**Pivot du 7 août 2026.** Ce fichier visait « voir un temps de bloc mesuré sans
+rien lancer d'autre que l'application ». Andy a tranché l'option C — pas de trace
+dans l'alpha — donc cet objectif n'est plus atteignable ici : la mesure arrive
+avec MSFS réel (F0003 J3, T0059). Ce que l'unité livre à la place, c'est un
+parcours qui se termine et une application qui ne ment pas sur ce qu'elle sait
+faire. Le titre suit ce pivot ; l'identifiant `F0007`, le nom de fichier et la
+branche ne changent pas, pour ne casser aucune référence.
 
 ## Context
 
@@ -37,139 +51,289 @@ F0006 a rendu le tracker réarmable et rattaché la mesure à son vol ; F0002
 consomme cette mesure pour la clôture. Le seul trou restant entre « l'alpha
 cliquable » et « l'alpha qui mesure » est celui-ci.
 
-## Décisions réservées à Andy
+**Ajout du 7 août 2026 — la moitié desktop de F0003 J2 est portée ici.** F0003 J1
+a livré la sonde SimConnect bornée et exposé l'état de localisation dans le health
+check du bridge (`nativeLibrary` : `located`/`unavailable`/`not-required` ;
+`nativeLibraryOrigin` : `explicit`/`application`/`sdk`/`none`). L'affichage
+« télémétrie indisponible » dans l'application était inexécutable dans les
+`Allowed areas` de F0003 : le superviseur ne consomme pas le health check, la seule
+surface IPC est `flight_summary` dont le vocabulaire d'états est fermé des deux
+côtés, et l'étendre relève de `apps/desktop/src-tauri/` et du gate
+`tests/desktop-shell/run.ps1`. Andy a tranché : ce câblage vient ici, parce que
+cette unité possède déjà ces fichiers et que sa décision 2 pose exactement la même
+question — qui parle au bridge, le superviseur ou la WebView. Une seule évolution
+de la surface IPC sert donc les deux besoins : l'origine de la mesure et
+l'indisponibilité de la télémétrie.
 
-Aucun jalon ne démarre avant la première : elle détermine les deux autres.
+## Décisions d'Andy — prises le 7 août 2026
 
-1. **D'où vient la trace de l'alpha ?** Trois options, exclusives :
-   - **A — trace dorée embarquée** : `synthetic-golden-flight.jsonl` devient une
-     ressource du package, le superviseur la passe au bridge. L'alpha mesure
-     toujours le même vol synthétique. Le plus simple, le moins réaliste.
-   - **B — trace choisie par la personne** : l'application ouvre un sélecteur de
-     fichier. Réaliste, mais ouvre une frontière d'entrée utilisateur vers le
-     bridge et un accès au système de fichiers que le shell n'a pas aujourd'hui
-     (capability vide, aucun plugin Tauri).
-   - **C — pas de trace du tout** : l'alpha assume `idle` et n'affiche la mesure
-     que sous MSFS réel (F0003/T0059). Repousse la capacité hors de l'alpha.
-2. **Qui crée le premier abonné** : le superviseur Rust, ou la WebView via une
-   commande ? Le superviseur garde le jeton et le port privés — c'est l'option
-   qui n'élargit pas la surface IPC.
-3. **La trace se rejoue-t-elle en temps réel ou accéléré ?** Un vol synthétique
-   d'une minute de temps de bloc ne doit pas immobiliser la personne une minute
-   à chaque essai — mais une cadence accélérée change ce que la mesure prouve.
+1. **D'où vient la trace de l'alpha ? → option C, pas de trace du tout.** L'alpha
+   n'embarque aucune trace, n'ouvre aucun sélecteur de fichier, et n'affichera un
+   temps de bloc mesuré que sous MSFS réel (F0003 J3 et T0059). Les options
+   écartées : **A**, trace dorée embarquée — l'alpha aurait toujours mesuré le
+   même vol synthétique ; **B**, trace choisie par la personne — aurait ouvert une
+   frontière d'entrée utilisateur vers le bridge et un accès au système de
+   fichiers que le shell n'a pas (capability vide, aucun plugin Tauri).
+2. **Qui crée le premier abonné ? → sans objet sous C.** Il n'y a plus d'abonné à
+   créer pour une mesure replay, et J1 retire la barrière au lieu de la contourner.
+   La question se reposera pour la source native, dans T0059.
+3. **Temps réel ou accéléré ? → sans objet sous C.** Aucune trace n'est rejouée
+   par l'application.
+
+### Conséquence tranchée le même jour : l'alpha doit pouvoir finir son vol
+
+L'option C, prise littéralement, **rendait le golden path de l'alpha installée non
+clôturable**, ce qui a été constaté dans le code avant de consigner la décision :
+sans source, le résumé reste `idle` et `blockMinutes` à `null` ;
+`FlightCloseControl` échoue fermé sur exactement ce cas (état `unmeasured`,
+`close_flight` jamais appelé) et affiche « terminez le replay puis réessayez » —
+un conseil impossible à suivre dans une version sans replay. Le dispatch restait
+« En vol » indéfiniment, sans sortie depuis l'application.
+
+**Décision d'Andy : l'application gagne un chemin d'abandon de vol.** Sans
+télémétrie, la personne peut **abandonner** son vol au lieu de le clôturer.
+Aucun temps de bloc n'est inventé — la décision du 6 août 2026 (« le temps de
+bloc vient de la télémétrie, jamais d'une saisie ») tient entière.
+
+Ce que le serveur fait déjà, vérifié le 7 août 2026, et qui explique pourquoi
+cette unité ne touche ni l'Edge ni une migration :
+
+- `flight-close` accepte `outcome: "interrupted"` et `blockMinutes: 0`, et sait
+  répondre `state: "interrupted"` ;
+- le règlement autoritaire pose `settled_amount_minor` au plancher
+  `interruptedFloorMinor` = **5 000 minor (50,00 €)** — un plancher, pas zéro, et
+  jamais l'échelle complète ;
+- la réputation reçoit `reputationInterruptedDelta` = **−3** (contre +1 pour un
+  vol complété). Cette réputation est **informative** : aucune capacité n'est
+  modulée par le score, ce que la base garantit explicitement ;
+- le dispatch passe à l'état `interrupted`, qui est de l'histoire et **ne bloque
+  plus l'avion** pour un nouveau dispatch.
+
+Le travail est donc **entièrement desktop** : `flightClose.ts` fige aujourd'hui
+`outcome: "completed"`, `state: "completed"` et refuse `blockMinutes < 1` ; il
+faut ouvrir ces trois points au cas `interrupted`, ajouter le contrôle et son
+état, et couvrir le tout en tests.
 
 ## Dependencies
 
 - F0004 fusionnée — mesure, contrat local, commande `flight_summary` ;
 - F0006 fusionnée — générations réarmables et rattachement au dispatch ;
-- **décision d'Andy sur l'origine de la trace : non prise** — veto d'autonomie ;
+- F0003 J1 fusionnée — champs de santé `nativeLibrary` et `nativeLibraryOrigin`,
+  consommés par la moitié desktop portée ici le 7 août 2026 ;
+- **décision d'Andy sur l'origine de la trace : prise le 7 août 2026 — option C**,
+  plus le chemin d'abandon de vol (voir la section des décisions) ;
+- T0051 et le règlement autoritaire : `outcome: "interrupted"`, le plancher
+  `interruptedFloorMinor` et le delta de réputation existent déjà et ne changent
+  pas — cette unité les **consomme**, elle ne les redéfinit pas ;
 - T0054 : l'invariant « le bridge ne connaît ni compagnie, ni dispatch, ni grand
   livre » ne bouge pas.
 
 ## Allowed areas
 
 - `apps/desktop/src-tauri/src/bridge.rs` et le superviseur ;
-- `apps/bridge/` — publication de télémétrie et adaptateur replay ;
+- `apps/bridge/Telemetry/` — publication de télémétrie (barrière du premier
+  abonné). **Resserré depuis `apps/bridge/` le 7 août 2026** : J1 ne touche que
+  `TelemetryPublisher`, et la zone large entrait inutilement en collision avec
+  `apps/bridge/BridgeHealth.cs` de F0003 ;
 - `tests/bridge/`, `tests/desktop-shell/run.ps1`, `apps/desktop/src/test/` ;
-- `apps/desktop/src-tauri/tauri.package.conf.json` si la trace devient ressource ;
+- `apps/desktop/src/` — restitution de l'état « télémétrie indisponible » (moitié
+  desktop de F0003 J2, portée ici le 7 août 2026) et chemin d'abandon de vol
+  (`features/flight-dispatch/`) ;
 - `docs/SECURITY.md`, `docs/ARCHITECTURE.md`, `docs/QUALITY.md`,
-  `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md` pour clore KI-027 ;
-- ce fichier et `docs/features/README.md`.
+  `docs/SUPPORT.md`, `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md` ;
+- ce fichier, `docs/features/README.md`, et
+  `docs/features/F0003-trouver-simconnect-ou-degrader-proprement.md` pour cocher le
+  critère qui lui a été porté.
 
 ## Do not touch
 
 - La CSP par canal de F0005 : aucune origine nouvelle ;
 - le jeton et le port du contrat local : ils restent privés au superviseur ;
 - l'autorité serveur : la mesure reste informative, le serveur conserve
-  `min(déclaré, écoulé)` (T0051).
+  `min(déclaré, écoulé)` (T0051) ;
+- **`supabase/` en entier — aucune fonction Edge, aucune migration.** Le chemin
+  d'abandon existe déjà côté serveur et côté base ; le toucher serait rouvrir le
+  règlement autoritaire pour un besoin purement client ;
+- **la politique de règlement et les deltas de réputation** :
+  `interruptedFloorMinor`, `reputationInterruptedDelta` et
+  `reputationCompletedDelta` restent tels quels. L'abandon coûte ce qu'il coûte
+  déjà ;
+- **aucune saisie de temps de bloc par la WebView**, sous aucune forme : un
+  abandon envoie `blockMinutes: 0` avec `outcome: "interrupted"`, jamais une
+  valeur choisie. C'est la décision du 6 août 2026, et elle est le cœur de
+  l'anti-triche de cette unité.
 
 ## Non-goals
 
-- MSFS réel et SimConnect natif : F0003 et T0059 ;
+- MSFS réel et SimConnect natif : F0003 J3 et T0059 — **c'est là que la mesure
+  arrive**, pas ici ;
+- embarquer une trace, dans quelque canal que ce soit : option A écartée le
+  7 août 2026 ;
+- ouvrir un sélecteur de fichier vers le bridge : option B écartée le même jour ;
 - la détection de phases de vol, la reprise après crash ;
 - la persistance du rattachement au redémarrage (limite connue de F0006).
 
 ## Jalons
 
-### J1 — Le bridge produit une mesure sans abonné externe
+### J1 — La barrière du premier abonné disparaît du chemin de mesure
 
-Status: Draft
+Status: Ready
 Risk: Medium
 Security-sensitive: No
-Autonomous: No
+Autonomous: Yes
 
-- résultat : lancé avec une trace, le bridge mesure sans attendre qu'un abonné
-  SignalR externe se présente. La diffusion `telemetry.v1` reste inchangée pour
-  les abonnés réels ; c'est l'attente bloquante de `_firstSubscriber` sur le
-  chemin de la mesure qui disparaît.
-- frontière : `TelemetryPublisher`, adaptateur replay.
+**Pourquoi ce jalon survit à l'option C.** Il ne sert pas l'alpha, qui n'aura
+aucune source de télémétrie : il sert MSFS réel. `TelemetryPublisher.RunAsync`
+attend `_firstSubscriber` **avant de créer n'importe quel adaptateur**, source
+native comprise — la barrière n'a rien de spécifique au replay. Laissée en place,
+elle bloquera T0059 exactement comme elle bloque le replay aujourd'hui : pas
+d'abonné, pas d'adaptateur, pas de mesure. Elle est corrigeable et prouvable dès
+maintenant au harnais bridge, sans MSFS ni matériel — donc elle se corrige ici.
+
+- résultat : le bridge mesure dès qu'une source existe, sans attendre qu'un
+  abonné SignalR se présente. La diffusion `telemetry.v1` reste inchangée pour les
+  abonnés réels ; c'est l'attente bloquante sur le chemin de la mesure qui
+  disparaît, pas la diffusion.
+- frontière : `TelemetryPublisher`.
 - validations : `pnpm bridge:test`, `pnpm bridge:build`.
 - revue : chercher toute régression de la borne de cadence, de l'abandon d'un
-  abonné lent, et tout échantillon émis hors des bornes T0054.
+  abonné lent, et tout échantillon émis hors des bornes T0054. Vérifier qu'un
+  bridge sans aucune source reste `idle` et ne crée pas d'adaptateur fantôme.
 
-### J2 — Le superviseur fournit la trace du canal
+### J2 — L'application dit ce qu'elle sait mesurer, et ne le devine pas
 
-Status: Draft
+Status: Ready
 Risk: Medium
 Security-sensitive: Yes
 Autonomous: No
 
-- résultat : le superviseur Tauri lance le bridge avec la source de trace
-  décidée en décision 1, sans exposer ni jeton ni chemin à la WebView. Un
-  contrôle déterministe échoue si la WebView peut influencer ce chemin.
-- frontière : superviseur Rust, packaging si la trace devient une ressource.
-- validations : `pnpm desktop:check`, `pnpm desktop:test`,
-  `pnpm windows:package:check`.
-- revue : chercher tout chemin par lequel une entrée utilisateur atteindrait
-  l'argument de trace, et toute lecture de fichier hors du périmètre décidé.
+Ce jalon absorbe la **moitié desktop de F0003 J2**, portée ici le 7 août 2026.
 
-### J3 — L'alpha installée mesure son vol
+- résultat : le superviseur — seul lecteur du health check du bridge — relaie à la
+  WebView un état de disponibilité de la télémétrie à **vocabulaire fermé des deux
+  côtés**, sans jamais transmettre chemin, version de SDK ni jeton. L'application
+  affiche un état accessible qui dit la vérité de la version installée : cette
+  version ne mesure pas le temps de bloc, la mesure arrivera avec MSFS réel. Le
+  message trompeur « terminez le replay puis réessayez » disparaît de ce cas.
+  L'état couvre les deux causes distinctes, sans les confondre : **aucune source
+  configurée dans cette version** (le cas de l'alpha sous option C) et
+  **bibliothèque cliente absente** (le cas F0003, `nativeLibrary=unavailable`).
+- frontière : superviseur Rust, surface IPC, `apps/desktop/src/`.
+- validations : `pnpm desktop:check`, `pnpm desktop:test`, `pnpm frontend:typecheck`,
+  `pnpm frontend:test`, `pnpm frontend:coverage`, `pnpm frontend:build`,
+  `pnpm bridge:test` pour les champs de santé consommés.
+- revue : vérifier qu'aucun chemin local, version de SDK ni jeton ne traverse vers
+  la WebView ; qu'un état dégradé ne se présente jamais comme une réussite ;
+  qu'aucun kill switch n'est introduit là où `SUPPORT.md` l'interdit ; et que la
+  WebView ne peut pas **choisir** l'état affiché, seulement le lire.
 
-Status: Draft
-Risk: Low
-Security-sensitive: No
+### J3 — Le vol se termine, sans mesure et sans mensonge
+
+Status: Ready
+Risk: Medium
+Security-sensitive: Yes
 Autonomous: No
 
-- résultat : le golden path déroulé dans l'application installée affiche un
-  temps de bloc mesuré et clôture dessus, sans aucun processus externe. Clôt
-  KI-027.
-- frontière : parcours humain.
-- validations : parcours manuel consigné, `pnpm maintenance:check`.
-- revue : vérifier que la mesure affichée est bien celle du vol clôturé, deux
-  vols d'affilée (invariant F0006).
+- résultat : sans télémétrie, la personne peut **abandonner** son vol depuis
+  l'application. L'appel part avec `outcome: "interrupted"` et `blockMinutes: 0` —
+  jamais une valeur saisie — et le serveur applique ce qu'il applique déjà :
+  plancher `interruptedFloorMinor`, delta de réputation informatif, dispatch en
+  état `interrupted` qui libère l'avion. Le contrôle **nomme sa conséquence avant
+  l'action** (indemnité plancher, réputation, pas de revenu de vol), et
+  l'abandon n'est jamais présenté comme une clôture réussie. Le golden path de
+  l'alpha installée se termine.
+- frontière : `apps/desktop/src/features/flight-dispatch/` — `flightClose.ts` fige
+  aujourd'hui `outcome: "completed"`, `state: "completed"` et refuse
+  `blockMinutes < 1` ; ces trois points s'ouvrent au cas `interrupted` **sans
+  élargir ce qu'un client peut déclarer**. Aucune fonction Edge, aucune migration.
+- validations : `pnpm frontend:typecheck`, `pnpm frontend:test`,
+  `pnpm frontend:coverage`, `pnpm frontend:build`, `pnpm authority:check`,
+  `pnpm maintenance:check`, plus le parcours manuel consigné sur l'alpha installée.
+- revue : **c'est la frontière anti-triche de cette unité.** Chercher tout chemin
+  par lequel un `blockMinutes` non nul, ou un `outcome: "completed"`, pourrait
+  partir d'un vol non mesuré ; vérifier l'idempotence de l'abandon (une clé par
+  intention, un rejeu ne double pas le règlement) ; vérifier qu'un vol mesuré
+  n'emprunte jamais le chemin d'abandon par défaut.
 
 ## Acceptance criteria
 
-- [ ] Le golden path dans l'alpha installée affiche un temps de bloc mesuré sans
-      harnais externe.
-- [ ] La clôture consomme cette mesure, rattachée au vol clôturé.
-- [ ] La WebView ne peut influencer ni le chemin de trace, ni le jeton, ni le
-      port, prouvé par un contrôle déterministe.
-- [ ] Deux vols d'affilée restent correctement attribués.
-- [ ] KI-027 passe `Resolved` en référençant F0007.
+- [ ] Le bridge mesure dès qu'une source existe, sans abonné SignalR — prouvé au
+      harnais, et la diffusion `telemetry.v1` reste inchangée pour les abonnés
+      réels.
+- [ ] L'application installée indique que cette version ne mesure pas le temps de
+      bloc, sans jamais afficher « terminez le replay ».
+- [ ] Le golden path de l'alpha installée **se termine** : la personne part en vol
+      et peut l'abandonner, l'avion est libéré pour un nouveau dispatch.
+- [ ] Un abandon envoie `outcome: "interrupted"` et `blockMinutes: 0`, et rien
+      d'autre ne peut partir d'un vol non mesuré — prouvé par un contrôle
+      déterministe et par `pnpm authority:check`.
+- [ ] L'abandon nomme sa conséquence avant l'action et n'est jamais présenté comme
+      une clôture réussie.
+- [ ] La WebView ne peut influencer ni le jeton, ni le port, ni l'état de
+      disponibilité relayé — prouvé par un contrôle déterministe.
+- [ ] KI-027 passe `Accepted` en citant la décision d'Andy du 7 août 2026 : l'alpha
+      ne mesure pas par elle-même, par choix ; la mesure arrive avec T0059.
+- [ ] **Porté de F0003 J2 le 7 août 2026** — quand la source de télémétrie
+      sélectionnée n'a pas de bibliothèque cliente, l'application affiche un état
+      accessible « télémétrie indisponible » disant quoi installer, sans divulguer
+      chemin, version de SDK ni jeton, et cet état ne se présente jamais comme une
+      réussite. **Sous option C l'alpha ne sélectionne jamais la source native** :
+      ce cas se prouve donc par un contrôle déterministe du shell, et sa
+      vérification humaine attend MSFS réel (T0059) ou F0003 J3.
+- [ ] **Porté de F0003 J2 le 7 août 2026** — les capacités déjà livrées restent
+      utilisables sans télémétrie : compagnie, catalogue, achat, dispatch et flotte,
+      conformément à `docs/SUPPORT.md`, et aucun kill switch n'est introduit là où
+      `SUPPORT.md` l'interdit. À consigner daté dans la note de portage de F0003
+      (section `Acceptance criteria`), qui pointe ici.
 
 ## Security review
 
-Jalon concerné : **J2**.
+Jalons concernés : **J2** et **J3**.
 
-- actifs/données : chemin de trace, jeton et port du contrat local ;
-- frontière : WebView ↔ superviseur Tauri ↔ bridge ;
-- abus : une WebView compromise qui ferait lire un fichier arbitraire au bridge
-  en influençant l'argument de trace ; une trace pointant hors du périmètre ;
-- validation/autorisation : le chemin de trace est décidé par le superviseur,
-  jamais reçu de la WebView ; contrôle déterministe avec mutation négative ;
-- atomicité/idempotence : sans objet (lecture) ;
-- logs/vie privée : aucun chemin local ni jeton journalisé.
+- actifs/données : jeton et port du contrat local ; état de disponibilité de la
+  télémétrie ; **le rapport de vol envoyé au règlement autoritaire** ;
+- frontière : WebView ↔ superviseur Tauri ↔ bridge, et WebView ↔ Edge
+  `flight-close` ;
+- abus : (J2) une WebView compromise qui lirait le jeton, le port ou un chemin
+  local à travers l'état relayé, ou qui **choisirait** l'état affiché pour
+  faire croire à une indisponibilité ; (J3) **une WebView qui déclarerait un
+  temps de bloc** en empruntant le chemin d'abandon — envoyer un `blockMinutes`
+  non nul, ou un `outcome: "completed"` sans mesure, pour se payer un vol
+  qu'elle n'a pas volé ; ou un rejeu d'abandon qui réglerait deux fois ;
+- validation/autorisation : l'état de disponibilité est un vocabulaire fermé
+  dérivé du health check par le superviseur, jamais reçu de la WebView ;
+  l'abandon envoie exactement `outcome: "interrupted"` et `blockMinutes: 0`,
+  constantes du code et non valeurs d'entrée ; le serveur reste autoritaire sur
+  le règlement (plancher) et sur la réputation ; contrôles déterministes avec
+  mutations négatives des deux côtés ;
+- atomicité/idempotence : l'abandon porte une clé d'idempotence liée à son
+  intention, comme la clôture — un rejeu rejoue le même règlement et n'en crée
+  pas un second ;
+- logs/vie privée : aucun chemin local ni jeton journalisé ; l'état de
+  disponibilité ne porte jamais le chemin de la bibliothèque, sa version de SDK
+  ni le jeton du contrat local.
 
 ## Maintenance review
 
-- dettes et problèmes connus applicables : KI-027 (close par cette unité) ;
-- dette créée ou aggravée : si l'option A est retenue, l'alpha embarque une
-  trace synthétique qu'il faudra retirer quand MSFS réel arrivera ;
-- règle de sécurité ajoutée : origine du chemin de trace dans `SECURITY.md` ;
-- contrôle manuel à automatiser : la preuve qu'aucun abonné externe n'est requis ;
-- risque résiduel : une mesure synthétique peut être prise pour une mesure
-  réelle — l'affichage doit dire ce qu'il mesure.
+- dettes et problèmes connus applicables : **KI-027**, qui passe `Accepted` et
+  non `Resolved` — l'alpha ne mesure pas par elle-même, par décision d'Andy du
+  7 août 2026, et la mesure arrive avec T0059 ;
+- dette créée ou aggravée : **aucune trace embarquée**, donc pas la dette de
+  l'option A. En échange, l'alpha publie une capacité centrale absente : c'est
+  une dette produit assumée, pas une dette technique. Et le chemin d'abandon
+  devra cohabiter avec la clôture mesurée quand MSFS réel arrivera — les deux
+  chemins doivent rester distincts, l'abandon ne devenant jamais la sortie par
+  défaut d'un vol mesurable ;
+- règle de sécurité ajoutée : dans `SECURITY.md`, l'origine de l'état de
+  disponibilité (superviseur seul lecteur du health check) et l'invariant « la
+  WebView ne déclare jamais de temps de bloc, y compris à l'abandon » ;
+- contrôle manuel à automatiser : la preuve qu'aucun abonné externe n'est requis
+  (J1, au harnais) ; et la preuve qu'un abandon ne peut pas partir avec un
+  `blockMinutes` non nul (J3, contrôle déterministe) ;
+- risque résiduel : une personne peut abandonner un vol qu'elle aurait pu voler,
+  et perdre le revenu correspondant contre le plancher — c'est un choix
+  explicite, nommé avant l'action, pas un piège ; et l'alpha reste une alpha qui
+  ne mesure pas, ce que `SUPPORT.md` doit énoncer.
 
 ## Automated validation
 
@@ -178,23 +342,44 @@ pnpm bridge:build
 pnpm bridge:test
 pnpm desktop:check
 pnpm desktop:test
-pnpm windows:package:check
+pnpm frontend:typecheck
+pnpm frontend:test
+pnpm frontend:coverage
+pnpm frontend:build
+pnpm authority:check
 pnpm maintenance:check
 ```
 
 ## Manual verification
 
-1. J1 : lancer le bridge avec une trace, sans abonné, et constater que
+1. J1 : lancer le bridge avec une trace, **sans aucun abonné**, et constater que
    `GET /api/v1/flight-summary` atteint `completed`.
-2. J2 : lancer l'application, constater que le bridge reçoit la trace décidée et
-   qu'aucun chemin ne traverse vers la WebView.
-3. Bout en bout : dérouler le golden path dans l'alpha installée, deux vols
-   d'affilée, sans processus externe.
+2. J2 : lancer l'application installée et constater qu'elle énonce que cette
+   version ne mesure pas le temps de bloc, sans jamais afficher « terminez le
+   replay », et qu'aucun chemin ni jeton ne traverse vers la WebView.
+3. J3, bout en bout : dérouler le golden path dans l'alpha installée jusqu'à
+   l'abandon du vol, constater le règlement au plancher, le dispatch en état
+   `interrupted` et **l'avion de nouveau disponible pour un dispatch** ; puis
+   enchaîner un second vol pour prouver que la boucle se referme.
+4. J2, porté de F0003 J2 : sur une machine sans bibliothèque cliente, lancer le
+   bridge en source `native` et constater l'état « télémétrie indisponible » et
+   que compagnie, catalogue, achat, dispatch et flotte restent utilisables.
+   **L'alpha ne sélectionnant jamais `native` sous l'option C**, cette
+   vérification se fait au harnais du shell ; sa version humaine attend T0059 ou
+   F0003 J3.
 
 ## Rollback
 
-Retirer l'argument de trace du superviseur rend l'alpha à son état actuel :
-résumé `idle`, aucune mesure sans harnais. Aucune donnée concernée.
+J1 et J2 sont rétractables sans donnée concernée : rétablir la barrière du premier
+abonné, retirer l'état relayé et son affichage rend l'alpha à son état actuel —
+résumé `idle` et message trompeur compris.
+
+**J3 ne l'est pas de la même façon.** Un vol abandonné est réglé au grand livre et
+porte un événement de réputation ; les deux sont append-only et ne se rétractent
+pas. Retirer le contrôle d'abandon empêche d'en créer de nouveaux, mais les vols
+déjà abandonnés restent abandonnés. Le rollback utile de J3 est donc de retirer le
+contrôle, pas d'annuler ses effets — et c'est une raison de plus pour que le
+contrôle nomme sa conséquence avant l'action.
 
 ## Completion Report
 

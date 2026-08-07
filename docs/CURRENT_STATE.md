@@ -50,15 +50,35 @@ KI-027/F0007).
 
 - **F0003** (`In progress`) — découverte de la bibliothèque SimConnect ou
   dégradation propre. J1 `Done` le 7 août 2026 : sonde bornée, chargement par
-  chemin absolu, état `unavailable` explicite, champs de santé additifs. J2 à
-  moitié bloqué (affichage desktop hors `Allowed areas` — décision d'Andy) ;
-  J3 attend sa décision (fourniture de la DLL) et la lecture de l'EULA du SDK.
+  chemin absolu, état `unavailable` explicite, champs de santé additifs. J2
+  `Done` sur son périmètre restant : sa moitié desktop est **portée dans F0007**
+  sur décision d'Andy du 7 août 2026, F0007 possédant déjà le superviseur et le
+  gate du shell dont elle dépend. J3 attend sa décision (fourniture de la DLL) et
+  la lecture de l'EULA du SDK — c'est la seule chose qui garde F0003 ouverte.
+
+Décisions d'Andy du 7 août 2026, en marge de F0003 J1 : la moitié desktop de J2
+va dans F0007 (ci-dessus) ; l'extension de la matrice de validation d'`ADR-0003`
+au cas « bibliothèque absente » **n'est pas faite ici** — elle passera par une ADR
+nouvelle au moment de la première promotion d'un canal vers `Supported`, une ADR
+acceptée ne se réécrivant pas ; `KI-032` (liste fermée de sources, dette
+d'entretien) est **acceptée**, revalidée par la vérification manuelle J1 à chaque
+évolution du SDK.
 
 ## Ce qui manque pour l'alpha cliquable
 
-1. F0007 (KI-027) — le vol en replay mesuré et la clôture dans l'application
-   **installée** : l'alpha assemblée ne produit aucune mesure sans harnais
-   externe ; son J1 attend la décision d'Andy sur l'origine de la trace.
+1. F0007 (`Ready` depuis le 7 août 2026) — **le golden path installé doit se
+   terminer.** La décision produit d'Andy est prise : option C, l'alpha n'embarque
+   aucune trace et ne mesure donc pas par elle-même ; la mesure arrive avec MSFS
+   réel (T0059, F0003 J3), et KI-027 passe `Accepted`. Mais l'option C laissait
+   l'alpha bloquée au départ : sans mesure, `FlightCloseControl` échoue fermé et
+   demande de « terminer le replay », qui n'existe pas dans cette version, en
+   laissant le dispatch « En vol » sans sortie. F0007 livre donc trois choses : la
+   barrière du premier abonné retirée du chemin de mesure (elle bloquerait T0059 à
+   l'identique), une application qui énonce qu'elle ne mesure pas — ce qui absorbe
+   la moitié desktop de F0003 J2, même surface superviseur ↔ WebView — et un chemin
+   d'**abandon** de vol (`outcome: "interrupted"`, `blockMinutes: 0`) qui existe
+   déjà côté serveur et base, sans fonction Edge ni migration, et sans inventer
+   aucun temps de bloc.
 
 Le câblage du golden path est complet dans `main` depuis la fusion de F0006 —
 départ, mesure rattachée et réarmable, clôture et règlement au grand livre,

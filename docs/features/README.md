@@ -38,7 +38,7 @@ gelée du format précédent.
 | F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Done |
 | F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | Done |
 | F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | Done |
-| F0007 | Mesurer un vol sans harnais externe | 3–4 | F0004 et F0006 fusionnées, décision d'Andy sur l'origine de la trace **non prise** | Draft |
+| F0007 | Finir son vol dans l'alpha, et dire honnêtement pourquoi elle ne mesure pas | 3–4 | F0004, F0006 et F0003 J1 fusionnées, décisions d'Andy prises le 7 août 2026 (option C, chemin d'abandon) | Ready |
 
 Les deux premières fonctionnalités ouvrent le format sur ce qui restait du golden
 path : `start_flight_from_dispatch` et `close_flight` sont livrées dans `main` depuis
@@ -97,16 +97,32 @@ loopback) et se désinstalle sans résidu — ce qui clôt T0055. Le parcours
 s'arrête au départ : mesure et clôture dans l'application installée relèvent
 de KI-027, porté par F0007.
 
-F0007 est `Draft` et porte **KI-027**, le dernier trou entre « l'alpha cliquable »
-et « l'alpha qui mesure » : l'application intégrée ne produit pas de temps de
-bloc par elle-même. Trois maillons manquent, et un seul suffit à tuer la chaîne
-— le superviseur ne passe aucune trace au bridge, l'adaptateur replay n'existe
-pas sans `--telemetry-trace`, et la publication attend un premier abonné
-SignalR que rien ne crée. Elle reste `Draft` parce que son premier jalon dépend
-d'une décision produit qu'Andy n'a pas prise : **d'où vient la trace de
-l'alpha ?** — trace dorée embarquée, trace choisie par la personne, ou pas de
-trace du tout jusqu'à MSFS réel. Les deux autres décisions (qui crée le premier
-abonné, cadence de rejeu) en découlent.
+F0007 est `Ready` depuis le 7 août 2026, et elle a **changé de sujet ce jour-là**.
+Elle portait **KI-027** — l'application intégrée ne produit pas de temps de bloc
+par elle-même — et visait « mesurer un vol sans harnais externe ». Andy a tranché
+sa décision bloquante, l'origine de la trace de l'alpha : **option C, pas de trace
+du tout**. Les options écartées étaient la trace dorée embarquée (l'alpha aurait
+toujours mesuré le même vol synthétique) et la trace choisie par la personne (une
+frontière d'entrée utilisateur vers le bridge et un accès au système de fichiers
+que le shell n'a pas). La mesure arrive donc avec MSFS réel, T0059 et F0003 J3, et
+KI-027 passe `Accepted` : un état produit assumé, pas un défaut à corriger.
+
+Ce choix a révélé une conséquence dure, constatée dans le code avant d'être
+consignée : sans mesure, `FlightCloseControl` échoue fermé et affiche « terminez le
+replay puis réessayez » — un conseil impossible dans une version sans replay — en
+laissant le dispatch « En vol » sans aucune sortie. **L'alpha aurait été cliquable
+jusqu'au départ, et bloquée là.** Andy a donc tranché la suite le même jour :
+l'application gagne un chemin d'**abandon** de vol. Il ne coûte ni fonction Edge ni
+migration — `outcome: "interrupted"` avec `blockMinutes: 0`, le plancher de
+règlement et le delta de réputation existent déjà côté serveur et base — et il
+n'invente aucun temps de bloc, donc la décision du 6 août 2026 tient.
+
+F0007 livre maintenant trois choses : la barrière du premier abonné retirée du
+chemin de mesure (elle bloquerait T0059 à l'identique, donc elle se corrige
+maintenant qu'elle est prouvable au harnais) ; une application qui dit ce qu'elle
+sait mesurer — ce qui absorbe la **moitié desktop de F0003 J2**, même surface
+superviseur ↔ WebView ; et un golden path installé qui se termine. L'identifiant,
+le nom de fichier et la branche ne changent pas, pour ne casser aucune référence.
 
 F0003 sort d'une question d'Andy du 5 août 2026 — « il faut qu'on le trouve nous-même,
 dans l'hypothèse où la personne n'a rien de tout ça » — et d'un relevé qui lui donne
@@ -118,15 +134,26 @@ validation**, où MSFS 2024 et le SDK `1.5.7` sont pourtant installés. Elle est
 ordonnée et fermée (chemin explicite, répertoire de l'application, installation
 du SDK déclarée par le système), chargement par chemin absolu, état
 `unavailable` dès le démarrage sans bibliothèque, 44 tests bridge et
-vérification manuelle sur le bridge publié (KI-031 résolue). Son J2 est à
-moitié livré (champs de santé additifs) et à moitié bloqué : l'affichage
-desktop « télémétrie indisponible » exige `apps/desktop/src-tauri/` et le gate
-du shell, hors des `Allowed areas` de l'unité — décision d'Andy attendue
-(étendre l'unité, ou porter le câblage dans F0007). Son J3, qui fournit la
-bibliothèque à une machine sans SDK, dépend d'une décision d'Andy et de la
-lecture de l'EULA du SDK. C'est exactement ce que le format T0068 permet : une
-fonctionnalité exécutable dont un jalon tardif reste bloqué, au lieu d'un
-ticket entier bloqué par sa dernière étape.
+vérification manuelle sur le bridge publié (KI-031 résolue). Son J2 est `Done`
+sur son périmètre restant : la moitié bridge est livrée (champs de santé
+additifs), et sa moitié desktop est **portée dans F0007** sur décision d'Andy du
+7 août 2026 — l'affichage « télémétrie indisponible » exige
+`apps/desktop/src-tauri/` et le gate du shell, que F0007 possède déjà et dont sa
+décision 2 pose la même question. Son J3, qui fournit la bibliothèque à une
+machine sans SDK, dépend d'une décision d'Andy et de la lecture de l'EULA du SDK,
+et reste la seule chose qui garde l'unité ouverte. C'est exactement ce que le
+format T0068 permet : une fonctionnalité exécutable dont un jalon tardif reste
+bloqué, au lieu d'un ticket entier bloqué par sa dernière étape.
+
+Les deux autres décisions d'Andy du 7 août 2026, prises en marge de F0003 J1 :
+l'extension de la matrice de validation d'`ADR-0003` au cas « bibliothèque
+cliente absente » **ne se fait pas depuis F0003** — une ADR acceptée ne se
+réécrit pas, et le cas n'est pas celui du scénario 14 (« variable absente,
+invalide ou corrompue ») mais un cran plus tôt, au niveau du prérequis ;
+l'extension passera par une ADR nouvelle au moment de la première promotion d'un
+canal vers `Supported`. Et `KI-032` — la liste fermée de sources est une dette
+d'entretien — est **acceptée** telle quelle, sans travail correctif ouvert :
+élargir la découverte rouvrirait le vecteur de détournement de DLL que J1 ferme.
 
 ## Transition
 
