@@ -48,28 +48,38 @@ KI-027/F0007).
 
 ## Unités en cours
 
-- **F0003** (`In progress`) — découverte de la bibliothèque SimConnect ou
-  dégradation propre. J1 `Done` le 7 août 2026 : sonde bornée, chargement par
-  chemin absolu, état `unavailable` explicite, champs de santé additifs. J2
-  `Done` sur son périmètre restant : sa moitié desktop est **portée dans F0007**
-  sur décision d'Andy du 7 août 2026, F0007 possédant déjà le superviseur et le
-  gate du shell dont elle dépend. J3 attend sa décision (fourniture de la DLL) et
-  la lecture de l'EULA du SDK — c'est la seule chose qui garde F0003 ouverte.
+Aucune. **F0003 est `Done` depuis le 7 août 2026** — ses trois jalons sont clos et
+elle libère la capacité de travail. F0007 est `Ready` (voir ci-dessous).
 
-Décisions d'Andy du 7 août 2026, en marge de F0003 J1 : la moitié desktop de J2
-va dans F0007 (ci-dessus) ; l'extension de la matrice de validation d'`ADR-0003`
+Ce que F0003 laisse derrière elle : la bibliothèque cliente SimConnect est
+désormais trouvée par une sonde à liste ordonnée et fermée, chargée par chemin
+absolu, et son absence rend un état `unavailable` explicite au lieu d'un échec muet
+(`KI-031` résolue, `KI-032` acceptée). Mais son J3 s'est heurté à la licence :
+l'EULA du SDK MSFS n'accorde aucun droit de redistribution — §2(e) interdit de
+distribuer le Software et son exception renvoie à un « distributable code » que le
+§1 ne définit jamais — donc **Thrustline ne peut pas fournir la bibliothèque**,
+ni avec l'application ni par son installateur. Décision d'Andy : option C, ne rien
+fournir et le dire. Conséquence dominante, consignée en **`KI-033` (`High`)** : la
+télémétrie live n'est atteignable que par qui installe volontairement le SDK MSFS
+ou désigne une copie qu'il possède via `--simconnect-library`. Seule
+l'autorisation écrite prévue au §2 de l'EULA lèverait cela ; la démarche appartient
+à Andy et n'est pas engagée.
+
+Les deux autres décisions d'Andy du 7 août 2026, en marge de F0003 J1 : la moitié
+desktop de J2 va dans F0007 ; l'extension de la matrice de validation d'`ADR-0003`
 au cas « bibliothèque absente » **n'est pas faite ici** — elle passera par une ADR
 nouvelle au moment de la première promotion d'un canal vers `Supported`, une ADR
-acceptée ne se réécrivant pas ; `KI-032` (liste fermée de sources, dette
-d'entretien) est **acceptée**, revalidée par la vérification manuelle J1 à chaque
-évolution du SDK.
+acceptée ne se réécrivant pas.
 
 ## Ce qui manque pour l'alpha cliquable
 
 1. F0007 (`Ready` depuis le 7 août 2026) — **le golden path installé doit se
    terminer.** La décision produit d'Andy est prise : option C, l'alpha n'embarque
    aucune trace et ne mesure donc pas par elle-même ; la mesure arrive avec MSFS
-   réel (T0059, F0003 J3), et KI-027 passe `Accepted`. Mais l'option C laissait
+   réel (T0059), et KI-027 passe `Accepted`. **Elle n'est plus différée** : F0003
+   étant `Done` depuis le 7 août 2026, la collision de zone sur
+   `docs/ARCHITECTURE.md` qui la retenait a disparu — le sélecteur peut la prendre.
+   Mais l'option C laissait
    l'alpha bloquée au départ : sans mesure, `FlightCloseControl` échoue fermé et
    demande de « terminer le replay », qui n'existe pas dans cette version, en
    laissant le dispatch « En vol » sans sortie. F0007 livre donc trois choses : la
