@@ -8,8 +8,9 @@ PR: [#133](https://github.com/AndyD9/ThrustlineNG/pull/133) et
 Andy le 7 août 2026 — J1 livré dans `main` : CSP par canal, contrôle sur
 l'exécutable produit. J2 — le parcours dans l'application installée — a été
 exécuté le 7 août 2026 par la session agent, sur instruction du passage de
-relais d'Andy, et est consigné par la branche
-`feature/f0005-j2-parcours-installe` ; la revue finale et la fusion
+relais d'Andy, et est consigné par la
+[PR #140](https://github.com/AndyD9/ThrustlineNG/pull/140) (branche
+`feature/f0005-j2-parcours-installe`) ; la revue finale et la fusion
 appartiennent à Andy.
 Phase: 4
 Risk: High
