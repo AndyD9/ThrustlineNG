@@ -1,3 +1,5 @@
+using Thrustline.Bridge.SimConnect;
+
 namespace Thrustline.Bridge.Telemetry;
 
 public enum TelemetrySource
@@ -19,7 +21,8 @@ public sealed record BridgeTelemetryOptions(
     TelemetrySource Source,
     string? TracePath,
     TimeSpan Cadence,
-    TimeSpan SendTimeout)
+    TimeSpan SendTimeout,
+    string? SimConnectLibraryPath = null)
 {
     public const string ReplayArgument = "replay";
     public const string NativeArgument = "native";
@@ -38,7 +41,10 @@ public sealed record BridgeTelemetryOptions(
     public bool IsBounded =>
         Cadence > TimeSpan.Zero
         && SendTimeout > TimeSpan.Zero
-        && (TracePath is null || (Source == TelemetrySource.Replay && IsSupportedTracePath(TracePath)));
+        && (TracePath is null || (Source == TelemetrySource.Replay && IsSupportedTracePath(TracePath)))
+        && (SimConnectLibraryPath is null
+            || (Source == TelemetrySource.Native
+                && SimConnectLibraryLocator.HasTrustedShape(SimConnectLibraryPath)));
 
     public static bool TryParseSource(string? value, out TelemetrySource source)
     {

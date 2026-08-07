@@ -46,6 +46,8 @@ public static class BridgeApplication
         await error.WriteLineAsync(
             "       [--telemetry-source replay|native] [--telemetry-trace <file>]").ConfigureAwait(false);
         await error.WriteLineAsync(
+            "       [--simconnect-library <absolute SimConnect.dll path>]").ConfigureAwait(false);
+        await error.WriteLineAsync(
             "       | --health-check").ConfigureAwait(false);
     }
 }

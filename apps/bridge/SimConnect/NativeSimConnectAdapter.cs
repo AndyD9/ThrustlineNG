@@ -7,8 +7,15 @@ namespace Thrustline.Bridge.SimConnect;
 public sealed class NativeSimConnectAdapter : ISimConnectAdapter
 {
     private readonly CancellationTokenSource _disposeCancellation = new();
+    private readonly SimConnectLibraryLocation _library;
     private Task? _pumpTask;
     private int _started;
+
+    public NativeSimConnectAdapter(SimConnectLibraryLocation library)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+        _library = library;
+    }
 
     public async IAsyncEnumerable<FlightSample> ReadAllAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -30,7 +37,7 @@ public sealed class NativeSimConnectAdapter : ISimConnectAdapter
             });
 
         _pumpTask = Task.Factory.StartNew(
-            () => RunPump(channel.Writer, linkedCancellation.Token),
+            () => RunPump(_library, channel.Writer, linkedCancellation.Token),
             CancellationToken.None,
             TaskCreationOptions.LongRunning,
             TaskScheduler.Default);
@@ -59,6 +66,7 @@ public sealed class NativeSimConnectAdapter : ISimConnectAdapter
     }
 
     private static void RunPump(
+        SimConnectLibraryLocation library,
         ChannelWriter<FlightSample> writer,
         CancellationToken cancellationToken)
     {
@@ -70,7 +78,7 @@ public sealed class NativeSimConnectAdapter : ISimConnectAdapter
                 throw new PlatformNotSupportedException("SimConnect requires Windows 11.");
             }
 
-            using var api = SimConnectNativeApi.Load();
+            using var api = SimConnectNativeApi.Load(library);
             using var messageEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
             api.Open(messageEvent);
             try
@@ -116,7 +124,6 @@ public sealed class NativeSimConnectAdapter : ISimConnectAdapter
 
     private sealed class SimConnectNativeApi : IDisposable
     {
-        private const string LibraryName = "SimConnect.dll";
         private const uint FlightDataDefinition = 1;
         private const uint FlightDataRequest = 1;
         private const uint UserAircraft = 0;
@@ -152,16 +159,17 @@ public sealed class NativeSimConnectAdapter : ISimConnectAdapter
             _callDispatch = GetExport<CallDispatchDelegate>("SimConnect_CallDispatch");
         }
 
-        public static SimConnectNativeApi Load()
+        public static SimConnectNativeApi Load(SimConnectLibraryLocation location)
         {
-            if (!NativeLibrary.TryLoad(
-                    LibraryName,
-                    typeof(NativeSimConnectAdapter).Assembly,
-                    DllImportSearchPath.SafeDirectories,
-                    out var library))
+            // Chargement par chemin absolu localisé par la sonde bornée —
+            // aucune recherche implicite (ni PATH, ni répertoire courant).
+            if (location.Origin == SimConnectLibraryOrigin.None
+                || location.LibraryPath is null
+                || !NativeLibrary.TryLoad(location.LibraryPath, out var library))
             {
                 throw new DllNotFoundException(
-                    "SimConnect is unavailable. Install and start a supported MSFS 2024 build.");
+                    "The SimConnect library is unavailable. Install the MSFS 2024 SDK "
+                    + "or pass --simconnect-library with an absolute SimConnect.dll path.");
             }
 
             try
