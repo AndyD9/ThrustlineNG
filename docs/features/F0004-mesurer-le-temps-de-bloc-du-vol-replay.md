@@ -1,13 +1,15 @@
 # F0004 — Voir le temps de bloc mesuré de son vol en replay
 
-Status: In progress
+Status: Done
 Owner: Agent (session du 6 août 2026)
 Branch: `feature/f0004-mesurer-le-temps-de-bloc-du-vol-replay`
-PR: [#128](https://github.com/AndyD9/ThrustlineNG/pull/128) (ouverte, passée
-« ready for review » le 6 août 2026, base `main` ; checks verts le 7 août 2026
-sur la tête J1+J2+J3 `18e8a5f` : Windows multi-stack — bridge et budgets
-inclus —, Supabase PostgreSQL 17, Audits/licences/SBOM — relancés après
-l'incident GitHub Actions du 6 août qui avait perdu les événements de push)
+PR: [#128](https://github.com/AndyD9/ThrustlineNG/pull/128) et
+[#130](https://github.com/AndyD9/ThrustlineNG/pull/130), **fusionnées dans
+`main` par Andy le 7 août 2026** (J1–J3, parcours manuel exécuté, constats de
+revue corrigés ; les checks verts du 7 août 2026 couvrent Windows multi-stack
+— bridge et budgets inclus —, Supabase PostgreSQL 17 et Audits/licences/SBOM).
+Les dettes relevées par sa revue restent ouvertes : KI-027, et KI-028 dont les
+prérequis de F0002 sont portés par F0006.
 Phase: 3–4
 Risk: Medium
 Security-sensitive: Yes
