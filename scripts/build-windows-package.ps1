@@ -59,7 +59,11 @@ function Invoke-Checked {
 function Get-AuthenticodeStatus {
     param([Parameter(Mandatory = $true)][string]$Path)
 
-    $powerShell7 = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue
+    # `pwsh.exe` peut apparaître plusieurs fois sur le PATH — l'installation
+    # Store et son alias `WindowsApps` cohabitent couramment. Sans `-First 1`,
+    # `.Source` rend un tableau et l'invocation échoue sur un chemin concaténé.
+    $powerShell7 = Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
     if ($null -ne $powerShell7) {
         $previousTarget = $env:THRUSTLINE_AUTHENTICODE_TARGET
         try {
