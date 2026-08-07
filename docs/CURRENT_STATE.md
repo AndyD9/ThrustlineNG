@@ -32,9 +32,9 @@ Toutes les preuves sont locales ou CI, sur données synthétiques uniquement
 | Backend | Grand livre immuable ; export/suppression de compte ; restauration isolée | T0018–T0020 |
 | Backend | Brouillon de dispatch autoritaire + frontière Auth, référentiel de 103 aérodromes | T0047–T0049, T0057 |
 | Backend | Départ de vol complet : commande serveur, frontière Edge authentifiée prouvée sur l'Edge Runtime réel, rejeu restitué octet pour octet | T0050, T0065, F0001 |
-| Backend | Clôture de vol, règlement au grand livre, réputation informative — **sans frontière Auth** | T0051 |
-| Desktop | Login, onboarding, catalogue/achat, flotte, création et liste de dispatchs, démarrage de vol avec heure serveur | T0037–T0046, T0052, T0053, F0001 |
-| Bridge | Contrat local loopback à jeton, adaptateur SimConnect replay, télémétrie bornée, résumé de vol mesuré (temps de bloc) | T0010, T0011, T0054, F0004 J1 |
+| Backend | Clôture de vol complète : règlement au grand livre, réputation informative, frontière Edge authentifiée prouvée sur l'Edge Runtime réel | T0051, F0002 |
+| Desktop | Login, onboarding, catalogue/achat, flotte, création et liste de dispatchs, démarrage de vol avec heure serveur, clôture sur mesure télémétrique avec revenu affiché depuis le serveur | T0037–T0046, T0052, T0053, F0001, F0002 |
+| Bridge | Contrat local loopback à jeton, adaptateur SimConnect replay, télémétrie bornée, résumé de vol mesuré et affiché dans l'application | T0010, T0011, T0054, F0004 |
 | Distribution | Version produit `0.1.0-alpha.1` (source `eng/product-version.json`), NSIS x64 non signé | T0014, T0055 |
 | Socle | Toolchain épinglée, CI multi-stack, supply chain, gates autorité/données/maintenance | T0001–T0030 |
 
@@ -45,30 +45,22 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
 
 ## Unités en cours
 
-- **F0004** (`In progress`) — mesurer le temps de bloc du vol replay (bridge →
-  commande Tauri → affichage), chemin critique du jalon. Décision de mesure
-  prise le 6 août 2026 : mouvement → sol. J1–J3 implémentés sur la PR #128 :
-  le bridge mesure et expose `GET /api/v1/flight-summary`, l'unique commande
-  Tauri `flight_summary` relaie le résumé revalidé sans exposer jeton ni port,
-  et l'application affiche le temps de bloc sur la ligne du vol actif. Le
-  parcours manuel complet a été exécuté le 7 août 2026 et la revue
-  adversariale rendue (constats corrigés sur la branche) ; restent la revue
-  finale d'Andy et la fusion.
+- **F0006** (`In progress`) — rattacher la mesure de vol à son dispatch et la
+  réarmer entre deux vols : les prérequis de F0002 consignés par KI-028,
+  ouverts sur la décision de séquencement d'Andy du 7 août 2026 (« go 1 » :
+  câblage d'abord). Chemin critique du jalon.
 - **F0005** (`Ready`) — CSP `internal-alpha` limitée au loopback pour rendre
   l'application installée cliquable et clore T0055 (décision du 6 août 2026).
-- **F0002** (`Blocked`) — clôture et encaissement depuis l'application ;
-  débloquée par F0004 (décision d'Andy du 6 août 2026, option C : le temps de
-  vol vient de la télémétrie).
 - **F0003** (`Ready`) — découverte de la bibliothèque SimConnect ou dégradation
   propre ; son J3 attend une décision d'Andy (fourniture de la DLL) et la
   lecture de l'EULA du SDK.
 
 ## Ce qui manque pour l'alpha cliquable
 
-1. F0004 — le temps de bloc mesuré du replay (J1–J3 implémentés et parcours
-   manuel exécuté, PR #128 ; restent la revue finale d'Andy et la fusion).
-2. F0002 — la clôture depuis l'application, débloquée par F0004.
-3. F0005 — le parcours dans l'application **installée**, qui clôt T0055. La
+1. F0006 — le rattachement mesure ↔ vol, le réarmement entre deux vols et le
+   branchement de la clôture F0002 (fusionnée avant F0006 par la PR #131) sur
+   la mesure rattachée (KI-028, « go 1 » du 7 août 2026).
+2. F0005 — le parcours dans l'application **installée**, qui clôt T0055. La
    CSP de production étant `connect-src 'none'`, Andy a décidé le 6 août 2026
    un canal `internal-alpha` dont la CSP autorise uniquement
    `http://127.0.0.1:54321`.

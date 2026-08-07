@@ -199,28 +199,35 @@
         "a draft created while usable cannot depart once usage is suspended",
         "a start acquired before the usage loss replays identically while the dispatch is active"
       ],
-      "limitations": ["Only the server transitions from one owned draft to one server-timed active flight, and from that flight to one of the two terminal states, are covered. F0001 adds one bounded authenticated Edge boundary in front of the start command, accepting only a dispatch identifier and an idempotency key, proven on the real local Edge Runtime, plus one bounded desktop caller behind an explicit submission that rereads the authoritative list after a start; the desktop proof stays jsdom with injected fetch, no live WebView run exists yet, and no flight phase detection or resume exists. T0054 broadcasts bounded replay telemetry on the local bridge contract to authenticated loopback subscribers only, without persisting flight state or linking any sample to a company, a flight or the ledger.", "The flight start now opposes the end of an aircraft lease: it derives the aircraft from the dispatch, locks it last in the documented company, dispatch, aircraft order and refuses a fresh draft-to-active transition on an unusable aircraft with its existing opaque message. A start already acquired replays unchanged, and close_flight is deliberately unguarded so a flight under way stays closeable, per Andy's decision of 4 August 2026."]
+      "limitations": ["Only the server transitions from one owned draft to one server-timed active flight, and from that flight to one of the two terminal states, are covered. F0001 adds one bounded authenticated Edge boundary in front of the start command, accepting only a dispatch identifier and an idempotency key, proven on the real local Edge Runtime, plus one bounded desktop caller behind an explicit submission that rereads the authoritative list after a start; the desktop proof stays jsdom with injected fetch, no live WebView run exists yet, and no flight phase detection or resume exists. T0054 broadcasts bounded replay telemetry on the local bridge contract to authenticated loopback subscribers only, without persisting flight state or linking any sample to a company, a flight or the ledger. F0006 rearms the bridge measurement by local generations and attaches, inside the Tauri process only, the armed generation to the dispatch identifier supplied by the WebView at departure: the bridge still carries no business identity, the generation never crosses the WebView, and the attachment is a display attribution, never a financial authority — the server keeps settling by min(declared, elapsed) under close_flight ownership checks.", "The flight start now opposes the end of an aircraft lease: it derives the aircraft from the dispatch, locks it last in the documented company, dispatch, aircraft order and refuses a fresh draft-to-active transition on an unusable aircraft with its existing opaque message. A start already acquired replays unchanged, and close_flight is deliberately unguarded so a flight under way stays closeable, per Andy's decision of 4 August 2026."]
     },
     {
       "id": "flight-finalization",
       "status": "server-authoritative",
       "coverage": "partial",
       "serverBoundaries": [
+        "supabase/functions/flight-close/handler.ts",
         "public.close_flight"
       ],
       "evidencePaths": [
         "eng/flight-settlement-policy.json",
+        "supabase/functions/flight-close/handler.ts",
+        "apps/desktop/src/features/flight-dispatch/flightClose.ts",
+        "apps/desktop/src/features/flight-dispatch/FlightCloseControl.tsx",
         "supabase/migrations/20260804000100_authoritative_flight_settlement.sql",
         "supabase/tests/database/flight_settlement.test.sql"
       ],
       "evidenceMarkers": [
         "close_flight",
+        "createFlightCloseHandler",
+        "flight_close_rejected",
+        "functions/v1/flight-close",
         "flight_reports",
         "flight_close_commands",
         "alpha-flight-settlement",
         "a second closure of the same flight is rejected"
       ],
-      "limitations": ["Only the server closure of one owned active flight is covered: one terminal state, one bounded versioned report, one net credit and one reputation event in a single transaction. The report contract accepts a closed outcome, a bounded declared block time and optional bounded measurements only; the amount, the currency, the distance, the retained block time and the multiplier are recomputed or derived by the server. No Auth boundary, desktop caller, cancellation, SimBrief or telemetry-driven closure exists."]
+      "limitations": ["Only the closure of one owned active flight is covered: one terminal state, one bounded versioned report, one net credit and one reputation event in a single transaction. The report contract accepts a closed outcome, a bounded declared block time and optional bounded measurements only; the amount, the currency, the distance, the retained block time and the multiplier are recomputed or derived by the server. F0002 adds one bounded authenticated Edge boundary in front of the closure command, accepting only a dispatch identifier, an idempotency key and the strictly allowlisted report, and projecting only public fields without the ledger entry identifier. No cancellation, SimBrief or interrupted-outcome caller exists; the alpha desktop caller closes a completed measured replay only."]
     },
     {
       "id": "finance",
@@ -230,6 +237,7 @@
         "public.post_company_opening_balance",
         "supabase/functions/aircraft-purchase/handler.ts",
         "public.purchase_aircraft",
+        "supabase/functions/flight-close/handler.ts",
         "public.close_flight",
         "public.lease_aircraft",
         "public.process_aircraft_lease",
@@ -245,12 +253,13 @@
         "supabase/migrations/20260802000100_authoritative_aircraft_purchase.sql",
         "supabase/tests/database/aircraft_purchase.test.sql",
         "eng/flight-settlement-policy.json",
+        "supabase/functions/flight-close/handler.ts",
         "supabase/migrations/20260804000100_authoritative_flight_settlement.sql",
         "supabase/tests/database/flight_settlement.test.sql",
         "supabase/migrations/20260804000200_authoritative_aircraft_lease.sql",
         "supabase/tests/database/aircraft_lease.test.sql"
       ],
-      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft", "flight_settlement", "alpha-flight-settlement", "aircraft_lease_rent", "process_aircraft_lease"],
+      "evidenceMarkers": ["rest/v1/aircraft_purchase_offers", "functions/v1/aircraft-purchase", "new-company-opening", "post_company_opening_balance", "createAircraftPurchaseHandler", "purchase_aircraft", "createFlightCloseHandler", "flight_settlement", "alpha-flight-settlement", "aircraft_lease_rent", "process_aircraft_lease"],
       "limitations": ["Opening, bounded authenticated catalogue read, one-off aircraft purchase, the single net flight settlement and the versioned lease rents are covered as separate components; routed composition, live connectivity and other financial commands are not defined. The settlement scale is an alpha decision protected by a floor and a per-flight cap, not a measured economic balance. Lease catch-up is manual service-role execution only; no scheduler and no routed lease endpoint exist."]
     },
     {

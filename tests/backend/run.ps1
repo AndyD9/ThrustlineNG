@@ -84,6 +84,10 @@ function Get-BackendIssues {
     $flightStartFunctionEntryPath = Join-Path $Root "supabase\functions\flight-start\index.ts"
     $flightStartFunctionTestPath = Join-Path $Root "supabase\functions\flight-start\handler.test.ts"
     $flightStartFunctionPackagePath = Join-Path $Root "supabase\functions\flight-start\package.json"
+    $flightCloseFunctionPath = Join-Path $Root "supabase\functions\flight-close\handler.ts"
+    $flightCloseFunctionEntryPath = Join-Path $Root "supabase\functions\flight-close\index.ts"
+    $flightCloseFunctionTestPath = Join-Path $Root "supabase\functions\flight-close\handler.test.ts"
+    $flightCloseFunctionPackagePath = Join-Path $Root "supabase\functions\flight-close\package.json"
     $typesPath = Join-Path $Root "packages\database\src\database.types.ts"
     $startScriptPath = Join-Path $Root "scripts\start-supabase-local.ps1"
     $invokeScriptPath = Join-Path $Root "scripts\invoke-supabase-local.ps1"
@@ -154,6 +158,10 @@ function Get-BackendIssues {
         $flightStartFunctionEntryPath,
         $flightStartFunctionTestPath,
         $flightStartFunctionPackagePath,
+        $flightCloseFunctionPath,
+        $flightCloseFunctionEntryPath,
+        $flightCloseFunctionTestPath,
+        $flightCloseFunctionPackagePath,
         $typesPath,
         $startScriptPath,
         $invokeScriptPath,
@@ -1349,7 +1357,58 @@ function Get-BackendIssues {
             $issues.Add("Missing flight start endpoint test scenario: $marker")
         }
     }
-    Require-Text ([string]$package.scripts.'backend:functions:test') 'company-onboarding/handler\.test\.ts.+aircraft-purchase/handler\.test\.ts.+dispatch-draft/handler\.test\.ts.+flight-start/handler\.test\.ts' "The functions test script must execute onboarding, aircraft purchase, dispatch draft and flight start handlers."
+    $flightCloseFunction = Get-Content -Raw -Encoding UTF8 $flightCloseFunctionPath
+    $flightCloseFunctionEntry = Get-Content -Raw -Encoding UTF8 $flightCloseFunctionEntryPath
+    $flightCloseFunctionTests = Get-Content -Raw -Encoding UTF8 $flightCloseFunctionTestPath
+    $flightCloseFunctionRequirements = @{
+        "bounded request body" = 'MAX_BODY_BYTES = 4_096'
+        "bounded upstream calls" = 'UPSTREAM_TIMEOUT_MILLISECONDS = 5_000'
+        "strict flight close payload" = 'keys\.length !== 3'
+        "strict report allowlist" = '\["blockMinutes", "fuelUsedKg", "landingVerticalSpeedFpm", "outcome"\]'
+        "closed report outcome" = 'record\.outcome !== "completed" && record\.outcome !== "interrupted"'
+        "bounded integer block time" = 'isBoundedInteger\(record\.blockMinutes, 0, MAXIMUM_BLOCK_MINUTES\)'
+        "Auth session verification" = '/auth/v1/user'
+        "anonymous session rejection" = 'user\.is_anonymous !== false'
+        "service-role flight close RPC" = '/rest/v1/rpc/close_flight'
+        "owner derived from Auth" = 'owner_id: user\.id'
+        "service credential API key" = 'apikey: configuration\.serviceRoleKey'
+        "service credential bearer" = 'authorization: `Bearer \$\{configuration\.serviceRoleKey\}`'
+        "redacted flight close failure" = 'throw new HttpError\(409, "flight_close_rejected", "Flight could not be closed\."\);'
+        "positive settled amount" = 'response\.settledAmountMinor > 0'
+        "allowlisted public response" = 'aircraftId: value\.aircraftId[\s\S]+blockMinutes: value\.blockMinutes[\s\S]+closedAt: value\.closedAt[\s\S]+currencyCode: value\.currencyCode[\s\S]+dispatchId: value\.dispatchId[\s\S]+distanceNm: value\.distanceNm[\s\S]+outcome: value\.outcome[\s\S]+schemaVersion: 1[\s\S]+settledAmountMinor: value\.settledAmountMinor[\s\S]+state: value\.state'
+        "non-cacheable response" = 'headers\.set\("cache-control", "no-store"\)'
+    }
+    foreach ($entry in $flightCloseFunctionRequirements.GetEnumerator()) {
+        Require-Text $flightCloseFunction $entry.Value "Flight close endpoint invariant missing: $($entry.Key)."
+    }
+    if ($flightCloseFunction -match 'request\.(owner|company|state|closed|aircraft|amount|currency|distance|multiplier)[A-Za-z]*') {
+        $issues.Add("Flight close endpoint must not accept client-controlled owner, company, state, time, aircraft or monetary data.")
+    }
+    if ($flightCloseFunction -match 'ledgerEntryId:') {
+        $issues.Add("Flight close endpoint must not project the ledger entry identifier to a client.")
+    }
+    Require-Text $config '\[functions\.flight-close\][\s\S]+verify_jwt = true[\s\S]+entrypoint = "\./functions/flight-close/index\.ts"' "Flight close Edge function must verify JWTs and register its entrypoint."
+    Require-Text $flightCloseFunctionEntry 'Deno\.serve\(createFlightCloseHandler\(Deno\.env\.toObject\(\)\)\)' "Flight close handler is not registered with the Edge runtime."
+    foreach ($marker in @(
+        "rejects owner, company, state, time, aircraft and other client-controlled fields",
+        "rejects amount, distance, multiplier and currency from a client report",
+        "requires canonical dispatch and idempotency UUIDs",
+        "rejects a report outside the closed outcome and bounds",
+        "rejects an invalid or anonymous Auth session",
+        "fails closed when Auth is unavailable",
+        "derives the owner from Auth and sends only the RPC contract",
+        "does not disclose database rejection details",
+        "returns the same redacted refusal for unknown, foreign and already closed dispatches",
+        "fails closed when the privileged RPC is unavailable",
+        "fails closed on a malformed or mismatched privileged response",
+        "returns only public fields from a privileged response",
+        "replays the same request without changing the public contract"
+    )) {
+        if (-not $flightCloseFunctionTests.Contains($marker)) {
+            $issues.Add("Missing flight close endpoint test scenario: $marker")
+        }
+    }
+    Require-Text ([string]$package.scripts.'backend:functions:test') 'company-onboarding/handler\.test\.ts.+aircraft-purchase/handler\.test\.ts.+dispatch-draft/handler\.test\.ts.+flight-start/handler\.test\.ts.+flight-close/handler\.test\.ts' "The functions test script must execute onboarding, aircraft purchase, dispatch draft, flight start and flight close handlers."
 
     $seed = Get-Content -Raw -Encoding UTF8 $seedPath
     Require-Text $seed 'pilot-a@thrustline\.invalid' "Synthetic user A is missing."
@@ -1683,6 +1742,10 @@ try {
         "supabase\functions\flight-start\index.ts",
         "supabase\functions\flight-start\handler.test.ts",
         "supabase\functions\flight-start\package.json",
+        "supabase\functions\flight-close\handler.ts",
+        "supabase\functions\flight-close\index.ts",
+        "supabase\functions\flight-close\handler.test.ts",
+        "supabase\functions\flight-close\package.json",
         "packages\database\src\database.types.ts",
         "scripts\start-supabase-local.ps1",
         "scripts\invoke-supabase-local.ps1",
@@ -2616,4 +2679,4 @@ finally {
     }
 }
 
-Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040, T0047-T0051, T0057, T0060, T0065 and F0001 repository plus 67 mutation scenarios)."
+Write-Output "Backend checks passed (T0012-T0023, T0028-T0032, T0035, T0040, T0047-T0051, T0057, T0060, T0065, F0001 and F0002 repository plus 67 mutation scenarios)."

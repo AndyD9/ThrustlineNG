@@ -16,7 +16,13 @@ public sealed class TelemetryPublisher : IAsyncDisposable
     private readonly TaskCompletionSource _firstSubscriber =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly FlightSummaryTracker _summary = new();
+    // La session de mesure courante : tracker et génération ne changent
+    // qu'ensemble, sous _measurementGate, et jamais pendant un streaming.
+    private readonly object _measurementGate = new();
+    private FlightSummaryTracker _summary = new();
+    private int _generation = 1;
+    private bool _rearmPending;
+    private TaskCompletionSource? _rearmSignal;
 
     private int _state = (int)TelemetryState.Idle;
 
@@ -44,7 +50,87 @@ public sealed class TelemetryPublisher : IAsyncDisposable
 
     public int SubscriberCount => _subscriptions.Count;
 
-    public FlightSummary Summary => _summary.Snapshot();
+    public FlightSummary Summary => Reading.Summary;
+
+    public FlightSummaryReading Reading
+    {
+        get
+        {
+            lock (_measurementGate)
+            {
+                return new FlightSummaryReading(_summary.Snapshot(), _generation);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ouvre une nouvelle session de mesure : tracker neuf, génération
+    /// incrémentée. Refusé pendant un streaming pour ne jamais perdre une
+    /// mesure en cours ; aucune identité métier n'entre ici — la génération
+    /// est un entier local que seul le détenteur du jeton peut faire avancer.
+    /// </summary>
+    public bool TryRearm(out int generation)
+    {
+        lock (_measurementGate)
+        {
+            if (State == TelemetryState.Streaming)
+            {
+                generation = _generation;
+                return false;
+            }
+
+            _generation++;
+            _summary = new FlightSummaryTracker();
+            Volatile.Write(ref _state, (int)TelemetryState.Idle);
+            _rearmPending = true;
+            _rearmSignal?.TrySetResult();
+            generation = _generation;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Attend le prochain réarmement ; rend faux sur annulation. Un
+    /// réarmement survenu avant l'attente est consommé immédiatement.
+    /// </summary>
+    public async Task<bool> WaitForRearmAsync(CancellationToken cancellationToken)
+    {
+        TaskCompletionSource signal;
+        lock (_measurementGate)
+        {
+            if (_rearmPending)
+            {
+                _rearmPending = false;
+                return true;
+            }
+
+            signal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _rearmSignal = signal;
+        }
+
+        try
+        {
+            await signal.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        finally
+        {
+            lock (_measurementGate)
+            {
+                if (ReferenceEquals(_rearmSignal, signal))
+                {
+                    _rearmSignal = null;
+                }
+
+                _rearmPending = false;
+            }
+        }
+
+        return true;
+    }
 
     public void Subscribe(string subscriberId, ITelemetrySink sink)
     {
@@ -126,7 +212,13 @@ public sealed class TelemetryPublisher : IAsyncDisposable
 
     private void Dispatch(FlightSample sample)
     {
-        _summary.Observe(sample);
+        FlightSummaryTracker summary;
+        lock (_measurementGate)
+        {
+            summary = _summary;
+        }
+
+        summary.Observe(sample);
         foreach (var subscription in _subscriptions.Values)
         {
             subscription.Publish(sample);
@@ -137,8 +229,11 @@ public sealed class TelemetryPublisher : IAsyncDisposable
     {
         // Le résumé devient terminal avant que l'état soit visible du health
         // check : qui observe `completed` peut lire un résumé déjà final.
-        _summary.OnPublisherState(state);
-        Volatile.Write(ref _state, (int)state);
+        lock (_measurementGate)
+        {
+            _summary.OnPublisherState(state);
+            Volatile.Write(ref _state, (int)state);
+        }
     }
 
     private sealed class Subscription

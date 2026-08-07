@@ -236,6 +236,20 @@ et rend un score borné `0–100` qui n'autorise, ne refuse et ne module aucune
 capacité. Aucune frontière Auth, appelant desktop, annulation, télémétrie de
 clôture ni SimBrief n'est fourni.
 
+F0002 fournit sa frontière et son appelant : l'Edge Function `flight-close`,
+cinquième frontière sur le modèle exact de `flight-start` (corps de 4 Kio limité
+à `dispatchId`, `idempotencyKey` et un rapport strictement allowlisté, bearer
+vérifié auprès d'Auth, propriétaire dérivé, RPC en `service_role` sous cinq
+secondes, projection `no-store` de dix champs publics sans identifiant de grand
+livre, refus indistinguables), prouvée sur l'Edge Runtime local réel ; et, côté
+desktop, un transport borné à la cible loopback plus un contrôle par ligne
+`active` qui lit d'abord le résumé mesuré F0004, n'envoie que
+`{ outcome: "completed", blockMinutes mesuré }` (option C du 6 août 2026),
+épingle la clé d'idempotence au rapport exact qu'elle a signé et relit flotte et
+dispatchs après la clôture — la liste filtre désormais les états ouverts, la
+sélection par ligne restant à la RLS. Aucune clôture `interrupted` depuis
+l'application, annulation ni historique de vols n'est fourni.
+
 T0052 ajoute le premier appelant desktop du domaine dispatch en réappliquant le
 patron T0037/T0045 : un module de commande borné plus un panneau mince, sans
 nouvelle lecture Data API. Le module n'accepte qu'une cible loopback `http:` sans
@@ -419,19 +433,48 @@ fonction `invoke` injectée : ni port, ni jeton, ni chemin de trace ne franchit
 la frontière.
 
 L'affichage (J3) rattache le résumé au vol actif de la liste des dispatchs :
-`FlightSummaryControl`, rendu sur la seule ligne `active`, lit le résumé sur
+`FlightSummaryControl`, rendu sur les lignes `active`, lit le résumé sur
 action explicite — jamais au rendu — via `readFlightSummary` et le câblage
 `flightSummaryShell.ts`, seul module qui touche
-`window.__TAURI_INTERNALS__.invoke` et qui ne transmet que le nom de la
-commande. La WebView ne calcule aucun temps : `blockMinutes` est affiché tel
-que revalidé, avec des états explicites (replay en cours, temps de bloc
-mesuré, trace incomplète sans temps inventé, indisponibilité). Le résumé du
-bridge est global et sans identité de vol, et l'exclusivité serveur des
+`window.__TAURI_INTERNALS__.invoke`. La WebView ne calcule aucun temps :
+`blockMinutes` est affiché tel que revalidé, avec des états explicites (replay
+en cours, temps de bloc mesuré, trace incomplète sans temps inventé,
+indisponibilité).
+
+## Cycle de mesure rattaché et réarmable F0006
+
+Le résumé du bridge n'a pas d'identité de vol, et l'exclusivité serveur des
 dispatchs ouverts est **par avion** (index
 `flight_dispatches_one_open_per_aircraft`, T0051), pas par compagnie : deux
-vols actifs sont possibles. L'affichage est donc fail-closed — le contrôle de
-mesure n'est rendu que lorsqu'exactement un vol est actif ; au-delà, aucune
-mesure n'est proposée plutôt qu'un temps attribuable au mauvais vol.
+vols actifs sont possibles et plusieurs vols peuvent s'enchaîner dans une même
+session (KI-028). F0006 résout l'attribution en trois étages, sans qu'aucune
+identité métier n'entre dans le bridge :
+
+- **bridge (J1)** : la mesure devient une session par **génération** — un
+  entier local dans la réponse `{contractVersion, state, blockMinutes,
+  generation}`. `POST /api/v1/flight-summary/rearm`, derrière le jeton du
+  contrat local, est refusé pendant un streaming et ouvre sinon une session
+  neuve : tracker recréé, génération incrémentée, source replay rejouée par le
+  service de publication en boucle ;
+- **Tauri (J2)** : `flight_summary_arm(dispatchId)` valide l'UUID, réarme le
+  bridge et mémorise génération ↔ dispatch **en mémoire du processus** ;
+  `flight_summary` projette vers la WebView
+  `{contractVersion, state, blockMinutes, attachedDispatchId}` — le
+  rattachement est `null` sur toute génération inconnue ou changée, et la
+  génération elle-même ne traverse jamais ;
+- **application (J3)** : le départ d'un vol arme la mesure pour son dispatch
+  (échec non bloquant) et l'affichage échoue fermé — la mesure n'est parlée
+  que sur la ligne dont le dispatch est rattaché, remplaçant la garde
+  « un seul vol actif » de la PR #130 par le rattachement exact. La clôture
+  F0002, fusionnée avant cette unité (PR #131), est branchée dessus : elle
+  exige `attachedDispatchId` égal au vol clôturé avant d'envoyer le rapport —
+  la mesure d'un autre vol ou d'une session non armée ne règle jamais.
+
+Le rattachement reste une attribution d'affichage : le règlement serveur
+conserve `min(déclaré, écoulé)` et l'appartenance du dispatch (T0051). Le
+mapping vit en mémoire du processus — un redémarrage de l'application perd le
+rattachement, et KI-027 (production autonome d'une mesure par l'application
+intégrée) reste ouvert.
 
 ## Contrat local T0010
 
