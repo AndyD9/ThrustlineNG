@@ -1,10 +1,19 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const desktopRoot = resolve(import.meta.dirname, "../..");
 const repositoryRoot = resolve(desktopRoot, "../..");
 const read = (path: string) => readFileSync(resolve(repositoryRoot, path), "utf8");
+
+// Parcours récursif : un fichier ajouté dans un sous-module doit être vu aussi.
+const listFiles = (root: string, extensions: readonly string[]) =>
+  readdirSync(root, { recursive: true, withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isFile() && extensions.some((extension) => entry.name.endsWith(extension)),
+    )
+    .map((entry) => resolve(entry.parentPath, entry.name));
 
 describe("invariants frontend et Tauri", () => {
   it("ne charge aucune ressource distante dans le HTML ou le CSS", () => {
@@ -22,22 +31,33 @@ describe("invariants frontend et Tauri", () => {
       read("apps/desktop/src-tauri/capabilities/default.json"),
     ) as { permissions: unknown[] };
     const rustSources = [
-      read("apps/desktop/src-tauri/src/lib.rs"),
-      read("apps/desktop/src-tauri/src/main.rs"),
-      read("apps/desktop/src-tauri/src/bridge.rs"),
-      read("apps/desktop/src-tauri/src/flight_summary.rs"),
+      ...listFiles(resolve(repositoryRoot, "apps/desktop/src-tauri/src"), [".rs"]).map(
+        (file) => readFileSync(file, "utf8"),
+      ),
       read("apps/desktop/src-tauri/Cargo.toml"),
     ].join("\n");
 
     expect(capability.permissions).toEqual([]);
     // F0004 J2 : exactement une commande IPC, en lecture seule, sans
     // paramètre fourni par la WebView (son seul argument est l'AppHandle).
-    const commands = rustSources.match(/#\[tauri::command\]/g) ?? [];
+    // Le motif ne réclame pas le crochet fermant : `#[tauri::command(...)]`
+    // compte aussi.
+    const commands = rustSources.match(/#\s*\[\s*tauri::command/g) ?? [];
     expect(commands).toHaveLength(1);
     expect(rustSources).toMatch(
       /#\[tauri::command\]\s*async fn flight_summary\(\s*app: tauri::AppHandle,?\s*\)/,
     );
     expect(rustSources).not.toMatch(/tauri-plugin-/);
+  });
+
+  it("réserve __TAURI_INTERNALS__ au seul câblage flightSummaryShell.ts", () => {
+    const sourceRoot = resolve(repositoryRoot, "apps/desktop/src");
+    const offenders = listFiles(sourceRoot, [".ts", ".tsx"])
+      .filter((file) => !/\.test\.tsx?$/.test(file))
+      .filter((file) => readFileSync(file, "utf8").includes("__TAURI"))
+      .map((file) => relative(sourceRoot, file).replaceAll("\\", "/"));
+
+    expect(offenders).toEqual(["features/flight-dispatch/flightSummaryShell.ts"]);
   });
 
   it("maintient une CSP de production fermée au réseau", () => {

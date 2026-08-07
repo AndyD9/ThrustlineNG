@@ -18,7 +18,8 @@ $cargo = Get-Content -Raw -LiteralPath (Join-Path $tauriRoot 'Cargo.toml')
 $config = Get-Content -Raw -LiteralPath (Join-Path $tauriRoot 'tauri.conf.json') | ConvertFrom-Json
 $capability = Get-Content -Raw -LiteralPath (Join-Path $tauriRoot 'capabilities/default.json') | ConvertFrom-Json
 $html = Get-Content -Raw -LiteralPath (Join-Path $desktop 'index.html')
-$rust = (Get-ChildItem -LiteralPath (Join-Path $tauriRoot 'src') -Filter '*.rs' | Get-Content -Raw) -join "`n"
+# Récursif : une commande ajoutée dans un sous-module doit être vue aussi.
+$rust = (Get-ChildItem -LiteralPath (Join-Path $tauriRoot 'src') -Filter '*.rs' -Recurse | Get-Content -Raw) -join "`n"
 
 Assert-True ($cargo -notmatch '(?m)^\s*tauri-plugin-') 'Aucun plugin Tauri n’est autorisé.'
 Assert-True ($cargo -match 'tauri\s*=\s*\{[^}]*version\s*=\s*"=2\.11\.5"') 'Le crate Tauri doit être épinglé à 2.11.5.'

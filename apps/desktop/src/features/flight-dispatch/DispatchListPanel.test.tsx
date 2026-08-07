@@ -363,6 +363,35 @@ describe("DispatchListPanel", () => {
     expect(summaryCommand).toHaveBeenCalledExactlyOnceWith();
   });
 
+  it("retire la mesure dès que plusieurs vols sont actifs : le résumé global est inattribuable", async () => {
+    const user = userEvent.setup();
+    const secondActiveDispatch: CompanyDispatch = {
+      ...activeDispatch,
+      aircraftId: "93000000-0000-4000-8000-000000000003",
+      arrivalIcao: "LFMN",
+      departureIcao: "LFLL",
+      id: "94000000-0000-4000-8000-000000000003",
+    };
+    const summaryCommand = vi.fn<FlightSummaryCommand>();
+    render(
+      <DispatchListPanel
+        command={async () => [activeDispatch, secondActiveDispatch]}
+        config={config}
+        onAuthenticationRequired={vi.fn()}
+        sessionManager={createSessionManager()}
+        summaryCommand={summaryCommand}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Afficher mes dispatchs" }));
+    await screen.findByRole("list", { name: "Dispatchs de la compagnie" });
+
+    expect(
+      screen.queryByRole("button", { name: /Afficher le temps de bloc/ }),
+    ).not.toBeInTheDocument();
+    expect(summaryCommand).not.toHaveBeenCalled();
+  });
+
   it("annule la lecture au démontage", async () => {
     const user = userEvent.setup();
     let receivedSignal: AbortSignal | undefined;

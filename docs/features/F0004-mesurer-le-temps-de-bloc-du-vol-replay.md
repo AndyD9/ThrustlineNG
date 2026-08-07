@@ -95,7 +95,10 @@ une trace terminée au sol. Un touch-and-go dont la trace finit en vol reste
 - détection fine des phases de vol, reprise après crash, persistance d'un vol ;
 - télémétrie MSFS réelle : la source replay est le périmètre de l'alpha ;
 - associer plusieurs vols ou plusieurs sources : un vol actif, une trace, un
-  résumé — l'alpha est mono-vol par construction (contrainte T0050).
+  résumé. L'exclusivité serveur étant **par avion** (index
+  `flight_dispatches_one_open_per_aircraft`, T0051), plusieurs vols actifs
+  sont possibles : l'affichage est alors fail-closed (aucune mesure rendue,
+  constat de la revue adversariale du 7 août 2026).
 
 ## Jalons
 
@@ -366,10 +369,23 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   dans l'app ne s'abonne au hub ; la trace dorée a été injectée par un wrapper
   `THRUSTLINE_BRIDGE_PATH` et le replay déclenché par un abonné externe —
   découverte consignée en `KI-027`.
-- revue et constats traités : à la charge de la revue de la PR #128 ; points
-  prioritaires : l'écart `HomePage.tsx` hors `Allowed areas` initiales et le
-  câblage `__TAURI_INTERNALS__` (API interne de Tauri 2, choisie pour éviter
-  la dépendance `@tauri-apps/api` — à revalider à chaque montée de version).
+- revue et constats traités : revue adversariale du 7 août 2026 par un agent
+  séparé sur le périmètre J2+J3 — 0 bloquant, 4 majeurs, 5 mineurs. Corrigés
+  sur la branche : la prémisse « mono-vol par construction (T0050) » était
+  fausse (l'exclusivité est par avion — affichage rendu fail-closed quand
+  plusieurs vols sont actifs, documentation corrigée) ; les deux harnais
+  d'invariants ne lisaient pas les sous-modules Rust (`-Recurse` ajouté,
+  motif d'attribut sans crochet fermant côté vitest) ; l'unicité du
+  consommateur `__TAURI_INTERNALS__` n'était affirmée que par la
+  documentation (balayage récursif ajouté aux invariants) ; deux documents de
+  suivi contredisaient le parcours manuel exécuté (alignés). Restent,
+  consignés sans correction : l'arbitrage d'Andy sur le résumé terminal relu
+  après un vol suivant (risque résiduel ci-dessous), et trois mineurs sur le
+  client HTTP du shell (corps délimité par la seule fermeture de connexion,
+  pas de budget de durée totale, dépassement de borne rendu `unavailable` au
+  lieu d'`invalid-response`) — code sécurité J2, à retoucher sous revue et
+  non à la volée. L'écart `HomePage.tsx` est confirmé sans logique (seam de
+  test, la production passe par le défaut).
 
 ### Synthèse
 
@@ -387,10 +403,15 @@ revue adversariale de la PR et la décision d'Andy.
 - Le câblage WebView repose sur `window.__TAURI_INTERNALS__.invoke`, API
   interne de Tauri 2 — le dépôt n'embarque pas `@tauri-apps/api` (pas de
   nouvelle dépendance) ; à revalider à chaque montée de version de Tauri.
-- Le résumé du bridge est global et mono-vol : la liste l'affiche sur la ligne
-  `active` sans que le bridge connaisse l'identité du dispatch ; l'association
-  est implicite par la contrainte mono-vol de l'alpha (T0050). Une alpha
-  multi-vols devra rattacher le résumé au vol.
+- Le résumé du bridge est global et sans identité de vol : la liste l'affiche
+  sur la ligne `active` sans que le bridge connaisse le dispatch.
+  L'exclusivité serveur est par avion, pas par compagnie (revue adversariale
+  du 7 août 2026) : deux vols actifs sont possibles, et l'affichage est alors
+  fail-closed — le contrôle n'est rendu que lorsqu'exactement un vol est
+  actif. Reste le cas séquentiel : le tracker du bridge est terminal pour la
+  session, donc un résumé `completed` d'un vol précédent peut être relu sur
+  le vol suivant tant que le résumé ne porte pas d'identité de vol —
+  arbitrage d'Andy demandé, rattachement au vol prérequis de F0002.
 - Le temps mesuré reste une déclaration côté client : `close_flight` conserve
   `min(déclaré, écoulé serveur)` (T0051).
 - Mesure replay uniquement ; la source native (T0059/F0003) devra revalider la
