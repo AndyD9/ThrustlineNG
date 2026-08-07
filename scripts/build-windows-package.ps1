@@ -133,6 +133,44 @@ if ($installerName -match '[\\/:]' -or $installerName -notmatch '\.exe$') {
     throw 'The product installer name must stay a bare .exe filename.'
 }
 
+# F0005 J1 — la CSP suit le canal produit. Un seul canal, nommé explicitement
+# ici, reçoit une surcouche de configuration ; tout autre canal — connu,
+# inconnu ou vide — retombe sur la CSP publique fermée au réseau.
+$loopbackCspChannel = 'internal-alpha'
+$loopbackCspOrigin = 'http://127.0.0.1:54321'
+$tauriRoot = Join-Path $repositoryRoot 'apps\desktop\src-tauri'
+$publicCsp = [string](
+    (Get-Content -Raw -LiteralPath (Join-Path $tauriRoot 'tauri.conf.json') |
+        ConvertFrom-Json).app.security.csp
+)
+if (-not $publicCsp.Contains("connect-src 'none'")) {
+    throw "The base Tauri configuration must keep connect-src 'none'."
+}
+
+$tauriConfigArguments = @('--config', 'src-tauri/tauri.package.conf.json')
+$resolvedCsp = $publicCsp
+if ($productChannel -eq $loopbackCspChannel) {
+    $channelConfigName = "tauri.channel.$loopbackCspChannel.conf.json"
+    $channelConfigPath = Join-Path $tauriRoot $channelConfigName
+    if (-not (Test-Path -LiteralPath $channelConfigPath -PathType Leaf)) {
+        throw "The $loopbackCspChannel channel configuration is missing."
+    }
+    $resolvedCsp = [string](
+        (Get-Content -Raw -LiteralPath $channelConfigPath | ConvertFrom-Json).app.security.csp
+    )
+    $tauriConfigArguments += @('--config', "src-tauri/$channelConfigName")
+}
+
+# L'attendu est recalculé depuis la CSP publique, jamais depuis la surcouche
+# qu'on valide : la CSP alpha est la CSP publique au seul `connect-src` près.
+$expectedCsp = $publicCsp
+if ($productChannel -eq $loopbackCspChannel) {
+    $expectedCsp = $publicCsp.Replace("connect-src 'none'", "connect-src $loopbackCspOrigin")
+}
+if ($resolvedCsp -ne $expectedCsp) {
+    throw "The $productChannel channel would embed an unexpected Content-Security-Policy."
+}
+
 $actualNode = (& node --version).TrimStart('v').Trim()
 $actualPnpm = (& pnpm.cmd --version).Trim()
 $actualDotnet = (& dotnet --version).Trim()
@@ -184,11 +222,11 @@ try {
         & powershell.exe -NoProfile -ExecutionPolicy Bypass `
             -File .\tests\windows-package\run.ps1
     }
-    Invoke-Checked 'Build unsigned NSIS package' {
+    Invoke-Checked "Build unsigned NSIS package ($productChannel)" {
         & pnpm.cmd --dir apps/desktop tauri build `
             --target x86_64-pc-windows-msvc `
             --bundles nsis `
-            --config src-tauri/tauri.package.conf.json
+            @tauriConfigArguments
     }
 }
 finally {
@@ -246,9 +284,10 @@ $manifestFiles = @(
 )
 
 $manifest = [ordered]@{
-    schemaVersion = 2
+    schemaVersion = 3
     productVersion = $productVersion
     channel = $productChannel
+    csp = $resolvedCsp
     packageType = 'nsis'
     target = 'x86_64-pc-windows-msvc'
     installMode = 'currentUser'
@@ -262,4 +301,5 @@ $manifest | ConvertTo-Json -Depth 5 |
     Set-Content -LiteralPath (Join-Path $output 'package-manifest.json') -Encoding UTF8
 
 Write-Host "Unsigned NSIS package created: $installerName ($productChannel)"
+Write-Host "Embedded connect-src: $($resolvedCsp -replace '^.*connect-src ([^;]+);.*$', '$1')"
 Write-Host "Bridge files included: $($bridgeFiles.Count)"

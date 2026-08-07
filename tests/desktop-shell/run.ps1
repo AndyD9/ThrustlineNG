@@ -48,6 +48,30 @@ foreach ($directive in @(
 }
 Assert-True ($csp -notmatch '(?i)(https?:|wss?:|\*|unsafe-inline|unsafe-eval)') 'La CSP ne doit autoriser aucune origine réseau ou directive dangereuse.'
 
+# F0005 J1 : le canal interne alpha est le seul à élargir connect-src, et
+# uniquement vers le loopback Supabase local. Sa surcouche est la CSP publique
+# à ce seul détail près.
+$channelConfigs = @(
+    Get-ChildItem -LiteralPath $tauriRoot -Filter 'tauri.channel.*.conf.json' -File |
+        Select-Object -ExpandProperty Name
+)
+Assert-True (
+    $channelConfigs.Count -eq 1 -and $channelConfigs[0] -eq 'tauri.channel.internal-alpha.conf.json'
+) 'Seul le canal internal-alpha peut surcharger la CSP.'
+if ($channelConfigs -contains 'tauri.channel.internal-alpha.conf.json') {
+    $alphaCsp = [string](
+        (Get-Content -Raw -LiteralPath (
+            Join-Path $tauriRoot 'tauri.channel.internal-alpha.conf.json'
+        ) | ConvertFrom-Json).app.security.csp
+    )
+    Assert-True (
+        $alphaCsp -eq $csp.Replace("connect-src 'none'", 'connect-src http://127.0.0.1:54321')
+    ) 'La CSP internal-alpha doit être la CSP publique, au seul connect-src loopback près.'
+    Assert-True (
+        $alphaCsp -notmatch '(?i)(https:|wss?:|\*|unsafe-inline|unsafe-eval|localhost|\[::1\])'
+    ) 'La CSP internal-alpha ne doit nommer que le loopback numérique.'
+}
+
 if ($failures.Count -gt 0) {
     $failures | ForEach-Object { Write-Error $_ -ErrorAction Continue }
     throw "$($failures.Count) invariant(s) du shell ont échoué."
