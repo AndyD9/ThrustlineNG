@@ -26,7 +26,7 @@ describe("invariants frontend et Tauri", () => {
     expect(sources).not.toMatch(/@import\s+url/i);
   });
 
-  it("conserve une capability vide, aucun plugin et la seule commande flight_summary", () => {
+  it("conserve une capability vide, aucun plugin et les deux seules commandes fermées", () => {
     const capability = JSON.parse(
       read("apps/desktop/src-tauri/capabilities/default.json"),
     ) as { permissions: unknown[] };
@@ -38,14 +38,18 @@ describe("invariants frontend et Tauri", () => {
     ].join("\n");
 
     expect(capability.permissions).toEqual([]);
-    // F0004 J2 : exactement une commande IPC, en lecture seule, sans
-    // paramètre fourni par la WebView (son seul argument est l'AppHandle).
-    // Le motif ne réclame pas le crochet fermant : `#[tauri::command(...)]`
-    // compte aussi.
+    // F0004 J2 puis F0006 J2 : exactement deux commandes IPC fermées.
+    // flight_summary reste en lecture seule sans paramètre de la WebView ;
+    // flight_summary_arm n'accepte qu'un identifiant de dispatch, validé
+    // côté Rust. Le motif ne réclame pas le crochet fermant :
+    // `#[tauri::command(...)]` compte aussi.
     const commands = rustSources.match(/#\s*\[\s*tauri::command/g) ?? [];
-    expect(commands).toHaveLength(1);
+    expect(commands).toHaveLength(2);
     expect(rustSources).toMatch(
       /#\[tauri::command\]\s*async fn flight_summary\(\s*app: tauri::AppHandle,?\s*\)/,
+    );
+    expect(rustSources).toMatch(
+      /#\[tauri::command\]\s*async fn flight_summary_arm\(\s*app: tauri::AppHandle,\s*dispatch_id: String,?\s*\)/,
     );
     expect(rustSources).not.toMatch(/tauri-plugin-/);
   });

@@ -1,6 +1,7 @@
 import type { InvokeFlightSummary } from "@/features/flight-dispatch/flightSummary";
+import type { InvokeFlightSummaryArm } from "@/features/flight-dispatch/flightSummaryArm";
 
-type ShellInvoke = (command: string) => Promise<unknown>;
+type ShellInvoke = (command: string, args?: Record<string, unknown>) => Promise<unknown>;
 
 interface ShellInternals {
   invoke?: unknown;
@@ -18,4 +19,12 @@ export const invokeFlightSummaryThroughShell: InvokeFlightSummary = (command) =>
     return Promise.reject(new Error("shell-unavailable"));
   }
   return invoke(command);
+};
+
+export const invokeFlightSummaryArmThroughShell: InvokeFlightSummaryArm = (command, args) => {
+  const invoke = resolveShellInvoke();
+  if (invoke === null) {
+    return Promise.reject(new Error("shell-unavailable"));
+  }
+  return invoke(command, args);
 };

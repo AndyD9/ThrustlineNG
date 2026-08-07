@@ -24,16 +24,28 @@ describe("invariants du résumé de vol desktop", () => {
     );
   });
 
-  it("borne le contrat aux trois clés attendues", () => {
-    expect(transport).toContain('"blockMinutes,contractVersion,state"');
+  it("borne le contrat aux quatre clés attendues, rattachement compris", () => {
+    expect(transport).toContain('"attachedDispatchId,blockMinutes,contractVersion,state"');
+  });
+
+  it("ne laisse jamais la génération du bridge traverser la WebView", () => {
+    expect(transport).not.toMatch(/generation/i);
   });
 });
 
-describe("invariants du câblage shell F0004 J3", () => {
-  it("relaie la commande au shell sans aucun autre argument", () => {
+describe("invariants du câblage shell F0004 J3 puis F0006 J3", () => {
+  it("relaie la lecture au shell sans aucun autre argument", () => {
     expect(shell).toContain("__TAURI_INTERNALS__");
     expect(shell).toMatch(/return invoke\(command\);/);
-    expect(shell).not.toMatch(/invoke\([^)]*,/);
+  });
+
+  it("relaie l’armement au shell avec les seuls arguments typés du contrat", () => {
+    expect(shell).toMatch(/return invoke\(command, args\);/);
+    const invocations = Array.from(
+      shell.matchAll(/invoke\(command(?:, (\w+))?\)/g),
+      (match) => match[1] ?? null,
+    );
+    expect(invocations).toEqual([null, "args"]);
   });
 
   it("n’atteint jamais le contrat local et ne connaît ni jeton ni port", () => {

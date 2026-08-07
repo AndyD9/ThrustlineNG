@@ -200,6 +200,71 @@ describe("DispatchStartControl", () => {
     });
   });
 
+  it("arme la mesure pour le vol démarré, après le départ seulement", async () => {
+    const user = userEvent.setup();
+    const command = vi.fn<FlightStartCommand>(async () => flight);
+    const armCommand = vi.fn(async (armedDispatchId: string) => ({
+      contractVersion: "1",
+      dispatchId: armedDispatchId,
+    }));
+    render(
+      <DispatchStartControl
+        {...createBaseProps()}
+        armCommand={armCommand}
+        command={command}
+      />,
+    );
+
+    expect(armCommand).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Démarrer le vol · LFPG → LFBO" }));
+
+    expect(await screen.findByText(/Vol démarré le/)).toBeInTheDocument();
+    expect(armCommand).toHaveBeenCalledOnce();
+    expect(armCommand).toHaveBeenCalledWith(dispatchId);
+  });
+
+  it("un armement en échec ne casse ni le départ ni son affichage", async () => {
+    const user = userEvent.setup();
+    const command = vi.fn<FlightStartCommand>(async () => flight);
+    const armCommand = vi.fn(async () => {
+      throw new Error("shell-unavailable");
+    });
+    const { container } = render(
+      <DispatchStartControl
+        {...createBaseProps()}
+        armCommand={armCommand}
+        command={command}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Démarrer le vol · LFPG → LFBO" }));
+
+    expect(await screen.findByText(/Vol démarré le/)).toBeInTheDocument();
+    expect(armCommand).toHaveBeenCalledOnce();
+    expect(container).not.toHaveTextContent("shell-unavailable");
+  });
+
+  it("n'arme rien quand le départ est refusé", async () => {
+    const user = userEvent.setup();
+    const command = vi.fn<FlightStartCommand>(async () => {
+      throw new FlightStartError("rejected");
+    });
+    const armCommand = vi.fn(async () => ({}));
+    render(
+      <DispatchStartControl
+        {...createBaseProps()}
+        armCommand={armCommand}
+        command={command}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Démarrer le vol · LFPG → LFBO" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Le démarrage a été refusé.");
+    expect(armCommand).not.toHaveBeenCalled();
+  });
+
   it("efface la session et demande le retour au login sur refus Auth", async () => {
     const user = userEvent.setup();
     const command = vi.fn<FlightStartCommand>(async () => {

@@ -328,9 +328,10 @@ describe("DispatchListPanel", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("propose la mesure du temps de bloc au seul vol actif, sans appel au rendu", async () => {
+  it("propose la mesure sur le vol actif et l'affiche seulement rattachée, sans appel au rendu", async () => {
     const user = userEvent.setup();
     const summaryCommand = vi.fn<FlightSummaryCommand>(async () => ({
+      attachedDispatchId: activeDispatch.id,
       blockMinutes: 42,
       contractVersion: "1",
       state: "completed",
@@ -359,11 +360,11 @@ describe("DispatchListPanel", () => {
     await user.click(
       screen.getByRole("button", { name: "Afficher le temps de bloc · LFPO → EGLL" }),
     );
-    expect(await screen.findByText("Dernière mesure de replay de la session : 42 min.")).toBeInTheDocument();
+    expect(await screen.findByText("Temps de bloc mesuré : 42 min.")).toBeInTheDocument();
     expect(summaryCommand).toHaveBeenCalledExactlyOnceWith();
   });
 
-  it("retire la mesure dès que plusieurs vols sont actifs : le résumé global est inattribuable", async () => {
+  it("n'attribue la mesure qu'au vol rattaché quand plusieurs vols sont actifs", async () => {
     const user = userEvent.setup();
     const secondActiveDispatch: CompanyDispatch = {
       ...activeDispatch,
@@ -372,7 +373,12 @@ describe("DispatchListPanel", () => {
       departureIcao: "LFLL",
       id: "94000000-0000-4000-8000-000000000003",
     };
-    const summaryCommand = vi.fn<FlightSummaryCommand>();
+    const summaryCommand = vi.fn<FlightSummaryCommand>(async () => ({
+      attachedDispatchId: activeDispatch.id,
+      blockMinutes: 42,
+      contractVersion: "1",
+      state: "completed",
+    }));
     render(
       <DispatchListPanel
         command={async () => [activeDispatch, secondActiveDispatch]}
@@ -386,10 +392,16 @@ describe("DispatchListPanel", () => {
     await user.click(screen.getByRole("button", { name: "Afficher mes dispatchs" }));
     await screen.findByRole("list", { name: "Dispatchs de la compagnie" });
 
-    expect(
-      screen.queryByRole("button", { name: /Afficher le temps de bloc/ }),
-    ).not.toBeInTheDocument();
-    expect(summaryCommand).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole("button", { name: "Afficher le temps de bloc · LFLL → LFMN" }),
+    );
+    expect(await screen.findByText("Aucune mesure rattachée à ce vol.")).toBeInTheDocument();
+    expect(screen.queryByText(/min\./)).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Afficher le temps de bloc · LFPO → EGLL" }),
+    );
+    expect(await screen.findByText("Temps de bloc mesuré : 42 min.")).toBeInTheDocument();
   });
 
   it("annule la lecture au démontage", async () => {

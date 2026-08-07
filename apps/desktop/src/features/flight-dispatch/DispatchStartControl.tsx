@@ -8,10 +8,15 @@ import {
   startFlight,
   type StartedFlight,
 } from "@/features/flight-dispatch/flightStart";
+import { armFlightSummary } from "@/features/flight-dispatch/flightSummaryArm";
+import { invokeFlightSummaryArmThroughShell } from "@/features/flight-dispatch/flightSummaryShell";
 
 export type FlightStartCommand = (input: StartFlightInput) => Promise<StartedFlight>;
 
+export type FlightSummaryArmCommand = (dispatchId: string) => Promise<unknown>;
+
 export interface DispatchStartControlProps {
+  armCommand?: FlightSummaryArmCommand | undefined;
   command?: FlightStartCommand | undefined;
   config: DesktopConnectionConfig;
   createIdempotencyKey?: (() => string) | undefined;
@@ -31,6 +36,9 @@ type ControlState =
 
 const defaultIdempotencyKeyFactory = () => crypto.randomUUID();
 
+const defaultArmCommand: FlightSummaryArmCommand = (dispatchId) =>
+  armFlightSummary(dispatchId, invokeFlightSummaryArmThroughShell);
+
 const startedAtFormatter = new Intl.DateTimeFormat("fr-FR", {
   dateStyle: "short",
   timeStyle: "short",
@@ -38,6 +46,7 @@ const startedAtFormatter = new Intl.DateTimeFormat("fr-FR", {
 });
 
 export function DispatchStartControl({
+  armCommand = defaultArmCommand,
   command = startFlight,
   config,
   createIdempotencyKey = defaultIdempotencyKeyFactory,
@@ -87,6 +96,10 @@ export function DispatchStartControl({
       });
       if (!abortController.signal.aborted) {
         setState({ kind: "started", startedAt: flight.startedAt });
+        // Arme la mesure télémétrique pour ce vol (F0006). Non bloquant :
+        // sans shell ou sur refus, la mesure restera simplement non
+        // rattachée et l'affichage échouera fermé.
+        void armCommand(dispatchId).catch(() => undefined);
         onFlightStarted?.();
       }
     } catch (error) {

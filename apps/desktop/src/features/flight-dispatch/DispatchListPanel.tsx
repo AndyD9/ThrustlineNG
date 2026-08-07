@@ -12,6 +12,7 @@ import {
 import {
   DispatchStartControl,
   type FlightStartCommand,
+  type FlightSummaryArmCommand,
 } from "@/features/flight-dispatch/DispatchStartControl";
 import {
   FlightSummaryControl,
@@ -23,6 +24,7 @@ export type DispatchListCommand = (
 ) => Promise<CompanyDispatch[]>;
 
 export interface DispatchListPanelProps {
+  armCommand?: FlightSummaryArmCommand | undefined;
   command?: DispatchListCommand | undefined;
   config: DesktopConnectionConfig;
   createIdempotencyKey?: (() => string) | undefined;
@@ -51,6 +53,7 @@ const createdAtFormatter = new Intl.DateTimeFormat("fr-FR", {
 });
 
 export function DispatchListPanel({
+  armCommand,
   command = loadDispatchList,
   config,
   createIdempotencyKey,
@@ -113,13 +116,6 @@ export function DispatchListPanel({
 
   useEffect(() => () => abortControllerRef.current?.abort(), []);
 
-  // Le résumé du bridge est global et sans identité de vol : il ne peut être
-  // rattaché à une ligne que lorsqu'un seul vol est actif (l'exclusivité
-  // serveur est par avion, pas par compagnie).
-  const activeCount =
-    state.kind === "loaded"
-      ? state.dispatches.filter((dispatch) => dispatch.state === "active").length
-      : 0;
   useEffect(() => {
     if (
       refreshVersion > handledRefreshVersionRef.current &&
@@ -168,14 +164,19 @@ export function DispatchListPanel({
                   </>
                 )}
               </span>
-              {dispatch.state === "active" && activeCount === 1 && (
+              {dispatch.state === "active" && (
+                // La mesure n'est parlée que pour le dispatch auquel elle est
+                // rattachée (F0006) : le contrôle échoue fermé sur toute
+                // mesure d'un autre vol ou d'une session non armée.
                 <FlightSummaryControl
                   command={summaryCommand}
+                  dispatchId={dispatch.id}
                   flightLabel={`${dispatch.departureIcao} → ${dispatch.arrivalIcao}`}
                 />
               )}
               {dispatch.state === "draft" && (
                 <DispatchStartControl
+                  armCommand={armCommand}
                   command={startCommand}
                   config={config}
                   createIdempotencyKey={createIdempotencyKey}

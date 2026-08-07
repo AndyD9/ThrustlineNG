@@ -6,6 +6,8 @@ import {
   readFlightSummary,
 } from "./flightSummary";
 
+const attachedDispatchId = "94abcdef-0000-4000-8000-000000000004";
+
 const resolvedWith = (value: unknown) => () => Promise.resolve(value);
 
 async function failureOf(run: Promise<unknown>): Promise<FlightSummaryError> {
@@ -23,23 +25,55 @@ describe("readFlightSummary", () => {
     const commands: string[] = [];
     await readFlightSummary((command) => {
       commands.push(command);
-      return Promise.resolve({ blockMinutes: null, contractVersion: "1", state: "idle" });
+      return Promise.resolve({
+        attachedDispatchId: null,
+        blockMinutes: null,
+        contractVersion: "1",
+        state: "idle",
+      });
     });
     expect(commands).toEqual([FLIGHT_SUMMARY_COMMAND]);
   });
 
-  it("accepte un vol terminé avec son temps de bloc", async () => {
+  it("accepte un vol terminé avec son temps de bloc et son rattachement", async () => {
     const summary = await readFlightSummary(
-      resolvedWith({ blockMinutes: 42, contractVersion: "1", state: "completed" }),
+      resolvedWith({
+        attachedDispatchId,
+        blockMinutes: 42,
+        contractVersion: "1",
+        state: "completed",
+      }),
     );
-    expect(summary).toEqual({ blockMinutes: 42, contractVersion: "1", state: "completed" });
+    expect(summary).toEqual({
+      attachedDispatchId,
+      blockMinutes: 42,
+      contractVersion: "1",
+      state: "completed",
+    });
+  });
+
+  it("accepte une mesure non rattachée", async () => {
+    const summary = await readFlightSummary(
+      resolvedWith({
+        attachedDispatchId: null,
+        blockMinutes: 42,
+        contractVersion: "1",
+        state: "completed",
+      }),
+    );
+    expect(summary.attachedDispatchId).toBeNull();
   });
 
   it.each(["idle", "running", "incomplete"])(
     "accepte l'état %s sans temps de bloc",
     async (state) => {
       const summary = await readFlightSummary(
-        resolvedWith({ blockMinutes: null, contractVersion: "1", state }),
+        resolvedWith({
+          attachedDispatchId: null,
+          blockMinutes: null,
+          contractVersion: "1",
+          state,
+        }),
       );
       expect(summary.state).toBe(state);
       expect(summary.blockMinutes).toBeNull();
@@ -47,15 +81,67 @@ describe("readFlightSummary", () => {
   );
 
   it.each([
-    ["clé inconnue", { blockMinutes: null, contractVersion: "1", state: "idle", token: "x" }],
-    ["clé manquante", { contractVersion: "1", state: "idle" }],
-    ["version étrangère", { blockMinutes: null, contractVersion: "2", state: "idle" }],
-    ["état inconnu", { blockMinutes: null, contractVersion: "1", state: "landed" }],
-    ["terminé sans temps", { blockMinutes: null, contractVersion: "1", state: "completed" }],
-    ["temps hors vol terminé", { blockMinutes: 5, contractVersion: "1", state: "running" }],
-    ["temps nul", { blockMinutes: 0, contractVersion: "1", state: "completed" }],
-    ["temps non entier", { blockMinutes: 1.5, contractVersion: "1", state: "completed" }],
-    ["temps en chaîne", { blockMinutes: "1", contractVersion: "1", state: "completed" }],
+    [
+      "clé inconnue",
+      {
+        attachedDispatchId: null,
+        blockMinutes: null,
+        contractVersion: "1",
+        state: "idle",
+        token: "x",
+      },
+    ],
+    ["clé manquante", { attachedDispatchId: null, contractVersion: "1", state: "idle" }],
+    [
+      "rattachement manquant (forme F0004)",
+      { blockMinutes: null, contractVersion: "1", state: "idle" },
+    ],
+    [
+      "rattachement hors UUID canonique",
+      {
+        attachedDispatchId: "not-a-uuid",
+        blockMinutes: null,
+        contractVersion: "1",
+        state: "idle",
+      },
+    ],
+    [
+      "rattachement en majuscules",
+      {
+        attachedDispatchId: attachedDispatchId.toUpperCase(),
+        blockMinutes: null,
+        contractVersion: "1",
+        state: "idle",
+      },
+    ],
+    [
+      "version étrangère",
+      { attachedDispatchId: null, blockMinutes: null, contractVersion: "2", state: "idle" },
+    ],
+    [
+      "état inconnu",
+      { attachedDispatchId: null, blockMinutes: null, contractVersion: "1", state: "landed" },
+    ],
+    [
+      "terminé sans temps",
+      { attachedDispatchId: null, blockMinutes: null, contractVersion: "1", state: "completed" },
+    ],
+    [
+      "temps hors vol terminé",
+      { attachedDispatchId: null, blockMinutes: 5, contractVersion: "1", state: "running" },
+    ],
+    [
+      "temps nul",
+      { attachedDispatchId: null, blockMinutes: 0, contractVersion: "1", state: "completed" },
+    ],
+    [
+      "temps non entier",
+      { attachedDispatchId: null, blockMinutes: 1.5, contractVersion: "1", state: "completed" },
+    ],
+    [
+      "temps en chaîne",
+      { attachedDispatchId: null, blockMinutes: "1", contractVersion: "1", state: "completed" },
+    ],
     ["tableau", []],
     ["null", null],
     ["chaîne", "idle"],
@@ -78,10 +164,20 @@ describe("readFlightSummary", () => {
     expect(failure.message).not.toContain("127.0.0.1");
   });
 
-  it("ne laisse traverser que les trois clés du contrat", async () => {
+  it("ne laisse traverser que les quatre clés du contrat", async () => {
     const summary = await readFlightSummary(
-      resolvedWith({ blockMinutes: 7, contractVersion: "1", state: "completed" }),
+      resolvedWith({
+        attachedDispatchId,
+        blockMinutes: 7,
+        contractVersion: "1",
+        state: "completed",
+      }),
     );
-    expect(Object.keys(summary).sort()).toEqual(["blockMinutes", "contractVersion", "state"]);
+    expect(Object.keys(summary).sort()).toEqual([
+      "attachedDispatchId",
+      "blockMinutes",
+      "contractVersion",
+      "state",
+    ]);
   });
 });

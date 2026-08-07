@@ -10,6 +10,7 @@ export type FlightSummaryCommand = () => Promise<FlightSummary>;
 
 export interface FlightSummaryControlProps {
   command?: FlightSummaryCommand | undefined;
+  dispatchId: string;
   flightLabel: string;
 }
 
@@ -24,6 +25,7 @@ const defaultCommand: FlightSummaryCommand = () =>
 
 export function FlightSummaryControl({
   command = defaultCommand,
+  dispatchId,
   flightLabel,
 }: FlightSummaryControlProps) {
   const [state, setState] = useState<ControlState>({ kind: "ready" });
@@ -54,6 +56,12 @@ export function FlightSummaryControl({
           ? "Réessayer"
           : "Afficher le temps de bloc";
 
+  // Fail-closed : seule une mesure rattachée à ce dispatch est parlée pour
+  // cette ligne (F0006) ; une mesure d'un autre vol ou d'une session non
+  // armée n'est jamais attribuée.
+  const attached =
+    state.kind === "measured" && state.summary.attachedDispatchId === dispatchId;
+
   return (
     <span className="flight-summary-control">
       <button
@@ -67,22 +75,20 @@ export function FlightSummaryControl({
 
       <span aria-live="polite" aria-atomic="true">
         {state.kind === "pending" && <span>Lecture du résumé de vol.</span>}
-        {state.kind === "measured" && state.summary.state === "completed" && (
-          // Le résumé du bridge ne porte pas d'identité de vol et son tracker
-          // est terminal pour la session : le libellé ne rattache donc pas la
-          // mesure au vol de la ligne (KI-028, rattachement prévu par F0002).
-          <span>
-            Dernière mesure de replay de la session : {state.summary.blockMinutes} min.
-          </span>
+        {state.kind === "measured" && !attached && (
+          <span>Aucune mesure rattachée à ce vol.</span>
         )}
-        {state.kind === "measured" && state.summary.state === "running" && (
+        {attached && state.kind === "measured" && state.summary.state === "completed" && (
+          <span>Temps de bloc mesuré : {state.summary.blockMinutes} min.</span>
+        )}
+        {attached && state.kind === "measured" && state.summary.state === "running" && (
           <span>Replay en cours : la mesure se poursuit.</span>
         )}
-        {state.kind === "measured" && state.summary.state === "incomplete" && (
+        {attached && state.kind === "measured" && state.summary.state === "incomplete" && (
           <span>Trace incomplète : aucun temps de bloc mesuré.</span>
         )}
-        {state.kind === "measured" && state.summary.state === "idle" && (
-          <span>Aucun replay mesuré pour l’instant.</span>
+        {attached && state.kind === "measured" && state.summary.state === "idle" && (
+          <span>Mesure armée : aucun replay mesuré pour l’instant.</span>
         )}
       </span>
 
