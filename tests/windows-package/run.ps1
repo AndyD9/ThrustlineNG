@@ -181,6 +181,11 @@ function Get-ChannelCspIssues {
     if ($BuildScriptText -notmatch '\$resolvedCsp -ne \$expectedCsp') {
         $issues.Add('The build script must refuse to build an unexpected embedded CSP.')
     }
+    # Le contrôle sur l'artefact ne doit pas pouvoir disparaître en silence :
+    # la configuration prouve l'intention, le binaire prouve le résultat.
+    if ($BuildScriptText -notmatch 'Compare-Object -ReferenceObject \$expectedConnectSrc') {
+        $issues.Add('The build script must compare the connect-src embedded in the built desktop.')
+    }
 
     return $issues
 }
@@ -308,6 +313,14 @@ $cspMutations = @(
             "@('--config', 'src-tauri/tauri.package.conf.json')",
             "@('--config', 'src-tauri/tauri.package.conf.json', " +
                 "'--config', 'src-tauri/tauri.channel.internal-alpha.conf.json')"
+        )
+    },
+    @{
+        Label = 'the embedded connect-src check removed from the build script'
+        Expected = 'The build script must compare the connect-src embedded in the built desktop.'
+        Script = $buildScript.Replace(
+            'Compare-Object -ReferenceObject $expectedConnectSrc',
+            'Compare-Object -ReferenceObject @()'
         )
     },
     @{

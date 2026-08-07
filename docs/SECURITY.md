@@ -636,9 +636,13 @@ Le mécanisme échoue fermé, par allowlist et non par drapeau négatif :
   une directive dangereuse, une seconde surcouche de canal, une surcouche
   déclarant autre chose que `app.security.csp`, une CSP alpha différant de la
   publique ailleurs que sur `connect-src`, une CSP dans la configuration de
-  packaging, et une surcouche appliquée hors du garde de canal. Sept mutations
+  packaging, et une surcouche appliquée hors du garde de canal. Huit mutations
   négatives couvrent ces chemins ; `tests/desktop-shell/run.ps1` et
-  `security-invariants.test.ts` épinglent les mêmes invariants côté shell.
+  `security-invariants.test.ts` épinglent les mêmes invariants côté shell ;
+- enfin, le build relit la CSP **réellement embarquée dans l'exécutable
+  produit** et refuse un binaire dont le jeu de `connect-src` n'est pas
+  exactement celui du canal plus celui de la CSP de développement. La
+  configuration prouve l'intention, le binaire prouve le résultat.
 
 L'IPC survit à `connect-src 'none'` comme à la CSP alpha : quand la CSP bloque
 le protocole custom, Tauri 2.11.5 retombe sur `window.ipc.postMessage`. Les deux
