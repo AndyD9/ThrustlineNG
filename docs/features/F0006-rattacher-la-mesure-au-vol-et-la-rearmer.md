@@ -1,12 +1,14 @@
 # F0006 — Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols
 
-Status: In progress
-Owner: Agent (session du 7 août 2026)
+Status: Verify
+Owner: Andy (vérification manuelle)
 Branch: `feature/f0006-rattacher-la-mesure-au-vol-et-la-rearmer`
-PR: [#132](https://github.com/AndyD9/ThrustlineNG/pull/132) (brouillon, base
-`main` ; J1–J3 implémentés **plus le branchement de la clôture F0002**,
-absorbé ici après la fusion de la PR #131 le 7 août 2026 ; restent le
-parcours manuel deux-vols-d'affilée, la revue et la fusion par Andy)
+PR: [#132](https://github.com/AndyD9/ThrustlineNG/pull/132) **fusionnée** par
+Andy le 7 août 2026 — J1–J3 livrés dans `main`, **plus le branchement de la
+clôture F0002**, absorbé ici après la fusion de la PR #131 le même jour. Il ne
+reste que le parcours manuel deux-vols-d'affilée, qui appartient à Andy : d'où
+`Verify` et non `Done`. Si ce parcours a déjà été déroulé, le statut passe
+`Done` en consignant son résultat dans le Completion Report de J3.
 Phase: 3–4
 Risk: Medium
 Security-sensitive: Yes
