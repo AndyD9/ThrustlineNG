@@ -804,15 +804,22 @@ sans origine ni directive dangereuse, surcouche de canal unique, surcouche
 limitée à `app.security.csp`, égalité exacte entre CSP alpha et CSP publique au
 seul `connect-src` près, absence de CSP dans la configuration de packaging, et
 forme du script de build (surcouche ajoutée une seule fois, sous le garde de
-canal). Sept mutations négatives couvrent chacun de ces chemins, ce qui porte le
-harnais à neuf mutations. `tests/desktop-shell/run.ps1` et
+canal). Huit mutations négatives couvrent chacun de ces chemins, ce qui porte le
+harnais à dix mutations. `tests/desktop-shell/run.ps1` et
 `security-invariants.test.ts` épinglent les mêmes invariants côté shell.
 
-Cette preuve est statique : elle lit des configurations, pas un installateur.
-Elle a été doublée à la main d'un contrôle sur l'artefact — un build avec la
-surcouche n'embarque que `connect-src http://127.0.0.1:54321`, le même build
-sans elle n'embarque que `connect-src 'none'` — mais ce contrôle n'est pas
-automatisé et le package NSIS réel appartient à F0005 J2.
+Ces contrôles-là sont statiques : ils lisent des configurations, pas un binaire.
+`windows:package` ajoute donc un contrôle sur l'artefact, à la fin du build : il
+relit la CSP réellement embarquée dans l'exécutable produit et exige que le jeu
+de `connect-src` soit exactement celui du canal plus celui de la CSP de
+développement. Un binaire Release en porte deux — Tauri sérialise aussi la
+`devCsp`, qu'il n'applique qu'en `tauri dev` — donc les deux sont épinglées, et
+la CSP de développement ne peut pas s'élargir en silence non plus. Ce contrôle
+est vérifié dans les deux sens sur des binaires Release réels : l'attendu du
+canal alpha est refusé sur un binaire public, et l'inverse.
+
+Ce que rien n'automatise encore : la CSP telle qu'elle s'applique dans la
+WebView **installée**, qui relève du parcours humain de F0005 J2.
 
 `windows:package:test` installe silencieusement dans une cible explicite sous
 `artifacts/t0014`, compare la version, le nom d'installateur et la CSP du

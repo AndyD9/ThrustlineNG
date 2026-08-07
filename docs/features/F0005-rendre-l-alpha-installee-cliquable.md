@@ -3,10 +3,12 @@
 Status: In progress
 Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0005-rendre-l-alpha-installee-cliquable`
-PR: [#133](https://github.com/AndyD9/ThrustlineNG/pull/133) (brouillon, base
-`main` ; J1 implémenté et validé, `main` rapatriée après les fusions de F0002
-et F0006 ; restent J2 — le package installé et le parcours humain — la revue
-et la fusion par Andy)
+PR: [#133](https://github.com/AndyD9/ThrustlineNG/pull/133) **fusionnée** par
+Andy le 7 août 2026 — J1 livré dans `main`. Le contrôle de CSP sur l'exécutable
+produit et la correction du compte rendu ci-dessous sont arrivés après cette
+fusion : ils suivent dans une PR distincte, depuis la branche
+`fix/f0005-j1-csp-embarquee-artefact`. Reste J2 — le package installé et le
+parcours humain — qui appartient à Andy.
 Phase: 4
 Risk: High
 Security-sensitive: Yes
@@ -133,7 +135,8 @@ Jalons concernés : **J1**, revalidé en J2 sur l'artefact réel.
 - dette créée ou aggravée : deux CSP à maintenir ; le gate de packaging en
   devient le garde-fou ;
 - règle de sécurité ajoutée : CSP par canal dans `SECURITY.md` ;
-- contrôle manuel à automatiser : la comparaison de CSP embarquée par canal ;
+- contrôle manuel à automatiser : la comparaison de CSP embarquée par canal —
+  **automatisé en J1**, dans `windows:package`, sur l'exécutable produit ;
 - risque résiduel : un package alpha qui fuirait hors de l'interne expose une
   CSP loopback — sans donnée réelle ni cible distante, risque accepté à
   documenter.
@@ -174,7 +177,11 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   recalcule la CSP attendue **depuis la CSP publique**, jamais depuis la
   surcouche qu'il valide, puis refuse de construire en cas d'écart. La CSP
   résolue est inscrite dans `package-manifest.json` (`schemaVersion` 3, champ
-  `csp`) et recomparée au canal par le test de package.
+  `csp`) et recomparée au canal par le test de package. Enfin, le script relit
+  la CSP **réellement embarquée dans l'exécutable produit** et refuse un binaire
+  dont le jeu de `connect-src` n'est pas exactement celui du canal plus la CSP
+  de développement : la configuration prouve l'intention, le binaire prouve le
+  résultat.
 - fichiers modifiés :
   `apps/desktop/src-tauri/tauri.channel.internal-alpha.conf.json` (nouveau),
   `scripts/build-windows-package.ps1`, `scripts/test-windows-package.ps1`,
@@ -184,20 +191,31 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   fichier. `apps/desktop/src-tauri/tauri.conf.json` n'a **pas** changé : la CSP
   publique est intacte.
 - commandes et résultats : `pnpm windows:package:check` vert (« per-channel CSP
-  and 9 negative mutations passed ») ; `pnpm desktop:check` vert (typecheck,
+  and 10 negative mutations passed ») ; `pnpm desktop:check` vert (typecheck,
   `cargo fmt --check`, `cargo check --locked`, Clippy `-D warnings`) ;
   `pnpm desktop:test` vert (496 tests frontend passés, 2 ignorés ; 21 tests
   Rust ; invariants du shell) ; `pnpm frontend:build` vert ;
-  `pnpm maintenance:check` vert. Tous réexécutés **après** le rapatriement de
-  `main` (fusions de F0002, PR #131, et de F0006, PR #132). `pnpm
-  windows:package` n'a pas été exécuté : le package NSIS réel appartient à J2.
-- vérification manuelle : contrôle sur l'artefact, au-delà des gates statiques.
-  Un build compilé avec la surcouche n'embarque que
-  `connect-src http://127.0.0.1:54321` ; le même build sans elle n'embarque que
-  `connect-src 'none'` — lecture directe de la chaîne dans le binaire produit,
-  une seule occurrence dans chaque cas. Mécanisme de fusion confirmé dans la
-  source `tauri-utils` 2.9.3 : JSON Merge Patch (RFC 7396), donc la surcouche
-  remplace `app.security.csp` sans effacer `freezePrototype`.
+  `pnpm maintenance:check`, `pnpm authority:check`, `pnpm data-policy:check`
+  verts. Tous réexécutés **après** le rapatriement de `main` (fusions de F0002,
+  PR #131, et de F0006, PR #132). `pnpm windows:package` n'est pas exécutable
+  sur le poste de développement de cette session, mais **la CI l'exécute** : le
+  job « Windows multi-stack » du run 31188664501 a produit
+  `Thrustline-0.1.0-alpha.1-win-x64.exe (internal-alpha)` avec
+  `Embedded connect-src: http://127.0.0.1:54321`. Le package et son manifeste
+  sont dans l'artefact `t0014-windows-unsigned-<sha>`, rétention 30 jours.
+- vérification manuelle : contrôle sur l'artefact, sur des binaires Release
+  réels. Un binaire compilé avec la surcouche embarque
+  `connect-src http://127.0.0.1:54321` ; sans elle, `connect-src 'none'`. Un
+  constat non anticipé au passage : un binaire Release embarque **deux**
+  `connect-src`, celui du canal et celui de la CSP de développement, que Tauri
+  n'applique qu'en `tauri dev` — un contrôle « une seule occurrence » aurait
+  été rouge à tort. Le contrôle automatisé épingle donc le jeu exact des deux,
+  ce qui interdit aussi un élargissement silencieux de la CSP de développement.
+  Vérifié dans les deux sens sur le binaire réel : l'attendu du canal alpha est
+  refusé sur un binaire public, et l'attendu public est refusé sur un binaire
+  alpha. Mécanisme de fusion confirmé dans la source `tauri-utils` 2.9.3 :
+  JSON Merge Patch (RFC 7396), donc la surcouche remplace `app.security.csp`
+  sans effacer `freezePrototype`.
 - revue et constats traités : relecture de la source Tauri 2.11.5 sur un risque
   non listé au départ — une CSP fermée casse-t-elle l'IPC ? Non :
   `scripts/ipc-protocol.js` retombe sur `window.ipc.postMessage` quand le
@@ -205,9 +223,12 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   joignables sur les deux canaux. Le garde de canal du script de build est
   lui-même sous mutation négative (surcouche appliquée inconditionnellement,
   puis garde retiré), parce qu'une CSP correcte dans un fichier ne prouve rien
-  si le script l'applique au mauvais canal. Reste non couvert par
-  l'automatisation : la CSP du **binaire livré**, vérifiée à la main ici,
-  revalidée sur l'artefact réel en J2.
+  si le script l'applique au mauvais canal. Le contrôle manuel que la
+  « Maintenance review » de cette unité désignait comme à automatiser — la
+  comparaison de CSP embarquée par canal — a été automatisé dans le même jalon
+  plutôt que laissé en dette, et il est lui-même sous mutation négative.
+  Reste non couvert : la CSP telle qu'elle s'applique dans la WebView
+  **installée**, qui relève du parcours humain de J2.
 
 ### J2
 

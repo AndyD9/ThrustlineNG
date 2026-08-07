@@ -255,6 +255,38 @@ foreach ($requiredFile in @($desktopExecutable, $bridgeExecutable, $installers[0
     }
 }
 
+# F0005 J1 — le contrôle sur l'artefact, et non plus seulement sur la
+# configuration : Tauri sérialise la configuration en clair dans l'exécutable,
+# on relit donc la CSP réellement embarquée. Un binaire Release en porte
+# exactement deux : celle du canal et la CSP de développement, que Tauri
+# n'applique qu'en `tauri dev`. Les deux sont épinglées — la CSP de
+# développement ne peut pas s'élargir en douce non plus.
+$embeddedConnectSrc = @(
+    [regex]::Matches(
+        [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($desktopExecutable)),
+        'connect-src [^;"\x00]{1,200};'
+    ) | ForEach-Object { $_.Value } | Sort-Object -Unique
+)
+$expectedConnectSrc = @(
+    $resolvedCsp,
+    [string](
+        (Get-Content -Raw -LiteralPath (Join-Path $tauriRoot 'tauri.conf.json') |
+            ConvertFrom-Json).app.security.devCsp
+    )
+) | ForEach-Object {
+    $directive = [regex]::Match($_, 'connect-src [^;]+;')
+    if (-not $directive.Success) {
+        throw 'Every Content-Security-Policy must carry an explicit connect-src directive.'
+    }
+    $directive.Value
+} | Sort-Object -Unique
+if (Compare-Object -ReferenceObject $expectedConnectSrc -DifferenceObject $embeddedConnectSrc) {
+    throw (
+        "The built desktop embeds an unexpected connect-src set: " +
+        ($embeddedConnectSrc -join ' | ') + ' instead of ' + ($expectedConnectSrc -join ' | ') + '.'
+    )
+}
+
 $installerDestination = Join-Path $output $installerName
 Copy-Item -LiteralPath $installers[0].FullName -Destination $installerDestination
 
