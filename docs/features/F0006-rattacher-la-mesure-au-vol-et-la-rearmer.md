@@ -3,6 +3,9 @@
 Status: In progress
 Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0006-rattacher-la-mesure-au-vol-et-la-rearmer`
+PR: [#132](https://github.com/AndyD9/ThrustlineNG/pull/132) (brouillon, base
+`main` ; J1–J3 implémentés, restent le parcours manuel deux-vols-d'affilée,
+la revue et la fusion par Andy — puis le branchement de F0002/PR #131)
 Phase: 3–4
 Risk: Medium
 Security-sensitive: Yes
