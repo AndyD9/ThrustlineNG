@@ -602,6 +602,56 @@ La CSP de production n'autorise ni Internet, ni `unsafe-inline`, ni
 Les tests bloquent tout assouplissement des capabilities, commandes IPC,
 ressources distantes et garanties CSP.
 
+## CSP par canal produit F0005 J1
+
+La CSP ci-dessus reste celle du canal public, sans exception. Depuis F0005 J1,
+un seul canal produit — `internal-alpha`, celui d'`eng/product-version.json` —
+reçoit une surcouche de configuration Tauri,
+`apps/desktop/src-tauri/tauri.channel.internal-alpha.conf.json`, dont la CSP est
+exactement la CSP publique avec `connect-src http://127.0.0.1:54321` :
+
+```text
+default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;
+connect-src http://127.0.0.1:54321; object-src 'none'; frame-src 'none';
+frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+```
+
+Raison : la CSP publique `connect-src 'none'` rend l'application **installée**
+incapable de joindre la pile Supabase locale, donc le parcours interactif exigé
+par T0055 est impossible par conception. Décision d'Andy du 6 août 2026 : ouvrir
+le seul loopback Supabase local, sur le seul canal interne, et ne pas bouger la
+CSP publique d'un pouce.
+
+Le mécanisme échoue fermé, par allowlist et non par drapeau négatif :
+
+- `scripts/build-windows-package.ps1` n'ajoute la surcouche que sous une égalité
+  explicite de nom de canal. Un canal inconnu, renommé ou vide ne reçoit rien et
+  retombe sur `connect-src 'none'` ;
+- le script recalcule la CSP attendue **depuis la CSP publique**, jamais depuis
+  la surcouche qu'il valide, et refuse de construire si les deux divergent ;
+- la CSP résolue est inscrite dans `package-manifest.json`
+  (`schemaVersion` 3, champ `csp`) ; `scripts/test-windows-package.ps1` la
+  recompare au canal déclaré ;
+- `pnpm windows:package:check` refuse une CSP publique nommant une origine ou
+  une directive dangereuse, une seconde surcouche de canal, une surcouche
+  déclarant autre chose que `app.security.csp`, une CSP alpha différant de la
+  publique ailleurs que sur `connect-src`, une CSP dans la configuration de
+  packaging, et une surcouche appliquée hors du garde de canal. Sept mutations
+  négatives couvrent ces chemins ; `tests/desktop-shell/run.ps1` et
+  `security-invariants.test.ts` épinglent les mêmes invariants côté shell.
+
+L'IPC survit à `connect-src 'none'` comme à la CSP alpha : quand la CSP bloque
+le protocole custom, Tauri 2.11.5 retombe sur `window.ipc.postMessage`. Les deux
+commandes fermées restent donc joignables sur les deux canaux.
+
+Risque résiduel, accepté et documenté par la décision du 6 août 2026 : un
+package `internal-alpha` diffusé hors de l'interne expose une CSP autorisant le
+loopback de la machine de son porteur. Aucune cible distante, aucun secret et
+aucune donnée réelle n'y sont joignables (`KI-021` interdit toujours la donnée
+réelle), et l'origine autorisée est le loopback numérique exact — ni
+`localhost`, ni `[::1]`, ni un autre port. La distribution publique, la
+signature et l'updater restent hors périmètre jusqu'à la phase 6.
+
 ## Bridge .NET T0009
 
 Le bridge minimal n'ouvre aucune frontière :

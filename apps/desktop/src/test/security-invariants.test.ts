@@ -74,6 +74,22 @@ describe("invariants frontend et Tauri", () => {
     expect(csp).not.toMatch(/https?:|wss?:|'unsafe-eval'/);
   });
 
+  it("n'ouvre connect-src que sur le canal internal-alpha, vers le seul loopback", () => {
+    const readCsp = (path: string) =>
+      (JSON.parse(read(path)) as { app: { security: { csp: string } } }).app.security.csp;
+    const publicCsp = readCsp("apps/desktop/src-tauri/tauri.conf.json");
+    const alphaCsp = readCsp(
+      "apps/desktop/src-tauri/tauri.channel.internal-alpha.conf.json",
+    );
+
+    // La surcouche alpha est la CSP publique à `connect-src` près : toute autre
+    // différence — directive ajoutée, origine supplémentaire — rompt l'égalité.
+    expect(alphaCsp).toBe(
+      publicCsp.replace("connect-src 'none'", "connect-src http://127.0.0.1:54321"),
+    );
+    expect(alphaCsp).not.toMatch(/https:|wss?:|\*|'unsafe-inline'|'unsafe-eval'|localhost|\[::1\]/);
+  });
+
   it("borne la CSP de développement à Vite et Supabase loopback", () => {
     const config = JSON.parse(read("apps/desktop/src-tauri/tauri.conf.json")) as {
       app: { security: { devCsp: string } };

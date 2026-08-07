@@ -1,8 +1,12 @@
 # F0005 — Rendre l'alpha installée cliquable
 
-Status: Ready
-Owner: Unassigned
+Status: In progress
+Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0005-rendre-l-alpha-installee-cliquable`
+PR: [#133](https://github.com/AndyD9/ThrustlineNG/pull/133) (brouillon, base
+`main` ; J1 implémenté et validé, `main` rapatriée après les fusions de F0002
+et F0006 ; restent J2 — le package installé et le parcours humain — la revue
+et la fusion par Andy)
 Phase: 4
 Risk: High
 Security-sensitive: Yes
@@ -34,7 +38,13 @@ interactif exigé par T0055 est impossible par conception, et T0055 reste
 
 ## Allowed areas
 
-- `apps/desktop/src-tauri/tauri.conf.json` et la mécanique de CSP par canal ;
+- `apps/desktop/src-tauri/tauri.conf.json` et la mécanique de CSP par canal,
+  dont les surcouches `tauri.channel.<canal>.conf.json` ;
+- `tests/desktop-shell/run.ps1` et `apps/desktop/src/test/security-invariants.test.ts`
+  — les deux harnais qui épinglent déjà la CSP (ajouté aux `Allowed areas` le
+  7 août 2026 : l'unité qui change la CSP fait évoluer les gates qui la
+  gardent) ;
+- `scripts/test-windows-package.ps1` — consommateur du manifeste de packaging ;
 - `apps/desktop/` configuration de build strictement nécessaire ;
 - `scripts/build-windows-package.ps1` et le gate de packaging si le canal
   change la CSP embarquée ;
@@ -59,7 +69,7 @@ interactif exigé par T0055 est impossible par conception, et T0055 reste
 
 ### J1 — La CSP suit le canal produit, prouvée fermée pour le public
 
-Status: Draft
+Status: Done
 Risk: High
 Security-sensitive: Yes
 Autonomous: No
@@ -93,13 +103,17 @@ Autonomous: No
 ## Acceptance criteria
 
 - [ ] Un package `internal-alpha` installé déroule le golden path sur la pile
-      locale.
-- [ ] Un package du canal public embarque `connect-src 'none'`, prouvé par un
-      contrôle à mutation négative.
-- [ ] Aucune origine autre que `http://127.0.0.1:54321` n'est autorisée par le
-      canal alpha.
-- [ ] T0055 est clos par le parcours installé, consigné dans son fichier.
-- [ ] `SECURITY.md` décrit la CSP par canal et son risque résiduel.
+      locale. — J2.
+- [x] Un package du canal public embarque `connect-src 'none'`, prouvé par un
+      contrôle à mutation négative. — J1 : sept mutations négatives dans
+      `windows:package:check`, plus un contrôle manuel sur le binaire compilé.
+      Revalidé sur le package NSIS réel en J2.
+- [x] Aucune origine autre que `http://127.0.0.1:54321` n'est autorisée par le
+      canal alpha. — J1 : égalité exacte avec la CSP publique au seul
+      `connect-src` près, et refus de `localhost`, `[::1]` ou tout autre schéma.
+- [ ] T0055 est clos par le parcours installé, consigné dans son fichier. — J2.
+- [x] `SECURITY.md` décrit la CSP par canal et son risque résiduel. — J1,
+      section « CSP par canal produit F0005 J1 ».
 
 ## Security review
 
@@ -151,11 +165,49 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J1
 
-- résultat obtenu :
+- résultat obtenu : la CSP suit le canal produit. Le canal `internal-alpha`
+  reçoit une surcouche de configuration Tauri dont la CSP est exactement la CSP
+  publique avec `connect-src http://127.0.0.1:54321` ; tout autre canal —
+  connu, inconnu, renommé ou vide — garde `connect-src 'none'`. Le mécanisme
+  est une allowlist, pas un drapeau négatif : la surcouche n'est appliquée que
+  sous une égalité explicite de nom de canal, et le script de packaging
+  recalcule la CSP attendue **depuis la CSP publique**, jamais depuis la
+  surcouche qu'il valide, puis refuse de construire en cas d'écart. La CSP
+  résolue est inscrite dans `package-manifest.json` (`schemaVersion` 3, champ
+  `csp`) et recomparée au canal par le test de package.
 - fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+  `apps/desktop/src-tauri/tauri.channel.internal-alpha.conf.json` (nouveau),
+  `scripts/build-windows-package.ps1`, `scripts/test-windows-package.ps1`,
+  `tests/windows-package/run.ps1`, `tests/desktop-shell/run.ps1`,
+  `apps/desktop/src/test/security-invariants.test.ts`, `docs/SECURITY.md`,
+  `docs/QUALITY.md`, `docs/CURRENT_STATE.md`, `docs/features/README.md`, ce
+  fichier. `apps/desktop/src-tauri/tauri.conf.json` n'a **pas** changé : la CSP
+  publique est intacte.
+- commandes et résultats : `pnpm windows:package:check` vert (« per-channel CSP
+  and 9 negative mutations passed ») ; `pnpm desktop:check` vert (typecheck,
+  `cargo fmt --check`, `cargo check --locked`, Clippy `-D warnings`) ;
+  `pnpm desktop:test` vert (496 tests frontend passés, 2 ignorés ; 21 tests
+  Rust ; invariants du shell) ; `pnpm frontend:build` vert ;
+  `pnpm maintenance:check` vert. Tous réexécutés **après** le rapatriement de
+  `main` (fusions de F0002, PR #131, et de F0006, PR #132). `pnpm
+  windows:package` n'a pas été exécuté : le package NSIS réel appartient à J2.
+- vérification manuelle : contrôle sur l'artefact, au-delà des gates statiques.
+  Un build compilé avec la surcouche n'embarque que
+  `connect-src http://127.0.0.1:54321` ; le même build sans elle n'embarque que
+  `connect-src 'none'` — lecture directe de la chaîne dans le binaire produit,
+  une seule occurrence dans chaque cas. Mécanisme de fusion confirmé dans la
+  source `tauri-utils` 2.9.3 : JSON Merge Patch (RFC 7396), donc la surcouche
+  remplace `app.security.csp` sans effacer `freezePrototype`.
+- revue et constats traités : relecture de la source Tauri 2.11.5 sur un risque
+  non listé au départ — une CSP fermée casse-t-elle l'IPC ? Non :
+  `scripts/ipc-protocol.js` retombe sur `window.ipc.postMessage` quand le
+  protocole custom est bloqué, donc les deux commandes fermées restent
+  joignables sur les deux canaux. Le garde de canal du script de build est
+  lui-même sous mutation négative (surcouche appliquée inconditionnellement,
+  puis garde retiré), parce qu'une CSP correcte dans un fichier ne prouve rien
+  si le script l'applique au mauvais canal. Reste non couvert par
+  l'automatisation : la CSP du **binaire livré**, vérifiée à la main ici,
+  revalidée sur l'artefact réel en J2.
 
 ### J2
 

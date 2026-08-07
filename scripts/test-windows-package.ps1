@@ -96,7 +96,7 @@ $productVersion = [string]$productVersionSource.productVersion
 $expectedInstallerName = ([string]$productVersionSource.installerNameTemplate).Replace(
     '{productVersion}', $productVersion
 )
-if ([int]$manifest.schemaVersion -ne 2) {
+if ([int]$manifest.schemaVersion -ne 3) {
     throw "Unsupported package manifest schemaVersion: $($manifest.schemaVersion)."
 }
 if ([string]$manifest.productVersion -ne $productVersion) {
@@ -104,6 +104,22 @@ if ([string]$manifest.productVersion -ne $productVersion) {
 }
 if ([string]$manifest.channel -ne [string]$productVersionSource.channel) {
     throw 'Package manifest must declare the canonical internal alpha channel.'
+}
+
+# F0005 J1 — la CSP embarquée est déclarée par canal dans le manifeste, et
+# recalculée ici depuis la même source : seul `internal-alpha` élargit
+# `connect-src`, et uniquement vers le loopback Supabase local.
+$publicCsp = [string](
+    (Get-Content -Raw -LiteralPath (
+        Join-Path $repositoryRoot 'apps\desktop\src-tauri\tauri.conf.json'
+    ) | ConvertFrom-Json).app.security.csp
+)
+$expectedCsp = $publicCsp
+if ([string]$productVersionSource.channel -eq 'internal-alpha') {
+    $expectedCsp = $publicCsp.Replace("connect-src 'none'", 'connect-src http://127.0.0.1:54321')
+}
+if ([string]$manifest.csp -ne $expectedCsp) {
+    throw "Package manifest declares a Content-Security-Policy the $($manifest.channel) channel must not embed."
 }
 $installerEntry = @($manifest.files | Where-Object role -eq 'installer')
 $desktopEntry = @($manifest.files | Where-Object role -eq 'desktop-build-output')
