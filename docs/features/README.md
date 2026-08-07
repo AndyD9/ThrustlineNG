@@ -36,7 +36,7 @@ gelée du format précédent.
 | F0002 | Clôturer son vol et encaisser son revenu depuis l'application | 2–4 | T0051, T0057, F0001 fusionnée, F0004 fusionnée | Done |
 | F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | Ready |
 | F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Done |
-| F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | Ready |
+| F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | In progress |
 | F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | In progress |
 
 Les deux premières fonctionnalités ouvrent le format sur ce qui restait du golden
@@ -67,11 +67,14 @@ prérequis de F0002 — rattachement résumé ↔ vol et tracker réarmable — 
 portés par **F0006**, `In progress` depuis la décision de séquencement d'Andy
 du 7 août 2026 (« go 1 ») ; F0002 ayant finalement été fusionnée la première,
 le branchement de sa clôture sur la mesure rattachée est porté par F0006.
-F0005 est `Ready` sur la
+F0005 est `In progress` sur la
 seconde décision du même jour : le canal `internal-alpha` reçoit une CSP
 limitée à `http://127.0.0.1:54321` pendant que le canal public garde
 `connect-src 'none'`, ce qui rendra l'application installée réellement
-cliquable et clôturera T0055.
+cliquable et clôturera T0055. Son J1 est `Done` — la surcouche de canal, le
+garde d'allowlist dans le script de packaging, la CSP inscrite au manifeste et
+sept mutations négatives — et son J2, le package installé parcouru à la main,
+appartient à Andy.
 
 F0003 sort d'une question d'Andy du 5 août 2026 — « il faut qu'on le trouve nous-même,
 dans l'hypothèse où la personne n'a rien de tout ça » — et d'un relevé qui lui donne

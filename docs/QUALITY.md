@@ -791,12 +791,33 @@ l'inclusion du bridge. Il prouve deux mutations négatives : installation
 Depuis T0055, `windows:package` exécute d'abord `product-version:check`, refuse un
 bundle NSIS qui ne porte pas la version produit, nomme l'artefact copié
 `Thrustline-<version>-win-x64.exe` et inscrit `productVersion` et `channel` dans
-le manifeste, désormais en `schemaVersion` `2`.
+le manifeste.
+
+Depuis F0005 J1, la CSP suit le canal produit et le manifeste passe en
+`schemaVersion` `3`, avec un champ `csp` qui déclare la CSP réellement
+embarquée. `windows:package` n'ajoute la surcouche
+`tauri.channel.internal-alpha.conf.json` que sous une égalité explicite de nom
+de canal — un canal inconnu ou vide retombe sur `connect-src 'none'` — puis
+recalcule la CSP attendue depuis la CSP publique et refuse de construire en cas
+d'écart. Le harnais `windows:package:check` ajoute six invariants : CSP publique
+sans origine ni directive dangereuse, surcouche de canal unique, surcouche
+limitée à `app.security.csp`, égalité exacte entre CSP alpha et CSP publique au
+seul `connect-src` près, absence de CSP dans la configuration de packaging, et
+forme du script de build (surcouche ajoutée une seule fois, sous le garde de
+canal). Sept mutations négatives couvrent chacun de ces chemins, ce qui porte le
+harnais à neuf mutations. `tests/desktop-shell/run.ps1` et
+`security-invariants.test.ts` épinglent les mêmes invariants côté shell.
+
+Cette preuve est statique : elle lit des configurations, pas un installateur.
+Elle a été doublée à la main d'un contrôle sur l'artefact — un build avec la
+surcouche n'embarque que `connect-src http://127.0.0.1:54321`, le même build
+sans elle n'embarque que `connect-src 'none'` — mais ce contrôle n'est pas
+automatisé et le package NSIS réel appartient à F0005 J2.
 
 `windows:package:test` installe silencieusement dans une cible explicite sous
-`artifacts/t0014`, compare la version et le nom d'installateur du manifeste à la
-source canonique, compare le hash de l'installateur et du bridge au manifeste,
-confirme les trois statuts Authenticode `NotSigned`, ouvre la fenêtre
+`artifacts/t0014`, compare la version, le nom d'installateur et la CSP du
+manifeste à la source canonique, compare le hash de l'installateur et du bridge
+au manifeste, confirme les trois statuts Authenticode `NotSigned`, ouvre la fenêtre
 `Thrustline`, observe un seul bridge, ferme les deux processus, exécute
 `Healthy`/`0`, désinstalle et exige la disparition de la cible. Ce parcours
 modifie temporairement le profil utilisateur via NSIS ; il doit être exécuté sur

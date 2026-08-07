@@ -49,8 +49,12 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
   réarmer entre deux vols : les prérequis de F0002 consignés par KI-028,
   ouverts sur la décision de séquencement d'Andy du 7 août 2026 (« go 1 » :
   câblage d'abord). Chemin critique du jalon.
-- **F0005** (`Ready`) — CSP `internal-alpha` limitée au loopback pour rendre
-  l'application installée cliquable et clore T0055 (décision du 6 août 2026).
+- **F0005** (`In progress`) — CSP `internal-alpha` limitée au loopback pour
+  rendre l'application installée cliquable et clore T0055 (décision du 6 août
+  2026). J1 implémenté hors de `main` : la CSP suit le canal produit par
+  allowlist, le canal public reste `connect-src 'none'` sous sept mutations
+  négatives. Restent J2 — package installé et parcours humain, qui appartient
+  à Andy — la revue et la fusion.
 - **F0003** (`Ready`) — découverte de la bibliothèque SimConnect ou dégradation
   propre ; son J3 attend une décision d'Andy (fourniture de la DLL) et la
   lecture de l'EULA du SDK.
@@ -61,9 +65,8 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
    branchement de la clôture F0002 (fusionnée avant F0006 par la PR #131) sur
    la mesure rattachée (KI-028, « go 1 » du 7 août 2026).
 2. F0005 — le parcours dans l'application **installée**, qui clôt T0055. La
-   CSP de production étant `connect-src 'none'`, Andy a décidé le 6 août 2026
-   un canal `internal-alpha` dont la CSP autorise uniquement
-   `http://127.0.0.1:54321`.
+   CSP par canal est faite (J1, hors de `main`) ; reste J2 : produire le
+   package `internal-alpha`, l'installer et y dérouler le golden path.
 
 ## Hors du jalon, suivi ailleurs
 
