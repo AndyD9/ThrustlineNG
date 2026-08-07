@@ -45,6 +45,7 @@ describe("invariants de la clôture de vol desktop", () => {
 
   it("exige le résumé mesuré avant toute clôture", () => {
     expect(control).toContain('summary.state !== "completed" || summary.blockMinutes === null');
+    expect(control).toContain("summary.attachedDispatchId !== dispatchId");
     expect(control).toContain("blockMinutes: summary.blockMinutes");
   });
 

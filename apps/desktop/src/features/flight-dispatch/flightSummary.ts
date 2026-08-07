@@ -1,8 +1,11 @@
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 export type FlightSummaryFailure = "invalid-response" | "unavailable";
 
 export type FlightSummaryState = "completed" | "idle" | "incomplete" | "running";
 
 export interface FlightSummary {
+  attachedDispatchId: string | null;
   blockMinutes: number | null;
   contractVersion: "1";
   state: FlightSummaryState;
@@ -30,10 +33,20 @@ function isFlightSummary(value: unknown): value is FlightSummary {
   }
 
   const record = value as Record<string, unknown>;
-  if (Object.keys(record).sort().join(",") !== "blockMinutes,contractVersion,state") {
+  if (
+    Object.keys(record).sort().join(",") !==
+    "attachedDispatchId,blockMinutes,contractVersion,state"
+  ) {
     return false;
   }
   if (record.contractVersion !== "1" || !STATES.includes(record.state as string)) {
+    return false;
+  }
+  if (
+    record.attachedDispatchId !== null &&
+    (typeof record.attachedDispatchId !== "string" ||
+      !UUID_PATTERN.test(record.attachedDispatchId))
+  ) {
     return false;
   }
   if (record.state === "completed") {

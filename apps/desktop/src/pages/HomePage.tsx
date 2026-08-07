@@ -20,6 +20,7 @@ import {
   CompanyPresencePanel,
   type CompanyPresenceCommand,
 } from "@/features/company-state/CompanyPresencePanel";
+import type { FlightSummaryArmCommand } from "@/features/flight-dispatch/DispatchStartControl";
 import {
   type DispatchListCommand,
   DispatchListPanel,
@@ -42,6 +43,7 @@ export interface HomePageProps {
   dispatchDraftCommand?: DispatchDraftCommand | undefined;
   dispatchListCommand?: DispatchListCommand | undefined;
   flightCloseCommand?: FlightCloseCommand | undefined;
+  flightSummaryArmCommand?: FlightSummaryArmCommand | undefined;
   flightSummaryCommand?: FlightSummaryCommand | undefined;
   onAuthenticationRequired: () => void;
   onSignOut: () => void;
@@ -58,6 +60,7 @@ export function HomePage({
   dispatchDraftCommand,
   dispatchListCommand,
   flightCloseCommand,
+  flightSummaryArmCommand,
   flightSummaryCommand,
   onAuthenticationRequired,
   onSignOut,
@@ -131,6 +134,7 @@ export function HomePage({
             />
           )}
           <DispatchListPanel
+            armCommand={flightSummaryArmCommand}
             closeCommand={flightCloseCommand}
             command={dispatchListCommand}
             config={config}

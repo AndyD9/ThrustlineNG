@@ -737,6 +737,19 @@ sans réseau. Les invariants épinglent que le câblage
 `flightSummaryShell.ts` ne transmet au shell que le nom de la commande, sans
 autre argument, et que l'affichage ne recalcule aucun temps dans la WebView.
 
+Depuis F0006, le harnais bridge (37 tests) couvre en plus les sessions de
+mesure réarmables : un réarmement refusé pendant un streaming, deux vols
+d'affilée mesurés sous deux générations distinctes, et le contrat local qui
+exige le jeton sur `POST /api/v1/flight-summary/rearm` puis rejoue la source
+jusqu'à un second `completed` sous la génération 2. Côté Tauri (21 tests
+Rust), la validation stricte gagne `generation` (jamais projetée vers la
+WebView), l'accusé d'armement et le refus `rejected` ; le harnais du shell et
+`security-invariants.test.ts` épinglent **exactement deux** commandes IPC et
+leurs signatures. Côté frontend (427 tests), l'armement au départ du vol est
+prouvé non bloquant (échec silencieux, jamais avant un départ réussi) et
+l'affichage échoue fermé sur toute mesure non rattachée ou rattachée à un
+autre vol, y compris avec deux vols actifs.
+
 Depuis la racine :
 
 ```powershell

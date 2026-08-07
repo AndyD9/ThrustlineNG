@@ -30,6 +30,7 @@ type ControlState =
   | { kind: "ready" }
   | { kind: "pending" }
   | { kind: "unmeasured" }
+  | { kind: "unattached" }
   | { kind: "closed"; flight: ClosedFlight }
   | { kind: "rejected" }
   | { kind: "unavailable" };
@@ -83,6 +84,12 @@ export function FlightCloseControl({
       }
       if (summary.state !== "completed" || summary.blockMinutes === null) {
         setState({ kind: "unmeasured" });
+        return;
+      }
+      // Branchement F0006 : la mesure doit être rattachée au vol clôturé —
+      // celle d'un autre vol ou d'une session non armée ne règle jamais.
+      if (summary.attachedDispatchId !== dispatchId) {
+        setState({ kind: "unattached" });
         return;
       }
 
@@ -142,7 +149,7 @@ export function FlightCloseControl({
       ? "Clôture…"
       : state.kind === "closed"
         ? "Vol clôturé"
-        : state.kind === "unavailable" || state.kind === "unmeasured"
+        : state.kind === "unavailable" || state.kind === "unmeasured" || state.kind === "unattached"
           ? "Réessayer la clôture"
           : "Clôturer le vol";
 
@@ -173,6 +180,12 @@ export function FlightCloseControl({
       {state.kind === "unmeasured" && (
         <span role="alert">
           La clôture attend le temps de bloc mesuré : terminez le replay puis réessayez.
+        </span>
+      )}
+      {state.kind === "unattached" && (
+        <span role="alert">
+          La clôture attend une mesure rattachée à ce vol : la dernière mesure
+          appartient à un autre vol ou à une session non armée.
         </span>
       )}
       {state.kind === "rejected" && (

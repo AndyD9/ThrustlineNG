@@ -32,6 +32,7 @@ const closedFlight: ClosedFlight = {
 };
 
 const measuredSummary: FlightSummary = {
+  attachedDispatchId: dispatchId,
   blockMinutes: 42,
   contractVersion: "1",
   state: "completed",
@@ -131,6 +132,7 @@ describe("FlightCloseControl", () => {
     const command = vi.fn<FlightCloseCommand>(async () => closedFlight);
     const props = createBaseProps();
     props.summaryCommand = vi.fn<FlightSummaryCommand>(async () => ({
+      attachedDispatchId: dispatchId,
       blockMinutes: null,
       contractVersion: "1",
       state: "running",
@@ -141,6 +143,30 @@ describe("FlightCloseControl", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "La clôture attend le temps de bloc mesuré",
+    );
+    expect(command).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Réessayer la clôture · LFPG → EGLL" }),
+    ).toBeEnabled();
+  });
+
+  it.each([
+    ["rattachée à un autre vol", "97000000-0000-4000-8000-000000000009"],
+    ["sans rattachement", null],
+  ])("refuse de clôturer sur une mesure %s", async (_label, attachedDispatchId) => {
+    const user = userEvent.setup();
+    const command = vi.fn<FlightCloseCommand>(async () => closedFlight);
+    const props = createBaseProps();
+    props.summaryCommand = vi.fn<FlightSummaryCommand>(async () => ({
+      ...measuredSummary,
+      attachedDispatchId,
+    }));
+    render(<FlightCloseControl {...props} command={command} />);
+
+    await user.click(screen.getByRole("button", { name: "Clôturer le vol · LFPG → EGLL" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "La clôture attend une mesure rattachée à ce vol",
     );
     expect(command).not.toHaveBeenCalled();
     expect(

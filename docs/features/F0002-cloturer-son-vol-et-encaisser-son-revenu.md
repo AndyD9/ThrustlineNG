@@ -1,11 +1,14 @@
 # F0002 — Clôturer son vol et encaisser son revenu depuis l'application
 
-Status: In progress
+Status: Done
 Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0002-cloturer-son-vol-et-encaisser-son-revenu`
-PR: [#131](https://github.com/AndyD9/ThrustlineNG/pull/131) (brouillon, base
-`main` ; J1–J3 implémentés, restent le parcours manuel, la revue et la fusion
-par Andy)
+PR: [#131](https://github.com/AndyD9/ThrustlineNG/pull/131), **fusionnée dans
+`main` par Andy le 7 août 2026** — avant F0006, contrairement au séquencement
+« go 1 » : le branchement de la clôture sur la mesure rattachée (exiger
+`attachedDispatchId` égal au dispatch clôturé) est donc porté par F0006, qui
+lève la garde « un seul vol actif » posée à la résolution du conflit avec la
+PR #130.
 Phase: 2–4
 Risk: High
 Security-sensitive: Yes

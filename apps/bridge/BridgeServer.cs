@@ -62,13 +62,21 @@ public static class BridgeServer
             BridgeContract.FlightSummaryPath,
             () =>
             {
-                var summary = telemetry.Summary;
+                var reading = telemetry.Reading;
                 return Results.Json(
                     new FlightSummaryResponse(
                         BridgeContract.Version,
-                        Describe(summary.State),
-                        summary.BlockMinutes));
+                        Describe(reading.Summary.State),
+                        reading.Summary.BlockMinutes,
+                        reading.Generation));
             });
+        app.MapPost(
+            BridgeContract.FlightSummaryRearmPath,
+            () => telemetry.TryRearm(out var generation)
+                ? Results.Json(new FlightSummaryRearmResponse(BridgeContract.Version, generation))
+                : Results.Json(
+                    new FlightSummaryRearmResponse(BridgeContract.Version, generation),
+                    statusCode: StatusCodes.Status409Conflict));
         app.MapHub<BridgeHub>(BridgeContract.HubPath);
 
         await app.StartAsync(shutdownToken).ConfigureAwait(false);
@@ -139,5 +147,10 @@ public static class BridgeServer
     private sealed record FlightSummaryResponse(
         string ContractVersion,
         string State,
-        int? BlockMinutes);
+        int? BlockMinutes,
+        int Generation);
+
+    private sealed record FlightSummaryRearmResponse(
+        string ContractVersion,
+        int Generation);
 }

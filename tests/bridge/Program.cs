@@ -40,7 +40,10 @@ var tests = new (string Name, Func<Task> Execute)[]
     ("flight summary measures a trace starting airborne", TestFlightSummaryStartsAirborne),
     ("flight summary keeps an empty trace incomplete", TestFlightSummaryEmptyTrace),
     ("flight summary reports running then incomplete on interruption", TestFlightSummaryInterruption),
+    ("a rearm opens a fresh measurement under a new generation", TestFlightSummaryRearm),
+    ("a rearm is refused while a measure is streaming", TestFlightSummaryRearmWhileStreaming),
     ("local contract exposes the flight summary behind the token", TestFlightSummaryContract),
+    ("local contract rearms the summary behind the token", TestFlightSummaryRearmContract),
     ("native telemetry source never fails the harness", TestNativeTelemetrySource),
     ("hub streams the synthetic trace to an authenticated subscriber", TestTelemetryContract),
     ("hub refuses an interface other than 127.0.0.1", TestNonLoopbackRefusal),
@@ -726,6 +729,78 @@ static async Task TestFlightSummaryInterruption()
     True(summary.BlockMinutes is null, "no block time on an interrupted replay");
 }
 
+static async Task TestFlightSummaryRearm()
+{
+    var firstFlight = new[]
+    {
+        SummarySample(0, 0, 0, true),
+        SummarySample(1, 60, 40, true),
+        SummarySample(2, 120, 150, false),
+        SummarySample(3, 420, 60, true),
+    };
+    var secondFlight = new[]
+    {
+        SummarySample(0, 0, 30, true),
+        SummarySample(1, 10, 150, false),
+        SummarySample(2, 100, 50, true),
+    };
+    var traces = new Queue<IReadOnlyList<FlightSample>>([firstFlight, secondFlight]);
+    await using var publisher = new TelemetryPublisher(
+        BridgeTelemetryOptions.Default with { Cadence = TimeSpan.FromMilliseconds(2) },
+        () => new ScriptedSimConnectAdapter(traces.Dequeue()));
+    publisher.Subscribe("subscriber", new RecordingTelemetrySink());
+
+    using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+    await publisher.RunAsync(cancellation.Token);
+    var firstReading = publisher.Reading;
+    Equal(FlightSummaryState.Completed, firstReading.Summary.State, "first flight completes");
+    Equal(6, firstReading.Summary.BlockMinutes, "first flight measures six minutes");
+    Equal(1, firstReading.Generation, "first flight belongs to generation one");
+
+    True(publisher.TryRearm(out var generation), "rearm accepted once the measure is terminal");
+    Equal(2, generation, "rearm advances to generation two");
+    var rearmed = publisher.Reading;
+    Equal(FlightSummaryState.Idle, rearmed.Summary.State, "fresh session starts idle");
+    True(rearmed.Summary.BlockMinutes is null, "fresh session carries no inherited block time");
+    Equal(2, rearmed.Generation, "reading reports the new generation");
+
+    True(
+        await publisher.WaitForRearmAsync(cancellation.Token),
+        "a pending rearm is consumed immediately");
+    await publisher.RunAsync(cancellation.Token);
+    var secondReading = publisher.Reading;
+    Equal(FlightSummaryState.Completed, secondReading.Summary.State, "second flight completes");
+    Equal(2, secondReading.Summary.BlockMinutes, "second flight measures its own two minutes");
+    Equal(2, secondReading.Generation, "second measure stays under generation two");
+}
+
+static async Task TestFlightSummaryRearmWhileStreaming()
+{
+    var adapter = new GeneratedSimConnectAdapter(0);
+    await using var publisher = new TelemetryPublisher(
+        BridgeTelemetryOptions.Default with { Cadence = TimeSpan.FromMilliseconds(5) },
+        () => adapter);
+    var sink = new RecordingTelemetrySink();
+    publisher.Subscribe("subscriber", sink);
+    using var cancellation = new CancellationTokenSource();
+    var run = publisher.RunAsync(cancellation.Token);
+    await WaitUntilAsync(() => sink.Count >= 2, "streaming started");
+
+    True(!publisher.TryRearm(out var generation), "rearm refused while streaming");
+    Equal(1, generation, "refusal reports the untouched generation");
+    Equal(
+        FlightSummaryState.Running,
+        publisher.Summary.State,
+        "the running measure survives the refused rearm");
+
+    await cancellation.CancelAsync();
+    await run.WaitAsync(TimeSpan.FromSeconds(5));
+    True(
+        publisher.TryRearm(out var afterStop),
+        "rearm accepted after the interrupted measure turned terminal");
+    Equal(2, afterStop, "post-interruption rearm advances the generation");
+}
+
 static async Task TestFlightSummaryContract()
 {
     var port = ReservePort();
@@ -779,6 +854,65 @@ static async Task TestFlightSummaryContract()
 
     var health = await client.GetStringAsync(BridgeContract.HealthPath);
     Contains("\"telemetryState\":\"completed\"", health, "health check stays additive");
+
+    shutdown.Cancel();
+    Equal(
+        BridgeApplication.SuccessExitCode,
+        await run.WaitAsync(TimeSpan.FromSeconds(10)),
+        "exit code");
+}
+
+static async Task TestFlightSummaryRearmContract()
+{
+    var port = ReservePort();
+    var token = new string('h', 64);
+    var telemetry = BridgeTelemetryOptions.Default with
+    {
+        TracePath = TracePath(),
+        Cadence = TimeSpan.FromMilliseconds(25),
+    };
+    await using var publisher = new TelemetryPublisher(
+        telemetry,
+        TelemetryAdapterFactory.TryCreate(telemetry));
+    using var shutdown = new CancellationTokenSource();
+    using var output = new StringWriter();
+    var run = BridgeServer.RunAsync(
+        new BridgeOptions(port, token, telemetry),
+        output,
+        shutdown.Token,
+        publisher);
+
+    await WaitUntilReady(output);
+    using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+
+    var anonymous = await client.PostAsync(BridgeContract.FlightSummaryRearmPath, null);
+    Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode, "anonymous rearm status");
+
+    client.DefaultRequestHeaders.Add(BridgeContract.TokenHeader, token);
+    await using var subscriber = await TelemetrySubscriber.ConnectAsync(port, token);
+    _ = await subscriber.ReadSampleAsync(TimeSpan.FromSeconds(10));
+    await WaitUntilAsync(
+        () => publisher.State == TelemetryState.Completed,
+        "first replay reaches its last sample");
+    var firstSummary = await client.GetStringAsync(BridgeContract.FlightSummaryPath);
+    Contains("\"state\":\"completed\"", firstSummary, "first measure completes");
+    Contains("\"generation\":1", firstSummary, "first measure belongs to generation one");
+
+    var rearm = await client.PostAsync(BridgeContract.FlightSummaryRearmPath, null);
+    Equal(HttpStatusCode.OK, rearm.StatusCode, "authenticated rearm status");
+    var rearmBody = await rearm.Content.ReadAsStringAsync();
+    Contains("\"contractVersion\":\"1\"", rearmBody, "rearm contract version");
+    Contains("\"generation\":2", rearmBody, "rearm reports the new generation");
+    True(!rearmBody.Contains(token, StringComparison.Ordinal), "rearm leaks no token");
+
+    await WaitUntilAsync(
+        () => publisher.State == TelemetryState.Completed
+            && publisher.Reading.Generation == 2,
+        "the rearmed session replays the source to completion");
+    var secondSummary = await client.GetStringAsync(BridgeContract.FlightSummaryPath);
+    Contains("\"state\":\"completed\"", secondSummary, "second measure completes");
+    Contains("\"generation\":2", secondSummary, "second measure belongs to generation two");
+    Contains("\"blockMinutes\":1", secondSummary, "second measure is a fresh block time");
 
     shutdown.Cancel();
     Equal(
