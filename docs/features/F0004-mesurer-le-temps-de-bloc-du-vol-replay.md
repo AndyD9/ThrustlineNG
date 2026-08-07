@@ -153,8 +153,10 @@ Autonomous: Yes
 
 ## Acceptance criteria
 
-- [ ] Une trace replay jouée de bout en bout produit un temps de bloc conforme
-      à la règle décidée, visible dans l'application sur le vol actif.
+- [x] Une trace replay jouée de bout en bout produit un temps de bloc conforme
+      à la règle décidée, visible dans l'application sur le vol actif (parcours
+      complet du 7 août 2026, détail au Completion Report J3 ; le déclenchement
+      du replay a exigé un harnais externe — voir `KI-027`).
 - [x] Une trace sans retour au sol rend un état « incomplet » explicite, sans
       temps de bloc inventé (prouvé J1 sur le bridge, affiché J3 sans temps).
 - [x] Le jeton d'instance et le port du contrat local ne traversent jamais la
@@ -338,7 +340,8 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   `DispatchListPanel.tsx`, `apps/desktop/src/pages/HomePage.tsx`,
   extensions de `DispatchListPanel.test.tsx`, `homeComposition.test.tsx` et
   `flightSummary.invariants.test.ts`, `docs/ARCHITECTURE.md`,
-  `docs/QUALITY.md`, `docs/CURRENT_STATE.md`, ce fichier et
+  `docs/QUALITY.md`, `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md`
+  (`KI-027`, découverte de la vérification manuelle), ce fichier et
   `docs/features/README.md`.
 - commandes et résultats (6 août 2026) : `pnpm frontend:typecheck` — succès ;
   `pnpm frontend:test` — vitest 401 passés, 2 ignorés préexistants (18
@@ -346,10 +349,23 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   ligne active, composition d'accueil sans réseau, invariants J3) ;
   `pnpm frontend:coverage` — 94,81 % ; `pnpm frontend:build` — succès ;
   `pnpm authority:check` — passed ; `pnpm maintenance:check` — passed.
-- vérification manuelle : non exécutée à ce jalon — le parcours complet
-  (départ F0001, replay joué, temps de bloc affiché sur le vol actif) reste dû
-  avant la clôture de la fonctionnalité ; J1 et J2 portent leurs preuves
-  manuelles propres.
+- vérification manuelle : **exécutée le 7 août 2026**, parcours complet piloté
+  par CDP sur l'app Tauri dev (pile Supabase locale isolée, bridge publié
+  win-x64, WebView2 inspectée sur le port de débogage) : login (identité
+  synthétique Admin API) → création de compagnie → achat « Synthetic Cessna
+  172 » → brouillon LFPG → LFBO → départ F0001 (« En vol », heure serveur) →
+  clic « Afficher le temps de bloc » rendant l'état explicite « Aucun replay
+  mesuré pour l'instant. » (résumé `idle` réel via la commande Tauri) → replay
+  de la trace dorée T0011 déclenché par un abonné WebSocket réel sur le
+  contrat local (`completed`, `blockMinutes: 1` côté bridge) → clic
+  « Actualiser la mesure » rendant **« Temps de bloc mesuré : 1 min. »** sur
+  la ligne du vol actif. Balayage anti-fuite : ni jeton d'instance, ni port du
+  bridge, ni chaîne hex 64 dans le DOM ; le réseau WebView n'a vu que Vite,
+  Supabase loopback et l'IPC interne — zéro requête vers le port du bridge.
+  **Harnais requis** : le superviseur Tauri lance le bridge sans trace et rien
+  dans l'app ne s'abonne au hub ; la trace dorée a été injectée par un wrapper
+  `THRUSTLINE_BRIDGE_PATH` et le replay déclenché par un abonné externe —
+  découverte consignée en `KI-027`.
 - revue et constats traités : à la charge de la revue de la PR #128 ; points
   prioritaires : l'écart `HomePage.tsx` hors `Allowed areas` initiales et le
   câblage `__TAURI_INTERNALS__` (API interne de Tauri 2, choisie pour éviter
@@ -362,8 +378,9 @@ de bloc selon la règle « mouvement → sol » et l'expose additivement sur le
 contrat local (J1), l'unique commande Tauri `flight_summary` relaie le résumé
 revalidé sans exposer jeton ni port (J2), et l'application affiche le temps de
 bloc sur la ligne du vol actif, sur action explicite et sans aucun calcul côté
-WebView (J3). Restent, avant fusion : le parcours manuel complet (critère
-d'acceptation 1), la revue adversariale de la PR et la décision d'Andy.
+WebView (J3). Le parcours manuel complet a été exécuté le 7 août 2026 (critère
+d'acceptation 1, preuve au Completion Report J3). Restent, avant fusion : la
+revue adversariale de la PR et la décision d'Andy.
 
 ### Risks and limitations
 
@@ -381,9 +398,9 @@ d'acceptation 1), la revue adversariale de la PR et la décision d'Andy.
 
 ### Follow-ups
 
-- Parcours manuel complet avant clôture : départ F0001, replay joué, temps de
-  bloc affiché — appartient à la revue de la fonctionnalité (Andy ou session
-  outillée CDP sur la pile locale).
+- `KI-027` : dans l'application intégrée, rien ne fournit de trace au bridge
+  ni ne déclenche le replay (premier abonné) — le câblage du cycle de vol
+  appartient à F0002 ou à une unité dédiée.
 - F0002 consomme ce résumé pour la clôture depuis l'application.
 - T0059 : réarmement du tracker terminal au redémarrage du publisher (dette
   J1).
