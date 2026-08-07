@@ -238,6 +238,29 @@ réputation et l'argent ensemble. Aucune frontière Auth, appelant desktop,
 annulation, télémétrie de clôture, cible distante ni donnée réelle n'est couverte
 par ce ticket.
 
+L'Edge Function `flight-close` (F0002, J1) refuse tout champ autre que le
+dispatch, l'idempotence et un rapport strictement allowlisté — `outcome` fermé,
+`blockMinutes` entier borné, deux mesures facultatives bornées — dans un corps
+de 4 Kio ; aucun montant, devise, distance ni multiplicateur ne franchit la
+frontière. Elle vérifie une session non anonyme avec la clé anon, dérive le
+propriétaire de la réponse Auth et réserve le credential `service_role` à
+l'appel RPC sous timeout. Toute réponse privilégiée est validée, recoupée avec
+le dispatch demandé, projetée sur dix champs publics **sans identifiant de grand
+livre** et marquée `no-store` ; un vol inconnu, étranger ou déjà clôturé rend le
+même refus redigé. J2 prouve la frontière sur l'Edge Runtime local réel
+(56 contrôles : règlement unique apparié en SQL au crédit du grand livre, rejeu
+restitué octet pour octet sans seconde écriture, refus comparés entre eux, avion
+re-dispatchable). J3 ajoute l'unique appelant desktop, fixé par l'option C du
+6 août 2026 : le contrôle lit d'abord le résumé mesuré F0004 et refuse de
+clôturer sans mesure complète, n'envoie que `outcome: "completed"` et le
+`blockMinutes` mesuré, épingle la clé d'idempotence au rapport exact qu'elle a
+signé (une nouvelle mesure ouvre une nouvelle intention au lieu d'entrer en
+collision avec le payload enregistré), affiche montant, devise et temps retenu
+depuis la seule réponse serveur et relit flotte et dispatchs après la clôture.
+La preuve desktop reste jsdom à `fetch` injecté ; aucune clôture `interrupted`
+depuis l'application, annulation, cible distante ni donnée réelle n'est
+couverte.
+
 ## Configuration et session desktop T0038
 
 Le bundle n'accepte que deux paramètres explicitement publics : URL Supabase et

@@ -220,8 +220,9 @@ pnpm backend:types:check
 pnpm backend:stop
 ```
 
-`backend:functions:test` exécute 46 tests Node sans dépendance tierce : 15 pour
-l'onboarding, 15 pour l'achat et 16 pour le dispatch. Ils couvrent méthode, corps 4 Kio, payload
+`backend:functions:test` exécute 80 tests Node sans dépendance tierce : 15 pour
+l'onboarding, 15 pour l'achat, 16 pour le dispatch, 16 pour le départ de vol et
+18 pour la clôture. Ils couvrent méthode, corps 4 Kio, payload
 exact, normalisation, UUID, configuration, Auth anonyme ou invalide,
 indisponibilité Auth/RPC, dérivation du propriétaire, credential privilégié,
 redaction, rejeu et réponse allowlistée versionnée `no-store`.
@@ -450,6 +451,24 @@ détail interne ; un champ injecté : 400 `invalid_request`; un corps de 5 Kio :
 commande, possédés par le sujet Auth — et la pile jetable est détruite ensuite.
 Le gate backend passe avec 67 mutations, dont 9 pour cette frontière ; les
 tests de fonctions passent à 62.
+
+Preuve F0002 J2 du 7 août 2026 : `scripts/validate-flight-close-runtime.ps1`
+exécute 56 contrôles sans échec sur la même pile, selon la même méthode. Après
+onboarding, achat, brouillon et départ réels, la clôture nominale rend
+exactement les dix champs publics — `aircraftId, blockMinutes, closedAt,
+currencyCode, dispatchId, distanceNm, outcome, schemaVersion,
+settledAmountMinor, state` — avec `state: completed`, `Cache-Control: no-store`
+et sans identifiant de grand livre ; l'état SQL montre une commande, un rapport,
+un événement de réputation `+1` et un crédit net `flight_settlement` dont le
+montant égale la réponse. Le rejeu de la même clé restitue la réponse octet pour
+octet sans seconde écriture. Les corps des trois refus — vol étranger, inconnu,
+déjà clôturé — sont comparés entre eux et identiques (`409
+flight_close_rejected`). Un montant forgé dans le rapport : 400 `invalid_report`
+sans fuite ; sans bearer : 401 sans détail interne ; un champ injecté : 400
+`invalid_request` ; un corps de 5 Kio : 413 `request_too_large`. L'avion
+redevient dispatchable par un nouveau brouillon réel et l'état final est
+`2|1|1|1|1|1`, possédé par le sujet Auth ; la pile jetable est détruite ensuite.
+Les tests de fonctions passent à 80 avec les 18 tests du handler `flight-close`.
 
 Preuve T0050 du 3 août 2026 : `backend:check` passe avec 30 mutations, dont
 quatre nouvelles qui détectent un démarrage exécutable par un client, un

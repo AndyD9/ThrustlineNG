@@ -141,7 +141,7 @@ mesuré F0004 ; la frontière J1 accepte le contrat complet de `close_flight`
 
 ### J1 — La clôture derrière une frontière authentifiée
 
-Status: Ready
+Status: Done
 Risk: High
 Security-sensitive: Yes
 Autonomous: No
@@ -159,7 +159,7 @@ Autonomous: No
 
 ### J2 — La frontière prouvée sur l'Edge Runtime local réel
 
-Status: Ready
+Status: Done
 Risk: Low
 Security-sensitive: No
 Autonomous: Yes
@@ -175,7 +175,7 @@ Autonomous: Yes
 
 ### J3 — La clôture composée depuis le desktop
 
-Status: Ready
+Status: Done
 Risk: Medium
 Security-sensitive: No
 Autonomous: No
@@ -192,16 +192,17 @@ Autonomous: No
 
 ## Acceptance criteria
 
-- [ ] Un vol `active` possédé peut être clôturé une seule fois depuis l'application.
-- [ ] Le montant, la distance, le multiplicateur et la devise viennent exclusivement
+- [x] Un vol `active` possédé peut être clôturé une seule fois depuis l'application
+      (preuve jsdom J3 ; le parcours WebView réel reste la vérification manuelle).
+- [x] Le montant, la distance, le multiplicateur et la devise viennent exclusivement
       du serveur, y compris à l'affichage.
-- [ ] Un rejeu, un double clic ou un vol déjà clôturé ne produisent ni seconde
+- [x] Un rejeu, un double clic ou un vol déjà clôturé ne produisent ni seconde
       écriture financière, ni second rapport, ni second événement de réputation.
-- [ ] Un vol inconnu, étranger ou déjà terminal rend le même refus indistinguable.
-- [ ] La frontière est prouvée sur l'Edge Runtime local réel.
-- [ ] L'avion redevient dispatchable après la clôture, et la liste le montre.
-- [ ] Chaque règle nouvelle du gate est prouvée par au moins une mutation négative.
-- [ ] La documentation décrit la capacité livrée et ce qui reste absent.
+- [x] Un vol inconnu, étranger ou déjà terminal rend le même refus indistinguable.
+- [x] La frontière est prouvée sur l'Edge Runtime local réel (56 contrôles).
+- [x] L'avion redevient dispatchable après la clôture, et la liste le montre.
+- [x] Chaque règle nouvelle du gate est prouvée par au moins une mutation négative.
+- [x] La documentation décrit la capacité livrée et ce qui reste absent.
 
 ## Security review
 
@@ -261,32 +262,101 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J1
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : `POST /functions/v1/flight-close` accepte un bearer et un
+  corps borné de 4 Kio strictement allowlisté (`dispatchId`, `idempotencyKey`,
+  `report{outcome, blockMinutes, landingVerticalSpeedFpm?, fuelUsedKg?}`),
+  vérifie la session non anonyme, dérive `owner_id` de la réponse Auth, appelle
+  `close_flight` en `service_role` sous timeout et projette dix champs publics
+  `no-store` sans `ledgerEntryId`. Aucun montant, distance, multiplicateur ni
+  devise n'est accepté d'un client.
+- fichiers modifiés : `supabase/functions/flight-close/` (nouveau, 4 fichiers),
+  `supabase/config.toml`, `package.json`, `tests/backend/run.ps1`,
+  `eng/authority-inventory.json`.
+- commandes et résultats : 18/18 tests du handler ; `backend:check`,
+  `authority:check`, `data-policy:check` verts ; six mutations négatives
+  prouvées (verify_jwt désactivé, code de refus renommé, `ledgerEntryId`
+  projeté, scénario de test retiré, fonction retirée du script de tests, champ
+  monétaire client lu) — chacune fait échouer le gate, l'arbre restauré passe.
+- vérification manuelle : sondes 401 (et non 404) sur la pile fraîchement
+  démarrée, conformément à la leçon « copie du démarrage ».
+- revue et constats traités : auto-revue sur les deux axes du jalon — le seul
+  chemin client vers le montant est `blockMinutes`, plafonné par
+  `min(déclaré, écoulé)` côté serveur (T0051) ; les refus RPC sont réduits à un
+  unique `409 flight_close_rejected` sans corps amont.
 
 ### J2
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : la frontière est prouvée sur l'Edge Runtime local réel par
+  un scénario complet Auth → onboarding → achat → brouillon → départ → clôture.
+- fichiers modifiés : `scripts/validate-flight-close-runtime.ps1` (nouveau).
+- commandes et résultats : 56 contrôles, 0 échec, le 7 août 2026 — règlement
+  unique apparié en SQL (commande, rapport, réputation `+1`, crédit net égal à
+  la réponse), rejeu octet pour octet sans seconde écriture, refus étranger /
+  inconnu / déjà clos indistinguables, montant forgé refusé `invalid_report`,
+  401 sans bearer, 413 à 5 Kio, avion re-dispatchable par un nouveau brouillon
+  réel, pile détruite ensuite (`pnpm backend:stop`).
+- vérification manuelle : lecture du relevé des 56 contrôles ; les motifs de
+  refus sont comparés entre eux, pas déduits d'un code de sortie (leçon KI-025).
+- revue et constats traités : le rejeu est vérifié à la fois sur la réponse
+  (octet pour octet) et sur l'état SQL (aucune seconde écriture financière).
 
 ### J3
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : un vol `active` possédé se clôture depuis l'application avec
+  le rapport fixé par l'option C — `outcome: "completed"` et `blockMinutes` issu
+  du résumé mesuré F0004 ; sans mesure complète, la clôture est refusée
+  localement. Montant, devise et temps retenu sont affichés depuis la seule
+  réponse serveur ; la flotte et la liste des dispatchs sont relues ; la clé
+  d'idempotence est épinglée au rapport exact qu'elle a signé, donc un double
+  clic ou un retry ne règlent jamais deux fois et une nouvelle mesure ouvre une
+  nouvelle intention.
+- fichiers modifiés : `flightClose.ts`, `FlightCloseControl.tsx` (nouveaux, avec
+  tests et invariants), `DispatchListPanel.tsx`, `dispatchList.ts` (+ tests),
+  `HomePage.tsx`, `eng/authority-inventory.json`.
+- commandes et résultats : typecheck vert, 467 tests frontend verts (35
+  fichiers), couverture 94,59 % lignes / 90,37 % branches, build vert,
+  `authority:check` vert.
+- vérification manuelle : à faire par Andy — parcours complet login → compagnie
+  → catalogue → achat → dispatch → départ → clôture dans l'application réelle,
+  avec relevé du solde avant et après (voir Manual verification).
+- revue et constats traités : aucun montant n'est calculé côté client — la seule
+  opération est la présentation `settledAmountMinor / 100` par
+  `Intl.NumberFormat`, l'idiome déjà utilisé par le catalogue, et un invariant
+  de test l'épingle. Constat d'intégration corrigé dans le périmètre : la
+  liste des dispatchs rejetait tout état terminal (`invalid-response` après une
+  clôture) ; elle filtre désormais les états ouverts côté requête, la sélection
+  par ligne restant à la RLS.
 
 ### Synthèse
 
+Le golden path serveur a maintenant sa dernière frontière et son dernier
+appelant : la clôture et l'encaissement se font depuis l'application, sur la
+mesure télémétrique de F0004, jamais sur une saisie. Trois jalons, trois
+commits, une PR ; 18 tests de handler, 56 contrôles runtime, 467 tests
+frontend, six mutations négatives de gate.
+
 ### Risks and limitations
+
+- La clôture depuis l'application exige un résumé mesuré `completed` : un replay
+  interrompu ou une trace incomplète laisse le vol `active`, et la clôture
+  `interrupted` reste réservée au serveur — un déclencheur télémétrique pour ce
+  cas est une décision produit encore ouverte.
+- Le temps de bloc mesuré reste une déclaration mieux fondée, bornée par
+  `min(déclaré, écoulé serveur)` : un client trafiqué ne gagne rien, comme
+  documenté par F0004.
+- La preuve desktop est jsdom à `fetch` injecté ; le parcours WebView réel
+  appartient à la vérification manuelle d'Andy.
 
 ### Follow-ups
 
+- Fonctionnalité future : clôture `interrupted` déclenchée par la télémétrie
+  (crash, fin de session), décision produit à prendre.
+- F0004 est fusionnée mais son fichier et l'index la disent encore
+  `In progress` : sa clôture documentaire appartient à sa propre unité.
+
 ### Documentation updated
+
+`docs/SECURITY.md` (frontière de clôture et appelant option C),
+`docs/ARCHITECTURE.md` (cinquième frontière Edge), `docs/QUALITY.md` (preuve J2,
+80 tests de fonctions), `docs/CURRENT_STATE.md` et `docs/features/README.md`
+(statut), ce fichier.
