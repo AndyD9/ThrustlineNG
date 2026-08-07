@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+using Thrustline.Bridge.SimConnect;
 using Thrustline.Bridge.Telemetry;
 
 namespace Thrustline.Bridge;
@@ -24,9 +25,7 @@ public static class BridgeServer
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(output);
 
-        var telemetry = publisher ?? new TelemetryPublisher(
-            options.Telemetry,
-            TelemetryAdapterFactory.TryCreate(options.Telemetry));
+        var telemetry = publisher ?? CreatePublisher(options.Telemetry);
 
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
@@ -57,7 +56,9 @@ public static class BridgeServer
                     BridgeContract.Version,
                     "healthy",
                     Describe(telemetry.Source),
-                    Describe(telemetry.State))));
+                    Describe(telemetry.State),
+                    DescribeNativeLibrary(telemetry),
+                    Describe(telemetry.NativeLibrary.Origin))));
         app.MapGet(
             BridgeContract.FlightSummaryPath,
             () =>
@@ -82,6 +83,16 @@ public static class BridgeServer
         await app.StartAsync(shutdownToken).ConfigureAwait(false);
         await output.WriteLineAsync(
             $"BRIDGE_READY {BridgeContract.Version} {options.Port}").ConfigureAwait(false);
+        if (telemetry.Source == TelemetrySource.Native
+            && telemetry.NativeLibrary.Origin == SimConnectLibraryOrigin.None)
+        {
+            // Diagnostic actionnable, sans aucun chemin : la sonde bornée n'a
+            // trouvé la bibliothèque dans aucune source digne de confiance.
+            await output.WriteLineAsync(
+                "SIMCONNECT_LIBRARY unavailable: install the MSFS 2024 SDK "
+                + "or pass --simconnect-library with an absolute SimConnect.dll path.")
+                .ConfigureAwait(false);
+        }
 
         try
         {
@@ -112,6 +123,12 @@ public static class BridgeServer
             Encoding.ASCII.GetBytes(expected));
     }
 
+    private static TelemetryPublisher CreatePublisher(BridgeTelemetryOptions telemetry)
+    {
+        var adapterFactory = TelemetryAdapterFactory.TryCreate(telemetry, out var nativeLibrary);
+        return new TelemetryPublisher(telemetry, adapterFactory, nativeLibrary: nativeLibrary);
+    }
+
     private static string Describe(TelemetrySource source) =>
         source switch
         {
@@ -129,6 +146,25 @@ public static class BridgeServer
             _ => "idle",
         };
 
+    // L'état de localisation est publié en champs additifs, sans jamais
+    // divulguer un chemin ni une version de SDK : seulement l'issue et
+    // l'origine retenue par la sonde bornée.
+    private static string DescribeNativeLibrary(TelemetryPublisher telemetry) =>
+        telemetry.Source != TelemetrySource.Native
+            ? "not-required"
+            : telemetry.NativeLibrary.Origin == SimConnectLibraryOrigin.None
+                ? "unavailable"
+                : "located";
+
+    private static string Describe(SimConnectLibraryOrigin origin) =>
+        origin switch
+        {
+            SimConnectLibraryOrigin.Explicit => "explicit",
+            SimConnectLibraryOrigin.Application => "application",
+            SimConnectLibraryOrigin.SdkInstallation => "sdk",
+            _ => "none",
+        };
+
     private static string Describe(FlightSummaryState state) =>
         state switch
         {
@@ -142,7 +178,9 @@ public static class BridgeServer
         string ContractVersion,
         string Status,
         string TelemetrySource,
-        string TelemetryState);
+        string TelemetryState,
+        string NativeLibrary,
+        string NativeLibraryOrigin);
 
     private sealed record FlightSummaryResponse(
         string ContractVersion,

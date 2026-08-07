@@ -48,9 +48,11 @@ KI-027/F0007).
 
 ## Unités en cours
 
-- **F0003** (`Ready`) — découverte de la bibliothèque SimConnect ou dégradation
-  propre ; son J3 attend une décision d'Andy (fourniture de la DLL) et la
-  lecture de l'EULA du SDK.
+- **F0003** (`In progress`) — découverte de la bibliothèque SimConnect ou
+  dégradation propre. J1 `Done` le 7 août 2026 : sonde bornée, chargement par
+  chemin absolu, état `unavailable` explicite, champs de santé additifs. J2 à
+  moitié bloqué (affichage desktop hors `Allowed areas` — décision d'Andy) ;
+  J3 attend sa décision (fourniture de la DLL) et la lecture de l'EULA du SDK.
 
 ## Ce qui manque pour l'alpha cliquable
 

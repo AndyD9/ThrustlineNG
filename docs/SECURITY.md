@@ -481,8 +481,11 @@ développement et ne prouve pas la parité cloud.
 
 Le SDK reste une entrée native non fiable. `NativeSimConnectAdapter` :
 
-- charge uniquement le nom constant `SimConnect.dll` via les répertoires Windows
-  sûrs et ne permet aucun chemin fourni par l'utilisateur ;
+- charge uniquement la bibliothèque localisée par la sonde bornée de F0003 J1
+  (voir « Localisation de la bibliothèque SimConnect F0003 J1 ») par chemin
+  absolu, sans aucune recherche implicite — la règle initiale T0011
+  (« répertoires Windows sûrs ») est remplacée par cette liste fermée, qui
+  couvre aussi le chemin explicite d'opérateur validé ;
 - utilise seulement des variables de simulation en lecture ;
 - confine tous les appels et callbacks dans une boucle dédiée ;
 - ferme la connexion dans un `finally` et borne le buffer asynchrone ;
@@ -491,6 +494,33 @@ Le SDK reste une entrée native non fiable. `NativeSimConnectAdapter` :
 Les traces JSONL exigent UTF-8, format et schéma exacts, propriétés connues,
 offsets strictement croissants, valeurs finies/bornées et lignes de 16 Kio au
 maximum. Les erreurs indiquent seulement le numéro de ligne.
+
+## Localisation de la bibliothèque SimConnect F0003 J1
+
+Charger une bibliothèque native, c'est exécuter du code : la localisation est
+un vecteur de détournement de DLL et suit une règle fermée.
+
+- La bibliothèque cliente n'est cherchée que dans une **liste ordonnée et
+  fermée** : le chemin explicite `--simconnect-library` de la ligne de
+  commande, le répertoire de l'application, puis l'installation du SDK telle
+  que déclarée par le système (`MSFS2024_SDK` puis `MSFS_SDK`, chaque valeur
+  validée comme répertoire absolu existant, une déclaration pendante étant
+  ignorée). Jamais le `PATH`, jamais le répertoire courant, jamais un balayage
+  de disque : une copie présente ailleurs — celle d'un add-on tiers, par
+  exemple — n'est jamais chargée implicitement.
+- Le chemin explicite vient de la ligne de commande du processus, jamais d'un
+  client non fiable (la WebView n'a aucun accès au canal) ; il doit être
+  absolu, borné, nommer exactement `SimConnect.dll` et désigner un fichier
+  réel (les points de réanalyse sont refusés). Fourni mais invalide, il ne
+  retombe jamais sur une autre source.
+- Le chargement se fait par chemin absolu (`NativeLibrary.TryLoad(path)`),
+  sans drapeau de recherche. L'origine retenue est consignée en champ additif
+  du health check (`nativeLibraryOrigin` : `explicit`, `application`, `sdk`,
+  `none`) — jamais le chemin, jamais la version du SDK.
+- Sans bibliothèque localisée, le processus reste démarré et sain : la source
+  native rend `unavailable` (distinct de `idle`, visible sans abonné, jamais
+  requalifié par un réarmement) et le diagnostic actionnable ne divulgue aucun
+  chemin utilisateur.
 
 ## Canal de télémétrie local T0054
 

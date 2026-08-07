@@ -24,6 +24,13 @@ var tests = new (string Name, Func<Task> Execute)[]
     ("replay observes cancellation", TestReplayCancellation),
     ("fake adapter preserves the domain contract", TestFakeAdapter),
     ("native adapter fails safely when unavailable", TestNativeAdapterProbe),
+    ("the library locator honours its closed source order", TestLibraryLocatorOrder),
+    ("an invalid explicit library path never falls back", TestLibraryLocatorExplicitNoFallback),
+    ("a dangling sdk declaration is skipped for the next one", TestLibraryLocatorDanglingSdk),
+    ("a library outside the closed list is never located", TestLibraryLocatorClosedList),
+    ("the simconnect-library argument requires the native source", TestSimConnectLibraryArgument),
+    ("a native source without a located library reports unavailable", TestNativeSourceUnavailable),
+    ("the health check exposes the native library additively", TestNativeLibraryHealthFields),
     ("telemetry stays idle without a configured source", TestTelemetryWithoutSource),
     ("telemetry keeps the source closed without a subscriber", TestTelemetryWithoutSubscriber),
     ("telemetry publishes validated samples in order", TestTelemetryOrdering),
@@ -356,7 +363,7 @@ static async Task TestFakeAdapter()
 
 static async Task TestNativeAdapterProbe()
 {
-    await using var adapter = new NativeSimConnectAdapter();
+    await using var adapter = new NativeSimConnectAdapter(SimConnectLibraryLocator.Locate(null));
     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
     try
@@ -382,6 +389,260 @@ static async Task TestNativeAdapterProbe()
                 || exception.Message.Contains("MSFS", StringComparison.OrdinalIgnoreCase)
                 || exception.Message.Contains("Windows", StringComparison.OrdinalIgnoreCase),
             "native error is actionable");
+    }
+}
+
+static Task TestLibraryLocatorOrder()
+{
+    using var explicitSource = new TempLibraryDirectory(withLibrary: true);
+    using var applicationSource = new TempLibraryDirectory(withLibrary: true);
+    using var sdkSource = new TempLibraryDirectory(withLibrary: false);
+    var sdkLibrary = Path.Combine(sdkSource.Path, "SimConnect SDK", "lib");
+    Directory.CreateDirectory(sdkLibrary);
+    File.WriteAllBytes(Path.Combine(sdkLibrary, "SimConnect.dll"), [0x4D, 0x5A]);
+    string? Environment(string name) => name == "MSFS2024_SDK" ? sdkSource.Path : null;
+
+    var explicitLocation = SimConnectLibraryLocator.Locate(
+        explicitSource.LibraryPath,
+        Environment,
+        applicationSource.Path);
+    Equal(SimConnectLibraryOrigin.Explicit, explicitLocation.Origin, "explicit wins");
+
+    var applicationLocation = SimConnectLibraryLocator.Locate(null, Environment, applicationSource.Path);
+    Equal(
+        SimConnectLibraryOrigin.Application,
+        applicationLocation.Origin,
+        "application directory beats the sdk");
+
+    using var emptyApplication = new TempLibraryDirectory(withLibrary: false);
+    var sdkLocation = SimConnectLibraryLocator.Locate(null, Environment, emptyApplication.Path);
+    Equal(SimConnectLibraryOrigin.SdkInstallation, sdkLocation.Origin, "sdk declared by the system");
+    return Task.CompletedTask;
+}
+
+static Task TestLibraryLocatorExplicitNoFallback()
+{
+    using var applicationSource = new TempLibraryDirectory(withLibrary: true);
+    var missingExplicit = Path.Combine(applicationSource.Path, "missing", "SimConnect.dll");
+
+    // Le chemin explicite est la seule source consultée : invalide, il ne
+    // retombe jamais sur le répertoire de l'application pourtant fourni.
+    var location = SimConnectLibraryLocator.Locate(
+        missingExplicit,
+        static _ => null,
+        applicationSource.Path);
+    Equal(SimConnectLibraryOrigin.None, location.Origin, "no fallback from an explicit path");
+
+    var relative = SimConnectLibraryLocator.Locate(
+        Path.Combine("relative", "SimConnect.dll"),
+        static _ => null,
+        applicationSource.Path);
+    Equal(SimConnectLibraryOrigin.None, relative.Origin, "relative explicit path refused");
+
+    var renamed = Path.Combine(applicationSource.Path, "NotSimConnect.dll");
+    File.WriteAllBytes(renamed, [0x4D, 0x5A]);
+    var renamedLocation = SimConnectLibraryLocator.Locate(renamed, static _ => null, applicationSource.Path);
+    Equal(SimConnectLibraryOrigin.None, renamedLocation.Origin, "renamed library refused");
+    return Task.CompletedTask;
+}
+
+static Task TestLibraryLocatorDanglingSdk()
+{
+    using var validSdk = new TempLibraryDirectory(withLibrary: false);
+    var sdkLibrary = Path.Combine(validSdk.Path, "SimConnect SDK", "lib");
+    Directory.CreateDirectory(sdkLibrary);
+    File.WriteAllBytes(Path.Combine(sdkLibrary, "SimConnect.dll"), [0x4D, 0x5A]);
+    using var emptyApplication = new TempLibraryDirectory(withLibrary: false);
+
+    // Le cas réel de la machine de validation : la déclaration 2024 pend vers
+    // un répertoire disparu, la déclaration suivante porte l'installation.
+    string? Environment(string name) => name switch
+    {
+        "MSFS2024_SDK" => Path.Combine(validSdk.Path, "does-not-exist"),
+        "MSFS_SDK" => validSdk.Path,
+        _ => null,
+    };
+
+    var location = SimConnectLibraryLocator.Locate(null, Environment, emptyApplication.Path);
+    Equal(SimConnectLibraryOrigin.SdkInstallation, location.Origin, "dangling declaration skipped");
+    return Task.CompletedTask;
+}
+
+static Task TestLibraryLocatorClosedList()
+{
+    using var foreignSource = new TempLibraryDirectory(withLibrary: true);
+    using var emptyApplication = new TempLibraryDirectory(withLibrary: false);
+
+    // Une copie existe sur le disque (répertoire d'un tiers, exposé par PATH
+    // et par le répertoire courant) : aucune source de la liste fermée ne la
+    // désigne, donc elle n'est jamais localisée.
+    var previousPath = Environment.GetEnvironmentVariable("PATH");
+    var previousDirectory = Directory.GetCurrentDirectory();
+    try
+    {
+        Environment.SetEnvironmentVariable("PATH", foreignSource.Path + ";" + previousPath);
+        Directory.SetCurrentDirectory(foreignSource.Path);
+        var location = SimConnectLibraryLocator.Locate(null, static _ => null, emptyApplication.Path);
+        Equal(SimConnectLibraryOrigin.None, location.Origin, "foreign copy never located");
+    }
+    finally
+    {
+        Directory.SetCurrentDirectory(previousDirectory);
+        Environment.SetEnvironmentVariable("PATH", previousPath);
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task TestSimConnectLibraryArgument()
+{
+    using var source = new TempLibraryDirectory(withLibrary: true);
+
+    True(
+        BridgeOptions.TryParse(
+            ["--port", "55000", "--telemetry-source", "native", "--simconnect-library", source.LibraryPath],
+            out _,
+            out var native),
+        "native source with an explicit library");
+    Equal(source.LibraryPath, native.SimConnectLibraryPath, "parsed library path");
+
+    True(
+        !BridgeOptions.TryParse(
+            ["--port", "55000", "--simconnect-library", source.LibraryPath],
+            out _,
+            out _),
+        "library path requires the native source");
+    True(
+        !BridgeOptions.TryParse(
+            ["--port", "55000", "--telemetry-source", "native", "--simconnect-library", "SimConnect.dll"],
+            out _,
+            out _),
+        "relative library path refused");
+    True(
+        !BridgeOptions.TryParse(
+            [
+                "--port", "55000", "--telemetry-source", "native",
+                "--simconnect-library", Path.Combine(source.Path, "Other.dll"),
+            ],
+            out _,
+            out _),
+        "arbitrary binary name refused");
+    return Task.CompletedTask;
+}
+
+static async Task TestNativeSourceUnavailable()
+{
+    using var emptyApplication = new TempLibraryDirectory(withLibrary: false);
+    var options = BridgeTelemetryOptions.Default with { Source = TelemetrySource.Native };
+    var factory = TelemetryAdapterFactory.TryCreate(
+        options,
+        out var location,
+        static _ => null,
+        emptyApplication.Path);
+    True(factory is null, "no adapter without a located library");
+    Equal(SimConnectLibraryOrigin.None, location.Origin, "unavailable location");
+
+    await using var publisher = new TelemetryPublisher(options, factory, nativeLibrary: location);
+    Equal(TelemetryState.Unavailable, publisher.State, "unavailable before any subscriber");
+
+    True(publisher.TryRearm(out var generation), "rearm still opens a session");
+    Equal(2, generation, "generation advances");
+    Equal(TelemetryState.Unavailable, publisher.State, "a rearm never requalifies the source");
+
+    using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+    await publisher.RunAsync(cancellation.Token);
+    Equal(TelemetryState.Unavailable, publisher.State, "unavailable after the publication loop");
+}
+
+static async Task TestNativeLibraryHealthFields()
+{
+    var token = new string('e', 64);
+    var nativeOptions = BridgeTelemetryOptions.Default with { Source = TelemetrySource.Native };
+
+    // Source native sans bibliothèque : unavailable/none, et le diagnostic
+    // actionnable est écrit sans divulguer le moindre chemin.
+    var port = ReservePort();
+    await using (var publisher = new TelemetryPublisher(
+        nativeOptions,
+        null,
+        nativeLibrary: SimConnectLibraryLocation.Unavailable))
+    {
+        using var shutdown = new CancellationTokenSource();
+        using var output = new StringWriter();
+        var run = BridgeServer.RunAsync(
+            new BridgeOptions(port, token, nativeOptions),
+            output,
+            shutdown.Token,
+            publisher);
+        await WaitUntilReady(output);
+        using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+        client.DefaultRequestHeaders.Add(BridgeContract.TokenHeader, token);
+
+        var health = await client.GetStringAsync(BridgeContract.HealthPath);
+        Contains("\"status\":\"healthy\"", health, "process stays healthy");
+        Contains("\"telemetryState\":\"unavailable\"", health, "telemetry unavailable");
+        Contains("\"nativeLibrary\":\"unavailable\"", health, "library unavailable");
+        Contains("\"nativeLibraryOrigin\":\"none\"", health, "no origin");
+        Contains("SIMCONNECT_LIBRARY unavailable", output.ToString(), "actionable diagnostic");
+        True(
+            !output.ToString().Contains(@":\", StringComparison.Ordinal),
+            "diagnostic never discloses a path");
+
+        shutdown.Cancel();
+        await run;
+    }
+
+    // Source native localisée : located/sdk, sans chemin dans la réponse.
+    using var sdk = new TempLibraryDirectory(withLibrary: true);
+    port = ReservePort();
+    await using (var publisher = new TelemetryPublisher(
+        nativeOptions,
+        () => new FakeSimConnectAdapter([]),
+        nativeLibrary: new SimConnectLibraryLocation(
+            SimConnectLibraryOrigin.SdkInstallation,
+            sdk.LibraryPath)))
+    {
+        using var shutdown = new CancellationTokenSource();
+        using var output = new StringWriter();
+        var run = BridgeServer.RunAsync(
+            new BridgeOptions(port, token, nativeOptions),
+            output,
+            shutdown.Token,
+            publisher);
+        await WaitUntilReady(output);
+        using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+        client.DefaultRequestHeaders.Add(BridgeContract.TokenHeader, token);
+
+        var health = await client.GetStringAsync(BridgeContract.HealthPath);
+        Contains("\"nativeLibrary\":\"located\"", health, "library located");
+        Contains("\"nativeLibraryOrigin\":\"sdk\"", health, "sdk origin");
+        True(
+            !health.Contains(@":\", StringComparison.Ordinal),
+            "health never discloses a path");
+
+        shutdown.Cancel();
+        await run;
+    }
+
+    // Source replay : la bibliothèque native n'est pas requise.
+    port = ReservePort();
+    {
+        using var shutdown = new CancellationTokenSource();
+        using var output = new StringWriter();
+        var run = BridgeServer.RunAsync(
+            new BridgeOptions(port, token, BridgeTelemetryOptions.Default),
+            output,
+            shutdown.Token);
+        await WaitUntilReady(output);
+        using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+        client.DefaultRequestHeaders.Add(BridgeContract.TokenHeader, token);
+
+        var health = await client.GetStringAsync(BridgeContract.HealthPath);
+        Contains("\"nativeLibrary\":\"not-required\"", health, "replay does not require the library");
+        Contains("\"nativeLibraryOrigin\":\"none\"", health, "replay has no origin");
+
+        shutdown.Cancel();
+        await run;
     }
 }
 
@@ -1313,6 +1574,39 @@ sealed class RecordingTelemetrySink(SemaphoreSlim? gate = null) : ITelemetrySink
     }
 
     public void Abort() => Interlocked.Exchange(ref _aborted, 1);
+}
+
+// Répertoire temporaire tenant lieu de source de bibliothèque pour la sonde :
+// il contient, ou non, un fichier factice nommé exactement SimConnect.dll.
+sealed class TempLibraryDirectory : IDisposable
+{
+    public TempLibraryDirectory(bool withLibrary)
+    {
+        Path = Directory.CreateTempSubdirectory("thrustline-simconnect-").FullName;
+        LibraryPath = System.IO.Path.Combine(Path, "SimConnect.dll");
+        if (withLibrary)
+        {
+            File.WriteAllBytes(LibraryPath, [0x4D, 0x5A]);
+        }
+    }
+
+    public string Path { get; }
+
+    public string LibraryPath { get; }
+
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(Path, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
 }
 
 sealed class ManualTimeProvider : TimeProvider
