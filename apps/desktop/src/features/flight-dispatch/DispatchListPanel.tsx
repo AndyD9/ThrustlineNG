@@ -14,6 +14,10 @@ import {
   type FlightStartCommand,
 } from "@/features/flight-dispatch/DispatchStartControl";
 import {
+  FlightCloseControl,
+  type FlightCloseCommand,
+} from "@/features/flight-dispatch/FlightCloseControl";
+import {
   FlightSummaryControl,
   type FlightSummaryCommand,
 } from "@/features/flight-dispatch/FlightSummaryControl";
@@ -23,10 +27,12 @@ export type DispatchListCommand = (
 ) => Promise<CompanyDispatch[]>;
 
 export interface DispatchListPanelProps {
+  closeCommand?: FlightCloseCommand | undefined;
   command?: DispatchListCommand | undefined;
   config: DesktopConnectionConfig;
   createIdempotencyKey?: (() => string) | undefined;
   onAuthenticationRequired: () => void;
+  onFlightClosed?: (() => void) | undefined;
   refreshVersion?: number | undefined;
   sessionManager: DesktopSessionManager;
   startCommand?: FlightStartCommand | undefined;
@@ -51,10 +57,12 @@ const createdAtFormatter = new Intl.DateTimeFormat("fr-FR", {
 });
 
 export function DispatchListPanel({
+  closeCommand,
   command = loadDispatchList,
   config,
   createIdempotencyKey,
   onAuthenticationRequired,
+  onFlightClosed,
   refreshVersion = 0,
   sessionManager,
   startCommand,
@@ -115,7 +123,8 @@ export function DispatchListPanel({
 
   // Le résumé du bridge est global et sans identité de vol : il ne peut être
   // rattaché à une ligne que lorsqu'un seul vol est actif (l'exclusivité
-  // serveur est par avion, pas par compagnie).
+  // serveur est par avion, pas par compagnie). La clôture, qui envoie ce
+  // résumé comme rapport, suit la même garde.
   const activeCount =
     state.kind === "loaded"
       ? state.dispatches.filter((dispatch) => dispatch.state === "active").length
@@ -169,10 +178,26 @@ export function DispatchListPanel({
                 )}
               </span>
               {dispatch.state === "active" && activeCount === 1 && (
-                <FlightSummaryControl
-                  command={summaryCommand}
-                  flightLabel={`${dispatch.departureIcao} → ${dispatch.arrivalIcao}`}
-                />
+                <>
+                  <FlightSummaryControl
+                    command={summaryCommand}
+                    flightLabel={`${dispatch.departureIcao} → ${dispatch.arrivalIcao}`}
+                  />
+                  <FlightCloseControl
+                    command={closeCommand}
+                    config={config}
+                    createIdempotencyKey={createIdempotencyKey}
+                    dispatchId={dispatch.id}
+                    flightLabel={`${dispatch.departureIcao} → ${dispatch.arrivalIcao}`}
+                    onAuthenticationRequired={onAuthenticationRequired}
+                    onFlightClosed={() => {
+                      onFlightClosed?.();
+                      void load();
+                    }}
+                    sessionManager={sessionManager}
+                    summaryCommand={summaryCommand}
+                  />
+                </>
               )}
               {dispatch.state === "draft" && (
                 <DispatchStartControl

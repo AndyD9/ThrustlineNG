@@ -56,9 +56,10 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
   finale d'Andy et la fusion.
 - **F0005** (`Ready`) — CSP `internal-alpha` limitée au loopback pour rendre
   l'application installée cliquable et clore T0055 (décision du 6 août 2026).
-- **F0002** (`Blocked`) — clôture et encaissement depuis l'application ;
-  débloquée par F0004 (décision d'Andy du 6 août 2026, option C : le temps de
-  vol vient de la télémétrie).
+- **F0002** (`In progress`) — clôture et encaissement depuis l'application ;
+  débloquée le 7 août 2026 par la fusion de F0004 (PR #128) : le temps de
+  bloc du rapport vient du résumé mesuré `flight_summary`, conformément à
+  l'option C du 6 août 2026.
 - **F0003** (`Ready`) — découverte de la bibliothèque SimConnect ou dégradation
   propre ; son J3 attend une décision d'Andy (fourniture de la DLL) et la
   lecture de l'EULA du SDK.
@@ -67,7 +68,8 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
 
 1. F0004 — le temps de bloc mesuré du replay (J1–J3 implémentés et parcours
    manuel exécuté, PR #128 ; restent la revue finale d'Andy et la fusion).
-2. F0002 — la clôture depuis l'application, débloquée par F0004.
+2. F0002 — la clôture depuis l'application, débloquée par la fusion de F0004
+   et en cours depuis le 7 août 2026.
 3. F0005 — le parcours dans l'application **installée**, qui clôt T0055. La
    CSP de production étant `connect-src 'none'`, Andy a décidé le 6 août 2026
    un canal `internal-alpha` dont la CSP autorise uniquement

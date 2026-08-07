@@ -33,7 +33,7 @@ gelée du format précédent.
 | ID | Titre | Phase | Dépend de | Statut |
 | --- | --- | --- | --- | --- |
 | F0001 | Faire décoller un vol préparé depuis l'application | 2–4 | T0050, T0048, T0052–T0053, T0065 fusionné | Done |
-| F0002 | Clôturer son vol et encaisser son revenu depuis l'application | 2–4 | T0051, T0057, F0001 fusionnée, liaison télémétrie → cycle de vol | Blocked |
+| F0002 | Clôturer son vol et encaisser son revenu depuis l'application | 2–4 | T0051, T0057, F0001 fusionnée, F0004 fusionnée | In progress |
 | F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | Ready |
 | F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | In progress |
 | F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | Ready |
@@ -48,11 +48,12 @@ lieu des quatre à six tickets que le format précédent aurait produits.
 F0001 est `Done` et **livrée dans `main`** (PR #124 et #126, fusionnées le
 6 août 2026) : trois jalons revus adversarialement — frontière Edge, preuve sur
 l'Edge Runtime local réel, composition desktop — et le premier parcours WebView
-live du projet, vérifié par Andy. F0002 est `Blocked` depuis la décision d'Andy
-du 6 août 2026 (option C) : le temps de vol d'un rapport de clôture viendra de
-la télémétrie, jamais d'une saisie ni d'une migration. Sa condition de sortie
-est **F0004**, qui mesure le temps de bloc du replay sur le bridge et
-l'achemine jusqu'à l'application sans exposer le contrat local à la WebView.
+live du projet, vérifié par Andy. F0002 est `In progress` depuis le
+7 août 2026 : la décision d'Andy du 6 août 2026 (option C) voulait que le temps
+de vol d'un rapport de clôture vienne de la télémétrie, jamais d'une saisie ni
+d'une migration, et sa condition de sortie — **F0004**, qui mesure le temps de
+bloc du replay sur le bridge et l'achemine jusqu'à l'application sans exposer
+le contrat local à la WebView — est fusionnée dans `main` (PR #128).
 F0004 est `In progress` depuis la décision d'Andy du 6 août 2026 — mesure
 « mouvement → sol », arrondie à la minute supérieure, minimum une minute ;
 c'est le chemin critique du jalon « alpha cliquable ». Ses trois jalons sont
