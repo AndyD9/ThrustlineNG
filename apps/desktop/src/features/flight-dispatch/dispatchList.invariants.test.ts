@@ -41,7 +41,8 @@ describe("invariants de la lecture des dispatchs", () => {
       transport.matchAll(/searchParams\.set\(\s*"([a-z_]+)"/g),
       (match) => match[1],
     );
-    expect(parameters).toEqual(["select", "order", "limit"]);
+    expect(parameters).toEqual(["select", "order", "limit", "state"]);
+    expect(transport).toContain('"in.(active,draft)"');
     expect(sources).not.toMatch(/\b(?:owner_id|ownerId|company_id|companyId)\b/);
   });
 });

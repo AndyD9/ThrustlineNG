@@ -8,6 +8,9 @@ const HEADER_LIMIT_BYTES = 8_192;
 const DISPATCH_SELECT =
   "id,aircraft_id,departure_icao,arrival_icao,state,created_at,started_at,schema_version";
 const DISPATCH_ORDER = "created_at.desc,id.desc";
+// Value-space visibility filter only: a closed flight is history and leaves the
+// panel. Row-level selection stays owned by RLS flight_dispatches_select_own.
+const DISPATCH_OPEN_STATES = "in.(active,draft)";
 const DISPATCH_KEYS =
   "aircraft_id,arrival_icao,created_at,departure_icao,id,schema_version,started_at,state";
 
@@ -84,6 +87,7 @@ function createEndpoint(rawBaseUrl: string): URL {
   endpoint.searchParams.set("select", DISPATCH_SELECT);
   endpoint.searchParams.set("order", DISPATCH_ORDER);
   endpoint.searchParams.set("limit", String(DISPATCH_LIMIT));
+  endpoint.searchParams.set("state", DISPATCH_OPEN_STATES);
   return endpoint;
 }
 

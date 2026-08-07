@@ -71,8 +71,9 @@ describe("loadDispatchList", () => {
       limit: "50",
       order: "created_at.desc,id.desc",
       select: "id,aircraft_id,departure_icao,arrival_icao,state,created_at,started_at,schema_version",
+      state: "in.(active,draft)",
     });
-    for (const forbidden of ["company_id", "owner_id", "aircraft_id", "id", "state"]) {
+    for (const forbidden of ["company_id", "owner_id", "aircraft_id", "id"]) {
       expect(endpoint.searchParams.has(forbidden)).toBe(false);
     }
     expect(init).toMatchObject({

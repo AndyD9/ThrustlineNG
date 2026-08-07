@@ -212,6 +212,8 @@
       "evidencePaths": [
         "eng/flight-settlement-policy.json",
         "supabase/functions/flight-close/handler.ts",
+        "apps/desktop/src/features/flight-dispatch/flightClose.ts",
+        "apps/desktop/src/features/flight-dispatch/FlightCloseControl.tsx",
         "supabase/migrations/20260804000100_authoritative_flight_settlement.sql",
         "supabase/tests/database/flight_settlement.test.sql"
       ],
@@ -219,6 +221,7 @@
         "close_flight",
         "createFlightCloseHandler",
         "flight_close_rejected",
+        "functions/v1/flight-close",
         "flight_reports",
         "flight_close_commands",
         "alpha-flight-settlement",
