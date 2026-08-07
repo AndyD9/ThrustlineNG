@@ -33,9 +33,9 @@ Toutes les preuves sont locales ou CI, sur données synthétiques uniquement
 | Backend | Brouillon de dispatch autoritaire + frontière Auth, référentiel de 103 aérodromes | T0047–T0049, T0057 |
 | Backend | Départ de vol complet : commande serveur, frontière Edge authentifiée prouvée sur l'Edge Runtime réel, rejeu restitué octet pour octet | T0050, T0065, F0001 |
 | Backend | Clôture de vol complète : règlement au grand livre, réputation informative, frontière Edge authentifiée prouvée sur l'Edge Runtime réel | T0051, F0002 |
-| Desktop | Login, onboarding, catalogue/achat, flotte, création et liste de dispatchs, démarrage de vol avec heure serveur, clôture sur mesure télémétrique avec revenu affiché depuis le serveur | T0037–T0046, T0052, T0053, F0001, F0002 |
-| Bridge | Contrat local loopback à jeton, adaptateur SimConnect replay, télémétrie bornée, résumé de vol mesuré et affiché dans l'application | T0010, T0011, T0054, F0004 |
-| Distribution | Version produit `0.1.0-alpha.1` (source `eng/product-version.json`), NSIS x64 non signé | T0014, T0055 |
+| Desktop | Login, onboarding, catalogue/achat, flotte, création et liste de dispatchs, démarrage de vol avec heure serveur, clôture sur mesure télémétrique rattachée au vol clôturé, revenu affiché depuis le serveur | T0037–T0046, T0052, T0053, F0001, F0002, F0006 |
+| Bridge | Contrat local loopback à jeton, adaptateur SimConnect replay, télémétrie bornée, résumé de vol mesuré par générations réarmables et rattaché à son dispatch côté Tauri | T0010, T0011, T0054, F0004, F0006 |
+| Distribution | Version produit `0.1.0-alpha.1` (source `eng/product-version.json`), NSIS x64 non signé, CSP par canal produit (`internal-alpha` limité au loopback, public `connect-src 'none'`) prouvée sur l'exécutable produit | T0014, T0055, F0005 J1 |
 | Socle | Toolchain épinglée, CI multi-stack, supply chain, gates autorité/données/maintenance | T0001–T0030 |
 
 Limite transverse : les compositions desktop sont prouvées en jsdom avec `fetch`
@@ -45,28 +45,31 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
 
 ## Unités en cours
 
-- **F0006** (`In progress`) — rattacher la mesure de vol à son dispatch et la
-  réarmer entre deux vols : les prérequis de F0002 consignés par KI-028,
-  ouverts sur la décision de séquencement d'Andy du 7 août 2026 (« go 1 » :
-  câblage d'abord). Chemin critique du jalon.
+- **F0006** (`Verify`) — rattacher la mesure de vol à son dispatch et la
+  réarmer entre deux vols : **livrée dans `main`** (PR #132, fusionnée le
+  7 août 2026), y compris le branchement de la clôture F0002. Ne reste que le
+  parcours manuel deux-vols-d'affilée, qui appartient à Andy.
 - **F0005** (`In progress`) — CSP `internal-alpha` limitée au loopback pour
   rendre l'application installée cliquable et clore T0055 (décision du 6 août
-  2026). J1 implémenté hors de `main` : la CSP suit le canal produit par
-  allowlist, le canal public reste `connect-src 'none'` sous sept mutations
-  négatives. Restent J2 — package installé et parcours humain, qui appartient
-  à Andy — la revue et la fusion.
+  2026). **J1 livré dans `main`** (PR #133 et #134, fusionnées le 7 août
+  2026) : la CSP suit le canal produit par allowlist, le canal public reste
+  `connect-src 'none'`, et le build refuse un exécutable dont la CSP embarquée
+  n'est pas celle de son canal. Reste J2 — package installé et parcours
+  humain, qui appartient à Andy.
 - **F0003** (`Ready`) — découverte de la bibliothèque SimConnect ou dégradation
   propre ; son J3 attend une décision d'Andy (fourniture de la DLL) et la
   lecture de l'EULA du SDK.
 
 ## Ce qui manque pour l'alpha cliquable
 
-1. F0006 — le rattachement mesure ↔ vol, le réarmement entre deux vols et le
-   branchement de la clôture F0002 (fusionnée avant F0006 par la PR #131) sur
-   la mesure rattachée (KI-028, « go 1 » du 7 août 2026).
-2. F0005 — le parcours dans l'application **installée**, qui clôt T0055. La
-   CSP par canal est faite (J1, hors de `main`) ; reste J2 : produire le
-   package `internal-alpha`, l'installer et y dérouler le golden path.
+1. F0005 J2 — le parcours dans l'application **installée**, qui clôt T0055. La
+   CSP par canal est livrée dans `main` (J1) ; reste à produire le package
+   `internal-alpha`, l'installer et y dérouler le golden path.
+2. Deux vérifications manuelles d'Andy sur du code déjà fusionné : le parcours
+   deux-vols-d'affilée de F0006, et le parcours installé de F0005 J2 ci-dessus.
+
+Le câblage du golden path est complet dans `main` depuis la fusion de F0006 :
+départ, mesure rattachée et réarmable, clôture et règlement au grand livre.
 
 ## Hors du jalon, suivi ailleurs
 

@@ -37,7 +37,7 @@ gelée du format précédent.
 | F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | Ready |
 | F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Done |
 | F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | In progress |
-| F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | In progress |
+| F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | Verify |
 
 Les deux premières fonctionnalités ouvrent le format sur ce qui restait du golden
 path : `start_flight_from_dispatch` et `close_flight` sont livrées dans `main` depuis
@@ -64,16 +64,31 @@ action explicite et sans calcul côté WebView (J3) ; parcours manuel exécuté 
 constats de revue corrigés avant fusion. Sa revue a laissé deux dettes : KI-027
 (l'application intégrée ne produit pas de mesure seule) et KI-028, dont les
 prérequis de F0002 — rattachement résumé ↔ vol et tracker réarmable — sont
-portés par **F0006**, `In progress` depuis la décision de séquencement d'Andy
-du 7 août 2026 (« go 1 ») ; F0002 ayant finalement été fusionnée la première,
-le branchement de sa clôture sur la mesure rattachée est porté par F0006.
+portés par **F0006**, ouverte sur la décision de séquencement d'Andy du 7 août
+2026 (« go 1 ») ; F0002 ayant finalement été fusionnée la première, le
+branchement de sa clôture sur la mesure rattachée est porté par F0006.
+
+F0006 est `Verify` et **livrée dans `main`** (PR #132, fusionnée le 7 août
+2026) : ses trois jalons sont `Done` — le bridge mesure par générations
+réarmables, Tauri rattache la génération armée au dispatch sans exposer ni
+jeton ni génération, l'application arme au départ et échoue fermé sur toute
+mesure non rattachée — plus le branchement de la clôture F0002 absorbé après la
+fusion de la PR #131. Elle est `Verify` et non `Done` parce que son propre
+compte rendu laisse une chose ouverte : le parcours manuel deux-vols-d'affilée,
+qui appartient à Andy. KI-028 est résolue par cette fusion, mais reste
+`Scheduled` dans `docs/KNOWN_ISSUES.md` : le gate de maintenance n'accepte
+qu'un `TXXXX` comme référence d'une entrée `Resolved` et ne connaît pas encore
+les `FXXXX` du format T0068 — l'évolution de ce gate appartient à Andy.
+
 F0005 est `In progress` sur la
 seconde décision du même jour : le canal `internal-alpha` reçoit une CSP
 limitée à `http://127.0.0.1:54321` pendant que le canal public garde
 `connect-src 'none'`, ce qui rendra l'application installée réellement
-cliquable et clôturera T0055. Son J1 est `Done` — la surcouche de canal, le
-garde d'allowlist dans le script de packaging, la CSP inscrite au manifeste et
-sept mutations négatives — et son J2, le package installé parcouru à la main,
+cliquable et clôturera T0055. Son J1 est `Done` et **livré dans `main`**
+(PR #133 et #134, fusionnées le 7 août 2026) — surcouche de canal, garde
+d'allowlist dans le script de packaging, CSP inscrite au manifeste, huit
+mutations négatives, et un contrôle qui relit la CSP réellement embarquée dans
+l'exécutable produit. Son J2, le package installé parcouru à la main,
 appartient à Andy.
 
 F0003 sort d'une question d'Andy du 5 août 2026 — « il faut qu'on le trouve nous-même,
