@@ -34,7 +34,7 @@ gelée du format précédent.
 | --- | --- | --- | --- | --- |
 | F0001 | Faire décoller un vol préparé depuis l'application | 2–4 | T0050, T0048, T0052–T0053, T0065 fusionné | Done |
 | F0002 | Clôturer son vol et encaisser son revenu depuis l'application | 2–4 | T0051, T0057, F0001 fusionnée, F0004 fusionnée | Done |
-| F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | In progress |
+| F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004, EULA du SDK lue le 7 août 2026 | Done |
 | F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Done |
 | F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | Done |
 | F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | Done |
@@ -139,11 +139,21 @@ sur son périmètre restant : la moitié bridge est livrée (champs de santé
 additifs), et sa moitié desktop est **portée dans F0007** sur décision d'Andy du
 7 août 2026 — l'affichage « télémétrie indisponible » exige
 `apps/desktop/src-tauri/` et le gate du shell, que F0007 possède déjà et dont sa
-décision 2 pose la même question. Son J3, qui fournit la bibliothèque à une
-machine sans SDK, dépend d'une décision d'Andy et de la lecture de l'EULA du SDK,
-et reste la seule chose qui garde l'unité ouverte. C'est exactement ce que le
-format T0068 permet : une fonctionnalité exécutable dont un jalon tardif reste
-bloqué, au lieu d'un ticket entier bloqué par sa dernière étape.
+décision 2 pose la même question. Son J3 est `Done` le même jour, et il
+s'est terminé autrement que prévu : l'EULA du SDK, fournie par Andy et lue,
+**n'accorde aucun droit de redistribution** — §2(e) interdit de distribuer le
+Software, et son exception « distributable code, subject to the terms above »
+renvoie à un grant que les huit alinéas du §1 ne contiennent pas. Ni
+`SimConnect.dll` ni le redistribuable `SimConnect.msi` ne peuvent donc être livrés.
+Andy a retenu l'**option C** : ne rien fournir, et le dire. La conséquence produit
+est consignée en `KI-033` (`High`) — la télémétrie live n'est atteignable que par
+qui installe volontairement le SDK MSFS ou désigne une copie qu'il possède via
+`--simconnect-library` ; seule l'autorisation écrite prévue au §2 de l'EULA la
+lèverait, et cette démarche appartient à Andy.
+
+C'est exactement ce que le format T0068 permet : une unité qui livre sa capacité
+technique en entier — la bibliothèque est trouvée, son absence est dite proprement —
+tout en constatant à son dernier jalon que la vraie limite n'était pas technique.
 
 Les deux autres décisions d'Andy du 7 août 2026, prises en marge de F0003 J1 :
 l'extension de la matrice de validation d'`ADR-0003` au cas « bibliothèque

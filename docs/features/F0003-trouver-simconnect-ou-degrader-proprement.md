@@ -1,13 +1,14 @@
 # F0003 — Trouver SimConnect nous-mêmes, ou le dire proprement
 
-Status: In progress
+Status: Done
 Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0003-trouver-simconnect-ou-degrader-proprement`
-Avancement: J1 `Done` le 7 août 2026 ; J2 `Done` le 7 août 2026 sur son
-périmètre restant — sa moitié bridge (champs de santé additifs) est livrée avec
-J1, sa moitié desktop est **portée dans F0007** sur décision d'Andy du 7 août
-2026 (voir la note du jalon J2) ; J3 `Draft`, inchangé, en attente de la
-décision de fourniture de la DLL et de la lecture de l'EULA.
+Avancement: les trois jalons sont `Done` le 7 août 2026. J1 : sonde bornée,
+chargement par chemin absolu, état `unavailable` explicite, champs de santé
+additifs. J2 : moitié bridge livrée avec J1, moitié desktop **portée dans F0007**
+sur décision d'Andy. J3 : EULA du SDK lu et cité le même jour — la redistribution
+n'est pas permise, donc **option C**, Thrustline ne fournit pas la bibliothèque et
+le dit. Aucun binaire, aucun changement de layout ni d'installateur.
 Phase: 3
 Risk: Medium
 Security-sensitive: Yes
@@ -59,11 +60,10 @@ exige déjà le scénario 14 — « variable absente, invalide ou corrompue » �
 disponibles autant que possible. Une bibliothèque introuvable est le même cas, un
 cran plus tôt.
 
-## Décision attendue d'Andy — J3 seulement
+## Décision d'Andy — J3, prise le 7 août 2026
 
-J1 et J2 sont exécutables sans elle. **J3 ne l'est pas.**
-
-**Comment une machine sans SDK obtient-elle la bibliothèque cliente ?**
+**Comment une machine sans SDK obtient-elle la bibliothèque cliente ?** Les trois
+options étudiées, puis les termes de l'EULA qui les tranchent.
 
 - **A — Thrustline la livre avec l'application.** C'est ce que fait à peu près tout
   add-on, BeyondATC compris. Le chargeur actuel la trouverait sans aucune découverte,
@@ -82,15 +82,74 @@ J1 et J2 sont exécutables sans elle. **J3 ne l'est pas.**
   télémétrie live n'existe que pour qui a installé le SDK. Coût : la capacité centrale
   du produit ne marche pour presque aucun utilisateur.
 
-**Ce que je ne peux pas trancher, et toi non plus sans le lire** : l'EULA du SDK se
-trouve dans `C:\MSFS2024SDK\Licenses\MSFS SDK EULA.pdf` (164 Ko, 8 janvier 2025).
-Aucun extracteur PDF n'est disponible sur cette machine — ni poppler, ni Word, ni
-Python — donc ses termes de redistribution ne sont **pas** consignés ici, et ne
-doivent pas être devinés. C'est la première pièce à lire : elle détermine si A ou B
-est même permis. Tant qu'elle n'est pas lue et citée, J3 reste `Draft`.
+### EULA lu et cité — 7 août 2026 : A et B ne sont pas permises, C est retenue
 
-Condition de sortie de J3 : les termes de redistribution cités depuis l'EULA, puis
-l'option retenue, reportées datées dans cette section.
+L'EULA du SDK (`C:\MSFS2024SDK\Licenses\MSFS SDK EULA.pdf`, 164 Ko, 8 janvier
+2025) a été fourni par Andy en texte le 7 août 2026 et lu. Les termes qui
+tranchent, cités :
+
+- **« Software » désigne le SDK entier, composants compris.** §1(g) parle de
+  « the Software, **including any of its components** » — `SimConnect.dll` comme
+  `SimConnect.msi` sont donc du Software.
+- **§2(e) interdit la distribution** : « share, publish, distribute, or lend the
+  Software (**except for any distributable code, subject to the terms above**), or
+  provide the Software as a stand-alone hosted solution for others to use, or
+  transfer the Software or this agreement to any third party ».
+- **Le carve-out est vide, et c'est le point décisif.** « except for any
+  distributable code, subject to the terms above » renvoie au §1 ; or les huit
+  alinéas du §1 — (a) General, (b) Sample Content, (c) Your MSFS Add-Ons,
+  (d) Changes, (e) Trademark Usage, (f) Open Source Software, (g) Competition,
+  (h) Disqualification — **ne désignent rien comme « distributable code »** et
+  n'accordent aucun droit de redistribution. Dans le gabarit Microsoft habituel une
+  section « DISTRIBUTABLE CODE » figure au §1 ; elle est absente ici. L'exception
+  n'a donc rien à quoi se rattacher.
+- **Trois éléments confirment la lecture** : §1(a) n'accorde que « install and use
+  the Software solely for the Purpose » — un droit d'usage, pas de distribution ;
+  §1(b) interdit explicitement la distribution externe du sample content, donc la
+  licence sait accorder ou refuser une distribution quand elle le veut ; et §2
+  ouvre par « The Software is licensed, not sold. Microsoft reserves all other
+  rights. »
+
+**Vérification disque du même jour** : `C:\MSFS2024SDK\Licenses\MSFS SDK EULA.pdf`
+est la seule licence couvrant le SDK. Les autres fichiers de licence présents
+(`Tools\`, `WASM\` : Newtonsoft.Json, BabylonJS, NanoVG, rapidjson, LibGdiPlus,
+OFL) couvrent des composants tiers sans rapport. Et
+`SimConnect SDK\installer\SimConnect.msi` (1,94 Mo) comme `lib\SimConnect.dll`
+(79 Ko) n'ont **aucune licence distincte, aucune notice de redistribution, aucun
+dossier `redist`** à côté d'eux — donc le §7 (« any other terms Microsoft may
+provide for supplements ») ne fournit rien ici, dans le SDK 1.5.7 tel qu'installé.
+
+**Verdicts.** **A — non permise** : livrer `SimConnect.dll` c'est distribuer un
+composant du Software (§2(e)). **B — non permise, même clause** : le `.msi` est un
+composant du Software, l'embarquer dans un installateur c'est « share, publish,
+distribute » ; qu'un fichier porte un nom de redistribuable ne crée aucun droit, et
+le texte n'en accorde aucun. **C — retenue**, seule option que ce texte autorise.
+
+**Réserve posée honnêtement** : ce n'est pas un avis juridique, et la lecture
+repose sur une **absence** (aucun grant de distributable code). Solide, mais si le
+produit en dépend, cela mérite un conseil.
+
+**Ce que la licence ne ferme pas**, et qui reste ouvert pour le produit :
+
+- **§2 ouvre lui-même la porte** : « Unless applicable law gives you more rights
+  despite this limitation **or unless otherwise approved in writing by
+  Microsoft** ». Demander cette autorisation écrite est la voie sanctionnée par la
+  licence, et c'est ce qui rouvrirait A ou B. Décision d'Andy, consignée en
+  `Follow-ups`.
+- **L'utilisateur peut désigner sa copie** : `--simconnect-library`, livré en J1,
+  accepte un chemin explicite. Sur une machine où un add-on tiers a déposé
+  `SimConnect.dll` — le cas BeyondATC relevé le 5 août 2026 — la personne peut
+  pointer ce qu'elle possède déjà. Nous ne distribuons rien. C'est un chemin
+  volontaire et borné, pas un élargissement de la sonde : la liste fermée de J1 ne
+  bouge pas, et une copie hors liste n'est jamais chargée implicitement.
+
+**Deux contraintes de la licence à retenir hors de J3.** §1(g) interdit d'utiliser
+le Software pour « the development of a competing flight simulator product or for
+the purpose of competitive benchmarking, competitive analysis, **AI or machine
+learning**, or intelligence gathering » — Thrustline est un add-on de carrière,
+donc le Purpose colle, mais toute idée future d'entraîner un modèle sur des données
+dérivées du SDK est exclue. Et §1(c) interdit de représenter ou laisser entendre
+que Microsoft soutient Thrustline.
 
 ## Dependencies
 
@@ -209,23 +268,35 @@ Autonomous: Yes
 - revue : vérifier qu'aucun état dégradé ne se présente comme une réussite, et qu'un
   kill switch n'est pas introduit là où `SUPPORT.md` l'interdit.
 
-### J3 — Une machine sans SDK obtient sa bibliothèque cliente
+### J3 — Une machine sans SDK n'obtient rien de nous, et l'apprend clairement
 
-Status: Draft
+Status: Done
 Risk: High
 Security-sensitive: Yes
 Autonomous: No
 
-- résultat : dépend entièrement de la décision d'Andy ci-dessus, et **ne doit pas
-  être commencé avant qu'elle soit reportée datée**, EULA citée. Quelle que soit
-  l'option, l'invariant tient : aucun binaire n'entre dans le dépôt, l'origine de la
-  bibliothèque chargée est consignée, et une bibliothèque d'origine inconnue n'est
-  jamais chargée.
-- frontière : layout de publication ou installateur.
-- validations : à définir avec l'option ; au minimum les gates de packaging et le
-  budget de fondation de 128 Mio.
-- revue : provenance de la bibliothèque livrée, licence citée, et absence de
-  dégradation du budget comme de la surface d'attaque.
+**Tranché le 7 août 2026 par la lecture de l'EULA : option C.** Ce jalon ne livre
+donc **aucun binaire, aucun layout de publication modifié, aucune étape
+d'installateur** — l'EULA ne permet ni A ni B (voir la section de décision). Ce
+qu'il livre est un énoncé honnête, et la fermeture du gate qui bloquait l'unité.
+
+- résultat : Thrustline ne fournit pas la bibliothèque cliente. La télémétrie live
+  n'existe que sur une machine qui en possède déjà une — SDK MSFS installé par la
+  personne, ou chemin explicite `--simconnect-library` vers une copie qu'elle
+  possède. `docs/SUPPORT.md` le dit, et sa règle « l'utilisateur ne doit installer
+  ni SDK .NET, ni outils de développement, ni SDK MSFS » est corrigée pour ne plus
+  se contredire. L'invariant de J1 tient sans changement : aucun binaire n'entre
+  dans le dépôt, l'origine de la bibliothèque chargée est consignée, une
+  bibliothèque d'origine inconnue n'est jamais chargée.
+- frontière : documentation seulement. **Ni `apps/`, ni le layout de publication,
+  ni l'installateur ne sont touchés** — donc aucun budget ni gate de packaging n'est
+  concerné.
+- validations : `pnpm maintenance:check`. Les gates de packaging et le budget de
+  128 Mio sont sans objet, rien n'étant ajouté au layout.
+- revue : vérifier que la licence est **citée** et non résumée de mémoire ; qu'aucun
+  binaire n'a été ajouté au dépôt ni au layout ; que la sonde de J1 n'est pas
+  élargie en compensation ; et que la limitation produit est énoncée sans être
+  minimisée.
 
 ## Acceptance criteria
 
@@ -261,7 +332,16 @@ Autonomous: No
       de promotion d'un canal vers `Supported`, y toucher ici contredirait le
       `Do not touch` de cette unité. Suivi en `Follow-ups`.
 - [x] J3 n'est pas commencé sans la décision d'Andy et les termes de l'EULA cités.
-      — Respecté : J3 est intact, aucun binaire n'entre dans le dépôt.
+      — Respecté : l'EULA a été lu le 7 août 2026, ses clauses §1(a), §1(b), §1(g),
+      §2 et §2(e) sont citées dans la section de décision, et **aucun binaire
+      n'entre dans le dépôt ni dans le layout** — l'option retenue est précisément
+      celle qui n'en livre aucun.
+- [x] Une machine sans bibliothèque cliente sait quoi faire, et Thrustline ne lui
+      fournit rien qu'il n'a pas le droit de fournir. — J3, 7 août 2026 : option C,
+      `docs/SUPPORT.md` énonce la limitation et les deux chemins possibles (SDK
+      installé par la personne, ou `--simconnect-library` vers une copie qu'elle
+      possède), et sa règle « ni SDK MSFS » est corrigée pour ne plus se
+      contredire. La limitation produit est consignée en `KI-033`.
 
 **Critère porté hors de cette unité, décision d'Andy du 7 août 2026 :** « les
 capacités déjà livrées restent utilisables sans télémétrie » quitte cette liste
@@ -349,8 +429,10 @@ pnpm maintenance:check
 
 Avant fusion, abandonner la branche. Après fusion de J1 et J2, revenir au chargement
 actuel rétablirait un échec sans explication : le rollback utile est de corriger la
-sonde, pas de la retirer. J3 est rétractable indépendamment, en retirant la
-bibliothèque du layout de publication ou l'étape d'installation.
+sonde, pas de la retirer. **J3 n'a rien à rétracter** : sous l'option C il n'ajoute
+ni binaire, ni étape d'installation, ni entrée de layout — seulement de la
+documentation. Si Microsoft accordait un jour l'autorisation écrite prévue au §2,
+c'est une reprise de J3, pas un rollback.
 
 ## Completion Report
 
@@ -438,17 +520,98 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J3
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : **option C, forcée par la licence et non choisie par
+  préférence.** L'EULA du SDK a été lu le 7 août 2026 (Andy en a fourni le texte,
+  aucun extracteur PDF n'existant sur ce poste) et ses clauses sont citées dans la
+  section de décision : §2(e) interdit de distribuer le Software, son exception
+  « distributable code, subject to the terms above » ne renvoie à aucun grant dans
+  le §1, et §1(g) confirme que les composants sont du Software. A (livrer
+  `SimConnect.dll`) et B (embarquer `SimConnect.msi`) sont donc écartées. Thrustline
+  ne fournit pas la bibliothèque : la télémétrie live n'existe que sur une machine
+  qui en possède déjà une, par SDK installé volontairement ou par
+  `--simconnect-library`. La sonde de J1 n'est **pas** élargie en compensation.
+- fichiers modifiés : ce fichier (section de décision, jalon J3, critères,
+  rollback, ce rapport), `docs/SUPPORT.md` (limitation énoncée et contradiction
+  « ni SDK MSFS » résolue), `docs/KNOWN_ISSUES.md` (`KI-033` créée),
+  `docs/CURRENT_STATE.md`, `docs/features/README.md`. **Aucun fichier sous
+  `apps/`, aucun binaire, aucun changement de layout de publication ni
+  d'installateur.**
+- commandes et résultats : `pnpm maintenance:check` vert. Les gates de packaging et
+  le budget de fondation de 128 Mio sont sans objet — rien n'est ajouté au layout,
+  donc il n'y a rien à mesurer.
+- vérification manuelle : vérification disque du SDK 1.5.7 tel qu'installé —
+  `C:\MSFS2024SDK\Licenses\MSFS SDK EULA.pdf` est la seule licence couvrant le SDK ;
+  les autres licences présentes (`Tools\`, `WASM\`) couvrent des composants tiers
+  sans rapport ; et `SimConnect SDK\installer\SimConnect.msi` comme
+  `lib\SimConnect.dll` n'ont aucune licence distincte, aucune notice de
+  redistribution, aucun dossier `redist`. Le §7 (« supplements ») ne fournit donc
+  rien ici.
+- revue et constats traités : la licence est citée clause par clause et non résumée
+  de mémoire — c'était l'exigence explicite du jalon. La lecture repose sur une
+  **absence** (aucun grant de distributable code), ce qui est consigné comme réserve
+  et non masqué : ce n'est pas un avis juridique. Constat traité plutôt que laissé :
+  `docs/SUPPORT.md` affirmait « L'utilisateur ne doit installer ni SDK .NET, ni
+  outils de développement, ni SDK MSFS », ce que l'option C contredit
+  frontalement — la règle est corrigée pour distinguer ce que l'application exige
+  (rien) de ce que la télémétrie live exige (une bibliothèque que la personne
+  possède). Voie de sortie non fermée et consignée en `Follow-ups` : le §2 prévoit
+  « unless otherwise approved in writing by Microsoft ».
 
 ### Synthèse
 
+Cette fonctionnalité est partie d'une question d'Andy — « il faut qu'on le trouve
+nous-même, dans l'hypothèse où la personne n'a rien de tout ça » — et elle y répond
+en deux temps qui ne se recouvrent pas.
+
+**Le trouver, oui, et c'est fait.** Le chargeur d'origine ne pouvait réussir sur
+aucune machine où le SDK n'est pas dans un répertoire cherché — pas même sur la
+machine de validation, MSFS 2024 et SDK 1.5.7 installés. `SimConnectLibraryLocator`
+le corrige par une liste ordonnée et fermée, un chargement par chemin absolu, et un
+refus prouvé de toute source hors liste. 44 tests bridge, vérification manuelle sur
+le bridge publié, `KI-031` résolue.
+
+**Le fournir, non, et la licence l'interdit.** L'EULA du SDK ne contient aucun grant
+de distributable code : ni `SimConnect.dll` ni `SimConnect.msi` ne peuvent être
+redistribués. La découverte était donc nécessaire mais insuffisante, exactement
+comme le `Context` le pressentait — et l'insuffisance n'est pas technique, elle est
+contractuelle. Sur une machine sans bibliothèque cliente, Thrustline dit la vérité
+au lieu d'échouer sans explication, et c'est tout ce qu'il peut faire.
+
+Le résultat net est honnête et inconfortable : la capacité centrale du produit —
+la télémétrie live — ne fonctionne aujourd'hui que pour qui installe volontairement
+un SDK de développement, ou pointe une copie qu'il possède déjà. C'est consigné en
+`KI-033`, pas dissimulé dans un statut `Done`.
+
 ### Risks and limitations
 
+- **La télémétrie live n'est atteignable par presque aucun utilisateur final**, et
+  aucun chemin que nous contrôlons ne change cela : la redistribution est interdite,
+  et MSFS 2024 n'expose sur la machine qu'un `SimConnect_internal.dll` — nom
+  différent, protégé par ACL, qui n'est pas la bibliothèque cliente. C'est `KI-033`,
+  et c'est la limitation dominante de cette unité.
+- **La lecture de licence repose sur une absence.** Le §2(e) renvoie à un
+  « distributable code » que le §1 ne définit jamais. C'est une lecture solide, ce
+  n'est pas un avis juridique, et le produit ne devrait pas parier gros dessus sans
+  conseil.
+- **`--simconnect-library` déplace une décision vers la personne.** Le chemin
+  explicite est borné et validé (absolu, nom imposé, fichier réel, pas de point de
+  réanalyse, source native seulement, aucun repli), mais il reste un chemin par
+  lequel une personne peut désigner un binaire qu'elle exécute dans notre processus.
+  C'est volontaire et documenté ; ce n'est pas sans conséquence.
+- **La liste fermée vieillira** — `KI-032`, acceptée, revalidée à chaque évolution
+  du SDK.
+- **La moitié desktop de J2 n'est pas livrée ici** : elle vit dans F0007, dont le
+  démarrage dépendait de la sortie de cette unité.
+
 ### Follow-ups
+
+- **Autorisation écrite de Microsoft — décision d'Andy, non prise.** Le §2 de l'EULA
+  réserve explicitement « unless otherwise approved in writing by Microsoft ». C'est
+  la seule voie qui rouvrirait l'option A ou B, et donc la seule qui rendrait la
+  télémétrie live atteignable par un utilisateur ordinaire. Demander cette
+  autorisation est une démarche produit et juridique, pas une tâche d'ingénierie :
+  elle appartient à Andy. Tant qu'elle n'est pas engagée, `KI-033` reste ouverte et
+  l'alpha n'a pas de télémétrie live pour ses utilisateurs.
 
 - **Matrice de validation d'`ADR-0003`** — le cas « bibliothèque cliente
   SimConnect absente » n'entre pas dans le scénario 14 (« variable absente,
@@ -456,9 +619,11 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   prérequis. Décision d'Andy du 7 août 2026 : **aucune modification d'`ADR-0003`
   ici**, ni depuis cette unité ni par réécriture. L'extension de la matrice
   passera par une **ADR nouvelle**, au moment de la première promotion d'un canal
-  vers `Supported` (T0059, puis F0003 J3 selon l'option retenue) — écrire cette
-  ADR maintenant fixerait une barre de promotion pour une capacité qu'aucune
-  machine utilisateur ne peut atteindre tant que J3 n'est pas tranché.
+  vers `Supported` (T0059). Précision du 7 août 2026, J3 étant désormais tranché :
+  la raison d'attendre reste entière et s'est même renforcée — sous l'option C
+  aucune machine utilisateur ne peut atteindre la télémétrie live sans installer un
+  SDK, donc fixer maintenant une barre de promotion pour cette capacité n'aurait
+  rien à valider.
 - **Moitié desktop de J2** — portée dans **F0007** le 7 août 2026 : affichage
   « télémétrie indisponible » et vérification que les capacités livrées restent
   utilisables sans télémétrie. Elle dépend du câblage superviseur ↔ bridge que
