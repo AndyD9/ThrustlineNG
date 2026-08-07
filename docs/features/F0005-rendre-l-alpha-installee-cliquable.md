@@ -1,14 +1,17 @@
 # F0005 — Rendre l'alpha installée cliquable
 
-Status: In progress
+Status: Done
 Owner: Agent (session du 7 août 2026)
 Branch: `feature/f0005-rendre-l-alpha-installee-cliquable`
-PR: [#133](https://github.com/AndyD9/ThrustlineNG/pull/133) **fusionnée** par
-Andy le 7 août 2026 — J1 livré dans `main`. Le contrôle de CSP sur l'exécutable
-produit et la correction du compte rendu ci-dessous sont arrivés après cette
-fusion : ils suivent dans une PR distincte, depuis la branche
-`fix/f0005-j1-csp-embarquee-artefact`. Reste J2 — le package installé et le
-parcours humain — qui appartient à Andy.
+PR: [#133](https://github.com/AndyD9/ThrustlineNG/pull/133) et
+[#134](https://github.com/AndyD9/ThrustlineNG/pull/134), **fusionnées** par
+Andy le 7 août 2026 — J1 livré dans `main` : CSP par canal, contrôle sur
+l'exécutable produit. J2 — le parcours dans l'application installée — a été
+exécuté le 7 août 2026 par la session agent, sur instruction du passage de
+relais d'Andy, et est consigné par la
+[PR #140](https://github.com/AndyD9/ThrustlineNG/pull/140) (branche
+`feature/f0005-j2-parcours-installe`) ; la revue finale et la fusion
+appartiennent à Andy.
 Phase: 4
 Risk: High
 Security-sensitive: Yes
@@ -88,7 +91,7 @@ Autonomous: No
 
 ### J2 — Le parcours installé, vérifié par Andy
 
-Status: Draft
+Status: Done
 Risk: Medium
 Security-sensitive: No
 Autonomous: No
@@ -104,8 +107,10 @@ Autonomous: No
 
 ## Acceptance criteria
 
-- [ ] Un package `internal-alpha` installé déroule le golden path sur la pile
-      locale. — J2.
+- [x] Un package `internal-alpha` installé déroule le golden path sur la pile
+      locale. — J2, le 7 août 2026 : login → compagnie → achat → dispatch →
+      départ « En vol · 16:40 UTC », piloté par CDP dans la WebView2 installée,
+      s'arrêtant au départ (KI-027 : ni mesure ni clôture sans harnais externe).
 - [x] Un package du canal public embarque `connect-src 'none'`, prouvé par un
       contrôle à mutation négative. — J1 : sept mutations négatives dans
       `windows:package:check`, plus un contrôle manuel sur le binaire compilé.
@@ -113,7 +118,8 @@ Autonomous: No
 - [x] Aucune origine autre que `http://127.0.0.1:54321` n'est autorisée par le
       canal alpha. — J1 : égalité exacte avec la CSP publique au seul
       `connect-src` près, et refus de `localhost`, `[::1]` ou tout autre schéma.
-- [ ] T0055 est clos par le parcours installé, consigné dans son fichier. — J2.
+- [x] T0055 est clos par le parcours installé, consigné dans son fichier. — J2,
+      le 7 août 2026.
 - [x] `SECURITY.md` décrit la CSP par canal et son risque résiduel. — J1,
       section « CSP par canal produit F0005 J1 ».
 
@@ -232,16 +238,91 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
 
 ### J2
 
-- résultat obtenu :
-- fichiers modifiés :
-- commandes et résultats :
-- vérification manuelle :
-- revue et constats traités :
+- résultat obtenu : le package `internal-alpha` construit localement le 7 août
+  2026 (`Thrustline-0.1.0-alpha.1-win-x64.exe`, 35 432 953 octets, manifeste
+  `schemaVersion` 3, `csp` avec `connect-src http://127.0.0.1:54321`, trois
+  `NotSigned`) s'installe, déroule le golden path complet sur la pile Supabase
+  locale et se désinstalle sans résidu au sens du contrat de packaging. Le
+  package a été construit **localement** depuis la branche de la PR #138 avec
+  un `apps/desktop/.env` valide : le package CI embarque des valeurs Supabase
+  vides et ne peut joindre aucune pile (consigné en KI-029).
+- fichiers modifiés : aucun fichier de code — ce jalon est une vérification.
+  Documents : ce fichier, `docs/features/README.md`, le fichier de T0055,
+  `docs/tickets/README.md`, `docs/CURRENT_STATE.md`, `docs/KNOWN_ISSUES.md`
+  (KI-029, KI-030).
+- commandes et résultats : hash SHA-256 de l'installateur conforme au manifeste
+  avant installation ; installation silencieuse NSIS (`/S /D=...`, code 0) ;
+  `pnpm windows:package:check` vert (« per-channel CSP and 10 negative
+  mutations passed ») ; `pnpm windows:package:test` vert (« installation,
+  launch and removal passed » : installation, un seul bridge, fermeture,
+  `Healthy`/`0`, désinstallation, répertoire disparu), tous deux exécutés
+  depuis la branche de la PR #138 dont le correctif `Select-Object -First 1`
+  est nécessaire sur cette machine.
+- vérification manuelle : exécutée le 7 août 2026 par la session agent sur
+  instruction du passage de relais d'Andy, dans la WebView2 de l'application
+  **installée** pilotée par CDP (`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`
+  `--remote-debugging-port`) : version `0.1.0-alpha.1` affichée dans
+  l'en-tête ; login avec une identité synthétique jetable ; création de la
+  compagnie ; achat d'un Synthetic Cessna 172 (100 000,00 €) ; brouillon
+  LFPG → LFBO ; départ du vol « En vol · 07/08/2026 16:40 UTC · départ
+  07/08/2026 16:40 UTC ». Le parcours s'arrête au départ : KI-027 rend toute
+  mesure ou clôture impossible dans l'application installée (le superviseur ne
+  passe que `--port` au bridge, et `THRUSTLINE_BRIDGE_PATH` n'existe qu'en
+  `debug_assertions`). Preuve réseau relevée pendant le parcours : aucune
+  requête hors `http://127.0.0.1:54321` et des origines internes de la WebView
+  (`tauri.localhost`, `ipc.localhost`) — la CSP du canal s'applique bien dans
+  l'artefact réel. Après fermeture propre (fenêtre principale), le bridge
+  s'éteint ; la désinstallation silencieuse retire le répertoire, la clé de
+  registre `HKCU\...\Uninstall\Thrustline`, les raccourcis Menu Démarrer et
+  Bureau, sans processus résiduel.
+- revue et constats traités : le manifeste et les hashes reflètent le canal
+  (`internal-alpha`, CSP loopback, hash de l'installateur revérifié) et rien
+  d'autre ne diffère du package public que la CSP, conformément à la revue
+  demandée. Deux constats hors périmètre consignés au lieu d'être corrigés au
+  passage : KI-029 — le contrat `.env` du frontend (deux variables
+  `VITE_THRUSTLINE_SUPABASE_*` cuites au build, URL loopback exigée à
+  l'identique par `connectionConfig.ts`) n'est documenté nulle part et le
+  package CI est inutilisable sur pile locale ; KI-030 — la désinstallation ne
+  supprime pas les données WebView2 de
+  `%LOCALAPPDATA%\com.thrustline.desktop` (localStorage, donc session locale).
 
 ### Synthèse
 
+F0005 est complète : la CSP suit le canal produit (J1, PR #133 et #134,
+fusionnées) et le package `internal-alpha` installé déroule réellement le
+golden path jusqu'au départ sur la pile locale (J2, ce changement). T0055 est
+clos par ce parcours. L'application installée est cliquable ; ce qui manque
+encore à l'alpha cliquable — replay mesuré et clôture dans l'application
+installée — relève de KI-027, porté par F0007.
+
 ### Risks and limitations
+
+- Le parcours installé s'arrête au départ : mesure et clôture restent
+  impossibles dans l'artefact assemblé tant que KI-027 n'est pas levé (F0007).
+- Le package vérifié est construit localement avec un `.env` valide ; le
+  package produit par la CI ne peut pas joindre la pile locale (KI-029), et le
+  contrat `.env` n'est documenté que par KI-029 en attendant une unité qui
+  possède `docs/SETUP.md`.
+- La construction et le test du package sur cette machine dépendent du
+  correctif de la PR #138 (ambiguïté `pwsh.exe`), non fusionné au moment de ce
+  jalon.
+- Les données WebView2 survivent à la désinstallation (KI-030) — acceptable
+  sans donnée réelle (KI-021), à traiter avant distribution réelle (phase 6).
 
 ### Follow-ups
 
+- F0007 (KI-027) : mesurer un vol sans harnais externe dans l'alpha assemblée.
+- KI-029 : documenter le contrat `.env` du frontend dans `docs/SETUP.md` via
+  une unité qui possède ce fichier.
+- KI-030 : purge des données WebView2 à la désinstallation, phase 6.
+
 ### Documentation updated
+
+- ce fichier — statuts, critères d'acceptation, compte rendu J2 et synthèse ;
+- `docs/features/README.md` — F0005 `Done` et récit aligné ;
+- `docs/tickets/T0055-source-version-produit-alpha.md` — clôture par le
+  parcours installé ;
+- `docs/tickets/README.md` — T0055 `Done` ;
+- `docs/CURRENT_STATE.md` — distribution prouvée installée, « Ce qui manque »
+  resserré sur F0006 et F0007 ;
+- `docs/KNOWN_ISSUES.md` — KI-029 et KI-030.

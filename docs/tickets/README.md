@@ -78,7 +78,7 @@
 | T0052 | Composer la préparation de dispatch depuis le desktop | 2–4 | T0038, T0041, T0044, T0046, T0048 | Done |
 | T0053 | Lire et actualiser les dispatchs depuis le desktop | 4 | T0038, T0044, T0046–T0047, T0052 | Done |
 | T0054 | Publier la télémétrie bornée du bridge sur le contrat local | 3 | T0010–T0011, T0015 | Done |
-| T0055 | Fixer la source canonique de version produit et livrer l'alpha technique interne | 1–6 | T0006, T0014–T0015, T0043–T0048 | Verify |
+| T0055 | Fixer la source canonique de version produit et livrer l'alpha technique interne | 1–6 | T0006, T0014–T0015, T0043–T0048 | Done |
 | T0056 | Clôturer les vérifications interactives T0007 à T0009 | 1 | T0007–T0009, T0015, décision Andy | Ready |
 | T0057 | Créer un référentiel d'aérodromes borné et autoritaire | 2 | T0024, T0047–T0048, décision Andy | Done |
 | T0058 | Borner les avis Cargo informatifs par un gate déterministe | Gouvernance | T0013, T0016, T0030 | Done |
@@ -131,15 +131,15 @@ réglé. La location T0032 reste hors du gate de l'alpha et conserve son statut
 `Draft`. T0011 reste `Verify` jusqu'aux essais MSFS 2024 réels, désormais portés
 par T0059, et n'est pas couvert par T0056.
 
-T0055 est `Verify` depuis le 4 août 2026 sur
-`chore/T0055-product-version-source` : la source canonique
+T0055 est `Done` depuis le 7 août 2026 : la source canonique
 `eng/product-version.json` porte `0.1.0-alpha.1`, ses cinq cibles sont alignées,
 son gate `pnpm product-version:check` passe avec six mutations négatives et le
 package NSIS non signé `Thrustline-0.1.0-alpha.1-win-x64.exe` s'installe, se
-lance et se désinstalle sans résidu. La PR #104 est ouverte vers `main` avec ses
-trois checks verts, sans être fusionnée. Seul le parcours interactif login →
-compagnie → catalogue → achat dans l'application installée reste à confirmer par
-Andy. Aucun tag n'est créé.
+lance et se désinstalle sans résidu. Le parcours interactif dans l'application
+installée — impossible par conception tant que la CSP de production restait
+`connect-src 'none'` — est exécuté le 7 août 2026 via le canal `internal-alpha`
+de F0005 (J2) : login → compagnie → achat, puis dispatch et départ, sur la pile
+locale. Aucun tag n'est créé.
 
 T0054 est `Done` depuis la fusion de la PR #99 dans `main` au merge `3a2c292` le
 4 août 2026 : le flux moteur de vol et bridge publie la télémétrie bornée sur le

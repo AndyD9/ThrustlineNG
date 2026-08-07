@@ -36,7 +36,7 @@ gelée du format précédent.
 | F0002 | Clôturer son vol et encaisser son revenu depuis l'application | 2–4 | T0051, T0057, F0001 fusionnée, F0004 fusionnée | Done |
 | F0003 | Trouver SimConnect nous-mêmes, ou le dire proprement | 3 | T0011, T0054, ADR-0003, ADR-0004 | Ready |
 | F0004 | Voir le temps de bloc mesuré de son vol en replay | 3–4 | T0054, T0010, F0001 fusionnée, décision Andy prise le 6 août 2026 | Done |
-| F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | In progress |
+| F0005 | Rendre l'alpha installée cliquable | 4 | T0014, T0038, T0055, décision Andy prise le 6 août 2026, vérification humaine J2 | Done |
 | F0006 | Rattacher la mesure de vol à son dispatch et la réarmer entre deux vols | 3–4 | F0004 fusionnée, décisions Andy des 7 août 2026 (KI-028, « go 1 ») | Verify |
 | F0007 | Mesurer un vol sans harnais externe | 3–4 | F0004 et F0006 fusionnées, décision d'Andy sur l'origine de la trace **non prise** | Draft |
 
@@ -76,21 +76,23 @@ jeton ni génération, l'application arme au départ et échoue fermé sur toute
 mesure non rattachée — plus le branchement de la clôture F0002 absorbé après la
 fusion de la PR #131. Elle est `Verify` et non `Done` parce que son propre
 compte rendu laisse une chose ouverte : le parcours manuel deux-vols-d'affilée,
-qui appartient à Andy. KI-028 est résolue par cette fusion, mais reste
-`Scheduled` dans `docs/KNOWN_ISSUES.md` : le gate de maintenance n'accepte
-qu'un `TXXXX` comme référence d'une entrée `Resolved` et ne connaît pas encore
-les `FXXXX` du format T0068 — l'évolution de ce gate appartient à Andy.
+qui appartient à Andy. KI-028 est `Resolved` dans `docs/KNOWN_ISSUES.md`
+depuis la PR #136 (fusionnée le 7 août 2026), qui a appris au gate de
+maintenance les références `FXXXX` sur décision d'Andy.
 
-F0005 est `In progress` sur la
+F0005 est `Done` sur la
 seconde décision du même jour : le canal `internal-alpha` reçoit une CSP
 limitée à `http://127.0.0.1:54321` pendant que le canal public garde
-`connect-src 'none'`, ce qui rendra l'application installée réellement
-cliquable et clôturera T0055. Son J1 est `Done` et **livré dans `main`**
-(PR #133 et #134, fusionnées le 7 août 2026) — surcouche de canal, garde
-d'allowlist dans le script de packaging, CSP inscrite au manifeste, huit
-mutations négatives, et un contrôle qui relit la CSP réellement embarquée dans
-l'exécutable produit. Son J2, le package installé parcouru à la main,
-appartient à Andy.
+`connect-src 'none'`. Son J1 est **livré dans `main`** (PR #133 et #134,
+fusionnées le 7 août 2026) — surcouche de canal, garde d'allowlist dans le
+script de packaging, CSP inscrite au manifeste, mutations négatives, et un
+contrôle qui relit la CSP réellement embarquée dans l'exécutable produit. Son
+J2 est exécuté le 7 août 2026 sur instruction du passage de relais d'Andy : le
+package `internal-alpha` construit localement s'installe, déroule le golden
+path jusqu'au départ sur la pile locale (piloté par CDP, aucune requête hors
+loopback) et se désinstalle sans résidu — ce qui clôt T0055. Le parcours
+s'arrête au départ : mesure et clôture dans l'application installée relèvent
+de KI-027, porté par F0007.
 
 F0007 est `Draft` et porte **KI-027**, le dernier trou entre « l'alpha cliquable »
 et « l'alpha qui mesure » : l'application intégrée ne produit pas de temps de

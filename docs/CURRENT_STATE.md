@@ -1,6 +1,6 @@
 # État actuel du dépôt
 
-Dernière mise à jour : 6 août 2026. Ce fichier reste sous 200 lignes par
+Dernière mise à jour : 7 août 2026. Ce fichier reste sous 200 lignes par
 décision d'Andy du 6 août 2026 — le gate de maintenance l'impose : il liste ce
 qui est réellement livré dans `main`, ce qui manque pour le jalon courant, et
 rien d'autre. Les statuts détaillés vivent dans `docs/features/README.md` et
@@ -35,13 +35,16 @@ Toutes les preuves sont locales ou CI, sur données synthétiques uniquement
 | Backend | Clôture de vol complète : règlement au grand livre, réputation informative, frontière Edge authentifiée prouvée sur l'Edge Runtime réel | T0051, F0002 |
 | Desktop | Login, onboarding, catalogue/achat, flotte, création et liste de dispatchs, démarrage de vol avec heure serveur, clôture sur mesure télémétrique rattachée au vol clôturé, revenu affiché depuis le serveur | T0037–T0046, T0052, T0053, F0001, F0002, F0006 |
 | Bridge | Contrat local loopback à jeton, adaptateur SimConnect replay, télémétrie bornée, résumé de vol mesuré par générations réarmables et rattaché à son dispatch côté Tauri | T0010, T0011, T0054, F0004, F0006 |
-| Distribution | Version produit `0.1.0-alpha.1` (source `eng/product-version.json`), NSIS x64 non signé, CSP par canal produit (`internal-alpha` limité au loopback, public `connect-src 'none'`) prouvée sur l'exécutable produit | T0014, T0055, F0005 J1 |
+| Distribution | Version produit `0.1.0-alpha.1` (source `eng/product-version.json`), NSIS x64 non signé, CSP par canal produit (`internal-alpha` limité au loopback, public `connect-src 'none'`) prouvée sur l'exécutable produit, golden path déroulé dans l'application installée jusqu'au départ | T0014, T0055, F0005 |
 | Socle | Toolchain épinglée, CI multi-stack, supply chain, gates autorité/données/maintenance | T0001–T0030 |
 
 Limite transverse : les compositions desktop sont prouvées en jsdom avec `fetch`
 injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
 2026** (app Tauri dev sur la pile locale : login → compagnie → achat → dispatch
-→ départ « En vol » avec l'heure serveur, F0001).
+→ départ « En vol » avec l'heure serveur, F0001), **et le même parcours déroulé
+le 7 août 2026 dans l'application installée** (canal `internal-alpha`, pile
+locale, jusqu'au départ — F0005 J2 ; mesure et clôture installées relèvent de
+KI-027/F0007).
 
 ## Unités en cours
 
@@ -49,27 +52,21 @@ injecté, **plus un premier parcours WebView live vérifié par Andy le 6 août
   réarmer entre deux vols : **livrée dans `main`** (PR #132, fusionnée le
   7 août 2026), y compris le branchement de la clôture F0002. Ne reste que le
   parcours manuel deux-vols-d'affilée, qui appartient à Andy.
-- **F0005** (`In progress`) — CSP `internal-alpha` limitée au loopback pour
-  rendre l'application installée cliquable et clore T0055 (décision du 6 août
-  2026). **J1 livré dans `main`** (PR #133 et #134, fusionnées le 7 août
-  2026) : la CSP suit le canal produit par allowlist, le canal public reste
-  `connect-src 'none'`, et le build refuse un exécutable dont la CSP embarquée
-  n'est pas celle de son canal. Reste J2 — package installé et parcours
-  humain, qui appartient à Andy.
 - **F0003** (`Ready`) — découverte de la bibliothèque SimConnect ou dégradation
   propre ; son J3 attend une décision d'Andy (fourniture de la DLL) et la
   lecture de l'EULA du SDK.
 
 ## Ce qui manque pour l'alpha cliquable
 
-1. F0005 J2 — le parcours dans l'application **installée**, qui clôt T0055. La
-   CSP par canal est livrée dans `main` (J1) ; reste à produire le package
-   `internal-alpha`, l'installer et y dérouler le golden path.
-2. Deux vérifications manuelles d'Andy sur du code déjà fusionné : le parcours
-   deux-vols-d'affilée de F0006, et le parcours installé de F0005 J2 ci-dessus.
+1. La vérification deux-vols-d'affilée de F0006 (code livré dans `main`,
+   vérifiable uniquement sur un build dev — KI-027).
+2. F0007 (KI-027) — le vol en replay mesuré et la clôture dans l'application
+   **installée** : l'alpha assemblée ne produit aucune mesure sans harnais
+   externe ; son J1 attend la décision d'Andy sur l'origine de la trace.
 
-Le câblage du golden path est complet dans `main` depuis la fusion de F0006 :
-départ, mesure rattachée et réarmable, clôture et règlement au grand livre.
+Le câblage du golden path est complet dans `main` depuis la fusion de F0006 —
+départ, mesure rattachée et réarmable, clôture et règlement au grand livre — et
+le parcours installé est prouvé jusqu'au départ depuis F0005 J2 (7 août 2026).
 
 ## Hors du jalon, suivi ailleurs
 

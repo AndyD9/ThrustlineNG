@@ -1,6 +1,6 @@
 # T0055 — Fixer la source canonique de version produit et livrer l'alpha technique interne
 
-Status: Verify
+Status: Done
 Owner: Andy
 Branch: `chore/T0055-product-version-source`
 Phase: 1–6
@@ -115,11 +115,13 @@ fonctionnelle.
       exactement cette version, sans valeur opaque ni chemin utilisateur.
 - [x] Le nouveau gate échoue sur au moins trois mutations négatives réellement
       exécutées et passe sur l'état livré.
-- [ ] Le package NSIS non signé s'installe, permet le parcours d'alpha technique
+- [x] Le package NSIS non signé s'installe, permet le parcours d'alpha technique
       sur la pile locale et se désinstalle sans résidu. Installation, lancement,
       bridge `Healthy`/`0`, fermeture et désinstallation sans résidu sont prouvés
-      le 4 août 2026 ; le parcours interactif login → compagnie → catalogue →
-      achat dans l'application installée reste à exécuter par Andy.
+      le 4 août 2026 ; le parcours interactif dans l'application installée est
+      exécuté le 7 août 2026 (F0005 J2) — la CSP de production `connect-src
+      'none'` le rendait impossible par conception jusqu'au canal
+      `internal-alpha` livré par F0005 J1.
 - [x] Les gates frontend, desktop, bridge, packaging et budgets applicables
       passent avec leurs compteurs réellement observés.
 - [x] La documentation nomme le jalon comme interne, non signé et sans donnée
@@ -294,14 +296,26 @@ valeurs ci-dessus sont celles de la seconde.
 2. Package, hashes et statuts `NotSigned` : exécuté, les trois hashes du
    manifeste correspondent aux fichiers et les trois statuts sont `NotSigned`.
 3. Installation, pile locale, parcours login → compagnie → catalogue → achat et
-   relevé de la version affichée : **non exécuté**. Installation, lancement,
-   fenêtre `Thrustline`, bridge unique, `Healthy`/`0` et fermeture sont prouvés
-   par `windows:package:test`, mais le parcours dans la WebView exige une session
-   humaine avec la pile Supabase locale démarrée. Cette étape appartient à Andy.
+   relevé de la version affichée : **exécuté le 7 août 2026** (F0005 J2). Le
+   constat du 4 août tenait toujours — la CSP de production `connect-src 'none'`
+   rendait ce parcours impossible par conception — jusqu'à la CSP par canal de
+   F0005 J1. Sur le package `internal-alpha` construit localement, installé en
+   silencieux : version `0.1.0-alpha.1` affichée dans l'en-tête, login avec une
+   identité synthétique jetable, création de compagnie, achat d'un Synthetic
+   Cessna 172, puis — au-delà du périmètre exigé ici — dispatch LFPG → LFBO et
+   départ « En vol · 07/08/2026 16:40 UTC ». Parcours piloté par CDP dans la
+   WebView2 installée, sur instruction du passage de relais d'Andy ; aucune
+   requête réseau hors loopback observée. Détail dans le Completion Report J2
+   de F0005.
 4. Désinstallation sans résidu : exécuté, la cible d'installation disparaît et
-   aucun processus, fichier ou enregistrement Thrustline ne subsiste.
+   aucun processus, fichier ou enregistrement Thrustline ne subsiste. Revérifié
+   le 7 août 2026 (répertoire, clé de registre, raccourcis, processus) ; seule
+   exception, hors contrat du packaging : les données WebView2 de
+   `%LOCALAPPDATA%\com.thrustline.desktop` survivent à la désinstallation,
+   consigné en KI-030.
 
-Le ticket reste donc `Verify` : seule l'étape 3 manque pour le passer `Done`.
+Le ticket passe donc `Done` le 7 août 2026 : l'étape 3, dernière manquante, est
+exécutée dans l'application installée via le canal `internal-alpha` de F0005.
 
 ### Risks and limitations
 
