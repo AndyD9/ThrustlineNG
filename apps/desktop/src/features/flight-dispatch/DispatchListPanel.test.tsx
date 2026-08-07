@@ -359,7 +359,7 @@ describe("DispatchListPanel", () => {
     await user.click(
       screen.getByRole("button", { name: "Afficher le temps de bloc · LFPO → EGLL" }),
     );
-    expect(await screen.findByText("Temps de bloc mesuré : 42 min.")).toBeInTheDocument();
+    expect(await screen.findByText("Dernière mesure de replay de la session : 42 min.")).toBeInTheDocument();
     expect(summaryCommand).toHaveBeenCalledExactlyOnceWith();
   });
 

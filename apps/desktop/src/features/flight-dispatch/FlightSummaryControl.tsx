@@ -68,7 +68,12 @@ export function FlightSummaryControl({
       <span aria-live="polite" aria-atomic="true">
         {state.kind === "pending" && <span>Lecture du résumé de vol.</span>}
         {state.kind === "measured" && state.summary.state === "completed" && (
-          <span>Temps de bloc mesuré : {state.summary.blockMinutes} min.</span>
+          // Le résumé du bridge ne porte pas d'identité de vol et son tracker
+          // est terminal pour la session : le libellé ne rattache donc pas la
+          // mesure au vol de la ligne (KI-028, rattachement prévu par F0002).
+          <span>
+            Dernière mesure de replay de la session : {state.summary.blockMinutes} min.
+          </span>
         )}
         {state.kind === "measured" && state.summary.state === "running" && (
           <span>Replay en cours : la mesure se poursuit.</span>

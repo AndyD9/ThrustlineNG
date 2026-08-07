@@ -385,7 +385,11 @@ Un bloc par jalon, rempli au moment de son commit, puis une synthèse.
   pas de budget de durée totale, dépassement de borne rendu `unavailable` au
   lieu d'`invalid-response`) — code sécurité J2, à retoucher sous revue et
   non à la volée. L'écart `HomePage.tsx` est confirmé sans logique (seam de
-  test, la production passe par le défaut).
+  test, la production passe par le défaut). **Arbitrage du constat séquentiel
+  rendu par Andy le 7 août 2026** (plusieurs vols d'affilée requis) :
+  libellé sans rattachement « Dernière mesure de replay de la session » +
+  `KI-028` faisant du rattachement résumé ↔ vol et du réarmement du tracker
+  des prérequis de F0002.
 
 ### Synthèse
 
@@ -408,10 +412,12 @@ revue adversariale de la PR et la décision d'Andy.
   L'exclusivité serveur est par avion, pas par compagnie (revue adversariale
   du 7 août 2026) : deux vols actifs sont possibles, et l'affichage est alors
   fail-closed — le contrôle n'est rendu que lorsqu'exactement un vol est
-  actif. Reste le cas séquentiel : le tracker du bridge est terminal pour la
-  session, donc un résumé `completed` d'un vol précédent peut être relu sur
-  le vol suivant tant que le résumé ne porte pas d'identité de vol —
-  arbitrage d'Andy demandé, rattachement au vol prérequis de F0002.
+  actif. Cas séquentiel (tracker terminal pour la session : un résumé
+  `completed` d'un vol précédent est relu sur le vol suivant) — **décision
+  d'Andy du 7 août 2026** : plusieurs vols d'affilée sont requis ; le libellé
+  ne rattache donc pas la mesure au vol (« Dernière mesure de replay de la
+  session : N min. ») et le rattachement résumé ↔ vol plus le réarmement du
+  tracker sont des prérequis de F0002, consignés en `KI-028`.
 - Le temps mesuré reste une déclaration côté client : `close_flight` conserve
   `min(déclaré, écoulé serveur)` (T0051).
 - Mesure replay uniquement ; la source native (T0059/F0003) devra revalider la

@@ -38,7 +38,7 @@ describe("FlightSummaryControl", () => {
 
     await user.click(screen.getByRole("button", { name: /Afficher le temps de bloc/ }));
 
-    expect(await screen.findByText("Temps de bloc mesuré : 42 min.")).toBeInTheDocument();
+    expect(await screen.findByText("Dernière mesure de replay de la session : 42 min.")).toBeInTheDocument();
     expect(command).toHaveBeenCalledExactlyOnceWith();
     expect(
       screen.getByRole("button", { name: "Actualiser la mesure · LFPO → EGLL" }),
@@ -89,7 +89,7 @@ describe("FlightSummaryControl", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("indisponible");
 
     await user.click(screen.getByRole("button", { name: "Réessayer · A → B" }));
-    expect(await screen.findByText("Temps de bloc mesuré : 42 min.")).toBeInTheDocument();
+    expect(await screen.findByText("Dernière mesure de replay de la session : 42 min.")).toBeInTheDocument();
     expect(command).toHaveBeenCalledTimes(2);
   });
 
@@ -108,7 +108,7 @@ describe("FlightSummaryControl", () => {
     expect(screen.getByRole("button", { name: /Lecture…/ })).toBeDisabled();
 
     resolve(completedSummary);
-    expect(await screen.findByText("Temps de bloc mesuré : 42 min.")).toBeInTheDocument();
+    expect(await screen.findByText("Dernière mesure de replay de la session : 42 min.")).toBeInTheDocument();
     expect(command).toHaveBeenCalledOnce();
   });
 });
